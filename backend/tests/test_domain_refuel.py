@@ -120,9 +120,7 @@ class TestConfirmRefuelCombinations:
         assert out.total_cost is None
 
     def test_price_and_liters_computes_total(self):
-        out = confirm_refuel(
-            pending_refuel(), price_per_liter=D("6.19"), liters=D("0.600")
-        )
+        out = confirm_refuel(pending_refuel(), price_per_liter=D("6.19"), liters=D("0.600"))
         assert out.status == "confirmed"
         # 6.19 * 0.60 = 3.714 -> 3.71 (ROUND_HALF_UP to 0.01)
         assert out.total_cost == D("3.71")
@@ -130,18 +128,14 @@ class TestConfirmRefuelCombinations:
         assert out.liters == D("0.600")
 
     def test_price_and_total_computes_liters(self):
-        out = confirm_refuel(
-            pending_refuel(), price_per_liter=D("6.19"), total_cost=D("3.71")
-        )
+        out = confirm_refuel(pending_refuel(), price_per_liter=D("6.19"), total_cost=D("3.71"))
         assert out.status == "confirmed"
         # 3.71 / 6.19 = 0.59935... -> 0.599 (ROUND_HALF_UP to 0.001)
         assert out.liters == D("0.599")
         assert out.total_cost == D("3.71")
 
     def test_liters_and_total_computes_price(self):
-        out = confirm_refuel(
-            pending_refuel(), liters=D("0.600"), total_cost=D("3.71")
-        )
+        out = confirm_refuel(pending_refuel(), liters=D("0.600"), total_cost=D("3.71"))
         assert out.status == "confirmed"
         # 3.71 / 0.60 = 6.1833... -> 6.183
         assert out.price_per_liter == D("6.183")
@@ -152,21 +146,15 @@ class TestConfirmRefuelCombinations:
 
     def test_price_rounding_half_up(self):
         # 2.469 / 2 = 1.2345 -> 1.235 (ROUND_HALF_UP at 0.001)
-        out = confirm_refuel(
-            pending_refuel(), liters=D("2.000"), total_cost=D("2.469")
-        )
+        out = confirm_refuel(pending_refuel(), liters=D("2.000"), total_cost=D("2.469"))
         assert out.price_per_liter == D("1.235")
 
     def test_total_rounding_half_up(self):
         # 6.19 * 0.65 = 4.0235 -> 4.02? HALF_UP on 0.005 boundary: 4.0235 -> 4.02
-        out = confirm_refuel(
-            pending_refuel(), price_per_liter=D("6.19"), liters=D("0.650")
-        )
+        out = confirm_refuel(pending_refuel(), price_per_liter=D("6.19"), liters=D("0.650"))
         assert out.total_cost == D("4.02")
         # exact half: 2.245 * 1 = 2.245 -> 2.25
-        out2 = confirm_refuel(
-            pending_refuel(), price_per_liter=D("2.245"), liters=D("1.000")
-        )
+        out2 = confirm_refuel(pending_refuel(), price_per_liter=D("2.245"), liters=D("1.000"))
         assert out2.total_cost == D("2.25")
 
 
@@ -257,12 +245,12 @@ class TestDismissRefuel:
 
 
 def test_confirm_value_rounding_to_zero_raises_value_error():
+    from datetime import datetime
     from decimal import Decimal
 
     import pytest
 
     from app.domain import Refuel, confirm_refuel
-    from datetime import datetime
 
     r = Refuel("x", datetime(2026, 1, 1), 1.0, 10, 50, None, None, None, "pending")
     with pytest.raises(ValueError):

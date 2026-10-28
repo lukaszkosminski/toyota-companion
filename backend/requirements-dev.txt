@@ -1,0 +1,4 @@
+# Deweloperskie narzędzia jakości (wersje przypięte).
+ruff==0.17.3
+mypy==2.4.0
+pytest==9.2.0

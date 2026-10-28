@@ -25,19 +25,22 @@ def compute_trip_cost(
     ``source="none"``. Pending/dismissed refuels are ignored.
     """
     latest: Refuel | None = None
+    latest_price: Decimal | None = None
     for refuel in refuels:
-        if refuel.status != "confirmed" or refuel.price_per_liter is None:
+        price = refuel.price_per_liter
+        if refuel.status != "confirmed" or price is None:
             continue
         if refuel.ts > trip.start:
             continue
         if latest is None or refuel.ts >= latest.ts:
             latest = refuel
+            latest_price = price
 
-    if latest is not None:
+    if latest is not None and latest_price is not None:
         return TripCost(
             trip_id=trip.id,
-            cost_pln=round_money(as_decimal(trip.fuel_l) * latest.price_per_liter),
-            price_per_liter=latest.price_per_liter,
+            cost_pln=round_money(as_decimal(trip.fuel_l) * latest_price),
+            price_per_liter=latest_price,
             refuel_id=latest.id,
             source="refuel",
         )

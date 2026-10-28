@@ -40,8 +40,7 @@ def detect_refuel(
     """
     if cur.ts <= prev.ts:
         raise ValueError(
-            f"cur.ts ({cur.ts.isoformat()}) must be strictly after "
-            f"prev.ts ({prev.ts.isoformat()})"
+            f"cur.ts ({cur.ts.isoformat()}) must be strictly after prev.ts ({prev.ts.isoformat()})"
         )
     if cur.level_pct - prev.level_pct < min_jump_pct:
         return None
@@ -101,34 +100,39 @@ def confirm_refuel(
         if value is not None and as_decimal(value) <= 0:
             raise ValueError(f"{name} must be > 0 (got {value!r})")
 
+    price_v: Decimal | None = None
+    liters_v: Decimal | None = None
+    total_v: Decimal | None = None
     if price_per_liter is not None:
-        price_per_liter = round_price(price_per_liter)
+        price_v = round_price(price_per_liter)
     if liters is not None:
-        liters = round_liters(liters)
+        liters_v = round_liters(liters)
     if total_cost is not None:
-        total_cost = round_money(total_cost)
+        total_v = round_money(total_cost)
 
     for name, value in (
-        ("price_per_liter", price_per_liter),
-        ("liters", liters),
-        ("total_cost", total_cost),
+        ("price_per_liter", price_v),
+        ("liters", liters_v),
+        ("total_cost", total_v),
     ):
         if value is not None and value <= 0:
             raise ValueError(f"{name} rounds to 0; value too small")
 
-    if given == {"liters", "total_cost"}:
-        price_per_liter = round_price(as_decimal(total_cost) / as_decimal(liters))
-    elif given == {"price_per_liter", "liters"}:
-        total_cost = round_money(as_decimal(price_per_liter) * as_decimal(liters))
-    elif given == {"price_per_liter", "total_cost"}:
-        liters = round_liters(as_decimal(total_cost) / as_decimal(price_per_liter))
-    # given == {"price_per_liter"}: liters and total_cost stay unknown (None).
+    # The combination was validated above; branching on None-checks keeps
+    # mypy narrowing precise without asserts.
+    if price_v is not None and liters_v is not None:
+        total_v = round_money(price_v * liters_v)
+    elif price_v is not None and total_v is not None:
+        liters_v = round_liters(total_v / price_v)
+    elif price_v is None and liters_v is not None and total_v is not None:
+        price_v = round_price(total_v / liters_v)
+    # price-only: liters_v and total_v stay unknown (None).
 
     return replace(
         refuel,
-        liters=liters,
-        price_per_liter=price_per_liter,
-        total_cost=total_cost,
+        liters=liters_v,
+        price_per_liter=price_v,
+        total_cost=total_v,
         status="confirmed",
     )
 

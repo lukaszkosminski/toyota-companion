@@ -51,22 +51,16 @@ class TestSpecExample:
 
 class TestRefuelSelection:
     def test_ignores_pending(self):
-        result = compute_trip_cost(
-            trip(), [refuel(status="pending")], default_price=D("6.00")
-        )
+        result = compute_trip_cost(trip(), [refuel(status="pending")], default_price=D("6.00"))
         assert result.source == "default"
         assert result.refuel_id is None
 
     def test_ignores_dismissed(self):
-        result = compute_trip_cost(
-            trip(), [refuel(status="dismissed")], default_price=D("6.00")
-        )
+        result = compute_trip_cost(trip(), [refuel(status="dismissed")], default_price=D("6.00"))
         assert result.source == "default"
 
     def test_ignores_confirmed_without_price(self):
-        result = compute_trip_cost(
-            trip(), [refuel(price=None)], default_price=D("6.00")
-        )
+        result = compute_trip_cost(trip(), [refuel(price=None)], default_price=D("6.00"))
         assert result.source == "default"
 
     def test_ignores_refuel_after_trip_start(self):
@@ -163,3 +157,18 @@ class TestRecomputeCosts:
 
     def test_empty_trips(self):
         assert recompute_costs([], [refuel()]) == []
+
+
+def test_float_fuel_from_pytoyoda_is_accepted() -> None:
+    """pytoyoda returns Trip.fuel_consumed as float; it must not crash the cost."""
+    from datetime import UTC, datetime
+
+    from app.domain import Refuel, Trip, compute_trip_cost
+
+    t = Trip(
+        "t", datetime(2026, 1, 2, tzinfo=UTC), datetime(2026, 1, 2, 1, tzinfo=UTC), 14.6, 0.60, None
+    )  # type: ignore[arg-type]
+    r = Refuel(
+        "r", datetime(2026, 1, 1, tzinfo=UTC), 1.0, 10, 90, None, D("6.19"), None, "confirmed"
+    )
+    assert compute_trip_cost(t, [r]).cost_pln == D("3.71")
