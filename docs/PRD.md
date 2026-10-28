@@ -26,6 +26,25 @@ Jeden właściciel pojazdu (właściciel projektu). Brak użytkowników zewnętr
 | F7 | Ręczny backup archiwum | Użytkownik eksportuje pełne archiwum (trasy, tankowania, odczyty) do wybranego pliku (systemowy wybór pliku) i może je zaimportować na nowym telefonie bez duplikatów (deduplikacja po `id`) |
 | F8 | Przypomnienie o backupie | Aplikacja pokazuje datę ostatniego eksportu i przypomina, gdy minęło > 30 dni |
 
+### Funkcje po MVP (zgłoszone przez właściciela 2026-10-28)
+Źródło danych: pola dostępne w pytoyoda v6.0.0. Trasy mają `summary.start_lat/lon`, `end_lat/lon`,
+`length`, `duration`, `fuelConsumption`, `scores` (global, acceleration, braking, advice, constantSpeed)
+oraz `hdc` (evDistance, evTime, ecoTime, powerTime, chargeDist).
+
+| ID | Funkcja | Dane | Ocena wykonalności |
+|---|---|---|---|
+| F9 | Dziennik tankowań + spalanie „komputer vs faktyczne” liczone od tankowania do tankowania | tankowania (F1–F2), trasy | Wykonalne. Wymaga litrów z paragonu – patrz F2a |
+| F2a | Litry przy tankowaniu | `fuel_level` przed/po × 43 l | Aplikacja proponuje szacunek z czujnika; użytkownik potwierdza lub poprawia z paragonu. Do porównania „komputer vs faktyczne” liczą się tylko litry z paragonu – szacunek z czujnika auta nie może weryfikować komputera auta |
+| F10 | Statystyki wieloletnie: rok do roku, zima vs lato, trendy | archiwum lokalne | Wykonalne; dane od dnia uruchomienia (starsze niż ~12 mies. Toyota usunęła) |
+| F11 | Udział jazdy elektrycznej na trasę + ranking tras | `hdc.evDistance/evTime`, `length` | Wykonalne |
+| F12 | Styl jazdy: wynik eco w czasie, porównanie tras na tym samym odcinku | `scores`, start/end lat/lon | Wykonalne; „ten sam odcinek” = start i koniec w promieniu np. 300 m |
+| F13 | Wykrywanie anomalii spalania | trasy podobne (odcinek, długość, pora roku) | Wykonalne jako „spalanie wyższe niż zwykle o X%”. Aplikacja nie rozpozna przyczyny (opony, bagażnik, usterka) – może je tylko podsunąć |
+| F14 | Prognoza tankowania | zużycie, nawyki, `fuel_range` | Prognoza dnia – wykonalna. „Najtańsza stacja na trasie” – brak sprawdzonego źródła cen paliw w Polsce z API; do zbadania |
+| F15 | Wpływ pogody (mróz, deszcz) na koszt | Open-Meteo (historyczne dane, bez klucza) | Wykonalne. Wysyła współrzędne do zewnętrznej usługi – zaokrąglać do ~1 km (SECURITY.md) |
+| F16 | Automatyczne typy tras (dojazd do pracy, zakupy, weekend) | start/end lat/lon, godziny | Wykonalne (klasteryzacja miejsc + reguły czasu) |
+| F17 | Dziennik parkowania (gdzie i jak długo) | koniec trasy → start następnej | Wykonalne. Strefy płatnego parkowania – brak źródła danych; tylko czas i miejsce postoju |
+| F18 | Android Auto | – | Ryzykowne: Android Auto dopuszcza tylko wybrane kategorie aplikacji (np. nawigacja, parkingi, IoT); ekran statystyk nie pasuje. Do zbadania |
+
 ## 5. Poza zakresem MVP (non-goals)
 - zdalne sterowanie autem (zamki, klimatyzacja),
 - „ukryta rezerwa” paliwa i pojemność baku – brak danych w API, wymaga pomiaru,

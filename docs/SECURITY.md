@@ -13,3 +13,4 @@
 - `android:allowBackup="false"` – systemowy backup nie kopiuje bazy ani sekretów; backup archiwum tylko przez ręczny eksport (F7).
 - Plik eksportu zawiera dane osobowe (GPS, VIN) i nie zawiera hasła ani tokenów Toyoty. Aplikacja ostrzega o tym przy eksporcie.
 - CI skanuje sekrety (gitleaks).
+- Zapytania do usług zewnętrznych (np. Open-Meteo, F15) wysyłają tylko zaokrąglone współrzędne (~1 km) i czas; nigdy VIN ani identyfikator konta.

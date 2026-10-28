@@ -2,6 +2,7 @@ NOTICE — toyota-companion android/core
 
 Portions of pl.lk.toyotacompanion.core.toyota are derived from pytoyoda v6.0.0
 (https://github.com/pytoyoda/pytoyoda, commit 41e5582), used under the MIT License:
+ - tests/unit_tests/data, tests/integration_tests/data -> src/test/resources/toyota (test fixtures, anonymized)
  - controller.py  -> ToyotaController.kt, TokenInfo.kt, JwtUuid.kt, ToyotaHeaders.kt
  - const.py       -> ToyotaConst.kt
  - api.py         -> ToyotaApi.kt
