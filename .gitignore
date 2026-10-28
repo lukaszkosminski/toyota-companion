@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.db
+credentials.json
+.env
+android/.gradle/
+android/**/build/
+local.properties
