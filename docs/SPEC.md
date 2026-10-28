@@ -13,6 +13,7 @@ Katalog: `backend/app/domain/`. Tylko stdlib + dataclasses. Pieniądze i litry j
 1. `detect_refuel(prev: FuelReading, cur: FuelReading, min_jump_pct: int = 8) -> Refuel | None`
    - zwraca `Refuel(status="pending")` gdy `cur.level_pct - prev.level_pct >= min_jump_pct`, inaczej `None`
    - `ts` = `cur.ts`, `odometer_km` = `cur.odometer_km`; `id` deterministyczne z `cur.ts` (isoformat)
+     Kotlin: `id = refuel-<Instant ISO-8601 z Z>`
    - `cur.ts <= prev.ts` -> `ValueError`
 2. `confirm_refuel(refuel, *, price_per_liter=None, liters=None, total_cost=None) -> Refuel`
    - dozwolone kombinacje: (price), (liters+total_cost), (price+liters), (price+total_cost). Pozostałe -> `ValueError`.

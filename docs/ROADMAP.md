@@ -1,17 +1,20 @@
 # Roadmap
 
-## NOW
+## DONE
 - Narzędzia jakości i CI (ruff, mypy, pytest, gitleaks)
-- Warstwa SQLite (trasy, tankowania, odczyty)
+- Port domeny do Kotlina (`android/core`, 53/53 testów zgodnych z Pythonem)
+
+## NOW
+- Klient Toyoty w Kotlinie: logowanie (port `pytoyoda/controller.py`)
+- Endpointy: lista tras, szczegóły trasy, telemetria (`fuel_level`, odometr)
 
 ## NEXT
-- Adapter pytoyoda + synchronizacja tras
-- API FastAPI
-- Aplikacja Android: lista tras z kosztem, formularz ceny, powiadomienie o tankowaniu
-- Eksport CSV
+- Baza Room (trasy, tankowania, odczyty) + synchronizacja w tle (WorkManager)
+- UI: lista tras z kosztem, formularz ceny, powiadomienie o tankowaniu
+- Średnia ważona ceny w baku (ADR-005)
+- Eksport CSV i backup archiwum
 
 ## LATER
-- Średnia ważona ceny w baku
 - Porównanie spalania: dystrybutor vs. komputer
 
 ## DEFERRED (brak danych w API)

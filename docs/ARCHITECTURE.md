@@ -1,27 +1,33 @@
-# Architektura
+# Architektura (ADR-006)
 
 ```
-Android (Kotlin, Compose) ──HTTP/JSON──> backend (FastAPI) ──pytoyoda──> Toyota Connected Europe
-                                              │
-                                           SQLite
+Telefon z Androidem
+┌───────────────────────────────────────────────┐
+│ app (Compose UI, WorkManager, Room, Keystore)  │
+│        │                                       │
+│ core (czysty Kotlin/JVM)                       │
+│   ├─ domain: tankowania, koszt tras            │
+│   └─ toyota: klient API (port z pytoyoda) ──────┼──> Toyota Connected Europe
+└───────────────────────────────────────────────┘
 ```
 
 ## Komponenty
 | Katalog | Odpowiedzialność | Zależności |
 |---|---|---|
-| `backend/app/domain` | Czysta logika: tankowania, koszt tras. Bez I/O. | tylko stdlib |
-| `backend/app/storage` | SQLite: trasy, tankowania, odczyty paliwa (planowane) | domain |
-| `backend/app/toyota` | Adapter pytoyoda → typy domeny (planowane) | pytoyoda, domain |
-| `backend/app/api` | FastAPI dla aplikacji Android (planowane) | domain, storage |
-| `android/` | UI (planowane) | API backendu |
+| `android/core` … `domain` | Czysta logika: tankowania, koszt tras. Bez I/O. | tylko JDK |
+| `android/core` … `toyota` | Logowanie i endpointy Toyoty (planowane) | HTTP client |
+| `android/app` | UI, praca w tle, baza Room, bezpieczne przechowywanie hasła (planowane) | core |
+| `backend/` | Wykonywalna specyfikacja domeny w Pythonie (testy referencyjne) | stdlib |
 
 ## Zasady
-- Domena nie importuje pytoyoda, FastAPI ani SQLite.
-- Pytoyoda jest jedynym miejscem kontaktu z Toyotą; zmiany API Toyoty izolujemy w adapterze.
-- Pieniądze i litry: `Decimal`. Czas: `datetime` z UTC.
+- `core` nie zależy od Androida — testy jednostkowe uruchamiane na JVM.
+- Każda zmiana logiki domeny: najpierw SPEC i test w Pythonie, potem Kotlin z tym samym testem (te same nazwy).
+- Pieniądze i litry: `BigDecimal` (Kotlin) / `Decimal` (Python), `HALF_UP`. Czas: `Instant` (UTC).
+- Klient Toyoty to jedyne miejsce kontaktu z API; zmiany Toyoty śledzimy w pytoyoda i przenosimy.
 
 ## Zależności zewnętrzne i ich awaria
 | Zależność | Awaria | Zachowanie |
 |---|---|---|
-| API Toyoty (przez pytoyoda) | 429 / 403 / zmiana API | Backend serwuje dane z SQLite, oznacza je jako nieaktualne; bez wybudzania auta |
-| Retencja tras 12 mies. | Utrata starszych tras | Archiwum lokalne – tylko od uruchomienia |
+| API Toyoty | 429 / 403 / zmiana API | Aplikacja pokazuje dane z lokalnej bazy jako nieaktualne; bez wybudzania auta |
+| Retencja tras 12 mies. | Utrata starszych tras | Archiwum lokalne od uruchomienia + backup |
+| Android (oszczędzanie baterii) | Opóźnione odczyty w tle | Tankowanie wykryte przy następnym odczycie |

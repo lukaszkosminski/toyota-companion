@@ -2,12 +2,21 @@
 
 Nieoficjalna aplikacja towarzysząca do Toyoty (Europa) oparta o [pytoyoda](https://github.com/pytoyoda/pytoyoda).
 
-- `backend/` – Python (FastAPI + pytoyoda + SQLite): archiwum tras, wykrywanie tankowań, koszt tras w PLN
-- `android/` – aplikacja Kotlin / Jetpack Compose (klient backendu, planowana)
+- `android/` – aplikacja Kotlin / Jetpack Compose; `core` = logika domeny i klient Toyoty (czysty JVM)
+- `backend/` – wykonywalna specyfikacja logiki domeny w Pythonie (testy referencyjne)
 - `docs/` – PRD, SPEC, ARCHITECTURE, SECURITY, DECISIONS, ROADMAP, DOD
 - `AGENTS.md` – zasady dla agentów AI
 
-## Testy
+## Android
+
+Wymaga JDK 21 i Android SDK (platforma 37).
+
+```bash
+cd android
+./gradlew :core:test :app:assembleDebug   # APK: app/build/outputs/apk/debug/
+```
+
+## Testy specyfikacji (Python)
 
 ```bash
 cd backend

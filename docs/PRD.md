@@ -6,7 +6,7 @@ nie prowadzi dziennika tankowań, a historia tras jest kasowana po ~12 miesiąca
 (pytoyoda README, zgłoszenie #273).
 
 ## 2. Cel
-Aplikacja na Androida (+ backend) dla właściciela Toyoty w Europie, która:
+Aplikacja na Androida (działa w całości na telefonie, ADR-006) dla właściciela Toyoty w Europie, która:
 - archiwizuje trasy bezterminowo,
 - wykrywa tankowania i prosi o cenę,
 - przelicza koszt każdej trasy w PLN.
@@ -33,12 +33,15 @@ Jeden właściciel pojazdu (właściciel projektu). Brak użytkowników zewnętr
 
 ## 6. Wymagania niefunkcjonalne
 - Odpytywanie Toyoty oszczędne: `refresh_status()` drenuje akumulator 12 V – nie wołamy go automatycznie.
-- Dane logowania i tokeny tylko na backendzie, nigdy w repo ani logach (docs/SECURITY.md).
+- Dane logowania i tokeny tylko na telefonie (Android Keystore), nigdy w repo ani logach (docs/SECURITY.md).
+- Archiwum tras na telefonie ma automatyczny backup (utrata telefonu nie może oznaczać utraty historii).
 - Wszystkie daty w UTC (strefa czasowa świadoma).
 
 ## 7. Decyzje właściciela produktu (2026-10-28)
 - Auto: Corolla Hybrid 2025, bak 43 l.
 - Metoda ceny: średnia ważona w baku (ADR-005).
 
+- Architektura: wszystko na telefonie, klient w Kotlinie (ADR-006).
+
 ## 8. Otwarte pytania
-1. Czy wszystko ma działać na telefonie (bez backendu)? Analiza w ADR-001 – do decyzji.
+1. Gdzie trzymać backup archiwum tras (Google Drive, plik do ręcznego eksportu)?

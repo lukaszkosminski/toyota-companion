@@ -8,3 +8,5 @@ credentials.json
 android/.gradle/
 android/**/build/
 local.properties
+android/.kotlin/
+android/build/

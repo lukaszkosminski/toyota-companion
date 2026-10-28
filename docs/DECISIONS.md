@@ -1,6 +1,6 @@
 # Decyzje (ADR)
 
-## ADR-001 Backend w Pythonie + klient Android
+## ADR-001 Backend w Pythonie + klient Android (ZASTĄPIONE przez ADR-006)
 Pytoyoda jest biblioteką Pythona. Backend trzyma dane logowania i archiwum; Android jest klientem.
 Odrzucone: Chaquopy (dane logowania na telefonie), port do Kotlina (utrzymanie własnego klienta API).
 
@@ -21,3 +21,12 @@ Decyzja właściciela produktu (2026-10-28). Bak 43 l (Corolla Hybrid 2025).
 Po tankowaniu cena paliwa w baku = (litry przed × cena przed + litry zatankowane × cena nowa) / litry po.
 Litry przed = `level_before` % × 43 l. Wymaga podania litrów z paragonu (albo kwoty i ceny).
 Specyfikacja i implementacja: do zrobienia (SPEC §6). Do tego czasu działa ADR-002.
+
+## ADR-006 Aplikacja tylko na telefonie, klient Toyoty w Kotlinie (zastępuje ADR-001)
+Decyzja właściciela produktu (2026-10-28): całość działa na telefonie, bez backendu.
+Chaquopy odrzucone: pytoyoda wymaga pydantic 2 → `pydantic-core` (Rust), którego Chaquopy nie dostarcza
+(chaquo/chaquopy #1017 i PR #1413 otwarte), a PyPI nie ma wheeli dla Androida (stan 2026-10-28).
+Klient Toyoty i logika domeny są portowane do Kotlina (`android/core`, czysty JVM).
+pytoyoda służy jako wzór zmian API Toyoty; `backend/` zostaje jako wykonywalna specyfikacja domeny z testami,
+a testy Kotlin mają te same nazwy i wartości (53/53).
+Konsekwencje: hasło Toyoty na telefonie (Android Keystore); archiwum tras tylko na telefonie → wymagany backup.

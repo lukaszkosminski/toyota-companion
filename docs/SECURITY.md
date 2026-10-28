@@ -3,12 +3,12 @@
 ## Chronione dane
 | Dana | Klasyfikacja | Gdzie |
 |---|---|---|
-| Login/hasło Toyoty | poufne | tylko zmienne środowiskowe backendu (`TOYOTA_USERNAME`, `TOYOTA_PASSWORD`) |
+| Login/hasło Toyoty | poufne | telefon, szyfrowane kluczem z Android Keystore |
 | Tokeny Toyoty | poufne | pamięć / plik poza repo |
-| Trasy z GPS, VIN | dane osobowe | SQLite na backendzie |
+| Trasy z GPS, VIN | dane osobowe | baza Room na telefonie, backup szyfrowany |
 
 ## Zasady
 - Sekrety nigdy w repo, logach ani w aplikacji Android. `.env`, `credentials.json`, `*.db` w `.gitignore`.
 - Logi nie zawierają haseł, tokenów, VIN ani współrzędnych GPS.
-- Backend nie jest wystawiany publicznie bez uwierzytelnienia (wymagane przed udostępnieniem API poza sieć lokalną).
+- `android:allowBackup="false"` – systemowy backup nie kopiuje bazy ani sekretów; backup archiwum tylko przez własny, szyfrowany eksport.
 - CI skanuje sekrety (gitleaks).

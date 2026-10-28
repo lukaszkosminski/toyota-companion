@@ -40,6 +40,24 @@ jobs:
       - name: pytest
         run: python -m pytest -q
 
+  android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Core tests + debug APK
+        run: ./gradlew --no-daemon :core:test :app:assembleDebug
+
   secrets-scan:
     runs-on: ubuntu-latest
     permissions:
