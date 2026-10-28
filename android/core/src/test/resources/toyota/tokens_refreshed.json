@@ -1,0 +1,7 @@
+{
+ "access_token": "ACCESS-MOCK-2",
+ "id_token": "eyJhbGciOiAiUlMyNTYiLCAidHlwIjogIkpXVCJ9.eyJ1dWlkIjogIjExMTExMTExLTIyMjItMzMzMy00NDQ0LTU1NTU1NTU1NTU1NSIsICJhdWQiOiAib25lYXBwc2RrY2xpZW50IiwgInN1YiI6ICJtb2NrLXVzZXIifQ.ZmFrZS1zaWduYXR1cmU",
+ "refresh_token": "REFRESH-MOCK-2",
+ "expires_in": 3599,
+ "token_type": "Bearer"
+}

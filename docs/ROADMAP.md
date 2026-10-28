@@ -3,10 +3,10 @@
 ## DONE
 - Narzędzia jakości i CI (ruff, mypy, pytest, gitleaks)
 - Port domeny do Kotlina (`android/core`, 53/53 testów zgodnych z Pythonem)
+- Klient Toyoty w Kotlinie: logowanie, pojazdy, telemetria, trasy (testy na mock serwerze)
 
 ## NOW
-- Klient Toyoty w Kotlinie: logowanie (port `pytoyoda/controller.py`)
-- Endpointy: lista tras, szczegóły trasy, telemetria (`fuel_level`, odometr)
+- Test klienta Toyoty na prawdziwym koncie (wymaga danych logowania właściciela)
 
 ## NEXT
 - Baza Room (trasy, tankowania, odczyty) + synchronizacja w tle (WorkManager)

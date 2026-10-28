@@ -1,0 +1,36 @@
+{
+ "callbacks": [
+  {
+   "type": "NameCallback",
+   "output": [
+    {
+     "name": "prompt",
+     "value": "User Name"
+    }
+   ],
+   "input": [
+    {
+     "name": "name",
+     "value": ""
+    }
+   ]
+  },
+  {
+   "type": "ChoiceCallback",
+   "output": [
+    {
+     "name": "choices",
+     "value": [
+      "oneapp"
+     ]
+    }
+   ],
+   "input": [
+    {
+     "name": "choice",
+     "value": 0
+    }
+   ]
+  }
+ ]
+}

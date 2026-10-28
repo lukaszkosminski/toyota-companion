@@ -1,0 +1,15 @@
+# Gitleaks config: default rules + narrow, documented exceptions.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Fake JWTs in test fixtures (uuid 11111111-..., sub mock-user)"
+targetRules = ["jwt"]
+paths = ['''^android/core/src/test/resources/toyota/tokens_[a-z]+\.json$''']
+
+[[allowlists]]
+description = "Public MyToyota app API key, published in pytoyoda const/controller (not a project secret)"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^android/core/src/main/kotlin/pl/lk/toyotacompanion/core/toyota/ToyotaConst\.kt$''']
+regexes = ['''tTZipv6liF74PwMfk9Ed68AQ0bISswwf3iHQdqcF''']
