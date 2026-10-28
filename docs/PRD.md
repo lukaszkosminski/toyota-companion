@@ -36,7 +36,9 @@ Jeden właściciel pojazdu (właściciel projektu). Brak użytkowników zewnętr
 - Dane logowania i tokeny tylko na backendzie, nigdy w repo ani logach (docs/SECURITY.md).
 - Wszystkie daty w UTC (strefa czasowa świadoma).
 
-## 7. Otwarte pytania (do właściciela produktu)
-1. Gdzie działa backend (komputer domowy, VPS, Raspberry Pi)?
-2. Metoda ceny: „ostatnia cena” (domyślna) czy średnia ważona w baku (wymaga pojemności baku)?
-3. Model auta i pojemność baku.
+## 7. Decyzje właściciela produktu (2026-10-28)
+- Auto: Corolla Hybrid 2025, bak 43 l.
+- Metoda ceny: średnia ważona w baku (ADR-005).
+
+## 8. Otwarte pytania
+1. Czy wszystko ma działać na telefonie (bez backendu)? Analiza w ADR-001 – do decyzji.
