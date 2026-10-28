@@ -53,4 +53,4 @@ jobs:
       - name: Gitleaks (v3 — free for personal accounts/public repos, no license)
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
-          GITHUB_TOKEN: *** secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
