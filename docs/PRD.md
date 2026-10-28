@@ -23,6 +23,8 @@ Jeden właściciel pojazdu (właściciel projektu). Brak użytkowników zewnętr
 | F4 | Przeliczenie wstecz | Po potwierdzeniu ceny koszty tras są przeliczane (SPEC §5) |
 | F5 | Archiwum tras | Trasy z pytoyoda zapisywane lokalnie, deduplikacja po `trip.id` |
 | F6 | Eksport CSV | Eksport wszystkich tras z kosztem |
+| F7 | Ręczny backup archiwum | Użytkownik eksportuje pełne archiwum (trasy, tankowania, odczyty) do wybranego pliku (systemowy wybór pliku) i może je zaimportować na nowym telefonie bez duplikatów (deduplikacja po `id`) |
+| F8 | Przypomnienie o backupie | Aplikacja pokazuje datę ostatniego eksportu i przypomina, gdy minęło > 30 dni |
 
 ## 5. Poza zakresem MVP (non-goals)
 - zdalne sterowanie autem (zamki, klimatyzacja),
@@ -34,7 +36,7 @@ Jeden właściciel pojazdu (właściciel projektu). Brak użytkowników zewnętr
 ## 6. Wymagania niefunkcjonalne
 - Odpytywanie Toyoty oszczędne: `refresh_status()` drenuje akumulator 12 V – nie wołamy go automatycznie.
 - Dane logowania i tokeny tylko na telefonie (Android Keystore), nigdy w repo ani logach (docs/SECURITY.md).
-- Archiwum tras na telefonie ma automatyczny backup (utrata telefonu nie może oznaczać utraty historii).
+- Archiwum tras chronione ręcznym eksportem (F7); brak automatycznej chmury.
 - Wszystkie daty w UTC (strefa czasowa świadoma).
 
 ## 7. Decyzje właściciela produktu (2026-10-28)
@@ -42,6 +44,7 @@ Jeden właściciel pojazdu (właściciel projektu). Brak użytkowników zewnętr
 - Metoda ceny: średnia ważona w baku (ADR-005).
 
 - Architektura: wszystko na telefonie, klient w Kotlinie (ADR-006).
+- Backup: ręczny eksport do pliku + import (F7, F8).
 
 ## 8. Otwarte pytania
-1. Gdzie trzymać backup archiwum tras (Google Drive, plik do ręcznego eksportu)?
+Brak.

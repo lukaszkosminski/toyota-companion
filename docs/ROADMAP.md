@@ -12,7 +12,7 @@
 - Baza Room (trasy, tankowania, odczyty) + synchronizacja w tle (WorkManager)
 - UI: lista tras z kosztem, formularz ceny, powiadomienie o tankowaniu
 - Średnia ważona ceny w baku (ADR-005)
-- Eksport CSV i backup archiwum
+- Eksport CSV, ręczny eksport/import archiwum, przypomnienie o backupie (F6–F8)
 
 ## LATER
 - Porównanie spalania: dystrybutor vs. komputer
