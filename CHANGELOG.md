@@ -19,3 +19,4 @@
 - Synchronizacja w `core` (SPEC §8): interfejsy repozytoriów z testem kontraktowym, `TripRecord` z polami archiwum, `ToyotaGateway`, `SyncEngine` (okno 365 dni, zakładka 2 dni, deduplikacja, wykrywanie tankowań, przeliczenie kosztów, błędy bez utraty danych, jedna synchronizacja naraz)
 - Android: uprawnienie `INTERNET`; `backend/pyproject.toml` bez nieużywanych zależności (pytoyoda, FastAPI, uvicorn)
 - `:core:liveCheck` – ręczny test klienta na prawdziwym koncie MyToyota (dane logowania ze zmiennych środowiskowych, tylko odczyt, poza CI)
+- Baza Room 3 w `app/data/db` (v1, schemat w `app/schemas`): trasy, tankowania, odczyty paliwa, koszty, pojazdy, stan synchronizacji; `Room*Repository`; `RepositoryContract` przeniesiony do `core/testFixtures` i uruchamiany na pamięci (core, 163 testy bez zmian) oraz na Room (app, Robolectric, 15 scenariuszy + 6 testów konwerterów/schematu)

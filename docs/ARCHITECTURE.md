@@ -17,9 +17,11 @@ Telefon z Androidem
 |---|---|---|
 | `android/core` … `domain` | Czysta logika: tankowania, koszt tras. Bez I/O. | tylko JDK |
 | `android/core` … `toyota` | Logowanie i endpointy Toyoty (port pytoyoda v6.0.0) | HTTP client (OkHttp) |
-| `android/core` … `data` | Interfejsy repozytoriów, `TripRecord` (archiwum), test kontraktowy dla implementacji | domain |
+| `android/core` … `data` | Interfejsy repozytoriów, `TripRecord` (archiwum) | domain |
 | `android/core` … `sync` | `SyncEngine`: pojazdy → telemetria → tankowanie → trasy → koszty (SPEC §8) | data, toyota |
-| `android/app` | UI, praca w tle, baza Room, bezpieczne przechowywanie hasła (planowane) | core |
+| `android/core` … `testFixtures/data` | `RepositoryContract` (scenariusze bez frameworka testowego) i repozytoria w pamięci | data |
+| `android/app` … `data/db` | Baza Room 3 (`AppDatabase` v1, encje, DAO, konwertery) i `Room*Repository` implementujące interfejsy z `core/data`; schemat w `app/schemas` | core |
+| `android/app` | UI, praca w tle, bezpieczne przechowywanie hasła (planowane) | core |
 | `backend/` | Wykonywalna specyfikacja domeny w Pythonie (testy referencyjne) | stdlib |
 
 ## Zasady

@@ -7,9 +7,9 @@ import pl.lk.toyotacompanion.core.domain.RefuelStatus
 import pl.lk.toyotacompanion.core.domain.TripCost
 
 /**
- * In-memory implementations of every repository contract, used only by tests:
- * `core` must stay free of Room (docs/ARCHITECTURE.md), and the app module
- * re-runs the same contract tests against Room (Etap B).
+ * In-memory implementations of every repository contract, used only by tests
+ * (test fixtures): `core` must stay free of Room (docs/ARCHITECTURE.md), and the
+ * app module re-runs [RepositoryContract] against Room.
  *
  * Behavioural rules mirrored from the intended Room mapping:
  * - trips: identity `trip.id`, upsert replaces the row;
@@ -168,10 +168,10 @@ class InMemorySyncStateRepository : SyncStateRepository {
 
 /** Everything wired up for one [pl.lk.toyotacompanion.core.sync.SyncEngine] test. */
 class InMemoryStores(
-    val trips: InMemoryTripRepository = InMemoryTripRepository(),
-    val refuels: InMemoryRefuelRepository = InMemoryRefuelRepository(),
-    val readings: InMemoryFuelReadingRepository = InMemoryFuelReadingRepository(),
-    val costs: InMemoryCostRepository = InMemoryCostRepository(),
-    val vehicles: InMemoryVehicleRepository = InMemoryVehicleRepository(),
-    val state: InMemorySyncStateRepository = InMemorySyncStateRepository(),
-)
+    override val trips: InMemoryTripRepository = InMemoryTripRepository(),
+    override val refuels: InMemoryRefuelRepository = InMemoryRefuelRepository(),
+    override val readings: InMemoryFuelReadingRepository = InMemoryFuelReadingRepository(),
+    override val costs: InMemoryCostRepository = InMemoryCostRepository(),
+    override val vehicles: InMemoryVehicleRepository = InMemoryVehicleRepository(),
+    override val state: InMemorySyncStateRepository = InMemorySyncStateRepository(),
+) : RepositoryStores
