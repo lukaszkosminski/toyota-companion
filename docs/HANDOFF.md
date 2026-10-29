@@ -1,11 +1,12 @@
-# Stan prac (2026-10-29)
+# Stan prac (2026-10-29, popołudnie)
 
 ## Gotowe
-- Logika domeny (tankowania, koszt tras): Python `backend/` (specyfikacja, 76 testów) + Kotlin `android/core/.../domain` (76 testów, te same nazwy).
-- ADR-005: koszt trasy liczony ze średniej ważonej ceny paliwa w baku (43 l); wystarczy podać cenę, litry szacowane z czujnika.
-- Klient Toyoty w Kotlinie `android/core/.../toyota` (port pytoyoda v6.0.0): logowanie, odświeżanie tokenu, pojazdy, telemetria (poziom paliwa, bateria, zasięg), trasy z paginacją i polami archiwum (33 testy na mock serwerze).
-- Szkielet aplikacji `android/app` (pusty ekran Compose, APK się buduje, uprawnienie `INTERNET`).
-- CI: ruff/mypy/pytest, Android build + testy, gitleaks 8.30.1.
+- Logika domeny (tankowania, koszt tras, ADR-005): Python `backend/` (specyfikacja, 76 testów) + Kotlin `android/core/.../domain` (76 testów, te same nazwy).
+- Klient Toyoty w Kotlinie `android/core/.../toyota` (port pytoyoda v6.0.0); `:core:liveCheck` do testu na prawdziwym koncie.
+- Synchronizacja `android/core/.../sync` (SPEC §8) + repozytoria `core/data` z kontraktem w `core/testFixtures`.
+- `android/app`: baza Room 3 (v1), szyfrowane dane logowania i tokeny (Keystore, ADR-007), `SyncWorker` co 30 min.
+  Brak jeszcze UI (pusty ekran) – nic nie wywołuje logowania.
+- Testy: core 163, app 43 (Robolectric), Python 76. CI: ruff/mypy/pytest, Android (core + app unit), gitleaks 8.30.1.
 
 ## Następny krok
 Test klienta na prawdziwym koncie MyToyota (uruchamia właściciel; hasło nie trafia do repo ani rozmowy):
@@ -29,7 +30,9 @@ czyli pierwszy etap logowania działa z prawdziwym API.
 - Referencja API: `/home/lk/projekty/pytoyoda-ref` (pytoyoda v6.0.0)
 - gitleaks lokalnie: `~/Android/tools/gitleaks git . --log-opts="--all"`
 
-## Proces z agentem pi2
+## Proces z agentami
 Kontekst → plan bez kodu → review i akceptacja → implementacja → niezależne review (uruchomienie testów,
 porównanie z pytoyoda/Pythonem, odczyt plików z dysku) → commit. Zasady: `AGENTS.md`.
-Uwaga: narzędzie pi2 potrafi zapisać `***` zamiast `${{` w plikach – sprawdzać zapisane pliki.
+Agent 1 = pi w panelu `w8:p1` (od 2026-10-29 model claude-sonnet-5-5).
+Uwaga: lokalny model qwen potrafił zapisać `***` zamiast `${{` w plikach – sprawdzać zapisane pliki.
+Niezacommitowane zmiany nieznanego autora: najpierw review i testy, dopiero potem praca na nich.
