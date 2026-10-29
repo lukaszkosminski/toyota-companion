@@ -6,6 +6,9 @@ import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.work.WorkManager
 import java.time.Instant
 import java.time.LocalDate
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import pl.lk.toyotacompanion.core.data.VehicleRecord
 import pl.lk.toyotacompanion.core.domain.FuelReading
 import pl.lk.toyotacompanion.core.data.TripRecord
@@ -22,12 +25,11 @@ import pl.lk.toyotacompanion.data.db.RoomTripRepository
 import pl.lk.toyotacompanion.data.db.RoomVehicleRepository
 import pl.lk.toyotacompanion.security.AndroidKeystoreCipher
 import pl.lk.toyotacompanion.security.CredentialStore
-import pl.lk.toyotacompanion.security.Credentials
 import pl.lk.toyotacompanion.security.EncryptedSecretStore
 import pl.lk.toyotacompanion.security.KeystoreTokenStore
 import pl.lk.toyotacompanion.security.SecretCipher
 import pl.lk.toyotacompanion.sync.SyncRunner
-import pl.lk.toyotacompanion.sync.SyncScheduler
+import pl.lk.toyotacompanion.ui.SessionController
 
 /** Hand-wired dependencies (no DI framework). Everything is lazy: nothing touches Keystore or disk at app start. */
 class AppContainer(
@@ -77,10 +79,25 @@ class AppContainer(
 
     val syncRunner: SyncRunner by lazy { SyncRunner { syncEngine.fullSync() } }
 
-    /** Called by the (future) login screen: store the login, then start background sync plus one run now. */
-    fun onLoggedIn(credentials: Credentials) {
-        credentialStore.save(credentials)
-        SyncScheduler.onLogin(WorkManager.getInstance(context))
+    /** UI scope for the login and status screens; state changes happen on the main thread. */
+    private val uiScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+    /**
+     * Login + status screen state (docs/SPEC.md §9). Not a ViewModel: the Compose
+     * ViewModel artifact is not a dependency of this module, so the controller
+     * lives here. It stores the login and schedules the work on success.
+     */
+    val session: SessionController by lazy {
+        SessionController(
+            credentials = credentialStore,
+            tokens = tokenStore,
+            verifier = { username, password -> ToyotaGatewayFactory.verifyLogin(username, password) },
+            runner = syncRunner,
+            status = { syncEngine.status() },
+            workManager = WorkManager.getInstance(context),
+            scope = uiScope,
+            io = Dispatchers.IO,
+        )
     }
 
     private companion object {

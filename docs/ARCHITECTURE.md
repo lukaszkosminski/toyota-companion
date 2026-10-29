@@ -25,7 +25,8 @@ Telefon z Androidem
 | `android/app` … `security` | `SecretCipher` (AES-256-GCM, `AndroidKeystoreCipher`), `EncryptedSecretStore` (SharedPreferences, Base64, AAD = nazwa klucza), `CredentialStore`, `KeystoreTokenStore` (ADR-007) | core.toyota |
 | `android/app` … `sync` | `SyncWorker` (WorkManager) → `SyncRunner` → `SyncEngine.fullSync()`; `SyncScheduler`: unikalna praca okresowa `toyota-sync` co 30 min (sieć, backoff wykładniczy 30 s) i jednorazowa po zalogowaniu | core.sync |
 | `android/app` … `AppContainer`, `ToyotaApp` | Ręczne zależności (bez Hilt/Koin), wszystko leniwie; `ToyotaApp` jest `Configuration.Provider` (domyślny inicjalizator WorkManagera wyłączony w manifeście) | wszystkie |
-| `android/app` | UI (planowane) | core |
+| `android/app` … `ui` | `SessionController` (stan `StateFlow`, bez ViewModela – `lifecycle-viewmodel-compose` nie jest zależnością), `CredentialVerifier`, `UiState`, `Texts` (teksty po polsku), ekrany Compose: `LoginScreen`, `StatusScreen`, `AppRoot` (docs/SPEC.md §9) | core.sync, core.data, security, sync |
+| `android/app` … `ui/CredentialVerifier` | Seam weryfikacji loginu: produkcyjnie `ToyotaGatewayFactory.verifyLogin` (core), w testach fałszywy weryfikator – `app` nie widzi OkHttp ani nie łączy się z siecią | core.sync |
 | `backend/` | Wykonywalna specyfikacja domeny w Pythonie (testy referencyjne) | stdlib |
 
 ## Zasady

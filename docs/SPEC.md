@@ -119,3 +119,51 @@ Zapis typów w Room (`android/app/.../data/db`, `AppDatabase` v1, schemat w `and
 - `recomputeCosts()` bez sieci – po potwierdzeniu ceny tankowania (F4).
 - Dług: koszty wszystkich tras są przeliczane przy każdej synchronizacji (O(trasy × tankowania));
   do optymalizacji, gdy archiwum urośnie.
+
+## §9 Logowanie i status (`android/core/.../sync`, `android/app/.../ui`)
+
+Ekran logowania MyToyota i ekran statusu synchronizacji. Wymaganie właściciela produktu
+(ROADMAP NOW, ADR-007); kryteria poniżej są warunkiem akceptacji zmiany.
+
+### §9.1 Weryfikacja danych w `core`
+- `ToyotaGatewayFactory.verifyLogin(username, password): LoginCheck` – tylko logowanie
+  (`ToyotaController.login()`), bez `refresh_status` i bez endpointów danych (AGENTS.md).
+- Magazyn tokenów zawsze świeży (`InMemoryTokenStore`): ważny token z poprzedniej sesji
+  nie może „zatwierdzić” błędnego hasła.
+- Wynik jako `LoginCheck` (`Ok(token)`, `Failed(LoginFailure)`), nie wyjątki (§8.5).
+  `Ok.token` pozwala zapisać token dopiero po sukcesie; `toString` nie zawiera tokenu.
+- Klasyfikacja `classifyLoginFailure`: `ToyotaLoginException` (w tym `ToyotaInvalidUsernameException`)
+  -> `INVALID_CREDENTIALS`, `ToyotaNetworkException` -> `NETWORK`, reszta (`API`, `DATA`, nieznane)
+  -> `SERVICE`. `CancellationException` jest rzucana dalej.
+  Ograniczenie: `ToyotaController` (jak pytoyoda) zgłasza `ToyotaLoginException` przy każdym statusie ≠ 200
+  z endpointów logowania AMI, także 5xx – wtedy też wynik to `INVALID_CREDENTIALS`. Dlatego komunikat
+  brzmi „Toyota odrzuciła logowanie – sprawdź login i hasło”, a nie „hasło jest błędne”.
+
+### §9.2 Ekran logowania (kryteria akceptacji)
+- Start: dane logowania w `CredentialStore` -> ekran statusu; brak -> ekran logowania.
+- Login/hasło: pola oddzielone, hasło z maską (`PasswordVisualTransformation`), keyboard `Password`.
+  Hasło trzymane tylko w pamięci ekranu (`remember`, nie `rememberSaveable`) – nie trafia
+  do Bundle ani do stanu UI; żadna wartość stanu UI nie zawiera hasła (SECURITY.md).
+- Pusty login (po `trim`) albo puste hasło -> komunikat „uzupełnij pola”, weryfikator NIE wołany.
+- `Failed(INVALID_CREDENTIALS)` -> „Toyota odrzuciła logowanie – sprawdź login i hasło”, bez zapisu czegokolwiek.
+- `Failed(NETWORK)` -> „Brak internetu…”, bez zapisu; `Failed(SERVICE)` -> „Serwis Toyoty
+  niedostępny…”, bez zapisu. Login jest przycinany, hasło nie.
+- Sukces: `CredentialStore.save`, zapis tokenu, `SyncScheduler.onLogin` (praca okresowa
+  `toyota-sync` + jednorazowa `toyota-sync-now`), przejście na ekran statusu.
+- Kliknięcie podczas trwającej weryfikacji jest ignorowane (jedna weryfikacja na kliknięcia).
+- `start()` jest jednorazowe: kolejne wywołanie (obrót ekranu) nie zmienia stanu, dopóki nie jest `Loading` – nie odblokowuje formularza w trakcie weryfikacji ani przycisku w trakcie synchronizacji. Dopóki stan to `Loading`, formularz jest zablokowany, a `login` nie jest wołany.
+- Wynik weryfikacji jest stosowany tylko, gdy ekran nadal na niego czeka (`LoggedOut(busy = true)`) – po wylogowaniu nic nie jest zapisywane ani planowane.
+- Odmowa zapisu w Keystore po udanej weryfikacji (np. `ProviderException`) nie rozbija aplikacji: wyczyszczenie tego, co udało się zapisać (best-effort), brak planowania pracy, komunikat o niedostępnym serwisie.
+
+### §9.3 Ekran statusu (kryteria akceptacji)
+- Pokazuje z `SyncEngine.status()`: liczba tras, liczba odczytów, oczekujące tankowania,
+  aktualne/nieaktualne (`isFresh`), data ostatniego sukcesu, rodzaj ostatniego błędu
+  (tylko `SyncErrorKind` przełożony na polski tekst; `lastErrorMessage` NIE jest pokazywany).
+- „Synchronizuj teraz” – synchronizacja w procesie (`SyncRunner`), przycisk zablokowany
+  na czas pracy; wynik `Failed` pokazuje rodzaj błędu, `Ok`/`Skipped` go kasuje; po pracy
+  status jest odświeżany.
+- Gdy `status.state.needsLogin` -> komunikat „Zaloguj się ponownie” obok przycisku Wyloguj.
+- Wynik „Synchronizuj teraz” jest stosowany tylko, gdy ekran nadal pokazuje status – spóźniony wynik po „Wyloguj” nie przywraca ekranu statusu.
+- „Wyloguj”: wyczyszczenie tokena (po loginie), potem `CredentialStore.clear()`, anulowanie
+  prac `toyota-sync` i `toyota-sync-now`. Archiwum Room NIE jest usuwane (F5, ADR-006) –
+  ponowne logowanie dołącza dane. Stan UI -> ekran logowania.
