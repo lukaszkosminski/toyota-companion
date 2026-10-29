@@ -55,8 +55,8 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Core tests + debug APK
-        run: ./gradlew --no-daemon :core:test :app:assembleDebug
+      - name: Core + app unit tests, debug APK
+        run: ./gradlew --no-daemon :core:test :app:testDebugUnitTest :app:assembleDebug
 
   secrets-scan:
     runs-on: ubuntu-latest

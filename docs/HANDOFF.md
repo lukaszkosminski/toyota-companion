@@ -24,7 +24,7 @@ czyli pierwszy etap logowania działa z prawdziwym API.
 
 ## Środowisko lokalne
 - `source ~/Android/env.sh` – JDK 21, Android SDK 37, Gradle 9.8.2
-- `cd android && ./gradlew --no-daemon -q :core:test :app:assembleDebug`
+- `cd android && ./gradlew --no-daemon -q :core:test :app:testDebugUnitTest :app:assembleDebug`
 - `cd backend && .venv/bin/ruff format --check && .venv/bin/ruff check && .venv/bin/mypy && .venv/bin/python -m pytest -q`
 - Referencja API: `/home/lk/projekty/pytoyoda-ref` (pytoyoda v6.0.0)
 - gitleaks lokalnie: `~/Android/tools/gitleaks git . --log-opts="--all"`

@@ -11,7 +11,7 @@ Jeśli kod i docs się różnią albo czegoś brakuje – zgłoś konflikt, nie 
 4. Implementacja: najmniejsza poprawna zmiana, bez zmian w niepowiązanych plikach.
 5. Walidacja:
    - Python: `cd backend && .venv/bin/ruff format --check && .venv/bin/ruff check && .venv/bin/mypy && .venv/bin/python -m pytest -q`
-   - Android: `source ~/Android/env.sh && cd android && ./gradlew --no-daemon -q :core:test :app:assembleDebug`
+   - Android: `source ~/Android/env.sh && cd android && ./gradlew --no-daemon -q :core:test :app:testDebugUnitTest :app:assembleDebug`
    - Zmiana domeny: test w Pythonie i w Kotlinie o tej samej nazwie.
 6. Aktualizacja docs w tej samej zmianie.
 
