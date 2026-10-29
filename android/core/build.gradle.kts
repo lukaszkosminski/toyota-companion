@@ -24,3 +24,19 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
 }
+
+// Manual check against a real MyToyota account (docs/HANDOFF.md). Never run in CI:
+// it needs TOYOTA_USERNAME / TOYOTA_PASSWORD from the owner's shell.
+sourceSets {
+    create("liveCheck") {
+        compileClasspath += sourceSets.main.get().output + configurations.runtimeClasspath.get()
+        runtimeClasspath += output + compileClasspath
+    }
+}
+
+tasks.register<JavaExec>("liveCheck") {
+    description = "Logs in to a real MyToyota account and prints a read-only summary."
+    group = "verification"
+    classpath = sourceSets["liveCheck"].runtimeClasspath
+    mainClass.set("pl.lk.toyotacompanion.core.livecheck.LiveCheckKt")
+}

@@ -8,10 +8,19 @@
 - CI: ruff/mypy/pytest, Android build + testy, gitleaks 8.30.1.
 
 ## Następny krok
-Test klienta na prawdziwym koncie MyToyota: mały program czytający login/hasło ze zmiennych
-środowiskowych, uruchamiany przez właściciela w terminalu (hasło nie trafia do repo ani rozmowy).
-Potem: baza Room + synchronizacja w tle, UI (lista tras z kosztem, formularz ceny z `liters_source`).
-Room/WorkManager wymagają zmian w plikach Gradle – potrzebna osobna akceptacja.
+Test klienta na prawdziwym koncie MyToyota (uruchamia właściciel; hasło nie trafia do repo ani rozmowy):
+
+```bash
+source ~/Android/env.sh && cd android
+read -rp "Login MyToyota: " TOYOTA_USERNAME; read -rsp "Haslo: " TOYOTA_PASSWORD; echo
+export TOYOTA_USERNAME TOYOTA_PASSWORD
+./gradlew -q :core:liveCheck
+unset TOYOTA_USERNAME TOYOTA_PASSWORD
+```
+
+Program tylko czyta (bez `refresh_status`), pokazuje VIN z maską i nie wypisuje pozycji GPS ani tokenów.
+Sprawdzone 2026-10-29: fikcyjny login dostaje od prawdziwego serwera Toyoty „User Not Found”,
+czyli pierwszy etap logowania działa z prawdziwym API.
 
 ## Środowisko lokalne
 - `source ~/Android/env.sh` – JDK 21, Android SDK 37, Gradle 9.8.2
