@@ -64,11 +64,19 @@ class ToyotaApi(private val controller: ToyotaController) {
         limitPerPage: Int = 50,
     ): List<TripDto> {
         val all = mutableListOf<TripDto>()
+        val seenOffsets = mutableSetOf<Int>()
         var offset = 0
         while (true) {
+            if (!seenOffsets.add(offset)) {
+                throw ToyotaDataException("Pagination loop detected at offset $offset")
+            }
             val page = getTrips(vin, from, to, summary, limitPerPage, offset)
             all += page.trips ?: emptyList()
-            offset = page.metadata?.pagination?.nextOffset ?: break
+            val next = page.metadata?.pagination?.nextOffset ?: break
+            if (next < 0) {
+                throw ToyotaDataException("Invalid pagination nextOffset: $next")
+            }
+            offset = next
         }
         return all
     }

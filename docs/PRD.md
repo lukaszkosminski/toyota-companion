@@ -19,22 +19,23 @@ Jeden właściciel pojazdu (właściciel projektu). Brak użytkowników zewnętr
 |---|---|---|
 | F1 | Wykrycie tankowania | Skok `fuel_level` o ≥ 8 pp między odczytami tworzy wpis `pending` (docs/SPEC.md §1) |
 | F2 | Podanie ceny | Użytkownik podaje cenę/l albo litry+kwotę; brakująca wartość jest wyliczana (SPEC §2) |
-| F3 | Koszt trasy | Koszt = `fuel_l` × cena ostatniego potwierdzonego tankowania przed startem trasy; przykład 0,60 l × 6,19 = 3,71 zł (SPEC §4) |
+| F3 | Koszt trasy | Koszt = `fuel_l` × średnia ważona cena paliwa w baku (ADR-005) po potwierdzonych tankowaniach przed startem trasy; przykład 0,60 l × 6,140 = 3,68 zł (SPEC §4, §6) |
 | F4 | Przeliczenie wstecz | Po potwierdzeniu ceny koszty tras są przeliczane (SPEC §5) |
-| F5 | Archiwum tras | Trasy z pytoyoda zapisywane lokalnie, deduplikacja po `trip.id` |
+| F5 | Archiwum tras | Trasy z API Toyoty zapisywane lokalnie, deduplikacja po `trip.id`; zachowywane są też współrzędne start/koniec, `scores` i `hdc` (F11–F13) |
 | F6 | Eksport CSV | Eksport wszystkich tras z kosztem |
 | F7 | Ręczny backup archiwum | Użytkownik eksportuje pełne archiwum (trasy, tankowania, odczyty) do wybranego pliku (systemowy wybór pliku) i może je zaimportować na nowym telefonie bez duplikatów (deduplikacja po `id`) |
 | F8 | Przypomnienie o backupie | Aplikacja pokazuje datę ostatniego eksportu i przypomina, gdy minęło > 30 dni |
 
 ### Funkcje po MVP (zgłoszone przez właściciela 2026-10-28)
-Źródło danych: pola dostępne w pytoyoda v6.0.0. Trasy mają `summary.start_lat/lon`, `end_lat/lon`,
-`length`, `duration`, `fuelConsumption`, `scores` (global, acceleration, braking, advice, constantSpeed)
-oraz `hdc` (evDistance, evTime, ecoTime, powerTime, chargeDist).
+Źródło danych: pola dostępne w API Toyoty (model `_TripModel` w pytoyoda v6.0.0). Trasy mają `summary.start_lat/lon`,
+`end_lat/lon`, `length`, `duration`, `durationIdle`, `averageSpeed`, `maxSpeed`, `fuelConsumption`, `nightTrip`,
+`scores` (global, acceleration, braking, advice, constantSpeed) oraz
+`hdc` (evDistance, evTime, ecoDist, ecoTime, powerDist, powerTime, chargeDist, chargeTime).
 
 | ID | Funkcja | Dane | Ocena wykonalności |
 |---|---|---|---|
 | F9 | Dziennik tankowań + spalanie „komputer vs faktyczne” liczone od tankowania do tankowania | tankowania (F1–F2), trasy | Wykonalne. Wymaga litrów z paragonu – patrz F2a |
-| F2a | Litry przy tankowaniu | `fuel_level` przed/po × 43 l | Aplikacja proponuje szacunek z czujnika; użytkownik potwierdza lub poprawia z paragonu. Do porównania „komputer vs faktyczne” liczą się tylko litry z paragonu – szacunek z czujnika auta nie może weryfikować komputera auta |
+| F2a | Litry przy tankowaniu | `fuel_level` przed/po × 43 l | Aplikacja proponuje szacunek z czujnika (`liters_source="estimate"`); użytkownik potwierdza lub poprawia z paragonu (`"receipt"`, albo `"derived"` z kwoty i ceny). Do średniej ceny w baku wystarczy szacunek (użytkownik może podać tylko cenę). Do porównania „komputer vs faktyczne” liczą się tylko litry z paragonu – szacunek z czujnika auta nie może weryfikować komputera auta |
 | F10 | Statystyki wieloletnie: rok do roku, zima vs lato, trendy | archiwum lokalne | Wykonalne; dane od dnia uruchomienia (starsze niż ~12 mies. Toyota usunęła) |
 | F11 | Udział jazdy elektrycznej na trasę + ranking tras | `hdc.evDistance/evTime`, `length` | Wykonalne |
 | F12 | Styl jazdy: wynik eco w czasie, porównanie tras na tym samym odcinku | `scores`, start/end lat/lon | Wykonalne; „ten sam odcinek” = start i koniec w promieniu np. 300 m |

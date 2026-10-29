@@ -6,6 +6,7 @@ import java.time.Instant
 import java.time.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
 import mockwebserver3.MockResponse
@@ -112,6 +113,43 @@ class ToyotaApiTest {
             }
         }
     }
+
+    @Test
+    fun `trips_pagination_loop_is_rejected`() = runBlocking {
+        MockWebServer().apply { start() }.use { mock ->
+            ApiCtx(mock).let { ctx ->
+                ctx.server.enqueue(
+                    okRes("""{"payload":{"_metadata":{"pagination":{"nextOffset":0}},"trips":[]}}"""),
+                )
+                assertFailsWith<ToyotaDataException> {
+                    ctx.api.fetchAllTrips("VIN", LocalDate.of(2023, 9, 1), LocalDate.of(2023, 11, 30))
+                }
+                assertEquals(1, mock.requestCount)
+            }
+        }
+    }
+
+    @Test
+    fun `trips_archive_fields_are_kept`() = runBlocking {
+        MockWebServer().apply { start() }.use { mock ->
+            ApiCtx(mock).let { ctx ->
+                ctx.server.enqueue(okRes(fixture("v1_trips.json")))
+                val page = ctx.api.getTrips(
+                    "VIN",
+                    LocalDate.of(2023, 9, 1),
+                    LocalDate.of(2023, 11, 30),
+                    summary = false,
+                    limit = 50,
+                )
+                val trip = page.trips!!.first()
+                assertEquals(0.0, trip.summary!!.startLat!!, 1e-9)
+                assertEquals(0.0, trip.summary!!.endLon!!, 1e-9)
+                assertEquals(65, trip.scores!!.global)
+                assertEquals(13170L, trip.hdc!!.evDistance)
+                assertEquals(11937L, trip.hdc!!.ecoDist)
+            }
+        }
+    }
 }
 
 class ToyotaMapperTest {
@@ -176,5 +214,35 @@ class ToyotaMapperTest {
         kotlin.test.assertNull(
             ToyotaMapper.toFuelReading(TelemetryDto(fuelLevel = 10, timestamp = "nonsense")),
         )
+    }
+
+    @Test
+    fun `telemetry keeps battery level and electric range`() {
+        val dto = TelemetryDto(
+            fuelLevel = 50,
+            batteryLevel = 80,
+            timestamp = "2023-11-28T09:45:40Z",
+            odometer = UnitValueDto(value = 100.0, unit = "km"),
+            distanceToEmpty = UnitValueDto(value = 600.0, unit = "km"),
+        )
+        val reading = ToyotaMapper.toFuelReading(dto)!!
+        assertEquals(80, reading.batteryLevelPct!!)
+        assertEquals(600.0, reading.distanceToEmptyKm!!, 1e-9)
+    }
+
+    @Test
+    fun `naive trip timestamp is treated as utc`() {
+        val dto = TripDto(
+            id = "t-1",
+            summary = TripSummaryDto(
+                length = 1000,
+                fuelConsumption = 50.0,
+                startTs = "2023-11-21T19:55:13",
+                endTs = "2023-11-21T20:09:11",
+            ),
+        )
+        val trip = ToyotaMapper.toDomainTrip(dto)!!
+        assertEquals(Instant.parse("2023-11-21T19:55:13Z"), trip.start)
+        assertEquals(Instant.parse("2023-11-21T20:09:11Z"), trip.end)
     }
 }

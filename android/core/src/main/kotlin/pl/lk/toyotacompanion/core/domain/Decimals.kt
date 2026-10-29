@@ -8,6 +8,9 @@ private const val PRICE_SCALE = 3
 private const val MONEY_SCALE = 2
 private const val LITER_SCALE = 3
 
+/** Tank capacity of the owner's Corolla Hybrid 2025 (PRD §7, ADR-005). */
+val DEFAULT_TANK_CAPACITY_L: BigDecimal = BigDecimal("43")
+
 /** Mirrors Python's default decimal.Context precision (28 significant digits). */
 internal val DIVIDE_CONTEXT = MathContext(28, RoundingMode.HALF_UP)
 

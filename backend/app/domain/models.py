@@ -12,11 +12,15 @@ from typing import Literal
 
 RefuelStatus = Literal["pending", "confirmed", "dismissed"]
 TripCostSource = Literal["refuel", "default", "none"]
+LitersSource = Literal["receipt", "estimate", "derived"]
 
 #: Quantization steps (ROUND_HALF_UP everywhere).
 PRICE_QUANTUM = Decimal("0.001")  # price per liter, zl/l
 MONEY_QUANTUM = Decimal("0.01")  # amounts, zl
 LITER_QUANTUM = Decimal("0.001")  # liters, l
+
+#: Tank capacity of the owner's Corolla Hybrid 2025 (PRD §7, ADR-005).
+DEFAULT_TANK_CAPACITY_L = Decimal("43")
 
 
 def as_decimal(value: Decimal | float | int | str) -> Decimal:
@@ -46,6 +50,8 @@ class FuelReading:
     ts: datetime
     level_pct: int
     odometer_km: float
+    battery_level_pct: int | None = None
+    distance_to_empty_km: float | None = None
 
 
 @dataclass(frozen=True)
@@ -59,6 +65,8 @@ class Refuel:
     price_per_liter: Decimal | None
     total_cost: Decimal | None
     status: RefuelStatus
+    liters_source: LitersSource | None = None
+    filled_to_full: bool | None = None
 
 
 @dataclass(frozen=True)

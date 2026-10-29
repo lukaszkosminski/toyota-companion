@@ -7,11 +7,16 @@ enum class RefuelStatus { PENDING, CONFIRMED, DISMISSED }
 
 enum class CostSource { REFUEL, DEFAULT, NONE }
 
+/** Where the refuel liters came from (F2a/F9). */
+enum class LitersSource { RECEIPT, ESTIMATE, DERIVED }
+
 /** One fuel-level telemetry reading. */
 data class FuelReading(
     val ts: Instant,
     val levelPct: Int,
     val odometerKm: Double,
+    val batteryLevelPct: Int? = null,
+    val distanceToEmptyKm: Double? = null,
 )
 
 /** A detected/confirmed refuel event. Immutable; use copy() for variants. */
@@ -25,6 +30,8 @@ data class Refuel(
     val pricePerLiter: BigDecimal?,
     val totalCost: BigDecimal?,
     val status: RefuelStatus,
+    val litersSource: LitersSource? = null,
+    val filledToFull: Boolean? = null,
 )
 
 /** A driven trip. Immutable. */

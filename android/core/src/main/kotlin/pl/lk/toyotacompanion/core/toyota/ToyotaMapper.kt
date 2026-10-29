@@ -7,6 +7,7 @@ import pl.lk.toyotacompanion.core.domain.FuelReading
 import pl.lk.toyotacompanion.core.domain.Trip
 import pl.lk.toyotacompanion.core.toyota.dto.TelemetryDto
 import pl.lk.toyotacompanion.core.toyota.dto.TripDto
+import pl.lk.toyotacompanion.core.toyota.dto.UnitValueDto
 
 /**
  * Maps wire DTOs onto the pure domain types.
@@ -63,20 +64,38 @@ object ToyotaMapper {
     fun toFuelReading(dto: TelemetryDto): FuelReading? {
         val level = dto.fuelLevel ?: return null
         val ts = parseInstant(dto.timestamp ?: return null) ?: return null
-        val odometer = dto.odometer ?: return null
-        val value = odometer.value ?: return null
-        val km = when (odometer.unit?.lowercase()) {
-            null, "km" -> value
-            "mi", "miles" -> value * ToyotaConst.MILES_TO_KM_FACTOR
-            else -> return null
-        }
-        return FuelReading(ts = ts, levelPct = level, odometerKm = km)
+        val km = toKm(dto.odometer) ?: return null
+        return FuelReading(
+            ts = ts,
+            levelPct = level,
+            odometerKm = km,
+            batteryLevelPct = dto.batteryLevel,
+            distanceToEmptyKm = toKm(dto.distanceToEmpty),
+        )
     }
 
+    private fun toKm(value: UnitValueDto?): Double? {
+        val number = value?.value ?: return null
+        return when (value.unit?.lowercase()) {
+            null, "km" -> number
+            "mi", "miles" -> number * ToyotaConst.MILES_TO_KM_FACTOR
+            else -> null
+        }
+    }
+
+    /**
+     * Toyota normally sends ISO-8601 with `Z`; accept a missing zone as UTC
+     * (PRD: all dates are UTC) instead of silently dropping the trip.
+     */
     private fun parseInstant(value: String): Instant? =
         try {
             Instant.parse(value)
         } catch (e: Exception) {
-            null
+            try {
+                java.time.LocalDateTime.parse(value, java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                    .toInstant(java.time.ZoneOffset.UTC)
+            } catch (e: Exception) {
+                null
+            }
         }
 }

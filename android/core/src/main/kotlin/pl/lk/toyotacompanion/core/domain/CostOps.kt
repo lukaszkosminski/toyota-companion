@@ -3,33 +3,34 @@ package pl.lk.toyotacompanion.core.domain
 import java.math.BigDecimal
 
 /**
- * Cost of a trip based on refuel prices.
+ * Cost of a trip based on the weighted tank price (ADR-005).
  *
- * Picks the latest refuel with [RefuelStatus.CONFIRMED], a set
- * pricePerLiter and `ts <= trip.start`; cost is `trip.fuelL * price` rounded
- * to 0.01 zl (ROUND_HALF_UP), [CostSource.REFUEL]. With no such refuel but a
- * [defaultPrice], [CostSource.DEFAULT]. Otherwise everything is null and
- * [CostSource.NONE]. Pending/dismissed refuels are ignored.
+ * Confirmed refuels up to `trip.start` are applied in chronological order; each
+ * one with a price updates the average price in the tank (see
+ * [tankPriceAfterRefuel]; liters may be a sensor estimate). The latest such price is used: cost is
+ * `trip.fuelL * tankPrice` rounded to 0.01 zl (HALF_UP), [CostSource.REFUEL].
+ * With no usable refuel but a [defaultPrice], [CostSource.DEFAULT]. Otherwise
+ * everything is null and [CostSource.NONE]. Pending/dismissed refuels are ignored.
  */
 fun computeTripCost(
     trip: Trip,
     refuels: Iterable<Refuel>,
     defaultPrice: BigDecimal? = null,
+    capacityL: BigDecimal = DEFAULT_TANK_CAPACITY_L,
 ): TripCost {
-    var latest: Refuel? = null
-    var latestPrice: BigDecimal? = null
-    for (refuel in refuels) {
-        val price = refuel.pricePerLiter
-        if (refuel.status != RefuelStatus.CONFIRMED || price == null) continue
-        if (refuel.ts.isAfter(trip.start)) continue
-        if (latest == null || !refuel.ts.isBefore(latest.ts)) {
-            latest = refuel
-            latestPrice = price
+    var tankPrice: BigDecimal? = null
+    var usedRefuel: Refuel? = null
+    for (refuel in confirmedInOrder(refuels)) {
+        if (refuel.ts.isAfter(trip.start)) break
+        val updated = tankPriceAfterRefuel(refuel, tankPrice, capacityL)
+        if (updated != null) {
+            tankPrice = updated
+            usedRefuel = refuel
         }
     }
 
-    val refuelId = latest?.id
-    val price = latestPrice
+    val refuelId = usedRefuel?.id
+    val price = tankPrice
     if (refuelId != null && price != null) {
         return TripCost(
             tripId = trip.id,
@@ -67,7 +68,13 @@ fun recomputeCosts(
     trips: List<Trip>,
     refuels: Iterable<Refuel>,
     defaultPrice: BigDecimal? = null,
+    capacityL: BigDecimal = DEFAULT_TANK_CAPACITY_L,
 ): List<TripCost> {
     val refuelList = refuels.toList()
-    return trips.map { computeTripCost(it, refuelList, defaultPrice) }
+    return trips.map { computeTripCost(it, refuelList, defaultPrice, capacityL) }
 }
+
+private fun confirmedInOrder(refuels: Iterable<Refuel>): List<Refuel> =
+    refuels
+        .filter { it.status == RefuelStatus.CONFIRMED }
+        .sortedWith(compareBy<Refuel> { it.ts }.thenBy { it.id })

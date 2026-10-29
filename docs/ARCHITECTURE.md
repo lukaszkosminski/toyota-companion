@@ -15,7 +15,7 @@ Telefon z Androidem
 | Katalog | Odpowiedzialność | Zależności |
 |---|---|---|
 | `android/core` … `domain` | Czysta logika: tankowania, koszt tras. Bez I/O. | tylko JDK |
-| `android/core` … `toyota` | Logowanie i endpointy Toyoty (planowane) | HTTP client |
+| `android/core` … `toyota` | Logowanie i endpointy Toyoty (port pytoyoda v6.0.0) | HTTP client (OkHttp) |
 | `android/app` | UI, praca w tle, baza Room, bezpieczne przechowywanie hasła (planowane) | core |
 | `backend/` | Wykonywalna specyfikacja domeny w Pythonie (testy referencyjne) | stdlib |
 

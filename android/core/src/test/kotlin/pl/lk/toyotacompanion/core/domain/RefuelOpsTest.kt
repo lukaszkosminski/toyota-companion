@@ -7,7 +7,6 @@ import java.math.BigDecimal
 import java.time.Instant
 import kotlin.test.Test
 import org.junit.jupiter.api.Nested
-import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotSame
@@ -112,7 +111,23 @@ class RefuelOpsTest {
             val first = requireNotNull(detectRefuel(prev, cur))
             val second = requireNotNull(detectRefuel(prev, cur))
             assertEquals(first.id, second.id)
-            assertContains(first.id, cur.ts.toString())
+            assertEquals("refuel-2026-10-01T12:00:00Z", first.id)
+        }
+
+        @Test
+        fun `id_uses_canonical_utc_for_aware_timestamp`() {
+            val prev = reading(TS_PREV, 10, 100.0)
+            val cur = reading(Instant.parse("2026-10-01T14:00:00+02:00"), 90, 140.0)
+            val refuel = requireNotNull(detectRefuel(prev, cur))
+            assertEquals("refuel-2026-10-01T12:00:00Z", refuel.id)
+        }
+
+        @Test
+        fun `id_keeps_millisecond_precision`() {
+            val prev = reading(TS_PREV, 10, 100.0)
+            val cur = reading(Instant.parse("2026-10-01T12:00:00.123Z"), 90, 140.0)
+            val refuel = requireNotNull(detectRefuel(prev, cur))
+            assertEquals("refuel-2026-10-01T12:00:00.123Z", refuel.id)
         }
 
         @Test
@@ -147,6 +162,7 @@ class RefuelOpsTest {
             assertBd("6.190", out.pricePerLiter, "price_per_liter")
             assertNull(out.liters)
             assertNull(out.totalCost)
+            assertNull(out.litersSource)
         }
 
         @Test
@@ -161,6 +177,7 @@ class RefuelOpsTest {
             assertBd("3.71", out.totalCost, "total_cost")
             assertBd("6.190", out.pricePerLiter, "price_per_liter")
             assertBd("0.600", out.liters, "liters")
+            assertEquals(LitersSource.RECEIPT, out.litersSource)
         }
 
         @Test
@@ -174,6 +191,7 @@ class RefuelOpsTest {
             // 3.71 / 6.19 = 0.59935... -> 0.599 (ROUND_HALF_UP to 0.001)
             assertBd("0.599", out.liters, "liters")
             assertBd("3.71", out.totalCost, "total_cost")
+            assertEquals(LitersSource.DERIVED, out.litersSource)
         }
 
         @Test
@@ -186,6 +204,52 @@ class RefuelOpsTest {
             assertEquals(RefuelStatus.CONFIRMED, out.status)
             // 3.71 / 0.60 = 6.1833... -> 6.183
             assertBd("6.183", out.pricePerLiter, "price_per_liter")
+            assertEquals(LitersSource.RECEIPT, out.litersSource)
+        }
+
+        @Test
+        fun `filled_to_full_is_preserved`() {
+            val out = confirmRefuel(
+                pendingRefuel(),
+                pricePerLiter = bd("6.19"),
+                liters = bd("32.250"),
+                filledToFull = true,
+            )
+            assertEquals(true, out.filledToFull)
+            assertEquals(LitersSource.RECEIPT, out.litersSource)
+        }
+
+        @Test
+        fun `explicit_estimate_source`() {
+            val out = confirmRefuel(
+                pendingRefuel(),
+                pricePerLiter = bd("6.19"),
+                liters = bd("32.250"),
+                litersSource = LitersSource.ESTIMATE,
+            )
+            assertEquals(LitersSource.ESTIMATE, out.litersSource)
+        }
+
+        @Test
+        fun `liters_source_without_liters_raises`() {
+            assertFailsWith<IllegalArgumentException> {
+                confirmRefuel(
+                    pendingRefuel(),
+                    pricePerLiter = bd("6.19"),
+                    litersSource = LitersSource.RECEIPT,
+                )
+            }
+        }
+
+        @Test
+        fun `filled_to_full_without_liters_raises`() {
+            assertFailsWith<IllegalArgumentException> {
+                confirmRefuel(
+                    pendingRefuel(),
+                    pricePerLiter = bd("6.19"),
+                    filledToFull = true,
+                )
+            }
         }
 
         @Test
@@ -316,6 +380,116 @@ class RefuelOpsTest {
             assertTrue(fields.all { Modifier.isFinal(it.modifiers) }) {
                 "all Refuel properties must be val (final)"
             }
+        }
+    }
+
+    @Nested
+    inner class TankPriceAfterRefuel {
+        private fun confirmed(
+            ts: Instant = TS_CUR,
+            levelBefore: Int = 20,
+            levelAfter: Int = 80,
+            price: String = "6.19",
+            liters: String = "25.800",
+        ): Refuel = confirmRefuel(
+            pendingRefuel(ts = ts, levelBefore = levelBefore, levelAfter = levelAfter),
+            pricePerLiter = bd(price),
+            liters = bd(liters),
+        )
+
+        @Test
+        fun `first_refuel_uses_own_price`() {
+            assertBd("6.190", tankPriceAfterRefuel(confirmed(price = "6.19")), "tank_price")
+        }
+
+        @Test
+        fun `weighted_average`() {
+            val first = confirmed(price = "5.99")
+            val second = confirmed(price = "6.19")
+            // (8.6 * 5.99 + 25.8 * 6.19) / 34.4 = 6.140
+            assertBd("5.990", tankPriceAfterRefuel(first), "tank_price")
+            assertBd("6.140", tankPriceAfterRefuel(second, bd("5.990")), "tank_price")
+        }
+
+        @Test
+        fun `estimate_liters_are_used`() {
+            val refuel = confirmRefuel(
+                pendingRefuel(levelBefore = 20, levelAfter = 80),
+                pricePerLiter = bd("6.19"),
+                liters = bd("25.800"),
+                litersSource = LitersSource.ESTIMATE,
+            )
+            assertBd("6.140", tankPriceAfterRefuel(refuel, bd("5.990")), "tank_price")
+        }
+
+        @Test
+        fun `price_only_uses_sensor_liters`() {
+            // Only the price is entered; added = (80% - 20%) * 43 l = 25.8 l.
+            val refuel = confirmRefuel(
+                pendingRefuel(levelBefore = 20, levelAfter = 80),
+                pricePerLiter = bd("6.19"),
+            )
+            assertBd("6.140", tankPriceAfterRefuel(refuel, bd("5.990")), "tank_price")
+        }
+
+        @Test
+        fun `price_only_without_level_jump_is_ignored`() {
+            val refuel = confirmRefuel(
+                pendingRefuel(levelBefore = 50, levelAfter = 50),
+                pricePerLiter = bd("6.19"),
+            )
+            assertNull(tankPriceAfterRefuel(refuel, bd("5.990")))
+        }
+
+        @Test
+        fun `weighted_average_stays_between_prices`() {
+            // Receipt (30 l) disagrees with the sensor jump (25.8 l): the average is
+            // over the fuel that mixed, (8.6 * 5.99 + 30 * 6.19) / 38.6 = 6.145.
+            val result = tankPriceAfterRefuel(confirmed(price = "6.19", liters = "30"), bd("5.990"))
+            assertBd("6.145", result, "tank_price")
+            val r = requireNotNull(result)
+            assertTrue(r >= bd("5.99") && r <= bd("6.19"))
+        }
+
+        @Test
+        fun `invalid_level_after_is_ignored`() {
+            assertNull(tankPriceAfterRefuel(confirmed(levelAfter = 0)))
+        }
+
+        @Test
+        fun `invalid_level_before_is_ignored`() {
+            assertNull(tankPriceAfterRefuel(confirmed(levelBefore = 101)))
+        }
+
+        @Test
+        fun `non_confirmed_is_ignored`() {
+            assertNull(tankPriceAfterRefuel(pendingRefuel()))
+        }
+
+        @Test
+        fun `zero_previous_price_falls_back_to_own_price`() {
+            assertBd("6.190", tankPriceAfterRefuel(confirmed(), BigDecimal.ZERO), "tank_price")
+        }
+
+        @Test
+        fun `empty_tank_before_refuel_uses_own_price`() {
+            assertBd(
+                "6.190",
+                tankPriceAfterRefuel(confirmed(levelBefore = 0, price = "6.19"), bd("5.990")),
+                "tank_price",
+            )
+        }
+
+        @Test
+        fun `capacity_must_be_positive`() {
+            assertFailsWith<IllegalArgumentException> {
+                tankPriceAfterRefuel(confirmed(), capacityL = BigDecimal.ZERO)
+            }
+        }
+
+        @Test
+        fun `default_capacity_is_43_liters`() {
+            assertBd("43", DEFAULT_TANK_CAPACITY_L, "capacity")
         }
     }
 

@@ -20,7 +20,9 @@ cd android
 
 ```bash
 cd backend
-python3 -m venv .venv && .venv/bin/pip install pytest
+python3 -m venv .venv
+.venv/bin/pip install -r requirements-dev.txt
+.venv/bin/ruff format --check && .venv/bin/ruff check && .venv/bin/mypy
 .venv/bin/python -m pytest -q
 ```
 
