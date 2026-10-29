@@ -414,6 +414,52 @@ class SessionControllerTest {
     }
 
     @Test
+    fun `reload reads the archive again without synchronizing`() = runTest {
+        credentials.save(Credentials(LOGIN, PASSWORD))
+        val runner = FakeRunner()
+        var reads = 0
+        val controller = session(
+            StandardTestDispatcher(testScheduler),
+            runner = runner,
+            status = { reads++; STATUS },
+        )
+        controller.start()
+        advanceUntilIdle()
+
+        controller.reload()
+        advanceUntilIdle()
+
+        assertEquals(2, reads)
+        assertEquals(0, runner.calls)
+        assertEquals(STATUS, (controller.state.value as UiState.LoggedIn).status)
+    }
+
+    @Test
+    fun `reload is ignored while synchronizing or logged out`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val controller = session(StandardTestDispatcher(testScheduler), runner = WaitingRunner(gate))
+        controller.start()
+        advanceUntilIdle()
+        controller.login(LOGIN, PASSWORD)
+        advanceUntilIdle()
+
+        controller.reload() // logged out or logged in, before any sync started: the state is untouched
+        advanceUntilIdle()
+
+        controller.syncNow()
+        advanceUntilIdle()
+        assertTrue((controller.state.value as UiState.LoggedIn).syncing)
+
+        controller.reload()
+        advanceUntilIdle()
+
+        assertTrue((controller.state.value as UiState.LoggedIn).syncing)
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertFalse((controller.state.value as UiState.LoggedIn).syncing)
+    }
+
+    @Test
     fun `storage failure after verification stores nothing and shows service error`() = runTest {
         val io = StandardTestDispatcher(testScheduler)
         val failingPrefs = prefs("ui-session-failing")

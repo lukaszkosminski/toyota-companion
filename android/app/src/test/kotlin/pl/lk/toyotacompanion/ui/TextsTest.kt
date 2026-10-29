@@ -67,7 +67,9 @@ class TextsTest {
     fun `messages carry no secret`() {
         val all = LoginError.entries.map { Texts.loginError(it) } +
             SyncErrorKind.entries.map { Texts.syncError(it) } +
-            listOf(Texts.trips(1), Texts.readings(1), Texts.pendingRefuels(1), Texts.freshness(status(true))) +
+            listOf(Texts.freshness(status(true)), Texts.STATE_NEVER, Texts.STATE_NEEDS_RELOGIN) +
+            listOf(Texts.STAT_TRIPS, Texts.STAT_READINGS, Texts.STAT_PENDING_REFUELS) +
+            listOf(Texts.APP_NAME, Texts.LOADING, Texts.REFRESH_BUTTON, Texts.LOGOUT_CONFIRM_BODY) +
             listOf(Texts.lastSuccess(status(true), ZONE), Texts.lastSuccess(status(false), ZONE))
         for (text in all) {
             for (forbidden in listOf("token", "Token", "VIN1", "p@ss", "secret")) {

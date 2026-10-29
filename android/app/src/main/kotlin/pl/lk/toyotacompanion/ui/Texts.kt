@@ -45,12 +45,6 @@ object Texts {
     /** "aktualne" / "nieaktualne" — local data on screen but not current (docs/SPEC.md §8.4). */
     fun freshness(status: SyncStatus): String = if (status.isFresh) "aktualne" else "nieaktualne"
 
-    fun trips(count: Int): String = "Trasy: $count"
-
-    fun readings(count: Int): String = "Odczyty paliwa: $count"
-
-    fun pendingRefuels(count: Int): String = "Oczekujące tankowania: $count"
-
     /** Last full success as `YYYY-MM-DD HH:mm` in the local zone, or "brak". */
     fun lastSuccess(status: SyncStatus, zone: ZoneId = ZoneId.systemDefault()): String {
         val at = status.state.lastSuccessAt ?: return "Ostatnia synchronizacja: brak"
@@ -58,4 +52,33 @@ object Texts {
         return "Ostatnia synchronizacja: " +
             "%04d-%02d-%02d %02d:%02d".format(local.year, local.monthValue, local.dayOfMonth, local.hour, local.minute)
     }
+
+    /** Dialog confirming logout, so a tap on "Wyloguj" is never final by itself. */
+    const val LOGOUT_CONFIRM_TITLE = "Wylogować się?"
+    const val LOGOUT_CONFIRM_BODY =
+        "Usuniemy zapisane dane logowania i dostęp Toyoty. Trasy i odczyty zostaną " +
+            "w bazie do następnego logowania."
+    const val LOGOUT_CONFIRM_YES = "Wyloguj"
+    const val LOGOUT_CONFIRM_NO = "Anuluj"
+
+    /** Title of the status screen; same wording as `app_name` in res/values/strings.xml. */
+    const val APP_NAME = "Toyota Companion"
+
+    /** First read of the local archive. */
+    const val LOADING = "Ładowanie…"
+
+    /** Reads the archive again, without asking Toyota (docs/SPEC.md §9.3). */
+    const val REFRESH_BUTTON = "Odśwież"
+
+    const val SHOW_PASSWORD = "Pokaż"
+    const val HIDE_PASSWORD = "Ukryj"
+
+    /** Stat cards show the number alone, the caption below says what it counts. */
+    const val STAT_TRIPS = "Trasy"
+    const val STAT_READINGS = "Odczyty paliwa"
+    const val STAT_PENDING_REFUELS = "Oczekujące tankowania"
+
+    /** Chip on the status screen when there is nothing fresh or stale to say yet. */
+    const val STATE_NEVER = "brak synchronizacji"
+    const val STATE_NEEDS_RELOGIN = "wymaga logowania"
 }

@@ -1,25 +1,26 @@
 package pl.lk.toyotacompanion.ui
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import pl.lk.toyotacompanion.ui.theme.ToyotaTheme
 
 /**
- * Root of the single-activity UI: the login form or the synchronization status,
- * chosen by [SessionController] (docs/SPEC.md §9). No navigation library.
+ * Root of the single-activity UI: one screen at a time, picked by the state the
+ * [SessionController] publishes. Every screen is wrapped in [ToyotaTheme]
+ * (Material 3, light/dark, dynamic color on Android 12+).
  */
 @Composable
 fun AppRoot(session: SessionController) {
     val state by session.state.collectAsState()
-    MaterialTheme {
-        when (val screen = state) {
-            // The first frame while the Keystore read is in flight: a form that cannot be submitted.
-            is UiState.Loading -> LoginScreen(UiState.LoggedOut(busy = true), onLogin = session::login)
-            is UiState.LoggedOut -> LoginScreen(screen, onLogin = session::login)
+    ToyotaTheme {
+        when (val current = state) {
+            is UiState.Loading -> LoginScreen(UiState.LoggedOut(busy = true), onSubmit = { _, _ -> })
+            is UiState.LoggedOut -> LoginScreen(current, onSubmit = session::login)
             is UiState.LoggedIn -> StatusScreen(
-                state = screen,
+                state = current,
                 onSyncNow = session::syncNow,
+                onRefresh = session::reload,
                 onLogout = session::logout,
             )
         }
