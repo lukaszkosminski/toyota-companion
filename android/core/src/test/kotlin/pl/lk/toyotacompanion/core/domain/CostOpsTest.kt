@@ -37,16 +37,20 @@ private fun refuel(
     ts: Instant = Instant.parse("2026-10-01T12:00:00Z"),
     price: String? = "6.19",
     status: RefuelStatus = RefuelStatus.CONFIRMED,
+    levelBefore: Int = 20,
+    levelAfter: Int = 80,
+    litersSource: LitersSource? = LitersSource.RECEIPT,
 ): Refuel = Refuel(
     id = id,
     ts = ts,
     odometerKm = 1000.0,
-    levelBefore = 15,
-    levelAfter = 90,
-    liters = if (price != null) bd("60.000") else null,
+    levelBefore = levelBefore,
+    levelAfter = levelAfter,
+    liters = if (price != null) bd("25.800") else null,
     pricePerLiter = price?.let(::bd),
     totalCost = null,
     status = status,
+    litersSource = if (price != null) litersSource else null,
 )
 
 class CostOpsTest {
@@ -120,7 +124,56 @@ class CostOpsTest {
             val after = refuel(id = "after", ts = Instant.parse("2026-10-06T00:00:00Z"), price = "7.00")
             val result = computeTripCost(trip(), listOf(old, after, new))
             assertEquals("new", result.refuelId)
-            assertBd("6.19", result.pricePerLiter, "price_per_liter")
+            // ADR-005: (8.6 * 5.99 + 25.8 * 6.19) / 34.4 = 6.140
+            assertBd("6.140", result.pricePerLiter, "price_per_liter")
+            assertBd("3.68", result.costPln, "cost_pln")
+        }
+
+        @Test
+        fun `uses_weighted_average_across_refuels`() {
+            val first = refuel(id = "first", ts = Instant.parse("2026-09-01T00:00:00Z"), price = "5.99")
+            val second = refuel(id = "second", ts = Instant.parse("2026-10-04T00:00:00Z"), price = "6.19")
+            val result = computeTripCost(trip(), listOf(first, second))
+            assertEquals(CostSource.REFUEL, result.source)
+            assertEquals("second", result.refuelId)
+            assertBd("6.140", result.pricePerLiter, "price_per_liter")
+            assertBd("3.68", result.costPln, "cost_pln")
+        }
+
+        @Test
+        fun `estimate_liters_update_tank_price`() {
+            val estimate = refuel(id = "estimate", litersSource = LitersSource.ESTIMATE)
+            val result = computeTripCost(trip(), listOf(estimate), defaultPrice = bd("6.00"))
+            assertEquals(CostSource.REFUEL, result.source)
+            assertEquals("estimate", result.refuelId)
+            assertBd("3.71", result.costPln, "cost_pln")
+        }
+
+        @Test
+        fun `ignores_confirmed_refuel_without_liters`() {
+            val noLiters = refuel(price = null)
+            val result = computeTripCost(trip(), listOf(noLiters), defaultPrice = bd("6.00"))
+            assertEquals(CostSource.DEFAULT, result.source)
+        }
+
+        @Test
+        fun `price_only_refuel_updates_tank_price_with_sensor_liters`() {
+            val priceOnly = Refuel(
+                id = "price-only",
+                ts = Instant.parse("2026-10-01T12:00:00Z"),
+                odometerKm = 1000.0,
+                levelBefore = 20,
+                levelAfter = 80,
+                liters = null,
+                pricePerLiter = bd("6.19"),
+                totalCost = null,
+                status = RefuelStatus.CONFIRMED,
+                litersSource = null,
+            )
+            val result = computeTripCost(trip(), listOf(priceOnly), defaultPrice = bd("6.00"))
+            assertEquals(CostSource.REFUEL, result.source)
+            assertEquals("price-only", result.refuelId)
+            assertBd("6.190", result.pricePerLiter, "price_per_liter")
             assertBd("3.71", result.costPln, "cost_pln")
         }
 
@@ -212,7 +265,12 @@ class CostOpsTest {
             assertEquals(listOf(CostSource.DEFAULT, CostSource.DEFAULT), before.map { it.source })
 
             val confirmed = pending.map {
-                it.copy(pricePerLiter = bd("6.19"), status = RefuelStatus.CONFIRMED)
+                it.copy(
+                    liters = bd("25.800"),
+                    pricePerLiter = bd("6.19"),
+                    litersSource = LitersSource.RECEIPT,
+                    status = RefuelStatus.CONFIRMED,
+                )
             }
             val after = recomputeCosts(trips, confirmed, defaultPrice = bd("6.00"))
             assertEquals(listOf(CostSource.REFUEL, CostSource.REFUEL), after.map { it.source })
@@ -242,10 +300,12 @@ class CostOpsTest {
             odometerKm = 1.0,
             levelBefore = 10,
             levelAfter = 90,
-            liters = null,
+            liters = bd("34.400"),
             pricePerLiter = bd("6.19"),
             totalCost = null,
             status = RefuelStatus.CONFIRMED,
+            litersSource = LitersSource.RECEIPT,
+            filledToFull = true,
         )
         assertBd("3.71", computeTripCost(t, listOf(r)).costPln, "cost_pln")
     }

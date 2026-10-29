@@ -24,17 +24,21 @@ def refuel(
     ts: datetime | None = None,
     price: str | None = "6.19",
     status: str = "confirmed",
+    level_before: int = 20,
+    level_after: int = 80,
+    liters_source: str | None = "receipt",
 ) -> Refuel:
     return Refuel(
         id=rid,
         ts=ts or datetime(2026, 10, 1, 12, 0, 0),
         odometer_km=1000.0,
-        level_before=15,
-        level_after=90,
-        liters=D("60.000") if price else None,
+        level_before=level_before,
+        level_after=level_after,
+        liters=D("25.800") if price else None,
         price_per_liter=D(price) if price else None,
         total_cost=None,
         status=status,
+        liters_source=liters_source if price else None,
     )
 
 
@@ -80,7 +84,48 @@ class TestRefuelSelection:
         after = refuel(rid="after", ts=datetime(2026, 10, 6), price="7.00")
         result = compute_trip_cost(trip(), [old, after, new])
         assert result.refuel_id == "new"
-        assert result.price_per_liter == D("6.19")
+        # ADR-005: (8.6 * 5.99 + 25.8 * 6.19) / 34.4 = 6.140
+        assert result.price_per_liter == D("6.140")
+        assert result.cost_pln == D("3.68")
+
+    def test_uses_weighted_average_across_refuels(self):
+        first = refuel(rid="first", ts=datetime(2026, 9, 1), price="5.99")
+        second = refuel(rid="second", ts=datetime(2026, 10, 4), price="6.19")
+        result = compute_trip_cost(trip(), [first, second])
+        assert result.source == "refuel"
+        assert result.refuel_id == "second"
+        assert result.price_per_liter == D("6.140")
+        assert result.cost_pln == D("3.68")
+
+    def test_estimate_liters_update_tank_price(self):
+        estimate = refuel(rid="estimate", liters_source="estimate")
+        result = compute_trip_cost(trip(), [estimate], default_price=D("6.00"))
+        assert result.source == "refuel"
+        assert result.refuel_id == "estimate"
+        assert result.cost_pln == D("3.71")
+
+    def test_ignores_confirmed_refuel_without_liters(self):
+        no_liters = refuel(price=None)
+        result = compute_trip_cost(trip(), [no_liters], default_price=D("6.00"))
+        assert result.source == "default"
+
+    def test_price_only_refuel_updates_tank_price_with_sensor_liters(self):
+        price_only = Refuel(
+            id="price-only",
+            ts=datetime(2026, 10, 1, 12, 0, 0),
+            odometer_km=1000.0,
+            level_before=20,
+            level_after=80,
+            liters=None,
+            price_per_liter=D("6.19"),
+            total_cost=None,
+            status="confirmed",
+            liters_source=None,
+        )
+        result = compute_trip_cost(trip(), [price_only], default_price=D("6.00"))
+        assert result.source == "refuel"
+        assert result.refuel_id == "price-only"
+        assert result.price_per_liter == D("6.190")
         assert result.cost_pln == D("3.71")
 
     def test_refuel_beats_default_price(self):
@@ -146,7 +191,9 @@ class TestRecomputeCosts:
             Refuel(
                 **{
                     **pending[0].__dict__,
+                    "liters": D("25.800"),
                     "price_per_liter": D("6.19"),
+                    "liters_source": "receipt",
                     "status": "confirmed",
                 }
             )
@@ -169,6 +216,16 @@ def test_float_fuel_from_pytoyoda_is_accepted() -> None:
         "t", datetime(2026, 1, 2, tzinfo=UTC), datetime(2026, 1, 2, 1, tzinfo=UTC), 14.6, 0.60, None
     )  # type: ignore[arg-type]
     r = Refuel(
-        "r", datetime(2026, 1, 1, tzinfo=UTC), 1.0, 10, 90, None, D("6.19"), None, "confirmed"
+        "r",
+        datetime(2026, 1, 1, tzinfo=UTC),
+        1.0,
+        10,
+        90,
+        D("34.400"),
+        D("6.19"),
+        None,
+        "confirmed",
+        "receipt",
+        True,
     )
     assert compute_trip_cost(t, [r]).cost_pln == D("3.71")

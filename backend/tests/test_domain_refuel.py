@@ -7,11 +7,13 @@ from decimal import Decimal
 import pytest
 
 from app.domain import (
+    DEFAULT_TANK_CAPACITY_L,
     FuelReading,
     Refuel,
     confirm_refuel,
     detect_refuel,
     dismiss_refuel,
+    tank_price_after_refuel,
 )
 
 TS_PREV = datetime(2026, 10, 1, 8, 0, 0)
@@ -84,7 +86,25 @@ class TestDetectRefuel:
         first = detect_refuel(prev, cur)
         second = detect_refuel(prev, cur)
         assert first.id == second.id
-        assert cur.ts.isoformat() in first.id
+        assert first.id == "refuel-2026-10-01T12:00:00Z"
+
+    def test_id_uses_canonical_utc_for_aware_timestamp(self):
+        from datetime import UTC
+
+        prev = reading(datetime(2026, 10, 1, 10, 0, 0, tzinfo=UTC), 10, 100.0)
+        cur = reading(datetime(2026, 10, 1, 12, 0, 0, tzinfo=UTC), 90, 140.0)
+        refuel = detect_refuel(prev, cur)
+        assert refuel is not None
+        assert refuel.id == "refuel-2026-10-01T12:00:00Z"
+
+    def test_id_keeps_millisecond_precision(self):
+        from datetime import UTC
+
+        prev = reading(datetime(2026, 10, 1, 10, 0, 0, tzinfo=UTC), 10, 100.0)
+        cur = reading(datetime(2026, 10, 1, 12, 0, 0, 123000, tzinfo=UTC), 90, 140.0)
+        refuel = detect_refuel(prev, cur)
+        assert refuel is not None
+        assert refuel.id == "refuel-2026-10-01T12:00:00.123Z"
 
     def test_cur_before_prev_raises(self):
         prev = reading(TS_CUR, 10, 100.0)
@@ -118,6 +138,7 @@ class TestConfirmRefuelCombinations:
         assert out.price_per_liter == D("6.190")
         assert out.liters is None
         assert out.total_cost is None
+        assert out.liters_source is None
 
     def test_price_and_liters_computes_total(self):
         out = confirm_refuel(pending_refuel(), price_per_liter=D("6.19"), liters=D("0.600"))
@@ -126,6 +147,7 @@ class TestConfirmRefuelCombinations:
         assert out.total_cost == D("3.71")
         assert out.price_per_liter == D("6.190")
         assert out.liters == D("0.600")
+        assert out.liters_source == "receipt"
 
     def test_price_and_total_computes_liters(self):
         out = confirm_refuel(pending_refuel(), price_per_liter=D("6.19"), total_cost=D("3.71"))
@@ -133,12 +155,41 @@ class TestConfirmRefuelCombinations:
         # 3.71 / 6.19 = 0.59935... -> 0.599 (ROUND_HALF_UP to 0.001)
         assert out.liters == D("0.599")
         assert out.total_cost == D("3.71")
+        assert out.liters_source == "derived"
 
     def test_liters_and_total_computes_price(self):
         out = confirm_refuel(pending_refuel(), liters=D("0.600"), total_cost=D("3.71"))
         assert out.status == "confirmed"
         # 3.71 / 0.60 = 6.1833... -> 6.183
         assert out.price_per_liter == D("6.183")
+        assert out.liters_source == "receipt"
+
+    def test_filled_to_full_is_preserved(self):
+        out = confirm_refuel(
+            pending_refuel(),
+            price_per_liter=D("6.19"),
+            liters=D("32.250"),
+            filled_to_full=True,
+        )
+        assert out.filled_to_full is True
+        assert out.liters_source == "receipt"
+
+    def test_explicit_estimate_source(self):
+        out = confirm_refuel(
+            pending_refuel(),
+            price_per_liter=D("6.19"),
+            liters=D("32.250"),
+            liters_source="estimate",
+        )
+        assert out.liters_source == "estimate"
+
+    def test_liters_source_without_liters_raises(self):
+        with pytest.raises(ValueError):
+            confirm_refuel(pending_refuel(), price_per_liter=D("6.19"), liters_source="receipt")
+
+    def test_filled_to_full_without_liters_raises(self):
+        with pytest.raises(ValueError):
+            confirm_refuel(pending_refuel(), price_per_liter=D("6.19"), filled_to_full=True)
 
     def test_price_only_is_rounded_to_0001(self):
         out = confirm_refuel(pending_refuel(), price_per_liter=D("6.1949"))
@@ -221,6 +272,92 @@ class TestConfirmRefuelImmutability:
         original = pending_refuel()
         with pytest.raises(FrozenInstanceError):
             original.status = "confirmed"  # type: ignore[misc]
+
+
+# ---------------------------------------------------------------- tank price (ADR-005)
+
+
+class TestTankPriceAfterRefuel:
+    def _confirmed(
+        self, *, ts=TS_CUR, level_before=20, level_after=80, price="6.19", liters="25.800"
+    ):
+        return confirm_refuel(
+            pending_refuel(
+                ts=ts,
+                level_before=level_before,
+                level_after=level_after,
+            ),
+            price_per_liter=D(price),
+            liters=D(liters),
+        )
+
+    def test_first_refuel_uses_own_price(self):
+        refuel = self._confirmed(price="6.19")
+        assert tank_price_after_refuel(refuel) == D("6.190")
+
+    def test_weighted_average(self):
+        first = self._confirmed(price="5.99")
+        second = self._confirmed(price="6.19")
+        # (8.6 * 5.99 + 25.8 * 6.19) / 34.4 = 6.140
+        assert tank_price_after_refuel(first) == D("5.990")
+        assert tank_price_after_refuel(second, D("5.990")) == D("6.140")
+
+    def test_estimate_liters_are_used(self):
+        refuel = confirm_refuel(
+            pending_refuel(level_before=20, level_after=80),
+            price_per_liter=D("6.19"),
+            liters=D("25.800"),
+            liters_source="estimate",
+        )
+        assert tank_price_after_refuel(refuel, D("5.990")) == D("6.140")
+
+    def test_price_only_uses_sensor_liters(self):
+        # Only the price is entered; added = (80% - 20%) * 43 l = 25.8 l.
+        refuel = confirm_refuel(
+            pending_refuel(level_before=20, level_after=80), price_per_liter=D("6.19")
+        )
+        assert tank_price_after_refuel(refuel, D("5.990")) == D("6.140")
+
+    def test_price_only_without_level_jump_is_ignored(self):
+        refuel = confirm_refuel(
+            pending_refuel(level_before=50, level_after=50), price_per_liter=D("6.19")
+        )
+        assert tank_price_after_refuel(refuel, D("5.990")) is None
+
+    def test_weighted_average_stays_between_prices(self):
+        # Receipt (30 l) disagrees with the sensor jump (25.8 l): the average is
+        # over the fuel that mixed, (8.6 * 5.99 + 30 * 6.19) / 38.6 = 6.145.
+        refuel = self._confirmed(price="6.19", liters="30")
+        result = tank_price_after_refuel(refuel, D("5.990"))
+        assert result == D("6.145")
+        assert result is not None and D("5.99") <= result <= D("6.19")
+
+    def test_invalid_level_after_is_ignored(self):
+        refuel = self._confirmed(level_after=0)
+        assert tank_price_after_refuel(refuel) is None
+
+    def test_invalid_level_before_is_ignored(self):
+        refuel = self._confirmed(level_before=101)
+        assert tank_price_after_refuel(refuel) is None
+
+    def test_non_confirmed_is_ignored(self):
+        assert tank_price_after_refuel(pending_refuel()) is None
+
+    def test_zero_previous_price_falls_back_to_own_price(self):
+        refuel = self._confirmed(price="6.19")
+        assert tank_price_after_refuel(refuel, D("0")) == D("6.190")
+
+    def test_empty_tank_before_refuel_uses_own_price(self):
+        refuel = self._confirmed(level_before=0, price="6.19")
+        assert tank_price_after_refuel(refuel, D("5.990")) == D("6.190")
+
+    def test_capacity_must_be_positive(self):
+        refuel = self._confirmed()
+        with pytest.raises(ValueError):
+            tank_price_after_refuel(refuel, capacity_l=0)
+
+    def test_default_capacity_is_43_liters(self):
+        assert DEFAULT_TANK_CAPACITY_L == D("43")
 
 
 # ---------------------------------------------------------------- dismiss_refuel

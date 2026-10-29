@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from .models import (
+    DEFAULT_TANK_CAPACITY_L,
     FuelReading,
+    LitersSource,
     Refuel,
     as_decimal,
     round_liters,
@@ -15,6 +18,26 @@ from .models import (
 )
 
 DecimalLike = Decimal | float | int | str | None
+PositiveDecimalLike = Decimal | float | int | str
+
+_LITERS_SOURCES: frozenset[str] = frozenset({"receipt", "estimate", "derived"})
+
+
+def _canonical_utc_isoformat(ts: datetime) -> str:
+    """Canonical UTC ISO-8601 with ``Z`` and 0/3/6 fractional digits.
+
+    Matches Kotlin ``Instant.toString()`` for the precision available in
+    Python's ``datetime`` (microseconds). Naive input is interpreted as UTC
+    (PRD: all dates are UTC).
+    """
+    aware = ts.replace(tzinfo=UTC) if ts.tzinfo is None else ts.astimezone(UTC)
+    base = aware.strftime("%Y-%m-%dT%H:%M:%S")
+    micro = aware.microsecond
+    if micro == 0:
+        return f"{base}Z"
+    fraction = f"{micro // 1000:03d}" if micro % 1000 == 0 else f"{micro:06d}"
+    return f"{base}.{fraction}Z"
+
 
 #: Admissible input combinations for :func:`confirm_refuel`.
 _ALLOWED_COMBOS: frozenset[frozenset[str]] = frozenset(
@@ -45,7 +68,7 @@ def detect_refuel(
     if cur.level_pct - prev.level_pct < min_jump_pct:
         return None
     return Refuel(
-        id=f"refuel-{cur.ts.isoformat()}",
+        id=f"refuel-{_canonical_utc_isoformat(cur.ts)}",
         ts=cur.ts,
         odometer_km=cur.odometer_km,
         level_before=prev.level_pct,
@@ -63,6 +86,8 @@ def confirm_refuel(
     price_per_liter: DecimalLike = None,
     liters: DecimalLike = None,
     total_cost: DecimalLike = None,
+    liters_source: LitersSource | None = None,
+    filled_to_full: bool | None = None,
 ) -> Refuel:
     """Return a copy of ``refuel`` with ``status="confirmed"`` and finalized
     money fields.
@@ -73,9 +98,19 @@ def confirm_refuel(
 
     The missing magnitude is derived (price = total/liters,
     total = price*liters, liters = total/price). Prices are rounded to 0.001,
-    amounts to 0.01 (ROUND_HALF_UP); liters to 0.001. Any provided value
+    amounts to 0.01, liters to 0.001 (ROUND_HALF_UP). Any provided value
     ``<= 0`` raises ``ValueError``. The input object is never mutated.
+
+    ``liters_source`` records where the liters came from. When omitted it is
+    inferred: user-provided liters -> ``"receipt"``, liters derived from
+    ``price + total_cost`` -> ``"derived"``. ``filled_to_full`` is meaningful
+    only with liters (F9 requires full-to-full receipts).
     """
+    if liters_source is not None and liters_source not in _LITERS_SOURCES:
+        raise ValueError(
+            f"liters_source must be one of {sorted(_LITERS_SOURCES)} (got {liters_source!r})"
+        )
+    liters_was_provided = liters is not None
     given = {
         name
         for name, value in (
@@ -128,13 +163,85 @@ def confirm_refuel(
         price_v = round_price(total_v / liters_v)
     # price-only: liters_v and total_v stay unknown (None).
 
+    if liters_v is None:
+        if liters_source is not None:
+            raise ValueError("liters_source requires liters")
+        if filled_to_full is not None:
+            raise ValueError("filled_to_full requires liters")
+        liters_source_v: LitersSource | None = None
+    elif liters_source is None:
+        liters_source_v = "receipt" if liters_was_provided else "derived"
+    elif liters_source == "receipt" and not liters_was_provided:
+        # Liters came from total/price, not from the receipt.
+        liters_source_v = "derived"
+    else:
+        liters_source_v = liters_source
+
     return replace(
         refuel,
         liters=liters_v,
         price_per_liter=price_v,
         total_cost=total_v,
         status="confirmed",
+        liters_source=liters_source_v,
+        filled_to_full=(filled_to_full if filled_to_full is not None else refuel.filled_to_full),
     )
+
+
+def _level_to_liters(level_pct: int, capacity_l: Decimal) -> Decimal:
+    return Decimal(level_pct) / Decimal(100) * capacity_l
+
+
+def tank_price_after_refuel(
+    refuel: Refuel,
+    previous_tank_price: PositiveDecimalLike | None = None,
+    capacity_l: PositiveDecimalLike = DEFAULT_TANK_CAPACITY_L,
+) -> Decimal | None:
+    """Average price of fuel in the tank after a confirmed refuel (ADR-005).
+
+    ``liters_before = level_before% * capacity``; ``added`` = ``refuel.liters``
+    (receipt, derived or sensor estimate) or, when only the price was given,
+    the sensor estimate ``(level_after - level_before)% * capacity``::
+
+        tank_price = (liters_before * previous_tank_price + added * price)
+                     / (liters_before + added)
+
+    The denominator is the fuel that actually mixed, so the result always lies
+    between the previous price and the new price. Returns ``None`` when the
+    refuel is not confirmed, has no price, has invalid levels or no
+    determinable added liters. The first refuel (no previous tank price), an
+    empty tank before the refuel, or a non-positive previous price uses its own
+    ``price_per_liter``. The result is rounded to 0.001 zl/l with ROUND_HALF_UP.
+    """
+    capacity = as_decimal(capacity_l)
+    if capacity <= 0:
+        raise ValueError(f"capacity_l must be > 0 (got {capacity_l!r})")
+    price = refuel.price_per_liter
+    if (
+        refuel.status != "confirmed"
+        or price is None
+        or not 0 <= refuel.level_before <= 100
+        or not 0 < refuel.level_after <= 100
+    ):
+        return None
+
+    if refuel.liters is not None:
+        added = refuel.liters
+    else:
+        jump = refuel.level_after - refuel.level_before
+        if jump <= 0:
+            return None
+        added = round_liters(_level_to_liters(jump, capacity))
+    if added <= 0:
+        return None
+
+    liters_before = _level_to_liters(refuel.level_before, capacity)
+    previous = as_decimal(previous_tank_price) if previous_tank_price is not None else None
+    if previous is None or previous <= 0 or liters_before <= 0:
+        return round_price(price)
+
+    weighted = (liters_before * previous + added * price) / (liters_before + added)
+    return round_price(weighted)
 
 
 def dismiss_refuel(refuel: Refuel) -> Refuel:

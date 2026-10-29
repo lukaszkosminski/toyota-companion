@@ -2,7 +2,9 @@
 name = "toyota-companion-backend"
 version = "0.1.0"
 requires-python = ">=3.11"
-dependencies = ["pytoyoda>=6.0.0", "fastapi", "uvicorn"]
+# Wykonywalna specyfikacja domeny: tylko stdlib. Klient Toyoty i FastAPI
+# zostały usunięte wraz z ADR-006 (backend nie jest już usługą).
+dependencies = []
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

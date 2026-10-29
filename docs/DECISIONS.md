@@ -18,9 +18,14 @@ Odstępstwo udokumentowane zamiast ukryte.
 
 ## ADR-005 Koszt trasy = średnia ważona ceny paliwa w baku
 Decyzja właściciela produktu (2026-10-28). Bak 43 l (Corolla Hybrid 2025).
-Po tankowaniu cena paliwa w baku = (litry przed × cena przed + litry zatankowane × cena nowa) / litry po.
-Litry przed = `level_before` % × 43 l. Wymaga podania litrów z paragonu (albo kwoty i ceny).
-Specyfikacja i implementacja: do zrobienia (SPEC §6). Do tego czasu działa ADR-002.
+Po tankowaniu cena paliwa w baku = (litry przed × cena przed + litry zatankowane × cena nowa) / (litry przed + litry zatankowane).
+Litry przed = `level_before` % × 43 l. Litry zatankowane: z paragonu, wyliczone z kwoty i ceny albo szacunek z czujnika;
+gdy użytkownik poda tylko cenę – szacunek `(level_after − level_before)` % × 43 l (właściciel: „pyta o cenę, ilość aplikacja sprawdzi sama”).
+Mianownik to suma wymieszanego paliwa, więc wynik zawsze leży między starą i nową ceną (poziom po tankowaniu z czujnika
+nie jest używany – niezgodny z paragonem dawałby cenę spoza zakresu).
+Szacunek z czujnika wystarcza do średniej ceny; do porównania spalania „komputer vs faktyczne” (F9) liczą się tylko litry z paragonu.
+Zaimplementowane w Pythonie i Kotlinie (SPEC §6, `tank_price_after_refuel`/`tankPriceAfterRefuel`).
+Pierwsze tankowanie albo brak poprzedniej ceny -> własna cena paliwa. Zastępuje ADR-002.
 
 ## ADR-006 Aplikacja tylko na telefonie, klient Toyoty w Kotlinie (zastępuje ADR-001)
 Decyzja właściciela produktu (2026-10-28): całość działa na telefonie, bez backendu.
@@ -28,5 +33,5 @@ Chaquopy odrzucone: pytoyoda wymaga pydantic 2 → `pydantic-core` (Rust), któr
 (chaquo/chaquopy #1017 i PR #1413 otwarte), a PyPI nie ma wheeli dla Androida (stan 2026-10-28).
 Klient Toyoty i logika domeny są portowane do Kotlina (`android/core`, czysty JVM).
 pytoyoda służy jako wzór zmian API Toyoty; `backend/` zostaje jako wykonywalna specyfikacja domeny z testami,
-a testy Kotlin mają te same nazwy i wartości (53/53).
+a testy Kotlin mają te same nazwy i wartości (stan 2026-10-29: Python 76, Kotlin 109 – 76 domeny + 33 klienta Toyoty).
 Konsekwencje: hasło Toyoty na telefonie (Android Keystore); archiwum tras tylko na telefonie → wymagany backup.

@@ -78,12 +78,18 @@ data class PaginationDto(
 @Serializable
 data class TripDetailResponse(val payload: TripDto? = null)
 
-/** pytoyoda trips.py:143-150 (_TripModel, trimmed to ported fields) */
+/**
+ * pytoyoda trips.py:143-150 (_TripModel).
+ *
+ * Fields beyond the MVP cost model are kept so the archive can retain them:
+ * Toyota deletes trips after ~12 months and F11-F17 need coordinates/scores.
+ */
 @Serializable
 data class TripDto(
     val id: String? = null,
     val category: Int? = null,
     val summary: TripSummaryDto? = null,
+    val scores: ScoresDto? = null,
     val hdc: HdcDto? = null,
 )
 
@@ -92,15 +98,38 @@ data class TripDto(
 data class TripSummaryDto(
     val length: Long? = null,
     val duration: Long? = null,
+    @SerialName("durationIdle") val durationIdle: Long? = null,
     @SerialName("averageSpeed") val averageSpeed: Double? = null,
+    @SerialName("maxSpeed") val maxSpeed: Double? = null,
     @SerialName("fuelConsumption") val fuelConsumption: Double? = null,
     @SerialName("startTs") val startTs: String? = null,
+    @SerialName("startLat") val startLat: Double? = null,
+    @SerialName("startLon") val startLon: Double? = null,
     @SerialName("endTs") val endTs: String? = null,
+    @SerialName("endLat") val endLat: Double? = null,
+    @SerialName("endLon") val endLon: Double? = null,
+    @SerialName("nightTrip") val nightTrip: Boolean? = null,
 )
 
-/** pytoyoda trips.py:115-117 (_HDCModel, trimmed) */
+/** pytoyoda trips.py:102-109 (_ScoresModel) */
+@Serializable
+data class ScoresDto(
+    @SerialName("global") val global: Int? = null,
+    val acceleration: Int? = null,
+    val braking: Int? = null,
+    val advice: Int? = null,
+    @SerialName("constantSpeed") val constantSpeed: Int? = null,
+)
+
+/** pytoyoda trips.py:115-117 (_HDCModel) */
 @Serializable
 data class HdcDto(
     @SerialName("evTime") val evTime: Long? = null,
     @SerialName("evDistance") val evDistance: Long? = null,
+    @SerialName("ecoTime") val ecoTime: Long? = null,
+    @SerialName("ecoDist") val ecoDist: Long? = null,
+    @SerialName("powerTime") val powerTime: Long? = null,
+    @SerialName("powerDist") val powerDist: Long? = null,
+    @SerialName("chargeTime") val chargeTime: Long? = null,
+    @SerialName("chargeDist") val chargeDist: Long? = null,
 )

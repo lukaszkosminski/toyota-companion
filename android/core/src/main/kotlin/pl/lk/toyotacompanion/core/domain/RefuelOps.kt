@@ -58,7 +58,10 @@ fun confirmRefuel(
     pricePerLiter: BigDecimal? = null,
     liters: BigDecimal? = null,
     totalCost: BigDecimal? = null,
+    litersSource: LitersSource? = null,
+    filledToFull: Boolean? = null,
 ): Refuel {
+    val litersWasProvided = liters != null
     val given = setOfNotNull(
         "price_per_liter" to pricePerLiter,
         "liters" to liters,
@@ -106,16 +109,88 @@ fun confirmRefuel(
     }
     // price-only: litersV and totalV stay unknown (null).
 
+    val litersSourceV = when {
+        litersV == null -> {
+            if (litersSource != null) throw IllegalArgumentException("litersSource requires liters")
+            if (filledToFull != null) throw IllegalArgumentException("filledToFull requires liters")
+            null
+        }
+        litersSource == null -> if (litersWasProvided) LitersSource.RECEIPT else LitersSource.DERIVED
+        // Liters came from total/price, not from the receipt.
+        litersSource == LitersSource.RECEIPT && !litersWasProvided -> LitersSource.DERIVED
+        else -> litersSource
+    }
+
     return refuel.copy(
         liters = litersV,
         pricePerLiter = priceV,
         totalCost = totalV,
         status = RefuelStatus.CONFIRMED,
+        litersSource = litersSourceV,
+        filledToFull = filledToFull ?: refuel.filledToFull,
     )
 }
 
 /** Return a copy of [refuel] with [RefuelStatus.DISMISSED]. */
 fun dismissRefuel(refuel: Refuel): Refuel = refuel.copy(status = RefuelStatus.DISMISSED)
+
+/**
+ * Average price of fuel in the tank after a confirmed refuel (ADR-005).
+ *
+ * `litersBefore = levelBefore% * capacity`; `added` = [Refuel.liters]
+ * (receipt, derived or sensor estimate) or, when only the price was given,
+ * the sensor estimate `(levelAfter - levelBefore)% * capacity`:
+ *
+ *     tankPrice = (litersBefore * previousTankPrice + added * price)
+ *                 / (litersBefore + added)
+ *
+ * The denominator is the fuel that actually mixed, so the result always lies
+ * between the previous price and the new price. Returns null when the refuel
+ * is not confirmed, has no price, has invalid levels or no determinable added
+ * liters. The first refuel (no previous tank price), an empty tank before the
+ * refuel, or a non-positive previous price uses its own price. Rounded to
+ * 0.001 zl/l, HALF_UP. Mirrors Python `tank_price_after_refuel`.
+ */
+fun tankPriceAfterRefuel(
+    refuel: Refuel,
+    previousTankPrice: BigDecimal? = null,
+    capacityL: BigDecimal = DEFAULT_TANK_CAPACITY_L,
+): BigDecimal? {
+    require(capacityL > BigDecimal.ZERO) { "capacityL must be > 0 (got $capacityL)" }
+    val price = refuel.pricePerLiter
+    if (refuel.status != RefuelStatus.CONFIRMED ||
+        price == null ||
+        refuel.levelBefore !in 0..100 ||
+        refuel.levelAfter !in 1..100
+    ) {
+        return null
+    }
+
+    val added = refuel.liters ?: run {
+        val jump = refuel.levelAfter - refuel.levelBefore
+        if (jump <= 0) return null
+        roundLiters(levelToLiters(jump, capacityL))
+    }
+    if (added <= BigDecimal.ZERO) return null
+
+    val litersBefore = levelToLiters(refuel.levelBefore, capacityL)
+    if (previousTankPrice == null ||
+        previousTankPrice <= BigDecimal.ZERO ||
+        litersBefore <= BigDecimal.ZERO
+    ) {
+        return roundPrice(price)
+    }
+
+    val weighted = litersBefore.multiply(previousTankPrice)
+        .add(added.multiply(price))
+        .divideLikePythonDecimal(litersBefore.add(added))
+    return roundPrice(weighted)
+}
+
+private fun levelToLiters(levelPct: Int, capacityL: BigDecimal): BigDecimal =
+    BigDecimal(levelPct)
+        .divide(BigDecimal(100))
+        .multiply(capacityL)
 
 private fun setOfNotNull(vararg pairs: Pair<String, Any?>): Set<String> =
     pairs.filter { it.second != null }.map { it.first }.toSet()
