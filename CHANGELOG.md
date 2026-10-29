@@ -16,4 +16,5 @@
 - Kanoniczne `id` tankowania: UTC ISO-8601 z `Z` (Python = Kotlin `Instant.toString()`)
 - Telemetria: poziom baterii i zasięg elektryczny; daty bez strefy interpretowane jako UTC
 - Archiwum tras: DTO zachowuje współrzędne start/koniec, `scores`, `hdc`, `durationIdle`, `maxSpeed`, `nightTrip`; paginacja wykrywa pętlę i ujemny offset
+- Synchronizacja w `core` (SPEC §8): interfejsy repozytoriów z testem kontraktowym, `TripRecord` z polami archiwum, `ToyotaGateway`, `SyncEngine` (okno 365 dni, zakładka 2 dni, deduplikacja, wykrywanie tankowań, przeliczenie kosztów, błędy bez utraty danych, jedna synchronizacja naraz)
 - Android: uprawnienie `INTERNET`; `backend/pyproject.toml` bez nieużywanych zależności (pytoyoda, FastAPI, uvicorn)

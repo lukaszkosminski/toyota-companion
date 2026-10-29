@@ -66,6 +66,45 @@ Trasa 14,6 km, `fuel_l=0.60`.
   cena w baku = (8,6 × 5,99 + 25,8 × 6,19) / (8,6 + 25,8) = 6,140 zł/l -> koszt 0,60 × 6,140 = 3,68 zł
 - to samo tankowanie, ale paragon 30 l (czujnik pokazał 25,8 l): (8,6 × 5,99 + 30 × 6,19) / 38,6 = 6,145 zł/l
 
-## §7 Warstwy poza domeną (osobne zadania)
-- `android/app` – Room (trips, refuels, readings), WorkManager, UI Compose, backup (F6–F8)
+## §7 Warstwy poza domeną
+- `android/core/.../data` + `.../sync` – repozytoria i synchronizacja (§8, czysty JVM)
+- `android/app` – Room (implementacje repozytoriów z §8.2), WorkManager, UI Compose, backup (F6–F8)
 - `backend/` pozostaje wykonywalną specyfikacją domeny; nie ma już FastAPI ani klienta pytoyoda (ADR-006)
+
+## §8 Synchronizacja (`android/core/.../sync/SyncEngine`)
+
+### §8.1 Źródło danych – `ToyotaGateway`
+- `vehicles()`, `telemetry(vin)` (jeden bieżący odczyt), `trips(vin, from, to)` (wszystkie strony)
+- bez `refresh_status` i bez komend (drenują akumulator 12 V)
+
+### §8.2 Repozytoria
+Interfejsy w `core/data`: trasy (`TripRecord` = `Trip` + pola archiwum), tankowania, odczyty paliwa,
+koszty, pojazdy, stan synchronizacji. Każda implementacja (w pamięci w testach, Room w `app`) musi przejść
+`RepositoryContractTest`: deduplikacja po `id`, rozdzielenie po VIN, kolejność po czasie,
+`firstSeen` pojazdu nie zmienia się przy aktualizacji.
+
+### §8.3 Kolejność kroków `fullSync()`
+1. Brak danych logowania -> `Failed(NO_CREDENTIALS)`.
+2. Pojazdy: zapis wszystkich; wybrany VIN = zapisany (jeśli nadal na koncie) albo jedyny; kilka i żaden
+   nie wybrany -> `Failed(NO_VEHICLE)`. Nic nie jest usuwane.
+3. Telemetria: pierwszy odczyt tylko zapisywany; nowszy niż ostatni zapisany -> zapis + `detect_refuel`
+   (§1) względem ostatniego zapisanego; nie nowszy (Toyota trzyma stary odczyt, gdy auto śpi) -> nic.
+   Błąd telemetrii nie przerywa synchronizacji (`telemetryFailed = true`).
+4. Trasy: pierwsza synchronizacja od `dziś − 365 dni`, kolejne od `znacznik − 2 dni` (spóźnione trasy)
+   do dziś (UTC); zapis z deduplikacją po `id`.
+5. Koszty: `recompute_costs` (§5) dla wszystkich tras pojazdu.
+6. Sukces -> znacznik = dziś, błąd wyczyszczony.
+
+### §8.4 Błędy
+- Rodzaje: `LOGIN`, `NO_CREDENTIALS`, `NO_VEHICLE` (bez ponawiania, UI prosi o działanie),
+  `API`, `NETWORK`, `DATA` (ponawiane przez WorkManager).
+- Błąd nigdy nie usuwa ani nie cofa danych; kroki wykonane przed błędem zostają zapisane;
+  znacznik tras przesuwa się tylko po pełnym sukcesie. `isStale` = brak sukcesu albo błąd po ostatnim sukcesie.
+- Komunikat zapisany w stanie przechodzi przez `ToyotaSecrets.sanitize` (bez VIN, tokenów, hasła).
+
+### §8.5 Wynik i współbieżność
+- Wynik jako `SyncOutcome` (`Ok`, `Failed`, `Skipped`), nie wyjątki (poza anulowaniem korutyny).
+- Jedna synchronizacja naraz (mutex); równoległe wywołanie -> `Skipped`.
+- `recomputeCosts()` bez sieci – po potwierdzeniu ceny tankowania (F4).
+- Dług: koszty wszystkich tras są przeliczane przy każdej synchronizacji (O(trasy × tankowania));
+  do optymalizacji, gdy archiwum urośnie.
