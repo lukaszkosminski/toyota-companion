@@ -21,7 +21,11 @@ Telefon z Androidem
 | `android/core` … `sync` | `SyncEngine`: pojazdy → telemetria → tankowanie → trasy → koszty (SPEC §8) | data, toyota |
 | `android/core` … `testFixtures/data` | `RepositoryContract` (scenariusze bez frameworka testowego) i repozytoria w pamięci | data |
 | `android/app` … `data/db` | Baza Room 3 (`AppDatabase` v1, encje, DAO, konwertery) i `Room*Repository` implementujące interfejsy z `core/data`; schemat w `app/schemas` | core |
-| `android/app` | UI, praca w tle, bezpieczne przechowywanie hasła (planowane) | core |
+| `android/core` … `sync/ToyotaGatewayFactory` | Buduje `ToyotaGateway` (wspólny `OkHttpClient`), żeby `app` nie zależał od OkHttp | toyota |
+| `android/app` … `security` | `SecretCipher` (AES-256-GCM, `AndroidKeystoreCipher`), `EncryptedSecretStore` (SharedPreferences, Base64, AAD = nazwa klucza), `CredentialStore`, `KeystoreTokenStore` (ADR-007) | core.toyota |
+| `android/app` … `sync` | `SyncWorker` (WorkManager) → `SyncRunner` → `SyncEngine.fullSync()`; `SyncScheduler`: unikalna praca okresowa `toyota-sync` co 30 min (sieć, backoff wykładniczy 30 s) i jednorazowa po zalogowaniu | core.sync |
+| `android/app` … `AppContainer`, `ToyotaApp` | Ręczne zależności (bez Hilt/Koin), wszystko leniwie; `ToyotaApp` jest `Configuration.Provider` (domyślny inicjalizator WorkManagera wyłączony w manifeście) | wszystkie |
+| `android/app` | UI (planowane) | core |
 | `backend/` | Wykonywalna specyfikacja domeny w Pythonie (testy referencyjne) | stdlib |
 
 ## Zasady
