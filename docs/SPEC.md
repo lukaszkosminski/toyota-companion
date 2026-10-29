@@ -82,6 +82,17 @@ Interfejsy w `core/data`: trasy (`TripRecord` = `Trip` + pola archiwum), tankowa
 koszty, pojazdy, stan synchronizacji. Każda implementacja (w pamięci w testach, Room w `app`) musi przejść
 `RepositoryContractTest`: deduplikacja po `id`, rozdzielenie po VIN, kolejność po czasie,
 `firstSeen` pojazdu nie zmienia się przy aktualizacji.
+Scenariusze kontraktu to klasa `RepositoryContract` w `core/testFixtures` (bez frameworka testowego, asercje `kotlin.test`);
+uruchamiają ją test JUnit 5 w `core` (pamięć) i test Robolectric w `app` (Room).
+
+Zapis typów w Room (`android/app/.../data/db`, `AppDatabase` v1, schemat w `android/app/schemas`):
+- `BigDecimal` → TEXT przez `toPlainString()` i `BigDecimal(String)`: skala zachowana (`0.600` ≠ `0.6`), bez notacji wykładniczej;
+  pieniądze i litry nie są liczone w SQL (tylko zapis i odczyt, sortowanie po czasie);
+- `Instant` → INTEGER, epoch w milisekundach (precyzja poniżej milisekundy jest tracona);
+- enumy → TEXT (`name`); `Boolean` → INTEGER 0/1;
+- klucze: trasy `id`; tankowania `id`; odczyty paliwa `(vin, ts)`; koszty `trip_id`; pojazdy `vin`; `sync_state` jeden wiersz (`id = 1`);
+- zapisy wielowierszowe (`upsertAll` tras, `saveAll` kosztów, `upsert` pojazdu, `update` tankowania) w jednej transakcji;
+- brak `fallbackToDestructiveMigration`: zmiana schematu wymaga jawnej migracji.
 
 ### §8.3 Kolejność kroków `fullSync()`
 1. Brak danych logowania -> `Failed(NO_CREDENTIALS)`.
