@@ -2,6 +2,7 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
+    `java-test-fixtures`
 }
 
 kotlin {
@@ -19,6 +20,11 @@ dependencies {
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.coroutines.test)
     testRuntimeOnly(libs.junit.launcher)
+
+    // Shared test doubles and repository contract scenarios (framework-agnostic, kotlin.test asserts),
+    // reused by app tests against the Room implementations.
+    testFixturesImplementation(libs.kotlin.test)
+    testFixturesImplementation(libs.coroutines.core)
 }
 
 tasks.test {

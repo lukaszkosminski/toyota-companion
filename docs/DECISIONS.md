@@ -35,3 +35,12 @@ Klient Toyoty i logika domeny są portowane do Kotlina (`android/core`, czysty J
 pytoyoda służy jako wzór zmian API Toyoty; `backend/` zostaje jako wykonywalna specyfikacja domeny z testami,
 a testy Kotlin mają te same nazwy i wartości (stan 2026-10-29: Python 76, Kotlin 109 – 76 domeny + 33 klienta Toyoty).
 Konsekwencje: hasło Toyoty na telefonie (Android Keystore); archiwum tras tylko na telefonie → wymagany backup.
+
+## ADR-007 Hasło MyToyota przechowywane na telefonie
+Decyzja właściciela produktu (2026-10-29). Synchronizacja w tle (WorkManager co 30 min) loguje się bez udziału
+użytkownika, więc login i hasło są zapisane zaszyfrowane kluczem AES-256-GCM z Android Keystore
+(klucz nieeksportowalny, bez wymogu odblokowania urządzenia, żeby działał w tle).
+`androidx.security:security-crypto` nie jest używane (wycofane; 1.1.0 to ostatnie wydanie).
+Odrzucone: tylko token odświeżania – czas jego ważności zależy od Toyoty, a wygaśnięcie zatrzymuje archiwum.
+Ryzyko zaakceptowane: osoba z pełnym dostępem do odblokowanego lub zrootowanego telefonu może odczytać hasło.
+Hasło nie trafia do logów, stanu synchronizacji ani pliku eksportu (SECURITY.md); `allowBackup=false`.
