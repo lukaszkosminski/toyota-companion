@@ -3,11 +3,14 @@ package pl.lk.toyotacompanion.core.toyota
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.Instant
+import pl.lk.toyotacompanion.core.data.TripRecord
+import pl.lk.toyotacompanion.core.data.VehicleRecord
 import pl.lk.toyotacompanion.core.domain.FuelReading
 import pl.lk.toyotacompanion.core.domain.Trip
 import pl.lk.toyotacompanion.core.toyota.dto.TelemetryDto
 import pl.lk.toyotacompanion.core.toyota.dto.TripDto
 import pl.lk.toyotacompanion.core.toyota.dto.UnitValueDto
+import pl.lk.toyotacompanion.core.toyota.dto.VehicleDto
 
 /**
  * Maps wire DTOs onto the pure domain types.
@@ -71,6 +74,60 @@ object ToyotaMapper {
             odometerKm = km,
             batteryLevelPct = dto.batteryLevel,
             distanceToEmptyKm = toKm(dto.distanceToEmpty),
+        )
+    }
+
+    /**
+     * Archive record of a trip: the domain [Trip] plus the fields the cost logic
+     * never touches but the archive must keep (PRD F5, F11-F13). Returns null
+     * exactly when [toDomainTrip] returns null — a payload unusable for the
+     * cost model is unusable for the archive too.
+     */
+    fun toTripRecord(dto: TripDto, vin: String, syncedAt: Instant): TripRecord? {
+        val trip = toDomainTrip(dto) ?: return null
+        val summary = dto.summary ?: return null
+        return TripRecord(
+            trip = trip,
+            vin = vin,
+            startLat = summary.startLat,
+            startLon = summary.startLon,
+            endLat = summary.endLat,
+            endLon = summary.endLon,
+            durationIdleS = summary.durationIdle,
+            averageSpeed = summary.averageSpeed,
+            maxSpeed = summary.maxSpeed,
+            nightTrip = summary.nightTrip,
+            scoreGlobal = dto.scores?.global,
+            scoreAcceleration = dto.scores?.acceleration,
+            scoreBraking = dto.scores?.braking,
+            scoreAdvice = dto.scores?.advice,
+            scoreConstantSpeed = dto.scores?.constantSpeed,
+            hdcEvDistanceM = dto.hdc?.evDistance,
+            hdcEvTimeS = dto.hdc?.evTime,
+            hdcEcoDistM = dto.hdc?.ecoDist,
+            hdcEcoTimeS = dto.hdc?.ecoTime,
+            hdcPowerDistM = dto.hdc?.powerDist,
+            hdcPowerTimeS = dto.hdc?.powerTime,
+            hdcChargeDistM = dto.hdc?.chargeDist,
+            hdcChargeTimeS = dto.hdc?.chargeTime,
+            syncedAt = syncedAt,
+        )
+    }
+
+    /**
+     * Archived vehicle. Identity is the VIN (the payload has no literal guid
+     * field, see the note on `VehicleDto`); a payload without VIN is useless.
+     */
+    fun toVehicleRecord(dto: VehicleDto, seenAt: Instant): VehicleRecord? {
+        val vin = dto.vin ?: return null
+        return VehicleRecord(
+            vin = vin,
+            brand = dto.brand,
+            modelName = dto.modelName,
+            fuelType = dto.fuelType,
+            evVehicle = dto.evVehicle,
+            firstSeen = seenAt,
+            lastSeen = seenAt,
         )
     }
 

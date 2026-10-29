@@ -7,6 +7,7 @@ Telefon z Androidem
 │        │                                       │
 │ core (czysty Kotlin/JVM)                       │
 │   ├─ domain: tankowania, koszt tras            │
+│   ├─ data + sync: repozytoria, synchronizacja  │
 │   └─ toyota: klient API (port z pytoyoda) ──────┼──> Toyota Connected Europe
 └───────────────────────────────────────────────┘
 ```
@@ -16,6 +17,8 @@ Telefon z Androidem
 |---|---|---|
 | `android/core` … `domain` | Czysta logika: tankowania, koszt tras. Bez I/O. | tylko JDK |
 | `android/core` … `toyota` | Logowanie i endpointy Toyoty (port pytoyoda v6.0.0) | HTTP client (OkHttp) |
+| `android/core` … `data` | Interfejsy repozytoriów, `TripRecord` (archiwum), test kontraktowy dla implementacji | domain |
+| `android/core` … `sync` | `SyncEngine`: pojazdy → telemetria → tankowanie → trasy → koszty (SPEC §8) | data, toyota |
 | `android/app` | UI, praca w tle, baza Room, bezpieczne przechowywanie hasła (planowane) | core |
 | `backend/` | Wykonywalna specyfikacja domeny w Pythonie (testy referencyjne) | stdlib |
 
