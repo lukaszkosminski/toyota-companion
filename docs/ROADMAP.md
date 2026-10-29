@@ -11,10 +11,12 @@
 - Synchronizacja w `core` (SPEC §8) z testami na repozytoriach w pamięci
 - Baza Room 3 (`app/data/db`, schemat v1) przechodząca ten sam kontrakt co repozytoria w pamięci
 - Szyfrowane przechowywanie loginu, hasła i tokenów (Android Keystore, ADR-007), WorkManager co 30 min
+- Weryfikacja loginu w `core` (`LoginCheck`, `verifyLogin` – tylko logowanie, świeży magazyn tokenów)
+- UI: ekran logowania (weryfikacja → CredentialStore → SyncScheduler.onLogin) i ekran statusu synchronizacji z „Synchronizuj teraz” i „Wyloguj” (SPEC §9)
 
 ## NOW
 - Test klienta Toyoty na prawdziwym koncie: `./gradlew -q :core:liveCheck` (uruchamia właściciel, docs/HANDOFF.md)
-- UI: ekran logowania (zapis do CredentialStore → SyncScheduler.onLogin), lista tras z kosztem, formularz ceny tankowania
+- UI: lista tras z kosztem, formularz ceny tankowania
 
 ## NEXT
 - UI: lista tras z kosztem, formularz ceny (z wyborem źródła litrów), powiadomienie o tankowaniu

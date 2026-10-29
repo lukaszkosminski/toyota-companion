@@ -26,6 +26,8 @@
   daje `null`, ale wpis zostaje – inaczej chwilowa awaria Keystore kasowałaby hasło właściciela. Skutek trwałego uszkodzenia: ponowne logowanie.
 - Utworzenie klucza w Keystore jest chronione blokadą (`synchronized`, ponowne sprawdzenie wewnątrz), żeby UI i worker nie wygenerowali dwóch kluczy.
 - `Credentials.toString()` nie zawiera loginu ani hasła.
+- Logowanie jest najpierw sprawdzane na koncie Toyoty ze **świeżym** magazynem tokenów (`InMemoryTokenStore` w `ToyotaGatewayFactory.verifyLogin`) – zapisany, wciąż ważny token nie może zatwierdzić błędnego hasła. Przy odmowie nie jest zapisywana ani jedna wartość (ani dane logowania, ani token) – docs/SPEC.md §9.
+- Hasło istnieje tylko jako parametr `SessionController.login` i w polu ekranu (`remember`, nie `rememberSaveable`) – nie trafia do stanu UI (`UiState`), do Bundle zapisanego stanu ani do logów. `LoginCheck.Ok.toString()` nie zawiera tokenu; testy `no ui state contains the password` i `messages carry no secret` tego pilnują.
 - Nie testujemy jednostkowo `AndroidKeystoreCipher`: Robolectric nie ma „AndroidKeyStore”. Testy używają `JceAesTestCipher` (ten sam format blobu, zwykły klucz JCE),
   więc weryfikują `EncryptedSecretStore`, formaty i degradację błędów, ale nie samą integrację z Keystore (generowanie klucza, parametry `KeyGenParameterSpec`).
   Wymaga ręcznego sprawdzenia na urządzeniu/emulatorze.
