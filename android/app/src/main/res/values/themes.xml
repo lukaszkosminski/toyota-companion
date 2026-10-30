@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Ramka okna zanim Compose narysuje pierwszy kadr: jasne tlo (motyw jasny) i
+  przezroczyste paski systemowe, bo aplikacja rysuje sie od krawedzi do krawedzi.
+  Kolory odpowiadaja ToyotaTheme (ui/theme/Theme.kt).
+-->
+<resources>
+    <style name="Theme.ToyotaCompanion" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+</resources>

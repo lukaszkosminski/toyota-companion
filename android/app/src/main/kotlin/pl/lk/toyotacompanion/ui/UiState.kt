@@ -53,3 +53,16 @@ sealed class UiState {
         val lastSyncFailed: SyncErrorKind? = null,
     ) : UiState()
 }
+
+/**
+ * Which logged-in screen [AppRoot] shows (docs/SPEC.md §10.3, §11.3).
+ * Saved with `rememberSaveable`: a screen rotation keeps the screen open, and it is
+ * not a secret (docs/SECURITY.md). Logging out always returns to the login form
+ * and resets it to [Status].
+ */
+enum class Screen {
+    Status,
+    Trips,
+    Refuels,
+    RefuelForm,
+}

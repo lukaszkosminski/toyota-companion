@@ -1,13 +1,16 @@
 package pl.lk.toyotacompanion.core.sync
 
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import pl.lk.toyotacompanion.core.data.CostRepository
 import pl.lk.toyotacompanion.core.data.FuelReadingRepository
 import pl.lk.toyotacompanion.core.data.RefuelRepository
+import pl.lk.toyotacompanion.core.data.StoredTrip
 import pl.lk.toyotacompanion.core.data.SyncConfig
 import pl.lk.toyotacompanion.core.data.SyncErrorKind
 import pl.lk.toyotacompanion.core.data.SyncStateRepository
@@ -17,7 +20,11 @@ import pl.lk.toyotacompanion.core.data.TripRepository
 import pl.lk.toyotacompanion.core.data.VehicleRecord
 import pl.lk.toyotacompanion.core.data.VehicleRepository
 import pl.lk.toyotacompanion.core.domain.Refuel
+import pl.lk.toyotacompanion.core.domain.RefuelStatus
+import pl.lk.toyotacompanion.core.domain.TripCost
+import pl.lk.toyotacompanion.core.domain.confirmRefuel as domainConfirmRefuel
 import pl.lk.toyotacompanion.core.domain.detectRefuel
+import pl.lk.toyotacompanion.core.domain.dismissRefuel as domainDismissRefuel
 import pl.lk.toyotacompanion.core.domain.recomputeCosts
 import pl.lk.toyotacompanion.core.toyota.ToyotaApiException
 import pl.lk.toyotacompanion.core.toyota.ToyotaDataException
@@ -74,6 +81,84 @@ class SyncEngine(
             pendingRefuels = refuels.pending(current.vin).size,
         )
     }
+
+    /**
+     * Trips of the selected vehicle with their stored cost, newest start first
+     * (docs/SPEC.md §10.1). A read like [status]: no network, no gateway call and
+     * no synchronization mutex — so a list opened while a synchronization runs
+     * may not yet show the costs recomputed in its last step (docs/SPEC.md §8.3).
+     *
+     * Every cost comes from a single [CostRepository.all] read (docs/SPEC.md §10.1):
+     * the archive holds hundreds of trips and one query per trip is unacceptable.
+     * Without a selected VIN the archive of other vehicles stays hidden.
+     */
+    suspend fun trips(): List<StoredTrip> {
+        val vin = state.get().vin ?: return emptyList()
+        val costByTrip: Map<String, TripCost> = costs.all().associateBy { it.tripId }
+        return trips.all(vin).asReversed().map { it.withCost(costByTrip[it.id]) }
+    }
+
+    /**
+     * Refuels of the selected vehicle that wait for a price, newest first
+     * (docs/SPEC.md §11.1). A read like [status]: no network, no gateway call and
+     * no synchronization mutex, so opening the list never waits for a running
+     * synchronization.
+     */
+    suspend fun pendingRefuels(): List<Refuel> {
+        val vin = state.get().vin ?: return emptyList()
+        return refuels.pending(vin)
+    }
+
+    /**
+     * Confirms one pending refuel (PRD F2) and recounts the costs of the vehicle
+     * (PRD F4, docs/SPEC.md §11.1). Only the domain [domainConfirmRefuel] validates
+     * the values and derives the missing one; `litersSource` is never a parameter
+     * here because the domain decides between `RECEIPT` and `DERIVED`.
+     *
+     * Unlike [fullSync], this waits for the mutex ([withLock]) instead of trying
+     * it: a price typed while a synchronization runs has to be stored, not skipped.
+     */
+    suspend fun confirmRefuel(
+        id: String,
+        pricePerLiter: BigDecimal? = null,
+        liters: BigDecimal? = null,
+        totalCost: BigDecimal? = null,
+        filledToFull: Boolean? = null,
+    ): RefuelChange = editRefuel(id) { stored ->
+        domainConfirmRefuel(
+            stored,
+            pricePerLiter = pricePerLiter,
+            liters = liters,
+            totalCost = totalCost,
+            filledToFull = filledToFull,
+        )
+    }
+
+    /** Discards one pending refuel (docs/SPEC.md §3) and recounts the costs. */
+    suspend fun dismissRefuel(id: String): RefuelChange = editRefuel(id) { domainDismissRefuel(it) }
+
+    /**
+     * The one write path of both edits. The write and the recount run under the
+     * same [mutex] as the synchronization, so no other run can see a confirmed
+     * refuel whose trip costs were not recomputed yet (docs/SPEC.md §11.1). A
+     * rejection by the domain leaves the archive untouched, and
+     * `CancellationException` is never caught here.
+     */
+    private suspend fun editRefuel(id: String, edit: (Refuel) -> Refuel): RefuelChange =
+        mutex.withLock {
+            val vin = state.get().vin ?: return@withLock RefuelChange.NoVehicle
+            val stored = refuels.byId(id) ?: return@withLock RefuelChange.NotFound
+            if (stored.status != RefuelStatus.PENDING) return@withLock RefuelChange.NotPending
+            // An entry of another vehicle is invisible to this screen, so it counts as missing.
+            if (refuels.pending(vin).none { it.id == id }) return@withLock RefuelChange.NotFound
+            val edited = try {
+                edit(stored)
+            } catch (e: IllegalArgumentException) {
+                return@withLock RefuelChange.Invalid
+            }
+            refuels.update(edited)
+            RefuelChange.Done(edited, recomputeAndSave(vin))
+        }
 
     // ---------------- steps ----------------
 

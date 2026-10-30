@@ -9,6 +9,7 @@ import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import pl.lk.toyotacompanion.core.data.StoredTrip
 import pl.lk.toyotacompanion.core.data.VehicleRecord
 import pl.lk.toyotacompanion.core.domain.FuelReading
 import pl.lk.toyotacompanion.core.data.TripRecord
@@ -29,6 +30,7 @@ import pl.lk.toyotacompanion.security.EncryptedSecretStore
 import pl.lk.toyotacompanion.security.KeystoreTokenStore
 import pl.lk.toyotacompanion.security.SecretCipher
 import pl.lk.toyotacompanion.sync.SyncRunner
+import pl.lk.toyotacompanion.ui.RefuelController
 import pl.lk.toyotacompanion.ui.SessionController
 
 /** Hand-wired dependencies (no DI framework). Everything is lazy: nothing touches Keystore or disk at app start. */
@@ -79,6 +81,13 @@ class AppContainer(
 
     val syncRunner: SyncRunner by lazy { SyncRunner { syncEngine.fullSync() } }
 
+    /**
+     * Reads the trip list for the trips screen (docs/SPEC.md §10.1). A stable
+     * reference, so the Compose read is not restarted on every recomposition, and
+     * a plain read of the local archive: no Toyota call, no `refresh_status()`.
+     */
+    val tripsLoader: suspend () -> List<StoredTrip> = { syncEngine.trips() }
+
     /** UI scope for the login and status screens; state changes happen on the main thread. */
     private val uiScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -95,6 +104,23 @@ class AppContainer(
             runner = syncRunner,
             status = { syncEngine.status() },
             workManager = WorkManager.getInstance(context),
+            scope = uiScope,
+            io = Dispatchers.IO,
+        )
+    }
+
+    /**
+     * Refuel list and price form state (docs/SPEC.md §11.3). It shares the UI scope
+     * with [session] on purpose: a price typed while a synchronization runs is
+     * queued and stored, and leaving the form does not cancel the write.
+     */
+    val refuelController: RefuelController by lazy {
+        RefuelController(
+            pending = { syncEngine.pendingRefuels() },
+            confirmRefuel = { id, price, liters, total, filledToFull ->
+                syncEngine.confirmRefuel(id, price, liters, total, filledToFull)
+            },
+            dismissRefuel = { id -> syncEngine.dismissRefuel(id) },
             scope = uiScope,
             io = Dispatchers.IO,
         )

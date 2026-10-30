@@ -139,6 +139,21 @@ class SessionController(
         }
     }
 
+    /**
+     * Pull-to-refresh and "Odśwież": repeats the local read only (docs/SPEC.md §9.3).
+     * Never asks Toyota — and never `refresh_status()`, which would drain the
+     * 12 V battery (docs/SPEC.md §9.3). Ignored while a synchronization is running.
+     */
+    fun reload() {
+        val shown = ui.value as? UiState.LoggedIn ?: return
+        if (shown.syncing) return
+        scope.launch {
+            val current = ui.value as? UiState.LoggedIn ?: return@launch
+            if (current.syncing) return@launch
+            ui.value = current.copy(status = readStatus() ?: current.status)
+        }
+    }
+
     /** Tokens first, then the login, then the scheduled work; the archive is never touched. */
     fun logout() {
         scope.launch {
