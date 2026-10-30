@@ -81,4 +81,28 @@ object Texts {
     /** Chip on the status screen when there is nothing fresh or stale to say yet. */
     const val STATE_NEVER = "brak synchronizacji"
     const val STATE_NEEDS_RELOGIN = "wymaga logowania"
+
+    // ---------------- Trips list (docs/SPEC.md §10) ----------------
+
+    /** Title of the trips screen and the button that opens it from the status screen. */
+    const val TRIPS_TITLE = "Trasy"
+    const val TRIPS_BACK = "Wstecz"
+
+    /** The archive of the selected vehicle is empty. */
+    const val TRIPS_EMPTY = "Brak tras – zsynchronizuj dane"
+
+    /** The local read failed; never the exception text (docs/SECURITY.md). */
+    const val TRIPS_READ_ERROR = "Nie udało się odczytać tras. Spróbuj ponownie."
+
+    /** Trip without a usable cost, and the month header when no trip in it has one. */
+    const val NO_PRICE = "brak ceny"
+
+    /** The cost came from the configured default price, not from a refuel (docs/SPEC.md §4). */
+    const val DEFAULT_PRICE_NOTE = "cena domyślna"
+
+    /** Separates the values inside one line of the trips list. */
+    const val SEPARATOR = " · "
+
+    /** „bez ceny: 3” — the month header shows it only when the count is not zero. */
+    fun tripsWithoutCost(count: Int): String = "bez ceny: $count"
 }

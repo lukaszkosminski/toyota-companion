@@ -9,6 +9,7 @@ import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import pl.lk.toyotacompanion.core.data.StoredTrip
 import pl.lk.toyotacompanion.core.data.VehicleRecord
 import pl.lk.toyotacompanion.core.domain.FuelReading
 import pl.lk.toyotacompanion.core.data.TripRecord
@@ -78,6 +79,13 @@ class AppContainer(
     }
 
     val syncRunner: SyncRunner by lazy { SyncRunner { syncEngine.fullSync() } }
+
+    /**
+     * Reads the trip list for the trips screen (docs/SPEC.md §10.1). A stable
+     * reference, so the Compose read is not restarted on every recomposition, and
+     * a plain read of the local archive: no Toyota call, no `refresh_status()`.
+     */
+    val tripsLoader: suspend () -> List<StoredTrip> = { syncEngine.trips() }
 
     /** UI scope for the login and status screens; state changes happen on the main thread. */
     private val uiScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)

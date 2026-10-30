@@ -8,6 +8,7 @@ import kotlinx.coroutines.sync.Mutex
 import pl.lk.toyotacompanion.core.data.CostRepository
 import pl.lk.toyotacompanion.core.data.FuelReadingRepository
 import pl.lk.toyotacompanion.core.data.RefuelRepository
+import pl.lk.toyotacompanion.core.data.StoredTrip
 import pl.lk.toyotacompanion.core.data.SyncConfig
 import pl.lk.toyotacompanion.core.data.SyncErrorKind
 import pl.lk.toyotacompanion.core.data.SyncStateRepository
@@ -17,6 +18,7 @@ import pl.lk.toyotacompanion.core.data.TripRepository
 import pl.lk.toyotacompanion.core.data.VehicleRecord
 import pl.lk.toyotacompanion.core.data.VehicleRepository
 import pl.lk.toyotacompanion.core.domain.Refuel
+import pl.lk.toyotacompanion.core.domain.TripCost
 import pl.lk.toyotacompanion.core.domain.detectRefuel
 import pl.lk.toyotacompanion.core.domain.recomputeCosts
 import pl.lk.toyotacompanion.core.toyota.ToyotaApiException
@@ -73,6 +75,22 @@ class SyncEngine(
             readingsStored = readings.count(),
             pendingRefuels = refuels.pending(current.vin).size,
         )
+    }
+
+    /**
+     * Trips of the selected vehicle with their stored cost, newest start first
+     * (docs/SPEC.md §10.1). A read like [status]: no network, no gateway call and
+     * no synchronization mutex — so a list opened while a synchronization runs
+     * may not yet show the costs recomputed in its last step (docs/SPEC.md §8.3).
+     *
+     * Every cost comes from a single [CostRepository.all] read (docs/SPEC.md §10.1):
+     * the archive holds hundreds of trips and one query per trip is unacceptable.
+     * Without a selected VIN the archive of other vehicles stays hidden.
+     */
+    suspend fun trips(): List<StoredTrip> {
+        val vin = state.get().vin ?: return emptyList()
+        val costByTrip: Map<String, TripCost> = costs.all().associateBy { it.tripId }
+        return trips.all(vin).asReversed().map { it.withCost(costByTrip[it.id]) }
     }
 
     // ---------------- steps ----------------

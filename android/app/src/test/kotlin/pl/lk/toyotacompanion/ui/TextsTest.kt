@@ -1,5 +1,6 @@
 package pl.lk.toyotacompanion.ui
 
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.ZoneOffset
 import kotlin.test.assertEquals
@@ -70,7 +71,26 @@ class TextsTest {
             listOf(Texts.freshness(status(true)), Texts.STATE_NEVER, Texts.STATE_NEEDS_RELOGIN) +
             listOf(Texts.STAT_TRIPS, Texts.STAT_READINGS, Texts.STAT_PENDING_REFUELS) +
             listOf(Texts.APP_NAME, Texts.LOADING, Texts.REFRESH_BUTTON, Texts.LOGOUT_CONFIRM_BODY) +
-            listOf(Texts.lastSuccess(status(true), ZONE), Texts.lastSuccess(status(false), ZONE))
+            listOf(Texts.lastSuccess(status(true), ZONE), Texts.lastSuccess(status(false), ZONE)) +
+            // Lista tras (docs/SPEC.md §10): tu trafia kazdy nowy tekst i kazda formatowana wartosc.
+            listOf(
+                Texts.TRIPS_TITLE,
+                Texts.TRIPS_BACK,
+                Texts.TRIPS_EMPTY,
+                Texts.TRIPS_READ_ERROR,
+                Texts.NO_PRICE,
+                Texts.DEFAULT_PRICE_NOTE,
+                Texts.tripsWithoutCost(3),
+            ) +
+            TripsFormatting.monthNames() +
+            listOf(
+                TripsFormatting.money(BigDecimal("3.675")),
+                TripsFormatting.pricePerLiter(BigDecimal("6.14")),
+                TripsFormatting.liters(BigDecimal("0.6")),
+                TripsFormatting.kilometers(12.34),
+                TripsFormatting.startDateTime(Instant.parse("2026-10-29T14:05:00Z"), ZONE),
+                TripsFormatting.monthLabel(MonthKey(2026, 10)),
+            )
         for (text in all) {
             for (forbidden in listOf("token", "Token", "VIN1", "p@ss", "secret")) {
                 assertFalse(forbidden in text, "$forbidden in: $text")

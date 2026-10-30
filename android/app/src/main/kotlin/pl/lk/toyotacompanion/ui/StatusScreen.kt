@@ -50,6 +50,7 @@ fun StatusScreen(
     state: UiState.LoggedIn,
     onSyncNow: () -> Unit,
     onRefresh: () -> Unit,
+    onShowTrips: () -> Unit,
     onLogout: () -> Unit,
 ) {
     var confirmLogout by remember { mutableStateOf(false) }
@@ -109,6 +110,13 @@ fun StatusScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(Texts.REFRESH_BUTTON)
+                }
+                // The trip archive lives on the phone — this only reads the local database (docs/SPEC.md §10.3).
+                OutlinedButton(
+                    onClick = onShowTrips,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(Texts.TRIPS_TITLE)
                 }
             }
         }

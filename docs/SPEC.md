@@ -182,3 +182,55 @@ Ekran logowania MyToyota i ekran statusu synchronizacji. Wymaganie właściciela
 - „Wyloguj”: wyczyszczenie tokena (po loginie), potem `CredentialStore.clear()`, anulowanie
   prac `toyota-sync` i `toyota-sync-now`. Archiwum Room NIE jest usuwane (F5, ADR-006) –
   ponowne logowanie dołącza dane. Stan UI -> ekran logowania.
+
+## §10 Lista tras z kosztem (`SyncEngine.trips`, `android/app/.../ui`)
+
+Ekran archiwum tras (PRD F3, F5): trasy bieżącego pojazdu pogrupowane na miesiące, każda z kosztem z §4/§5.
+Wymaganie właściciela produktu (ROADMAP NOW). Czytany jest wyłącznie lokalny magazyn – ekran nie woła żadnego
+API Toyoty, w tym `refresh_status()` (§9 wstęp, AGENTS.md).
+
+### §10.1 Odczyt w `core` – `SyncEngine.trips(): List<StoredTrip>`
+- Trasy pojazdu z `state.get().vin`; **brak VIN -> pusta lista** (nie błąd) – zmiana auta zachowuje archiwum
+  starego VIN-u (§8.3), ale lista pokazuje tylko wybrany pojazd.
+- Kolejność: najnowszy `trip.start` pierwszy (realizacja: `trips.all(vin)` od najstarszej + `asReversed()`).
+- Koszt każdej trasy z `CostRepository`, czytany **jednym wywołaniem** `costs.all()` i zbudowany w mapę
+  `tripId -> TripCost`. Zakazane jest zapytanie o koszt na każdą trasę (archiwum > 500 tras).
+  Mapa zawiera też koszty innych pojazdów – nigdy nie są użyte, bo klucz to `trip.id` z bieżącego VIN-u.
+- `cost == null` tylko gdy dla trasy w ogóle nie ma wiersza kosztu — `trips()` zwraca zapisany
+  wiersz bez zmian (`costPln == null` czy `source == NONE` przechodzą tak, jak są zapisane).
+  O napisie „brak ceny” decyduje warstwa UI przez `hasNoCost` (§10.2), a nie `core`.
+- Taki sam charakter odczytu jak `status()` (§8.5): bez sieci, bez `mutex` synchronizacji, bez `SyncOutcome`
+  (wyjątek idzie do warstwy UI). Skutek braku blokady: lista odczytana w trakcie synchronizacji może nie mieć
+  jeszcze kosztów przeliczonych w kroku 5 (§8.3) – UI pokazuje je po następnym wejściu na ekran.
+- Bez zmian w schemacie Room (brak migracji) i bez nowych metod w interfejsach repozytoriów.
+
+### §10.2 Grupowanie i formatowanie (warstwa `app`, funkcje czyste, bez Compose)
+- Miesiąc liczony z `trip.start` w **przekazanej strefie** (`ZoneId` jako parametr – nie `ZoneId.systemDefault()`
+  w ciele funkcji); grupy od najnowszego miesiąca; klucz miesiąca to rok+miesiąc (archiwum wieloletnie).
+- Dla grupy: suma km, suma litrów, suma kosztu tras z kosztem (`null`, gdy żadna trasa nie ma kosztu),
+  liczba tras bez kosztu.
+- Formatowanie polskie, **niezależne od `Locale.getDefault()`** – bez `String.format("%.2f")` i bez `%02d`:
+  `setScale(n, HALF_UP).toPlainString()` z przecinkiem w miejscu kropki.
+  koszt `3,68 zł` (2 miejsca), cena `6,14 zł/l`, paliwo `0,60 l`, dystans `12,3 km` (1 miejsce),
+  start `29.10 14:05` (w strefie jako parametr).
+- Nazwa miesiąca w mianowniku (`październik 2026`) z własnej tablicy 12 nazw – bez `TextStyle` i bez `Locale`.
+- `costPln == null` albo `source == NONE` -> „brak ceny”; `source == DEFAULT` -> dopisek „cena domyślna”.
+- Pod kosztem wiersza trasy: cena za litr (`TripsFormatting.priceLine`), a gdy `source == DEFAULT`
+  to w tej samej linii po `Texts.SEPARATOR` dopisek „cena domyślna”; bez ceny zostaje tylko „brak ceny”.
+- Nagłówek grupy: gdy suma kosztu jest `null` -> „brak ceny”; dopisek „bez ceny: N” tylko gdy `N > 0`.
+- Wszystkie teksty w `Texts`; żadnych Icons w UI.
+
+### §10.3 Ekran „Trasy” (kryteria akceptacji)
+- Wejście: przycisk „Trasy” na ekranie statusu. Wyjście: `TextButton` „Wstecz” w `TopAppBar` (bez Icons)
+  i `BackHandler` z `androidx.activity.compose` – oba robią to samo.
+- Przełączanie ekranów w `AppRoot`: enum `Screen` w `rememberSaveable` (to nie jest sekret).
+  Wylogowanie zawsze wraca do logowania, a ekran resetuje się do statusu przez `LaunchedEffect` na warunku
+  „czy nadal zalogowany” – nie przez przypisanie w ciele kompozycji.
+- `LazyColumn`: nagłówek miesiąca (nazwa + sumy) i wiersze tras (data/godzina, km, litry, koszt,
+  a pod kosztem cena za litr z dopiskiem „cena domyślna”; bez ceny tylko „brak ceny”). Nagłówki mają klucze z przedrostkiem `month-`, wiersze trasy
+  `key = trip.id`; klucze muszą być unikalne na całej liście. `innerPadding` z `Scaffold` wchodzi jako
+  `contentPadding` `LazyColumn`.
+- Stany: ładowanie (`CircularProgressIndicator`), pusto („Brak tras – zsynchronizuj dane”), błąd odczytu
+  (własny komunikat, bez treści wyjątku). Trzymany jako prywatny `sealed interface` w `TripsScreen.kt`.
+- Odczyt na `Dispatchers.IO` (`produceState` + `withContext`); `CancellationException` zawsze przepuszczana dalej.
+- Ekran nie pokazuje współrzędnych GPS ani VIN (`docs/SECURITY.md`); nie pokazuje też `lastErrorMessage`.

@@ -15,6 +15,8 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
+import pl.lk.toyotacompanion.core.data.CostRepository
+import pl.lk.toyotacompanion.core.data.InMemoryCostRepository
 import pl.lk.toyotacompanion.core.data.InMemoryStores
 import pl.lk.toyotacompanion.core.data.SyncConfig
 import pl.lk.toyotacompanion.core.data.SyncErrorKind
@@ -27,6 +29,7 @@ import pl.lk.toyotacompanion.core.domain.LitersSource
 import pl.lk.toyotacompanion.core.domain.Refuel
 import pl.lk.toyotacompanion.core.domain.RefuelStatus
 import pl.lk.toyotacompanion.core.domain.Trip
+import pl.lk.toyotacompanion.core.domain.TripCost
 import pl.lk.toyotacompanion.core.toyota.ToyotaApiException
 import pl.lk.toyotacompanion.core.toyota.ToyotaDataException
 import pl.lk.toyotacompanion.core.toyota.ToyotaInvalidUsernameException
@@ -520,6 +523,116 @@ class SyncEngineTest {
         assertTrue(!failed.error.retryable)
     }
 
+    // ---------------- trips list (docs/SPEC.md §10.1) ----------------
+
+    @Test
+    fun `trips_are_listed_newest_first`() = runTest {
+        val stores = InMemoryStores()
+        stores.trips.upsertAll(
+            listOf(
+                tripRecord("t-old", DAY_1.minusSeconds(86_400)),
+                tripRecord("t-new", DAY_1),
+                tripRecord("t-mid", DAY_1.minusSeconds(3_600)),
+            ),
+        )
+        stores.state.save(SyncState(vin = VIN))
+
+        val listed = ctx(FakeToyotaGateway(), stores).engine.trips()
+
+        assertEquals(listOf("t-new", "t-mid", "t-old"), listed.map { it.record.id })
+    }
+
+    @Test
+    fun `trips_carry_the_stored_cost`() = runTest {
+        val stores = InMemoryStores()
+        stores.trips.upsertAll(listOf(tripRecord("t1", DAY_1)))
+        stores.costs.saveAll(
+            listOf(TripCost("t1", BigDecimal("3.68"), BigDecimal("6.140"), "refuel-1", CostSource.REFUEL)),
+        )
+        stores.state.save(SyncState(vin = VIN))
+
+        val stored = ctx(FakeToyotaGateway(), stores).engine.trips().single()
+
+        assertEquals("t1", stored.record.id)
+        assertEquals(CostSource.REFUEL, requireNotNull(stored.cost).source)
+        assertEquals(0, BigDecimal("3.68").compareTo(requireNotNull(stored.cost?.costPln)))
+    }
+
+    @Test
+    fun `trip_without_a_cost_row_has_null_cost`() = runTest {
+        val stores = InMemoryStores()
+        stores.trips.upsertAll(listOf(tripRecord("t1", DAY_1)))
+        stores.state.save(SyncState(vin = VIN))
+
+        val stored = ctx(FakeToyotaGateway(), stores).engine.trips().single()
+
+        assertNull(stored.cost)
+    }
+
+    @Test
+    fun `trips_of_another_vehicle_are_ignored`() = runTest {
+        val stores = InMemoryStores()
+        stores.trips.upsertAll(
+            listOf(
+                tripRecord("t-mine", DAY_1),
+                tripRecord("t-other", DAY_2, vin = OTHER_VIN),
+                tripRecord("t-old-car", DAY_1.minusSeconds(86_400), vin = "VINOLD000"),
+            ),
+        )
+        stores.state.save(SyncState(vin = VIN))
+
+        assertEquals(listOf("t-mine"), ctx(FakeToyotaGateway(), stores).engine.trips().map { it.record.id })
+    }
+
+    @Test
+    fun `trips_are_empty_without_a_selected_vin`() = runTest {
+        val stores = InMemoryStores()
+        stores.trips.upsertAll(listOf(tripRecord("t1", DAY_1)))
+        val gateway = FakeToyotaGateway(fleet = listOf(vehicleRecord()))
+
+        assertTrue(ctx(gateway, stores).engine.trips().isEmpty())
+        assertEquals(0, gateway.vehiclesCalls + gateway.telemetryCalls + gateway.tripsCalls)
+    }
+
+    @Test
+    fun `listing_trips_never_calls_the_gateway`() = runTest {
+        val stores = InMemoryStores()
+        stores.trips.upsertAll(listOf(tripRecord("t1", DAY_1)))
+        stores.state.save(SyncState(vin = VIN))
+        val gateway = FakeToyotaGateway(fleet = listOf(vehicleRecord()))
+
+        assertEquals(1, ctx(gateway, stores).engine.trips().size)
+
+        assertEquals(0, gateway.vehiclesCalls + gateway.telemetryCalls + gateway.tripsCalls)
+    }
+
+    @Test
+    fun `trips_read_all_costs_in_one_query`() = runTest {
+        val stores = InMemoryStores()
+        val many = (1..500).map { tripRecord("t$it", DAY_1.minusSeconds(it * 60L)) }
+        stores.trips.upsertAll(many)
+        stores.costs.saveAll(
+            many.map { TripCost(it.id, BigDecimal("3.68"), BigDecimal("6.140"), "refuel-1", CostSource.REFUEL) },
+        )
+        stores.state.save(SyncState(vin = VIN))
+        val counting = CountingCostRepository(stores.costs)
+        val engine = SyncEngine(
+            gateway = FakeToyotaGateway(),
+            vehicles = stores.vehicles,
+            trips = stores.trips,
+            refuels = stores.refuels,
+            readings = stores.readings,
+            costs = counting,
+            state = stores.state,
+            clock = { DAY_1 },
+        )
+
+        assertEquals(500, engine.trips().size)
+
+        assertEquals(1, counting.allCalls, "costs must be read with a single query")
+        assertEquals(0, counting.forTripCalls, "no cost query per trip")
+    }
+
     // ---------------- concurrency, status ----------------
 
     @Test
@@ -587,4 +700,29 @@ class SyncEngineTest {
         assertTrue(c.engine.status().isFresh)
         assertNull(c.stores.state.get().lastErrorKind)
     }
+}
+
+/**
+ * Counts the cost reads of [SyncEngine.trips] — docs/SPEC.md §10.1 forbids one
+ * query per trip (the archive holds hundreds of trips).
+ */
+private class CountingCostRepository(private val delegate: InMemoryCostRepository) : CostRepository {
+    var allCalls = 0
+    var forTripCalls = 0
+
+    override suspend fun saveAll(costs: List<TripCost>): Int = delegate.saveAll(costs)
+
+    override suspend fun forTrip(tripId: String): TripCost? {
+        forTripCalls++
+        return delegate.forTrip(tripId)
+    }
+
+    override suspend fun all(): List<TripCost> {
+        allCalls++
+        return delegate.all()
+    }
+
+    override suspend fun count(): Int = delegate.count()
+
+    override suspend fun deleteAll() = delegate.deleteAll()
 }
