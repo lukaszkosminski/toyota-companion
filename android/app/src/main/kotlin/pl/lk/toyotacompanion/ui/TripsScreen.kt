@@ -88,7 +88,7 @@ fun TripsScreen(
         topBar = {
             TopAppBar(
                 title = { Text(Texts.TRIPS_TITLE) },
-                navigationIcon = { TextButton(onClick = onBack) { Text(Texts.TRIPS_BACK) } },
+                navigationIcon = { TextButton(onClick = onBack) { Text(Texts.BACK) } },
             )
         },
     ) { innerPadding ->

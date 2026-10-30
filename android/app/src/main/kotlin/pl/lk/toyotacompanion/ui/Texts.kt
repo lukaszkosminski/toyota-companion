@@ -3,6 +3,7 @@ package pl.lk.toyotacompanion.ui
 import java.time.ZoneId
 import pl.lk.toyotacompanion.core.data.SyncErrorKind
 import pl.lk.toyotacompanion.core.data.SyncStatus
+import pl.lk.toyotacompanion.core.sync.RefuelChange
 
 /**
  * Polish UI texts (the app is single-language, docs/SPEC.md §9).
@@ -86,7 +87,9 @@ object Texts {
 
     /** Title of the trips screen and the button that opens it from the status screen. */
     const val TRIPS_TITLE = "Trasy"
-    const val TRIPS_BACK = "Wstecz"
+
+    /** Every secondary screen leaves through a text button with this word (no Icons). */
+    const val BACK = "Wstecz"
 
     /** The archive of the selected vehicle is empty. */
     const val TRIPS_EMPTY = "Brak tras – zsynchronizuj dane"
@@ -105,4 +108,63 @@ object Texts {
 
     /** „bez ceny: 3” — the month header shows it only when the count is not zero. */
     fun tripsWithoutCost(count: Int): String = "bez ceny: $count"
+
+    // ---------------- refuel price form (docs/SPEC.md §11) ----------------
+
+    /** Title of the list of refuels that still wait for a price. */
+    const val REFUELS_TITLE = "Tankowania"
+
+    /** The selected vehicle has no refuel waiting for a price. */
+    const val REFUELS_EMPTY = "Brak tankowań czekających na cenę"
+
+    /** The local read failed; never the exception text (docs/SECURITY.md). */
+    const val REFUELS_READ_ERROR = "Nie udało się odczytać tankowań. Spróbuj ponownie."
+
+    /** Button on the status screen; [count] is how many refuels still wait for a price. */
+    fun refuelPrompt(count: Int): String = "Podaj cenę tankowania ($count)"
+
+    /** Title of the form. */
+    const val REFUEL_FORM_TITLE = "Cena tankowania"
+
+    const val REFUEL_FIELD_PRICE = "Cena za litr"
+    const val REFUEL_FIELD_LITERS = "Litry"
+    const val REFUEL_FIELD_TOTAL = "Kwota"
+
+    /** Only usable when the liters are known (docs/SPEC.md §11.3). */
+    const val REFUEL_FILLED_FULL = "Do pełna"
+
+    const val REFUEL_SAVE = "Zapisz"
+    const val REFUEL_DISMISS = "Odrzuć"
+
+    /** Refusing an entry is final for that entry, so it is confirmed first. */
+    const val REFUEL_DISMISS_TITLE = "Odrzucić to tankowanie?"
+    const val REFUEL_DISMISS_BODY =
+        "Odrzucone tankowanie nie wejdzie do kosztów tras i nie będzie czekać na cenę."
+    const val REFUEL_DISMISS_YES = "Odrzuć"
+    const val REFUEL_DISMISS_NO = "Anuluj"
+
+    /** `6,1,9` or `abc` in an amount field. */
+    const val REFUEL_NUMBER_ERROR = "To nie jest liczba"
+
+    /** `0` or a negative amount; the domain would refuse the same value (§2). */
+    const val REFUEL_POSITIVE_ERROR = "Wartość musi być większa od zera"
+
+    /** The form has to keep the combinations of docs/SPEC.md §2. */
+    const val REFUEL_COMBINATION_ERROR = "Podaj cenę za litr albo litry i kwotę"
+
+    /** The domain refused the values although the form check passed (docs/SPEC.md §11.2). */
+    const val REFUEL_WRITE_ERROR = "Nie udało się zapisać ceny. Popraw wartości i spróbuj ponownie."
+
+    /** The write itself failed (the database, not the values): the user may try again. */
+    const val REFUEL_SAVE_FAILED = "Nie udało się zapisać. Spróbuj ponownie."
+
+    /** The entry is gone, already answered or belongs to another vehicle. */
+    const val REFUEL_STALE_ENTRY = "Ten wpis już nie czeka na cenę. Odśwież listę."
+
+    /** Polish message of a refused write; null when the write went through. */
+    fun refuelChangeError(change: RefuelChange): String? = when (change) {
+        is RefuelChange.Done -> null
+        RefuelChange.Invalid -> REFUEL_WRITE_ERROR
+        RefuelChange.NotFound, RefuelChange.NotPending, RefuelChange.NoVehicle -> REFUEL_STALE_ENTRY
+    }
 }

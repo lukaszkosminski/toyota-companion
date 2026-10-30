@@ -234,3 +234,71 @@ API Toyoty, w tym `refresh_status()` (§9 wstęp, AGENTS.md).
   (własny komunikat, bez treści wyjątku). Trzymany jako prywatny `sealed interface` w `TripsScreen.kt`.
 - Odczyt na `Dispatchers.IO` (`produceState` + `withContext`); `CancellationException` zawsze przepuszczana dalej.
 - Ekran nie pokazuje współrzędnych GPS ani VIN (`docs/SECURITY.md`); nie pokazuje też `lastErrorMessage`.
+
+## §11 Cena tankowania (`SyncEngine.confirmRefuel`, `android/app/.../ui`)
+
+Formularz ceny tankowania (PRD F2, F4): użytkownik podaje cenę albo litry i kwotę dla wpisu `PENDING`,
+brakującą wielkość wylicza domena (§2), a koszty tras są przeliczane wstecz (§5). Wymaganie właściciela
+produktu (ROADMAP NOW). Operacje nie wołają żadnego API Toyoty, w tym `refresh_status()` (§9 wstęp, AGENTS.md).
+Poza zakresem: szacunek litrów z czujnika (F2a), powiadomienia, edycja już potwierdzonego tankowania.
+
+### §11.1 Operacje w `core`
+- `pendingRefuels(): List<Refuel>` — oczekujące tankowania wybranego VIN (`state.get().vin`), najnowsze pierwsze
+  (`RefuelRepository.pending(vin)`); brak VIN -> pusta lista. Odczyt bez `mutex` i bez gatewaya (jak `status()`, §8.5).
+- `confirmRefuel(id, pricePerLiter, liters, totalCost, filledToFull)` i `dismissRefuel(id)` zwracają `RefuelChange`
+  (`Done(refuel, tripsCosted)`, `NotFound`, `NotPending`, `Invalid`, `NoVehicle`) — bez wyjątków i bez `SyncOutcome`.
+- Kolejność decyzji: brak VIN -> `NoVehicle`; `refuels.byId(id) == null` -> `NotFound`; `status != PENDING` ->
+  `NotPending`; wpis `PENDING`, ale nienależący do bieżącego VIN-u (ma go brak w `pending(vin)`) -> `NotFound`,
+  bo cudze tankowania są dla tego ekranu niewidoczne i nie mają mieć własnego rodzaju błędu.
+- Walidacja i wyliczenia WYŁĄCZNIE przez domenowe `confirmRefuel`/`dismissRefuel` (§2, §3).
+  `IllegalArgumentException` z domeny -> `Invalid`, nic nie jest zapisane. `litersSource` nie jest parametrem
+  formularza (domena ustala `RECEIPT`/`DERIVED`); `filledToFull` bez litrów daje `Invalid`, bo tak rzuca domena.
+- Zapis i przeliczenie kosztów (`recomputeAndSave`, krok 5 z §8.3) dzieją się pod tym samym `mutex` co
+  synchronizacja, ale przez `mutex.withLock`, czyli **czekając** na blokadę — w przeciwieństwie do `guarded()`
+  (`tryLock` + `Skipped`). Potwierdzenie ceny nie może zostać pominięte tylko dlatego, że właśnie trwa
+  synchronizacja. `CancellationException` jest rzucana dalej. Skutek uboczny: operacja może czekać tak długo
+  jak pełna synchronizacja.
+- `tripsCosted` to liczba przeliczonych tras pojazdu, a nie liczba zmienionych wierszy; UI jej nie pokazuje.
+- Bez zmian w schemacie Room i bez nowych metod w interfejsach repozytoriów.
+- Znany niuans kolejności: `pending` w Room ma `ORDER BY ts DESC, id`, a repozytorium w pamięci sortuje tylko
+  po `ts`, więc przy dwóch tankowaniach z identycznym `ts` kolejność może się różnić. Odnotowane; kontrakt
+  repozytoriów tego nie rozstrzyga i nie zmienia go ta zmiana.
+
+### §11.2 Walidacja i formatowanie (warstwa `app`, funkcje czyste, bez Compose)
+- Parser kwot z pola tekstowego: `trim`, akceptuje przecinek i kropkę jako separator dziesiętny, puste -> `null`,
+  a `6,1,9`, `abc` i wartość `<= 0` -> błąd pola. Bez `Locale` i bez `NumberFormat`.
+- Formularz sam sprawdza dozwoloną kombinację (§2: cena | litry+kwota | cena+litry | cena+kwota) i znak wartości,
+  z polskimi komunikatami z `Texts`. `RefuelChange.Invalid` z `core` pozostaje zabezpieczeniem i pokazuje
+  komunikat ogólny — treść wyjątku domeny nigdy nie trafia na ekran. Świadomie: znajomość kombinacji jest w dwóch
+  miejscach (app dla UX, domena jako źródło prawdy), a testy app pilnują obu stron do §2.
+- Lista tankowań: czas `29.10 14:05` (strefa jako parametr, przez `TripsFormatting.startDateTime`), poziom
+  `20% → 80%`, przebieg `12 345 km` — zwyczajna spacja jako separator tysięcy, `HALF_UP` do pełnych kilometrów,
+  bez `Locale`.
+
+### §11.3 Ekrany „Tankowania” i formularz (kryteria akceptacji)
+- Wejście: na ekranie statusu przycisk „Podaj cenę tankowania (N)”, gdy `pendingRefuels > 0`. Przycisk **nie jest
+  nigdy wyłączany** na czas synchronizacji – potwierdzenie ceny czeka na `mutex` (§11.1), nie musi być blokowane.
+  Wyjście:
+  `TextButton` „Wstecz” w `TopAppBar` i `BackHandler` (jak §10.3). Powrót z listy na status woła
+  `session.reload()`, żeby licznik się odświeżył — reload jest w callbacku nawigacji, a nie w `LaunchedEffect`,
+  więc obrót ekranu nie generuje zbędnego odczytu bazy.
+- Enum `Screen` rozszerzony o `Refuels` i `RefuelForm`; id edytowanego wpisu w `rememberSaveable` (to nie sekret).
+- Stan trzyma `RefuelController` (wzorzec `SessionController`: `StateFlow`, scope aplikacji z `AppContainer`),
+  bo zapis musi przeżyć wyjście z ekranu; `io` jest wstrzykiwane. `reset()` jest wołane przy wylogowaniu (w
+  istniejącym `LaunchedEffect(loggedIn)` w `AppRoot`), a operacje stosują wynik tylko wtedy, gdy nie było
+  `reset()` w międzyczasie (licznik generacji). Sam zapis w bazie nie jest anulowany — należy do scope'u aplikacji.
+- Lista: ładowanie (`CircularProgressIndicator`), pusto („Brak tankowań czekających na cenę”), błąd odczytu
+  (własny komunikat, bez treści wyjątku). Wiersze mają `key = refuel.id`; `innerPadding` z `Scaffold` wchodzi
+  jako `contentPadding` `LazyColumn`.
+- Formularz: pola „Cena za litr”, „Litry”, „Kwota” (`KeyboardType.Decimal`), wartości pól w `rememberSaveable`;
+  przełącznik „Do pełna” aktywny tylko gdy podano litry; „Zapisz” blokuje przycisk i ignoruje drugi klik,
+  „Odrzuć” ma `AlertDialog` z potwierdzeniem; błąd w karcie `errorContainer` (`ErrorCard`). Po sukcesie formularz
+  wraca na odświeżoną listę; po błędzie zostaje z wpisanymi wartościami.
+- `openForm(id)` czyta listę ponownie, gdy jej jeszcze nie ma (`loading`) albo gdy odczyt był błędny
+  (`loadFailed`). Po śmierci procesu formularz jest pierwszym kompozablem z pustym stanem i bez tego
+  odczytu czekałby na `Texts.LOADING` w nieskończoność.
+- `NotFound`, `NotPending` i `NoVehicle` pokazują komunikat o nieaktualnym wpisie (`REFUEL_STALE_ENTRY`)
+  i przeładowują listę – wpis przestał czekać (potwierdził go ktoś inny albo go nie ma).
+  `Invalid` dostaje komunikat o wartościach (`REFUEL_WRITE_ERROR`), a wyjątek bazy osobny (`REFUEL_SAVE_FAILED`).
+- Ekran nie pokazuje VIN-u ani współrzędnych GPS (`docs/SECURITY.md`); wszystkie teksty UI w `Texts`, bez Icons;
+  komentarze i KDoc po angielsku.

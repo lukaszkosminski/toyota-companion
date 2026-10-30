@@ -15,13 +15,14 @@
 - UI: ekran logowania (weryfikacja → CredentialStore → SyncScheduler.onLogin) i ekran statusu synchronizacji z „Synchronizuj teraz” i „Wyloguj” (SPEC §9)
 - Wygląd UI (Material 3, `ToyotaTheme`, edge-to-edge, jasny/ciemny, `PullToRefreshBox` – odświeżenie tylko z lokalnej bazy)
 - UI: lista tras z kosztem (`SyncEngine.trips`, SPEC §10): miesiące w strefie lokalnej, sumy km/l/zł, „brak ceny”, „cena domyślna”
+- UI: formularz ceny tankowania (`SyncEngine.confirmRefuel`, SPEC §11): lista oczekujących, cena albo litry i kwota,
+  odrzucenie wpisu i przeliczenie kosztów (F2, F4)
 
 ## NOW
 - Test klienta Toyoty na prawdziwym koncie: `./gradlew -q :core:liveCheck` (uruchamia właściciel, docs/HANDOFF.md)
-- UI: formularz ceny tankowania
 
 ## NEXT
-- UI: formularz ceny (z wyborem źródła litrów), powiadomienie o tankowaniu
+- UI: szacunek litrów z czujnika i wybór źródła litrów (F2a), powiadomienie o tankowaniu
 - Eksport CSV, ręczny eksport/import archiwum, przypomnienie o backupie (F6–F8)
 
 ## LATER (kolejność wg wartości / kosztu)

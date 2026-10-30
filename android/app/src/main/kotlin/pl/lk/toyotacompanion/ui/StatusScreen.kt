@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -51,6 +52,7 @@ fun StatusScreen(
     onSyncNow: () -> Unit,
     onRefresh: () -> Unit,
     onShowTrips: () -> Unit,
+    onShowRefuels: () -> Unit,
     onLogout: () -> Unit,
 ) {
     var confirmLogout by remember { mutableStateOf(false) }
@@ -104,6 +106,18 @@ fun StatusScreen(
                     modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                 ) {
                     Text(if (state.syncing) Texts.SYNCING else Texts.SYNC_NOW_BUTTON)
+                }
+                // A refuel without a price keeps the trip costs at "brak ceny" (PRD F2, F4).
+                val waiting = status?.pendingRefuels ?: 0
+                if (waiting > 0) {
+                    // Never blocked during a synchronization: confirming a price waits for the
+                    // mutex instead of being refused (docs/SPEC.md §11.1).
+                    Button(
+                        onClick = onShowRefuels,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(Texts.refuelPrompt(waiting))
+                    }
                 }
                 OutlinedButton(
                     onClick = onRefresh,

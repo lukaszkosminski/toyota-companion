@@ -21,6 +21,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val container = (application as ToyotaApp).container
         container.session.start()
-        setContent { AppRoot(container.session, container.tripsLoader) }
+        setContent { AppRoot(container.session, container.tripsLoader, container.refuelController) }
     }
 }

@@ -14,16 +14,28 @@
   karta błędu `errorContainer`; status z `TopAppBar`, `PullToRefreshBox`, kartą liczników, chipem stanu,
   `HorizontalDivider` i `AlertDialog` potwierdzającym „Wyloguj”. `SessionController.reload()` powtarza tylko
   odczyt lokalnej bazy (bez API Toyoty i bez `refresh_status`).
-- Testy: core 178, app 89 (JUnit 4, w tym Robolectric), Python 76. CI: ruff/mypy/pytest, Android (core + app unit), gitleaks 8.30.1.
+- Testy: core 192, app 116 (JUnit 4, w tym Robolectric), Python 76. CI: ruff/mypy/pytest, Android (core + app unit), gitleaks 8.30.1.
 - Lista tras z kosztem (SPEC §10): `SyncEngine.trips()` — trasy bieżącego VIN od najnowszej, wszystkie koszty jednym odczytem `costs.all()` (bez zapytania na trasę), brak VIN = pusta lista, bez sieci i bez `mutex` synchronizacji; w `app` czyste funkcje `groupTripsByMonth` (miesiąc z `trip.start` w przekazanej strefie, sumy km/l/zł, licznik tras bez ceny, `totalCost = null` gdy żadna trasa nie ma ceny) i `TripsFormatting` (przecinek, `HALF_UP`, własna tablica 12 nazw miesięcy w mianowniku, start `29.10 14:05`, formaty niezależne od `Locale`); ekran `TripsScreen` (nazwa + sumy miesiąca, wiersze z `key = trip.id`, cena za litr · a przy „cena domyślna” także dopisek w tej samej linii, `contentPadding` z `innerPadding`, stany ładowanie/pusto/błąd bez treści wyjątku, `TextButton` „Wstecz” + `BackHandler`) i przycisk „Trasy” na ekranie statusu; `AppContainer.tripsLoader` jako jedyne wejście do bazy, `AppRoot` przełącza ekrany enumem `Screen` w `rememberSaveable` (reset do statusu po wylogowaniu przez `LaunchedEffect`). Na ekranie brak współrzędnych GPS i VIN (SECURITY.md).
+- Formularz ceny tankowania (SPEC §11): `pendingRefuels()`, `confirmRefuel(...)` i `dismissRefuel(id)` w `SyncEngine`
+  zwracają `RefuelChange` (`Done`, `NotFound`, `NotPending`, `Invalid`, `NoVehicle`). Zapis i przeliczenie kosztów idą
+  pod tym samym `mutex` co synchronizacja, ale przez `withLock`, więc potwierdzenie ceny czeka na pracującą
+  synchronizację zamiast zostać pominięte. Wpis innego VIN-u jest `NotFound`, brak VIN-u to `NoVehicle`; domena
+  (`core/domain`) pozostaje jedynym źródłem wyliczeń i wyboru `litersSource`. W `app`: `parseRefuelAmount` i
+  `checkRefuelForm` (przecinek albo kropka, puste = wielkość do wyliczenia, kombinacje z §2 z polskimi komunikatami),
+  `RefuelFormatting` (`29.10 14:05`, `20% → 80%`, `12 345 km` ze spacją i `HALF_UP`, bez `Locale`), oraz
+  `RefuelController` na scope'ie aplikacji (zapis przeżywa wyjście z ekranu) z `reset()` i licznikiem generacji.
+  `openForm(id)` czyta listę, gdy jej jeszcze nie ma albo odczyt był błędny – bez tego formularz po śmierci procesu czekałby w nieskończoność na „Ładowanie…”. `NotFound`/`NotPending`/`NoVehicle` przeładowują listę obok komunikatu, a wyjątek bazy ma własną treść (`Texts.REFUEL_SAVE_FAILED`). Przycisk „Podaj cenę tankowania (N)” nie jest blokowany na czas synchronizacji (SPEC §11.1).
+  Ekrany „Tankowania” i „Cena tankowania”, wejście z statusu przyciskiem „Podaj cenę tankowania (N)”, powrót z listy
+  odświeża liczniki (`session.reload()` w callbacku nawigacji). `Texts.TRIPS_BACK` zastąpione przez `Texts.BACK`.
 
 ## Następny krok
 Sprawdzone na emulatorze (API 36) 2026-10-29: logowanie prawdziwym kontem, pierwsza synchronizacja (562 trasy, 1 odczyt),
 sekrety zaszyfrowane w `secrets.xml` (Keystore), praca `toyota-sync` zaplanowana z wymogiem sieci, brak awarii i sekretów w logach.
-- Do zrobienia: przejrzenie na emulatorze (API 36) ekranów w motywie jasnym i nocnym, w tym nowej listy tras
-  na prawdziwym archiwum (562 trasy z 2026-10-29); następny krok: formularz ceny tankowania (ROADMAP „NOW”).
-Test klienta na prawdziwym koncie MyToyota (uruchamia właściciel; hasło nie trafia do repo ani rozmowy):
+- Do zrobienia: przejrzenie na emulatorze (API 36) w motywie jasnym i nocnym listy tras, listy tankowań i
+  formularza ceny na prawdziwym archiwum (562 trasy z 2026-10-29); następny krok: szacunek litrów z
+  czujnika i wybór źródła litrów (F2a) albo powiadomienie o tankowaniu (ROADMAP „NEXT”).
 
+Test klienta na prawdziwym koncie MyToyota (uruchamia właściciel; hasło nie trafia do repo ani rozmowy):
 ```bash
 source ~/Android/env.sh && cd android
 read -rp "Login MyToyota: " TOYOTA_USERNAME; read -rsp "Haslo: " TOYOTA_PASSWORD; echo
