@@ -65,4 +65,7 @@ enum class Screen {
     Trips,
     Refuels,
     RefuelForm,
+
+    /** Default fuel price of the phone (docs/SPEC.md §12.3). */
+    DefaultPrice,
 }

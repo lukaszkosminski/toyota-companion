@@ -29,7 +29,9 @@ import pl.lk.toyotacompanion.security.CredentialStore
 import pl.lk.toyotacompanion.security.EncryptedSecretStore
 import pl.lk.toyotacompanion.security.KeystoreTokenStore
 import pl.lk.toyotacompanion.security.SecretCipher
+import pl.lk.toyotacompanion.settings.SettingsStore
 import pl.lk.toyotacompanion.sync.SyncRunner
+import pl.lk.toyotacompanion.ui.DefaultPriceController
 import pl.lk.toyotacompanion.ui.RefuelController
 import pl.lk.toyotacompanion.ui.SessionController
 
@@ -41,6 +43,14 @@ class AppContainer(
     private val secretStore by lazy {
         EncryptedSecretStore(context.getSharedPreferences(SECRETS_PREFS, Context.MODE_PRIVATE), cipherFactory())
     }
+    /**
+     * Phone settings such as the default fuel price. A separate, unencrypted file:
+     * a fuel price is not a secret (docs/SPEC.md §12.2, docs/SECURITY.md).
+     */
+    private val settingsStore: SettingsStore by lazy {
+        SettingsStore(context.getSharedPreferences(SETTINGS_PREFS, Context.MODE_PRIVATE))
+    }
+
     val credentialStore: CredentialStore by lazy { CredentialStore(secretStore) }
     val tokenStore: KeystoreTokenStore by lazy { KeystoreTokenStore(secretStore) }
 
@@ -76,6 +86,9 @@ class AppContainer(
             state = RoomSyncStateRepository(database.syncStateDao()),
             clock = { Instant.now() },
             hasCredentials = { credentialStore.load() != null },
+            // Read per recompute, always from a background thread: `SyncEngine` is driven by
+            // WorkManager and by controllers that wrap their calls in Dispatchers.IO (§12.1).
+            defaultPriceProvider = { settingsStore.defaultPrice() },
         )
     }
 
@@ -126,8 +139,26 @@ class AppContainer(
         )
     }
 
+    /**
+     * Default fuel price screen state (docs/SPEC.md §12.3). It shares the UI scope
+     * with [session]: storing the price and recomputing the trip costs survive
+     * leaving the screen, and logging out only forgets the state, never the setting.
+     */
+    val defaultPriceController: DefaultPriceController by lazy {
+        DefaultPriceController(
+            read = { settingsStore.defaultPrice() },
+            persist = { price ->
+                if (price == null) settingsStore.clearDefaultPrice() else settingsStore.saveDefaultPrice(price)
+            },
+            recompute = { syncEngine.recomputeCostsNow() },
+            scope = uiScope,
+            io = Dispatchers.IO,
+        )
+    }
+
     private companion object {
         const val SECRETS_PREFS = "secrets"
+        const val SETTINGS_PREFS = "settings"
         const val DATABASE_NAME = "toyota-companion.db"
     }
 }

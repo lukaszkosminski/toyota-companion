@@ -119,6 +119,7 @@ class SyncEngineTest {
         start: Instant = DAY_1,
         config: SyncConfig = SyncConfig(),
         hasCredentials: suspend () -> Boolean = { true },
+        defaultPriceProvider: suspend () -> BigDecimal? = { config.defaultPrice },
     ): Ctx {
         val clock = FakeClock(start)
         val engine = SyncEngine(
@@ -132,6 +133,7 @@ class SyncEngineTest {
             config = config,
             clock = { clock() },
             hasCredentials = hasCredentials,
+            defaultPriceProvider = defaultPriceProvider,
         )
         return Ctx(gateway, stores, clock, engine)
     }
@@ -534,6 +536,113 @@ class SyncEngineTest {
 
         assertEquals(0, ctx().gateway.tripsCalls)
         assertTrue(!failed.error.retryable)
+    }
+
+    // ---------------- default price from a provider (docs/SPEC.md §12.1) ----------------
+
+    @Test
+    fun `default_price_provider_is_read_on_every_recount`() = runTest {
+        val stores = InMemoryStores()
+        stores.trips.upsertAll(listOf(tripRecord("t1", DAY_1)))
+        stores.state.save(SyncState(vin = VIN))
+        var price: BigDecimal? = BigDecimal("6.20")
+        val engine = ctx(FakeToyotaGateway(), stores, defaultPriceProvider = { price }).engine
+
+        assertIs<CostRecompute.Done>(engine.recomputeCostsNow())
+
+        val set = requireNotNull(stores.costs.forTrip("t1"))
+        assertEquals(CostSource.DEFAULT, set.source)
+        assertEquals(0, BigDecimal("3.72").compareTo(requireNotNull(set.costPln)))
+
+        price = null
+        assertIs<CostRecompute.Done>(engine.recomputeCostsNow())
+
+        val removed = requireNotNull(stores.costs.forTrip("t1"))
+        assertEquals(CostSource.NONE, removed.source, "usunieta cena wraca do 'brak ceny'")
+        assertNull(removed.costPln)
+    }
+
+    @Test
+    fun `default_price_provider_is_read_once_per_recount`() = runTest {
+        val stores = InMemoryStores()
+        stores.trips.upsertAll(listOf(tripRecord("t1", DAY_1), tripRecord("t2", DAY_2), tripRecord("t3", DAY_2)))
+        stores.state.save(SyncState(vin = VIN))
+        var reads = 0
+        val engine = ctx(FakeToyotaGateway(), stores, defaultPriceProvider = { reads++; BigDecimal("6.20") }).engine
+
+        val done = assertIs<CostRecompute.Done>(engine.recomputeCostsNow())
+
+        assertEquals(3, done.tripsCosted)
+        assertEquals(1, reads, "cena jest czytana raz na przeliczenie, nie raz na trase")
+    }
+
+    @Test
+    fun `confirmed_refuel_beats_the_provider_price`() = runTest {
+        val stores = InMemoryStores()
+        stores.trips.upsertAll(listOf(tripRecord("t1", DAY_1)))
+        stores.refuels.addIfAbsent(confirmedRefuel(ts = DAY_1.minusSeconds(3_600)), VIN)
+        stores.state.save(SyncState(vin = VIN))
+
+        val engine = ctx(FakeToyotaGateway(), stores, defaultPriceProvider = { BigDecimal("10.00") }).engine
+        assertIs<CostRecompute.Done>(engine.recomputeCostsNow())
+
+        val cost = requireNotNull(stores.costs.forTrip("t1"))
+        assertEquals(CostSource.REFUEL, cost.source)
+        assertEquals(0, BigDecimal("3.71").compareTo(requireNotNull(cost.costPln)))
+    }
+
+    @Test
+    fun `full_sync_uses_the_provider_price`() = runTest {
+        val stores = InMemoryStores()
+        val gateway = FakeToyotaGateway(
+            fleet = listOf(vehicleRecord()),
+            telemetry = reading(DAY_1, 40),
+            tripsProvider = { _, _, _ -> listOf(tripRecord("t1", DAY_1.minusSeconds(3_600))) },
+        )
+
+        val engine = ctx(gateway, stores, defaultPriceProvider = { BigDecimal("6.20") }).engine
+        assertOk(engine.fullSync())
+
+        val cost = requireNotNull(stores.costs.forTrip("t1"))
+        assertEquals(CostSource.DEFAULT, cost.source, "synchronizacja w tle tez zna aktualna cene")
+        assertEquals(0, BigDecimal("3.72").compareTo(requireNotNull(cost.costPln)))
+    }
+
+    @Test
+    fun `recompute_costs_now_waits_for_a_running_synchronization_instead_of_being_skipped`() = runTest {
+        val entered = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        val gateway = FakeToyotaGateway(fleet = listOf(vehicleRecord())).apply {
+            beforeVehicles = {
+                entered.complete(Unit)
+                release.await()
+            }
+        }
+        val stores = InMemoryStores()
+        stores.trips.upsertAll(listOf(tripRecord("t1", DAY_1)))
+        stores.state.save(SyncState(vin = VIN))
+        val engine = ctx(gateway, stores, defaultPriceProvider = { BigDecimal("6.20") }).engine
+
+        val sync = async { engine.fullSync() }
+        entered.await()
+        val recount = async { engine.recomputeCostsNow() }
+
+        // The recount is queued behind the synchronization, so nothing is written yet.
+        assertNull(stores.costs.forTrip("t1"))
+
+        release.complete(Unit)
+        assertOk(sync.await())
+        assertEquals(1, assertIs<CostRecompute.Done>(recount.await()).tripsCosted)
+        assertEquals(CostSource.DEFAULT, requireNotNull(stores.costs.forTrip("t1")).source)
+    }
+
+    @Test
+    fun `recompute_costs_now_without_vehicle_reports_no_vehicle`() = runTest {
+        val c = ctx(defaultPriceProvider = { BigDecimal("6.20") })
+
+        assertIs<CostRecompute.NoVehicle>(c.engine.recomputeCostsNow())
+
+        assertEquals(0, c.gateway.vehiclesCalls + c.gateway.telemetryCalls + c.gateway.tripsCalls)
     }
 
     // ---------------- trips list (docs/SPEC.md §10.1) ----------------

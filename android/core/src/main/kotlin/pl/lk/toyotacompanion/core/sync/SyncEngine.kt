@@ -55,6 +55,14 @@ class SyncEngine(
     private val costs: CostRepository,
     private val state: SyncStateRepository,
     private val config: SyncConfig = SyncConfig(),
+    /**
+     * Price per liter used for trips that have no confirmed refuel before them
+     * (docs/SPEC.md §12.1). Read on every recompute, so changing the user's setting
+     * works without a restart and a background synchronization sees the current
+     * value. Defaults to [SyncConfig.defaultPrice] — for tests and for using `core`
+     * outside this app; the app injects its own settings store.
+     */
+    private val defaultPriceProvider: suspend () -> BigDecimal? = { config.defaultPrice },
     private val clock: () -> Instant = { Instant.now() },
     private val hasCredentials: suspend () -> Boolean = { true },
 ) {
@@ -65,6 +73,21 @@ class SyncEngine(
 
     /** Cost recount only, no network — call after the user confirms a price (PRD F4). */
     suspend fun recomputeCosts(): SyncOutcome = guarded { recomputeOnly() }
+
+    /**
+     * Cost recount on request of the default-price screen (docs/SPEC.md §12.1). No
+     * network and no [SyncState] change: this is not a synchronization, so it must
+     * not rewrite the status of the last one (docs/SPEC.md §8.5).
+     *
+     * Like [confirmRefuel], this waits for the mutex ([kotlinx.coroutines.sync.Mutex.withLock])
+     * instead of trying it, so a recount started during a running synchronization
+     * queues behind it instead of being skipped.
+     */
+    suspend fun recomputeCostsNow(): CostRecompute =
+        mutex.withLock {
+            val vin = state.get().vin ?: return@withLock CostRecompute.NoVehicle
+            CostRecompute.Done(recomputeAndSave(vin))
+        }
 
     /** Which vehicle to synchronize when the account has several (PRD §3). */
     suspend fun selectVehicle(vin: String) {
@@ -267,7 +290,9 @@ class SyncEngine(
     private suspend fun recomputeAndSave(vin: String): Int {
         val tripList = trips.all(vin).map { it.toTrip() }
         val refuelList = refuels.all(vin)
-        val computed = recomputeCosts(tripList, refuelList, config.defaultPrice, config.tankCapacityL)
+        // The price is read per recompute, inside the mutex (docs/SPEC.md §12.1):
+        // one read for the whole archive, never one per trip.
+        val computed = recomputeCosts(tripList, refuelList, defaultPriceProvider(), config.tankCapacityL)
         costs.saveAll(computed)
         return computed.size
     }
