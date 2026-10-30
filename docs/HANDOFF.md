@@ -41,10 +41,10 @@
 ## Następny krok
 Sprawdzone na emulatorze (API 36) 2026-10-29: logowanie prawdziwym kontem, pierwsza synchronizacja (562 trasy, 1 odczyt),
 sekrety zaszyfrowane w `secrets.xml` (Keystore), praca `toyota-sync` zaplanowana z wymogiem sieci, brak awarii i sekretów w logach.
-- Do zrobienia: przejrzenie na emulatorze (API 36) w motywie jasnym i nocnym listy tras, listy tankowań,
-  formularza ceny tankowania i ekranu „Cena domyślna” na prawdziwym archiwum (562 trasy z 2026-10-29);
-  sprawdzenie też, czy ustawiona cena domyślna faktycznie znosi „brak ceny” na liście tras; następny krok:
-  szacunek litrów z czujnika i wybór źródła litrów (F2a) albo powiadomienie o tankowaniu (ROADMAP „NEXT”).
+Sprawdzone na emulatorze 2026-10-30: status, lista tras (motyw jasny i nocny, 562 trasy), ekran „Cena domyślna” –
+6,19 zł/l nadaje koszt wszystkim trasom (październik 2026: 217,90 zł, dopisek „cena domyślna”), brak awarii.
+Nie sprawdzone: lista tankowań i formularz ceny – archiwum ma 1 odczyt paliwa, więc żadne tankowanie nie czeka na cenę.
+- Następny krok: szacunek litrów z czujnika i wybór źródła litrów (F2a) albo powiadomienie o tankowaniu (ROADMAP „NEXT”).
 
 Test klienta na prawdziwym koncie MyToyota (uruchamia właściciel; hasło nie trafia do repo ani rozmowy):
 ```bash
