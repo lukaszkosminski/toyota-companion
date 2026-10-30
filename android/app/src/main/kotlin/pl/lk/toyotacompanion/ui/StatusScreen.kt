@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import java.math.BigDecimal
 import pl.lk.toyotacompanion.core.data.SyncErrorKind
 import pl.lk.toyotacompanion.core.data.SyncStatus
 
@@ -53,6 +54,8 @@ fun StatusScreen(
     onRefresh: () -> Unit,
     onShowTrips: () -> Unit,
     onShowRefuels: () -> Unit,
+    defaultPrice: BigDecimal?,
+    onShowDefaultPrice: () -> Unit,
     onLogout: () -> Unit,
 ) {
     var confirmLogout by remember { mutableStateOf(false) }
@@ -131,6 +134,14 @@ fun StatusScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(Texts.TRIPS_TITLE)
+                }
+                // The default price costs the trips from before the first confirmed refuel (PRD F2b).
+                // Never blocked during a synchronization: the recount waits for the mutex (§12.1).
+                OutlinedButton(
+                    onClick = onShowDefaultPrice,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(Texts.defaultPricePrompt(defaultPrice))
                 }
             }
         }

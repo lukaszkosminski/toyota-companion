@@ -302,3 +302,65 @@ Poza zakresem: szacunek litrów z czujnika (F2a), powiadomienia, edycja już pot
   `Invalid` dostaje komunikat o wartościach (`REFUEL_WRITE_ERROR`), a wyjątek bazy osobny (`REFUEL_SAVE_FAILED`).
 - Ekran nie pokazuje VIN-u ani współrzędnych GPS (`docs/SECURITY.md`); wszystkie teksty UI w `Texts`, bez Icons;
   komentarze i KDoc po angielsku.
+## §12 Cena domyślna paliwa jako ustawienie (PRD F2b)
+
+### §12.1 `core`: dostawca ceny i przeliczenie na żądanie
+- `SyncEngine` dostaje `defaultPriceProvider: suspend () -> BigDecimal? = { config.defaultPrice }` i czyta go przy
+  **każdym** `recomputeAndSave` (krok 5 synchronizacji §8.3, przeliczenie po potwierdzeniu ceny §11.1, przeliczenie
+  z ekranu ceny domyślnej §12.2). Zmiana ceny nie czeka na następną synchronizację i nie wymaga restartu aplikacji.
+- `SyncConfig.defaultPrice` zostaje wartością domyślną dostawcy (testy i użycie biblioteki poza aplikacją);
+  aplikacja zawsze wstrzykuje `SettingsStore`, więc konfiguracja nie jest drugim źródłem prawdy (test
+  `default_price_provider_is_read_on_every_recount`).
+- Dostawca jest wołany wewnątrz `mutex`, więc musi być tani: w aplikacji to odczyt `SettingsStore` na
+  `Dispatchers.IO` (nigdy na wątku UI), bez sieci i bez bazy danych.
+- `suspend fun recomputeCostsNow(): CostRecompute` (`CostRecompute.Done(tripsCosted)` / `CostRecompute.NoVehicle`)
+  liczy pod `mutex.withLock`, czyli czeka na trwającą synchronizację zamiast być pominięty (jak §11.1, inaczej niż
+  `recomputeCosts()` z `tryLock` -> `SyncOutcome.Skipped`). Bez wywołania `gateway` i bez zmian w `SyncState`:
+  przeliczenie z ekranu nie jest synchronizacją i nie może nadpisać jej statusu (§8.5).
+- Koszt uboczny: przeliczenie trzyma `mutex` na czas zapisu kosztów (jedno `costs.saveAll`, setki wierszy), więc
+  `fullSync` startujący w tym momencie dostanie `Skipped` i wróci z WorkManagera; tak samo działa już
+  potwierdzenie ceny tankowania (§11.1).
+- Bez zmian w `core/domain` (§4, §5), bez zmian w schemacie Room i bez nowych metod w interfejsach repozytoriów.
+
+### §12.2 Przechowywanie ceny (warstwa `app`)
+- `settings/SettingsStore.kt` trzyma cenę w SharedPreferences `settings` — nie w `secrets` (cena nie jest sekretem
+  w rozumieniu `docs/SECURITY.md` i nie trafia do Keystore). Klucz `default_price`, wartość to tekst
+  `BigDecimal.toPlainString()`.
+- Odczyt jest odporny na śmieci: tekst pusty albo nieprawidłowy zwraca `null` (czyli brak ceny), bez wyjątku i
+  bez logowania treści; nadpisuje go następny zapis. Tak samo czytana jest wartość niedodatnia (`0`, `-5`) —
+  zerowa cena kosztowałaby trasy 0,00 zł, więc jest traktowana jak usunięta (test
+  `a price that is not positive reads as null`).
+- `clearDefaultPrice()` usuwa klucz. **Wylogowanie nie czyści ceny**: to ustawienie telefonu, nie konta — tak jak
+  archiwum zostaje na telefonie (ADR-006). `DefaultPriceController.reset()` czyści tylko stan w pamięci.
+- Odczyt i zapis pliku preferencji idą z `Dispatchers.IO`: przez `defaultPriceProvider` w `AppContainer` i przez
+  `DefaultPriceController` w scope'ie aplikacji.
+
+### §12.3 Ekran „Cena domyślna” (kryteria akceptacji)
+- Wejście: `OutlinedButton` na ekranie statusu, widoczny zawsze, z aktualną wartością w etykiecie
+  (`Cena domyślna paliwa: 6,19 zł/l`) albo bez niej (`Ustaw cenę domyślną paliwa`). Nie jest blokowany na czas
+  synchronizacji — przeliczenie czeka na `mutex` (§12.1). Wyjście: `TextButton` „Wstecz” i `BackHandler` (jak §10.3);
+  powrót na status woła `session.reload()`, więc liczniki się odświeżą.
+- Enum `Screen` rozszerzony o `DefaultPrice`. Stan trzyma `DefaultPriceController` (wzorzec §11.3: `StateFlow`,
+  scope aplikacji, wstrzykiwane `io`, `reset()` przy wylogowaniu, licznik generacji odrzuca późne wyniki).
+  Cenę czytamy przez `DefaultPriceController.ensureLoaded()` w `LaunchedEffect(loggedIn)` (dla zalogowanego
+  użytkownika) i aktualizujemy przez `save()`/`remove()`. Ten efekt startuje ponownie przy odtworzeniu Activity,
+  więc odczyt jest strzeżony: plik jest czytany tylko gdy stan jest jeszcze nieznany — obrót ekranu nie czyta pliku preferencji
+  ponownie (test `ensureLoaded does not read the file again after a good read`).
+- Walidacja w UI (`DefaultPriceForm`): `parseRefuelAmount` (przecinek albo kropka), pole puste to błąd (usunięcie ma
+  własny przycisk), zaokrąglenie do 0,001 ROUND_HALF_UP (§2) i dopiero potem sprawdzenie `<= 0` —
+  wartość, która zaokrągla się do zera, jest odrzucana, bo przy zerowej cenie trasy kosztowały 0,00 zł
+  (test `the sign is checked after the rounding`). `roundPrice` w `core.domain`
+  jest `internal`, więc reguła jest powtórzona w UI — świadomie, tak jak §11.2 powtarza dozwolone kombinacje;
+  `DefaultPriceFormTest` przypina obie strony.
+- Formularz: jedno pole „Cena za litr” z `KeyboardType.Decimal`, wartość pola w `rememberSaveable`, notka pod polem
+  (cena dotyczy tras sprzed pierwszego potwierdzonego tankowania), „Zapisz” (blokada na czas zapisu, drugi klik
+  ignorowany), „Usuń cenę domyślną” z `AlertDialog`, błąd w karcie `errorContainer`. Po sukcesie formularz wraca na
+  status.
+- `CostRecompute.NoVehicle` jest traktowany jako sukces bez komunikatu: cena jest ustawiona, a koszty przeliczy
+  najbliższa synchronizacja. Tak samo traktowany jest wyjatek samego przeliczenia — zapisanej ceny nie cofamy, bo
+  najbliższa synchronizacja i tak policzy trasy z nią (`DefaultPriceControllerTest: a failing recount keeps the
+  saved price`).
+
+- Wyjątek zapisu pokazuje `Texts.REFUEL_SAVE_FAILED` („Nie udało się zapisać…”), treść wyjątku nie trafia do UI
+  (`docs/SECURITY.md`).
+- Ekran nie pokazuje VIN-u ani GPS; wszystkie teksty w `Texts`; bez Icons; komentarze i KDoc po angielsku.

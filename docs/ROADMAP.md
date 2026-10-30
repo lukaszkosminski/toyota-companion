@@ -17,6 +17,8 @@
 - UI: lista tras z kosztem (`SyncEngine.trips`, SPEC §10): miesiące w strefie lokalnej, sumy km/l/zł, „brak ceny”, „cena domyślna”
 - UI: formularz ceny tankowania (`SyncEngine.confirmRefuel`, SPEC §11): lista oczekujących, cena albo litry i kwota,
   odrzucenie wpisu i przeliczenie kosztów (F2, F4)
+- UI: domyślna cena paliwa jako ustawienie telefonu (`defaultPriceProvider`, `recomputeCostsNow`, SPEC §12):
+  ekran „Cena domyślna”, zapis w `SettingsStore`, przeliczenie kosztów bez synchronizacji (F2b)
 
 ## NOW
 - Test klienta Toyoty na prawdziwym koncie: `./gradlew -q :core:liveCheck` (uruchamia właściciel, docs/HANDOFF.md)

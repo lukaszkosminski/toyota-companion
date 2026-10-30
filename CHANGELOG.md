@@ -43,3 +43,19 @@
   `RefuelFormattingTest`, `RefuelControllerTest`, `TextsTest`) (app: 116 testów, core: 192)
 - `openForm(id)` czyta listę, gdy jej jeszcze nie ma albo odczyt był błędny – bez tego formularz po śmierci procesu czekałby w nieskończoność na „Ładowanie…”.
   `NotFound`, `NotPending` i `NoVehicle` przeładowują listę obok komunikatu, a wyjątek bazy ma własną treść (`Texts.REFUEL_SAVE_FAILED`). Przycisk „Podaj cenę tankowania (N)” nie jest blokowany na czas synchronizacji, bo potwierdzenie ceny czeka na `mutex` (SPEC §11.1).
+- Domyślna cena paliwa jako ustawienie telefonu (SPEC §12, PRD F2b): `SyncEngine` dostaje
+  `defaultPriceProvider: suspend () -> BigDecimal?` (domyślnie `config.defaultPrice`) i czyta go przy każdym
+  `recomputeAndSave`, więc zmiana ceny jest widoczna także w synchronizacji w tle bez restartu aplikacji; nowa
+  operacja `recomputeCostsNow(): CostRecompute` (`Done(tripsCosted)` / `NoVehicle`) liczy pod `mutex.withLock`, czyli
+  czeka na trwającą synchronizację zamiast być pominięta — bez sieci i bez zmian w `SyncState`; `core/domain`,
+  schemat Room i interfejsy repozytoriów bez zmian. W `app`: `settings/SettingsStore` (SharedPreferences `settings`,
+  nie `secrets` — cena nie jest sekretem; tekst `toPlainString`, śmieci czytane jak brak ceny), `parseDefaultPrice`
+  (przecinek albo kropka, puste pole to błąd, zaokrąglenie do 0,001 ROUND_HALF_UP jak ceny z §2 i dopiero potem sprawdzenie `<= 0` (wartość zaokrąglająca się do zera jest odrzucana),
+  `DefaultPriceController` na scope'ie aplikacji (`reset()` i licznik generacji; wylogowanie nie czyści ceny, bo to
+  ustawienie telefonu) oraz ekran „Cena domyślna” z jednym polem, „Zapisz”, „Usuń cenę domyślną” z `AlertDialog` i
+  wejściem z ekranu statusu (`Texts.defaultPricePrompt` pokazuje zapisaną cenę); enum `Screen` o `DefaultPrice`;
+  `NoVehicle` i samo nieudane przeliczenie nie cofają zapisanej ceny — przeliczy ją najbliższa synchronizacja.
+  Testy: core +6 (cena z dostawcy czytana przy każdym przeliczeniu i raz na przeliczenie, potwierdzone tankowanie
+  wygrywa z ceną domyślną, `fullSync` zna aktualną cenę, `recomputeCostsNow` czeka na trwającą synchronizację i
+  zgłasza brak pojazdu), app +24 (`SettingsStoreTest`, `DefaultPriceFormTest`, `DefaultPriceControllerTest`,
+  `TextsTest`) (app: 140 testów, core: 198)

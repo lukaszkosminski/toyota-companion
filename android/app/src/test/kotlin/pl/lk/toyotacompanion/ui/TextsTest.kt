@@ -125,6 +125,20 @@ class TextsTest {
                 RefuelFormatting.time(Instant.parse("2026-10-29T14:05:00Z"), ZONE),
                 RefuelFormatting.levelJump(20, 80),
                 RefuelFormatting.odometer(12_345.0),
+            ) +
+            // Domyślna cena paliwa (docs/SPEC.md §12.3).
+            listOf(
+                Texts.DEFAULT_PRICE_TITLE,
+                Texts.DEFAULT_PRICE_PROMPT_UNSET,
+                Texts.defaultPricePrompt(null),
+                Texts.defaultPricePrompt(BigDecimal("6.19")),
+                Texts.DEFAULT_PRICE_HINT,
+                Texts.DEFAULT_PRICE_REMOVE,
+                Texts.DEFAULT_PRICE_REMOVE_TITLE,
+                Texts.DEFAULT_PRICE_REMOVE_BODY,
+                Texts.DEFAULT_PRICE_REMOVE_YES,
+                Texts.DEFAULT_PRICE_REMOVE_NO,
+                Texts.DEFAULT_PRICE_EMPTY_ERROR,
             )
         for (text in all) {
             for (forbidden in listOf("token", "Token", "VIN1", "p@ss", "secret")) {
@@ -146,6 +160,16 @@ class TextsTest {
             assertTrue(text.isNotBlank(), change.toString())
             assertTrue(text.first().isUpperCase(), "${change}: $text")
         }
+    }
+
+
+    @Test
+    fun `the default price prompt shows the stored price`() {
+        assertEquals(Texts.DEFAULT_PRICE_PROMPT_UNSET, Texts.defaultPricePrompt(null))
+
+        val prompt = Texts.defaultPricePrompt(BigDecimal("6.19"))
+        assertTrue(prompt.startsWith(Texts.DEFAULT_PRICE_TITLE), prompt)
+        assertTrue(prompt.endsWith(TripsFormatting.pricePerLiter(BigDecimal("6.19"))), prompt)
     }
 
 }

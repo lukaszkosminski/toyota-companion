@@ -19,14 +19,18 @@ import pl.lk.toyotacompanion.ui.theme.ToyotaTheme
  * @param loadTrips reads the archived trips for the trips screen (docs/SPEC.md §10.1)
  * @param refuel state holder of the refuel list and the price form (docs/SPEC.md §11.3);
  * it belongs to the application scope, so a write survives these screens
+ * @param defaultPrice state holder of the default fuel price (docs/SPEC.md §12.3); it
+ * also belongs to the application scope, so storing a price survives this screen
  */
 @Composable
 fun AppRoot(
     session: SessionController,
     loadTrips: suspend () -> List<StoredTrip>,
     refuel: RefuelController,
+    defaultPrice: DefaultPriceController,
 ) {
     val state by session.state.collectAsState()
+    val priceState by defaultPrice.state.collectAsState()
     var screen by rememberSaveable { mutableStateOf(Screen.Status) }
     // Which entry the price form edits; an id is not a secret (docs/SECURITY.md).
     var editedRefuelId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -41,6 +45,12 @@ fun AppRoot(
             screen = Screen.Status
             editedRefuelId = null
             refuel.reset()
+            defaultPrice.reset()
+        } else {
+            // The status button shows the stored price. This effect also restarts when the
+            // Activity is recreated, so the read is guarded: the file is touched only while
+            // the price is still unknown, never again on a rotation (docs/SPEC.md §12.3).
+            defaultPrice.ensureLoaded()
         }
     }
 
@@ -57,6 +67,8 @@ fun AppRoot(
                     onRefresh = session::reload,
                     onShowTrips = { screen = Screen.Trips },
                     onShowRefuels = { screen = Screen.Refuels },
+                    defaultPrice = priceState.price,
+                    onShowDefaultPrice = { screen = Screen.DefaultPrice },
                     onLogout = session::logout,
                 )
 
@@ -73,6 +85,14 @@ fun AppRoot(
                     onEdit = { id ->
                         editedRefuelId = id
                         screen = Screen.RefuelForm
+                    },
+                )
+
+                Screen.DefaultPrice -> DefaultPriceScreen(
+                    controller = defaultPrice,
+                    onBackToStatus = {
+                        screen = Screen.Status
+                        session.reload()
                     },
                 )
 

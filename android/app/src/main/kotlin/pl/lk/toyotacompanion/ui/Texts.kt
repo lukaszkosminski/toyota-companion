@@ -1,5 +1,6 @@
 package pl.lk.toyotacompanion.ui
 
+import java.math.BigDecimal
 import java.time.ZoneId
 import pl.lk.toyotacompanion.core.data.SyncErrorKind
 import pl.lk.toyotacompanion.core.data.SyncStatus
@@ -167,4 +168,38 @@ object Texts {
         RefuelChange.Invalid -> REFUEL_WRITE_ERROR
         RefuelChange.NotFound, RefuelChange.NotPending, RefuelChange.NoVehicle -> REFUEL_STALE_ENTRY
     }
+
+    // ---------------- domyślna cena paliwa (docs/SPEC.md §12) ----------------
+
+    /** Title of the default price screen. */
+    const val DEFAULT_PRICE_TITLE = "Cena domyślna"
+
+    /** Status-screen button when no default price is stored yet. */
+    const val DEFAULT_PRICE_PROMPT_UNSET = "Ustaw cenę domyślną paliwa"
+
+    /**
+     * Status-screen button: [price] in the label when one is stored, e.g.
+     * `Cena domyślna paliwa: 6,19 zł/l`, the plain request when none is.
+     */
+    fun defaultPricePrompt(price: BigDecimal?): String =
+        if (price == null) DEFAULT_PRICE_PROMPT_UNSET
+        else "Cena domyślna paliwa: " + TripsFormatting.pricePerLiter(price)
+
+    /** Under the field: which trips the default price prices (docs/SPEC.md §4). */
+    const val DEFAULT_PRICE_HINT =
+        "Cena domyślna liczy trasy sprzed pierwszego potwierdzonego tankowania."
+
+    /** Removes the setting; an empty field never does that (docs/SPEC.md §12.3). */
+    const val DEFAULT_PRICE_REMOVE = "Usuń cenę domyślną"
+
+    const val DEFAULT_PRICE_REMOVE_TITLE = "Usunąć cenę domyślną?"
+    const val DEFAULT_PRICE_REMOVE_BODY =
+        "Trasy bez potwierdzonego tankowania znów będą bez ceny."
+    const val DEFAULT_PRICE_REMOVE_YES = "Usuń"
+    const val DEFAULT_PRICE_REMOVE_NO = "Anuluj"
+
+    /** "Zapisz" with an empty field: removing the price has its own button. */
+    const val DEFAULT_PRICE_EMPTY_ERROR =
+        "Podaj cenę za litr albo usuń cenę przyciskiem poniżej"
+
 }
