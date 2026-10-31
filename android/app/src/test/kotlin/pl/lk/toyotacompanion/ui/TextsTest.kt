@@ -126,6 +126,16 @@ class TextsTest {
                 RefuelFormatting.levelJump(20, 80),
                 RefuelFormatting.odometer(12_345.0),
             ) +
+            // Liters estimate of PRD F2a (docs/SPEC.md §2a, §11.2).
+            listOf(
+                Texts.REFUEL_ESTIMATE_NEEDS_PRICE,
+                Texts.REFUEL_USE_ESTIMATE,
+                Texts.REFUEL_LITERS_FROM_ESTIMATE,
+                Texts.REFUEL_LITERS_FROM_RECEIPT,
+                Texts.refuelEstimateHint(RefuelFormatting.liters(BigDecimal("14.190"))),
+                RefuelFormatting.litersInput(BigDecimal("14.190")),
+                RefuelFormatting.liters(BigDecimal("14.190")),
+            ) +
             // Domyślna cena paliwa (docs/SPEC.md §12.3).
             listOf(
                 Texts.DEFAULT_PRICE_TITLE,
@@ -181,6 +191,16 @@ class TextsTest {
         assertTrue(prompt.endsWith(TripsFormatting.pricePerLiter(BigDecimal("6.19"))), prompt)
     }
 
+
+    @Test
+    fun `the estimate hint names the sensor and shows the counted liters`() {
+        assertEquals("Szacunek z czujnika: ok. 14,19 l", Texts.refuelEstimateHint("14,19 l"))
+        // The line under the liters field is the hint over the same formatting the field gets.
+        assertEquals(
+            "Szacunek z czujnika: ok. 14,19 l",
+            Texts.refuelEstimateHint(RefuelFormatting.liters(BigDecimal("14.190"))),
+        )
+    }
 
     @Test
     fun `the notification line says when and how much and asks for the price`() {

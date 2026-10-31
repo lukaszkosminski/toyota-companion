@@ -28,6 +28,17 @@ object RefuelFormatting {
     fun odometer(odometerKm: Double): String =
         groupThousands(toBigDecimal(odometerKm).setScale(0, RoundingMode.HALF_UP).toPlainString()) + " km"
 
+    /**
+     * Liters for the form field, e.g. `14,19`: the full precision of the domain
+     * (0.001 l) without trailing zeros, so an accepted estimate stores exactly the
+     * number §6 would use and the tank price does not move (docs/SPEC.md §2a).
+     */
+    fun litersInput(liters: BigDecimal): String =
+        liters.stripTrailingZeros().toPlainString().replace('.', ',')
+
+    /** Liters for reading, e.g. `14,19 l` — the same precision as [litersInput]. */
+    fun liters(liters: BigDecimal): String = litersInput(liters) + " l"
+
     private fun groupThousands(plain: String): String {
         val sign = if (plain.startsWith('-')) "-" else ""
         val digits = plain.removePrefix("-")

@@ -14,13 +14,14 @@
   karta błędu `errorContainer`; status z `TopAppBar`, `PullToRefreshBox`, kartą liczników, chipem stanu,
   `HorizontalDivider` i `AlertDialog` potwierdzającym „Wyloguj”. `SessionController.reload()` powtarza tylko
   odczyt lokalnej bazy (bez API Toyoty i bez `refresh_status`).
-- Testy: core 198, app 181 (JUnit 4, w tym Robolectric), Python 76. CI: ruff/mypy/pytest, Android (core + app unit), gitleaks 8.30.1.
+- Testy: core 208, app 193 (JUnit 4, w tym Robolectric), Python 84. CI: ruff/mypy/pytest, Android (core + app unit), gitleaks 8.30.1.
 - Lista tras z kosztem (SPEC §10): `SyncEngine.trips()` — trasy bieżącego VIN od najnowszej, wszystkie koszty jednym odczytem `costs.all()` (bez zapytania na trasę), brak VIN = pusta lista, bez sieci i bez `mutex` synchronizacji; w `app` czyste funkcje `groupTripsByMonth` (miesiąc z `trip.start` w przekazanej strefie, sumy km/l/zł, licznik tras bez ceny, `totalCost = null` gdy żadna trasa nie ma ceny) i `TripsFormatting` (przecinek, `HALF_UP`, własna tablica 12 nazw miesięcy w mianowniku, start `29.10 14:05`, formaty niezależne od `Locale`); ekran `TripsScreen` (nazwa + sumy miesiąca, wiersze z `key = trip.id`, cena za litr · a przy „cena domyślna” także dopisek w tej samej linii, `contentPadding` z `innerPadding`, stany ładowanie/pusto/błąd bez treści wyjątku, `TextButton` „Wstecz” + `BackHandler`) i przycisk „Trasy” na ekranie statusu; `AppContainer.tripsLoader` jako jedyne wejście do bazy, `AppRoot` przełącza ekrany enumem `Screen` w `rememberSaveable` (reset do statusu po wylogowaniu przez `LaunchedEffect`). Na ekranie brak współrzędnych GPS i VIN (SECURITY.md).
 - Formularz ceny tankowania (SPEC §11): `pendingRefuels()`, `confirmRefuel(...)` i `dismissRefuel(id)` w `SyncEngine`
   zwracają `RefuelChange` (`Done`, `NotFound`, `NotPending`, `Invalid`, `NoVehicle`). Zapis i przeliczenie kosztów idą
   pod tym samym `mutex` co synchronizacja, ale przez `withLock`, więc potwierdzenie ceny czeka na pracującą
   synchronizację zamiast zostać pominięte. Wpis innego VIN-u jest `NotFound`, brak VIN-u to `NoVehicle`; domena
-  (`core/domain`) pozostaje jedynym źródłem wyliczeń i wyboru `litersSource`. W `app`: `parseRefuelAmount` i
+  (`core/domain`) pozostaje jedynym źródłem wyliczeń i wyboru `litersSource` (od F2a UI podaje tylko `ESTIMATE` po
+  przyjęciu szacunku, §2a). W `app`: `parseRefuelAmount` i
   `checkRefuelForm` (przecinek albo kropka, puste = wielkość do wyliczenia, kombinacje z §2 z polskimi komunikatami),
   `RefuelFormatting` (`29.10 14:05`, `20% → 80%`, `12 345 km` ze spacją i `HALF_UP`, bez `Locale`), oraz
   `RefuelController` na scope'ie aplikacji (zapis przeżywa wyjście z ekranu) z `reset()` i licznikiem generacji.
@@ -61,6 +62,14 @@
   zakresem C5). Po przeglądzie: deep link przy zimnym starcie czeka na `loggedIn`, `post()` zwraca `Boolean`,
   `suspend cancel` z `SettingsStore` na `io`, `screenChanged()`/`resolvedElsewhere(id)` zamiast odczytu bazy przy
   każdej zmianie ekranu, `NoVehicle` w C3 nie anuluje powiadomienia; testy app 181, core bez zmian 198.
+- Szacunek litrów z czujnika (PRD F2a, SPEC §2a, §11.2, §11.3): `estimate_refuel_liters` / `estimateRefuelLiters`
+  w obu domenach (skok poziomu × 43 l, 0,001 l `HALF_UP`), §6 liczy tą samą funkcją, więc przyjęty szacunek nie
+  zmienia ceny w baku; `SyncEngine.confirmRefuel(..., litersSource)`. W formularzu ceny wiersz „Szacunek z czujnika:
+  ok. N l” z „Użyj szacunku” (pełna precyzja, `RefuelFormatting.litersInput`), po przyjęciu „Litry z szacunku
+  czujnika” i „Z paragonu”; ręczna zmiana litrów zdejmuje oznaczenie. `checkRefuelForm(..., litersFromEstimate)`:
+  `ESTIMATE` tylko dla pary cena + litry, szacunek z kwotą bez ceny to błąd pola „Cena” (D3). Okno C5 bez zmian.
+  Plan: briefs/toyota-companion/C6-plan.md (v2, poza repo). Domena i testy Kotlin/Python oraz testy UI
+  napisał agent 1, sprawdzone przez agenta 2; Python 84, core 208, app 193.
 
 ## Następny krok
 Sprawdzone na emulatorze (API 36) 2026-10-29: logowanie prawdziwym kontem, pierwsza synchronizacja (562 trasy, 1 odczyt),
@@ -68,7 +77,10 @@ sekrety zaszyfrowane w `secrets.xml` (Keystore), praca `toyota-sync` zaplanowana
 Sprawdzone na emulatorze 2026-10-30: status, lista tras (motyw jasny i nocny, 562 trasy), ekran „Cena domyślna” –
 6,19 zł/l nadaje koszt wszystkim trasom (październik 2026: 217,90 zł, dopisek „cena domyślna”), brak awarii.
 Sprawdzone na emulatorze (API 36) 2026-10-31, build C5 po przeglądzie: prośba `POST_NOTIFICATIONS` po zalogowaniu (flaga `notifications_asked` zapisana), okno „Wykryto tankowanie” z klawiaturą numeryczną w oknie dialogu, „Później”, intent powiadomienia przy zimnym starcie i do działającej aplikacji (`onNewIntent`) – formularz z fokusem w cenie; brak awarii. Nie sprawdzone: samo wysłanie powiadomienia (wymaga nowego tankowania z czujnika; pokryte testami Robolectric) oraz zapis ceny z okna (wpis 30 % → 94 % zostawiony do testu właściciela). Uwaga: AVD ma `hw.keyboard = yes`, więc klawiatura ekranowa jest ukryta, dopóki `show_ime_with_hard_keyboard` = 0. Znane (C3, poza zakresem): komunikat błędu walidacji w formularzu znika po obrocie ekranu, bo `openForm(id)` przy odtworzeniu czyści `formError`; wpisane wartości zostają.
-- Następny krok: szacunek litrów z czujnika i wybór źródła litrów (F2a) albo eksport CSV, ręczny eksport i import archiwum (ROADMAP „NEXT”).
+Sprawdzone na emulatorze 2026-10-31, build C6: wiersz „Szacunek z czujnika: ok. 27,52 l” dla wpisu 30 % → 94 %,
+„Użyj szacunku” wpisuje 27,52, „Z paragonu” zdejmuje oznaczenie, szacunek z kwotą bez ceny daje błąd pola „Cena”
+i nic nie zapisuje; brak awarii.
+- Następny krok: eksport CSV, ręczny eksport/import archiwum, przypomnienie o backupie (F6–F8, ROADMAP „NEXT”).
 
 Test klienta na prawdziwym koncie MyToyota (uruchamia właściciel; hasło nie trafia do repo ani rozmowy):
 ```bash

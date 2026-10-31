@@ -40,6 +40,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
+import pl.lk.toyotacompanion.core.domain.estimateRefuelLiters
 
 /**
  * Price form of one refuel (docs/SPEC.md §11.3, PRD F2): price, liters or amount —
@@ -69,11 +70,16 @@ fun RefuelFormScreen(
     val state by controller.state.collectAsState()
     val entry = state.refuels.firstOrNull { it.id == id }
 
-    var priceText by rememberSaveable { mutableStateOf("") }
-    var litersText by rememberSaveable { mutableStateOf("") }
-    var totalText by rememberSaveable { mutableStateOf("") }
-    var filledToFull by rememberSaveable { mutableStateOf(false) }
-    var asksAboutDismissing by remember { mutableStateOf(false) }
+    // Keyed on the entry: a notification tapped while another form is open swaps the id in
+    // place, and the typed values (and the estimate mark) of one refuel must never be saved
+    // for another. A rotation keeps the same id, so it still keeps the values.
+    var priceText by rememberSaveable(id) { mutableStateOf("") }
+    var litersText by rememberSaveable(id) { mutableStateOf("") }
+    var totalText by rememberSaveable(id) { mutableStateOf("") }
+    var filledToFull by rememberSaveable(id) { mutableStateOf(false) }
+    // The liters field holds the sensor estimate the user accepted (docs/SPEC.md §11.3, PRD F2a).
+    var litersFromEstimate by rememberSaveable(id) { mutableStateOf(false) }
+    var asksAboutDismissing by remember(id) { mutableStateOf(false) }
     val priceFocus = remember { FocusRequester() }
 
     LaunchedEffect(id) { controller.openForm(id) }
@@ -108,6 +114,8 @@ fun RefuelFormScreen(
             } else {
                 val litersGiven = parseRefuelAmount(litersText) is RefuelAmount.Given
                 val busy = state.busyId == id
+                // Computed from the entry on screen, no database read (docs/SPEC.md §2a).
+                val estimate = remember(entry.levelBefore, entry.levelAfter) { estimateRefuelLiters(entry) }
 
                 // Called from the notification: put the cursor in the price and open the keyboard.
                 // Only here, where the field exists: on a cold start the form shows the loading
@@ -137,7 +145,11 @@ fun RefuelFormScreen(
                 )
                 OutlinedTextField(
                     value = litersText,
-                    onValueChange = { litersText = it },
+                    onValueChange = {
+                        litersText = it
+                        // Typed by hand, cleared included: these are no longer the estimate.
+                        litersFromEstimate = false
+                    },
                     label = { Text(Texts.REFUEL_FIELD_LITERS) },
                     supportingText = { FieldNote(state, RefuelField.Liters) },
                     isError = state.formFieldErrors.any { it.field == RefuelField.Liters },
@@ -146,6 +158,38 @@ fun RefuelFormScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 )
+                if (estimate != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            if (litersFromEstimate) {
+                                Texts.REFUEL_LITERS_FROM_ESTIMATE
+                            } else {
+                                Texts.refuelEstimateHint(RefuelFormatting.liters(estimate))
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (litersFromEstimate) {
+                            // The same number, read off the receipt: drop the mark, keep the value (D7).
+                            TextButton(onClick = { litersFromEstimate = false }, enabled = !busy) {
+                                Text(Texts.REFUEL_LITERS_FROM_RECEIPT)
+                            }
+                        } else {
+                            TextButton(
+                                onClick = {
+                                    litersText = RefuelFormatting.litersInput(estimate)
+                                    litersFromEstimate = true
+                                },
+                                enabled = !busy,
+                            ) {
+                                Text(Texts.REFUEL_USE_ESTIMATE)
+                            }
+                        }
+                    }
+                }
                 OutlinedTextField(
                     value = totalText,
                     onValueChange = { totalText = it },
@@ -174,7 +218,9 @@ fun RefuelFormScreen(
                 }
 
                 Button(
-                    onClick = { controller.confirm(id, priceText, litersText, totalText, filledToFull) },
+                    onClick = {
+                        controller.confirm(id, priceText, litersText, totalText, filledToFull, litersFromEstimate)
+                    },
                     enabled = !busy,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 ) {

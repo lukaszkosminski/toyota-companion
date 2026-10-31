@@ -1,6 +1,7 @@
 package pl.lk.toyotacompanion.ui
 
 import java.math.BigDecimal
+import pl.lk.toyotacompanion.core.domain.LitersSource
 
 /** Which field of the refuel form a problem refers to (docs/SPEC.md §11.2). */
 enum class RefuelField {
@@ -25,8 +26,15 @@ data class RefuelFieldError(val field: RefuelField, val message: String)
 sealed class RefuelFormCheck {
     /**
      * @param price `null` when the user gave no price and the domain has to derive it
+     * @param litersSource `ESTIMATE` only for an accepted sensor estimate next to a price
+     *   (docs/SPEC.md §11.2, PRD F2a); `null` lets the domain choose `RECEIPT` or `DERIVED`
      */
-    data class Valid(val price: BigDecimal?, val liters: BigDecimal?, val total: BigDecimal?) : RefuelFormCheck()
+    data class Valid(
+        val price: BigDecimal?,
+        val liters: BigDecimal?,
+        val total: BigDecimal?,
+        val litersSource: LitersSource? = null,
+    ) : RefuelFormCheck()
 
     /**
      * @param message what the error card shows: the first problem the user can act on
@@ -73,8 +81,19 @@ fun parseRefuelAmount(text: String): RefuelAmount {
 /**
  * Checks the whole form: syntax of every field, then the sign, then the
  * combination. The first problem found is the one the error card shows.
+ *
+ * [litersFromEstimate] says the liters field holds the sensor estimate the user
+ * accepted (docs/SPEC.md §2a, §11.2). An estimate may stand only next to a price:
+ * with a total instead, the domain would derive the price from the estimate and
+ * store a price distorted by the sensor, so that is an error of the price field.
+ * The default `false` keeps the price-only prompt of §13.3 untouched.
  */
-fun checkRefuelForm(priceText: String, litersText: String, totalText: String): RefuelFormCheck {
+fun checkRefuelForm(
+    priceText: String,
+    litersText: String,
+    totalText: String,
+    litersFromEstimate: Boolean = false,
+): RefuelFormCheck {
     val errors = mutableListOf<RefuelFieldError>()
     val values = mutableMapOf<RefuelField, BigDecimal?>()
 
@@ -104,7 +123,16 @@ fun checkRefuelForm(priceText: String, litersText: String, totalText: String): R
     val given = setOfNotNull("price" to price, "liters" to liters, "total" to total)
     if (given !in ALLOWED_GIVEN) return RefuelFormCheck.Invalid(Texts.REFUEL_COMBINATION_ERROR)
 
-    return RefuelFormCheck.Valid(price, liters, total)
+    if (litersFromEstimate && liters != null && price == null) {
+        return RefuelFormCheck.Invalid(
+            Texts.REFUEL_ESTIMATE_NEEDS_PRICE,
+            listOf(RefuelFieldError(RefuelField.Price, Texts.REFUEL_ESTIMATE_NEEDS_PRICE)),
+        )
+    }
+    // Only the (price + liters) pair can carry the estimate; any other pair would make
+    // the domain keep ESTIMATE on liters it derived itself (docs/SPEC.md §2).
+    val source = if (litersFromEstimate && price != null && liters != null) LitersSource.ESTIMATE else null
+    return RefuelFormCheck.Valid(price, liters, total, source)
 }
 
 private fun setOfNotNull(vararg pairs: Pair<String, BigDecimal?>): Set<String> =

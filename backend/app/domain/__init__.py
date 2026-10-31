@@ -18,6 +18,7 @@ from .refuel import (
     confirm_refuel,
     detect_refuel,
     dismiss_refuel,
+    estimate_refuel_liters,
     tank_price_after_refuel,
 )
 
@@ -34,6 +35,7 @@ __all__ = [
     "confirm_refuel",
     "detect_refuel",
     "dismiss_refuel",
+    "estimate_refuel_liters",
     "recompute_costs",
     "round_liters",
     "round_money",

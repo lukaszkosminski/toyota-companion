@@ -13,6 +13,7 @@ from app.domain import (
     confirm_refuel,
     detect_refuel,
     dismiss_refuel,
+    estimate_refuel_liters,
     tank_price_after_refuel,
 )
 
@@ -272,6 +273,61 @@ class TestConfirmRefuelImmutability:
         original = pending_refuel()
         with pytest.raises(FrozenInstanceError):
             original.status = "confirmed"  # type: ignore[misc]
+
+
+# ---------------------------------------------------------------- estimate (PRD F2a, SPEC 2a)
+
+
+class TestEstimateRefuelLiters:
+    def test_estimate_from_level_jump(self):
+        jump_60 = pending_refuel(level_before=20, level_after=80)
+        jump_33 = pending_refuel(level_before=30, level_after=63)
+        assert estimate_refuel_liters(jump_60) == D("25.800")
+        assert estimate_refuel_liters(jump_33) == D("14.190")
+
+    def test_estimate_none_without_jump(self):
+        assert estimate_refuel_liters(pending_refuel(level_before=80, level_after=80)) is None
+        assert estimate_refuel_liters(pending_refuel(level_before=80, level_after=70)) is None
+
+    def test_estimate_none_for_levels_out_of_range(self):
+        assert estimate_refuel_liters(pending_refuel(level_before=-1, level_after=90)) is None
+        assert estimate_refuel_liters(pending_refuel(level_before=10, level_after=0)) is None
+        assert estimate_refuel_liters(pending_refuel(level_before=10, level_after=101)) is None
+
+    def test_estimate_uses_capacity(self):
+        refuel = pending_refuel(level_before=20, level_after=80)
+        assert estimate_refuel_liters(refuel, capacity_l=D("50")) == D("30.000")
+
+    def test_estimate_none_when_rounding_to_zero(self):
+        # 1% of a 0.01 l tank is 0.0001 l: nothing to offer the user.
+        refuel = pending_refuel(level_before=50, level_after=51)
+        assert estimate_refuel_liters(refuel, capacity_l=D("0.01")) is None
+
+    def test_estimate_rounds_half_up(self):
+        refuel = pending_refuel(level_before=0, level_after=1)
+        assert estimate_refuel_liters(refuel, capacity_l=D("0.25")) == D("0.003")
+
+    def test_estimate_rejects_non_positive_capacity(self):
+        refuel = pending_refuel(level_before=20, level_after=80)
+        for capacity in (D("0"), D("-1")):
+            with pytest.raises(ValueError):
+                estimate_refuel_liters(refuel, capacity_l=capacity)
+
+    def test_accepted_estimate_matches_implicit_tank_price(self):
+        """Accepting the estimate may not move the tank price (ADR-005)."""
+        refuel = pending_refuel(level_before=30, level_after=63)
+        price_only = confirm_refuel(refuel, price_per_liter=D("6.50"))
+        accepted = confirm_refuel(
+            refuel,
+            price_per_liter=D("6.50"),
+            liters=estimate_refuel_liters(refuel),
+            liters_source="estimate",
+        )
+        implicit = tank_price_after_refuel(price_only, D("6.00"))
+        accepted_price = tank_price_after_refuel(accepted, D("6.00"))
+        assert implicit is not None and implicit == accepted_price
+        assert accepted.liters_source == "estimate"
+        assert accepted.total_cost == D("92.24")
 
 
 # ---------------------------------------------------------------- tank price (ADR-005)

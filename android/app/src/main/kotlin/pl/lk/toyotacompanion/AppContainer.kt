@@ -167,8 +167,8 @@ class AppContainer(
     val refuelController: RefuelController by lazy {
         RefuelController(
             pending = { syncEngine.pendingRefuels() },
-            confirmRefuel = { id, price, liters, total, filledToFull ->
-                syncEngine.confirmRefuel(id, price, liters, total, filledToFull)
+            confirmRefuel = { id, price, liters, total, filledToFull, litersSource ->
+                syncEngine.confirmRefuel(id, price, liters, total, filledToFull, litersSource)
             },
             dismissRefuel = { id -> syncEngine.dismissRefuel(id) },
             onResolved = { id ->

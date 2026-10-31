@@ -30,6 +30,22 @@ Port w Kotlinie: `android/core/src/main/kotlin/pl/lk/toyotacompanion/core/domain
 - `liters_source`: gdy podane litry -> `receipt`, gdy litry wyliczone z kwoty i ceny -> `derived`;
   jawne `liters_source="estimate"` jest zachowane. `liters_source`/`filled_to_full` bez litrów -> `ValueError`
 - `filled_to_full` jest przenoszone (domyślnie z wejściowego obiektu)
+- `estimate` opisuje wyłącznie litry przyjęte z szacunku §2a, czyli kombinację (cena + litry). Domena zachowuje
+  jawne `estimate` także przy litrach wyliczonych z ceny i kwoty, więc przy (cena + kwota) UI podaje `null`,
+  a domena zapisze `derived`.
+- przy `liters_source="estimate"` kwota wyliczona z ceny i litrów jest **szacunkowa** – mówi o tym samo źródło
+  litrów, bez osobnej kolumny (F2a). Porównanie spalania „komputer vs faktyczne” (F9) bierze wyłącznie
+  tankowania z `liters_source="receipt"`: szacunek z czujnika auta nie może weryfikować komputera auta (PRD F2a).
+
+### §2a `estimate_refuel_liters(refuel, capacity_l=DEFAULT_TANK_CAPACITY_L) -> Decimal | None`
+(PRD F2a) Szacunek litrów z czujnika poziomu paliwa, który aplikacja proponuje użytkownikowi.
+- `(level_after − level_before) % × capacity_l`, zaokrąglone do 0.001 (ROUND_HALF_UP) – ta sama arytmetyka, której
+  §6 używa, gdy podano samą cenę; dlatego przyjęty szacunek (`liters=szacunek, liters_source="estimate"`) daje tę
+  samą cenę w baku co sama cena (test `accepted_estimate_matches_implicit_tank_price`).
+- `None` gdy: `level_before` poza 0..100, `level_after` poza 1..100, brak wzrostu poziomu albo wynik zaokrąglony
+  do 0 (domena odrzuca litry „rounds to 0”); `capacity_l <= 0` -> `ValueError`.
+- Pojemność baku stała (`DEFAULT_TANK_CAPACITY_L`, ADR-005) – bez ustawienia użytkownika.
+- Krok czujnika to 1 % (≈ 0,43 l), a wskazanie bywa nieliniowe przy pełnym baku – stąd „ok.” w UI.
 
 ### §3 `dismiss_refuel(refuel) -> Refuel`
 - `status="dismissed"`
@@ -50,7 +66,7 @@ Port w Kotlinie: `android/core/src/main/kotlin/pl/lk/toyotacompanion/core/domain
 (ADR-005)
 - `liters_before = level_before % × capacity_l`
 - `added` = `refuel.liters` (dowolne `liters_source`, także `estimate`); gdy brak litrów (podana tylko cena):
-  `added = (level_after − level_before) % × capacity_l`, zaokrąglone do 0.001
+  `added = estimate_refuel_liters(refuel, capacity_l)` (§2a)
 - `tank_price = (liters_before × previous_tank_price + added × refuel.price_per_liter) / (liters_before + added)`
   – wynik zawsze między starą a nową ceną
 - pierwsze tankowanie (brak poprzedniej ceny), `previous_tank_price <= 0` albo pusty bak przed tankowaniem
@@ -240,19 +256,21 @@ API Toyoty, w tym `refresh_status()` (§9 wstęp, AGENTS.md).
 Formularz ceny tankowania (PRD F2, F4): użytkownik podaje cenę albo litry i kwotę dla wpisu `PENDING`,
 brakującą wielkość wylicza domena (§2), a koszty tras są przeliczane wstecz (§5). Wymaganie właściciela
 produktu (ROADMAP NOW). Operacje nie wołają żadnego API Toyoty, w tym `refresh_status()` (§9 wstęp, AGENTS.md).
-Poza zakresem: szacunek litrów z czujnika (F2a), powiadomienia, edycja już potwierdzonego tankowania.
+Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – §13. Poza zakresem: edycja już
+potwierdzonego tankowania.
 
 ### §11.1 Operacje w `core`
 - `pendingRefuels(): List<Refuel>` — oczekujące tankowania wybranego VIN (`state.get().vin`), najnowsze pierwsze
   (`RefuelRepository.pending(vin)`); brak VIN -> pusta lista. Odczyt bez `mutex` i bez gatewaya (jak `status()`, §8.5).
-- `confirmRefuel(id, pricePerLiter, liters, totalCost, filledToFull)` i `dismissRefuel(id)` zwracają `RefuelChange`
+- `confirmRefuel(id, pricePerLiter, liters, totalCost, filledToFull, litersSource)` i `dismissRefuel(id)` zwracają `RefuelChange`
   (`Done(refuel, tripsCosted)`, `NotFound`, `NotPending`, `Invalid`, `NoVehicle`) — bez wyjątków i bez `SyncOutcome`.
 - Kolejność decyzji: brak VIN -> `NoVehicle`; `refuels.byId(id) == null` -> `NotFound`; `status != PENDING` ->
   `NotPending`; wpis `PENDING`, ale nienależący do bieżącego VIN-u (ma go brak w `pending(vin)`) -> `NotFound`,
   bo cudze tankowania są dla tego ekranu niewidoczne i nie mają mieć własnego rodzaju błędu.
 - Walidacja i wyliczenia WYŁĄCZNIE przez domenowe `confirmRefuel`/`dismissRefuel` (§2, §3).
-  `IllegalArgumentException` z domeny -> `Invalid`, nic nie jest zapisane. `litersSource` nie jest parametrem
-  formularza (domena ustala `RECEIPT`/`DERIVED`); `filledToFull` bez litrów daje `Invalid`, bo tak rzuca domena.
+  `IllegalArgumentException` z domeny -> `Invalid`, nic nie jest zapisane. `litersSource` (domyślnie `null`)
+  formularz podaje tylko jako `ESTIMATE`, po jawnym przyjęciu szacunku z §2a; w pozostałych przypadkach `RECEIPT`
+  albo `DERIVED` ustala domena. `litersSource` albo `filledToFull` bez litrów daje `Invalid`, bo tak rzuca domena.
 - Zapis i przeliczenie kosztów (`recomputeAndSave`, krok 5 z §8.3) dzieją się pod tym samym `mutex` co
   synchronizacja, ale przez `mutex.withLock`, czyli **czekając** na blokadę — w przeciwieństwie do `guarded()`
   (`tryLock` + `Skipped`). Potwierdzenie ceny nie może zostać pominięte tylko dlatego, że właśnie trwa
@@ -271,6 +289,13 @@ Poza zakresem: szacunek litrów z czujnika (F2a), powiadomienia, edycja już pot
   z polskimi komunikatami z `Texts`. `RefuelChange.Invalid` z `core` pozostaje zabezpieczeniem i pokazuje
   komunikat ogólny — treść wyjątku domeny nigdy nie trafia na ekran. Świadomie: znajomość kombinacji jest w dwóch
   miejscach (app dla UX, domena jako źródło prawdy), a testy app pilnują obu stron do §2.
+- Szacunek litrów (F2a): `checkRefuelForm(..., litersFromEstimate)` zwraca `litersSource = ESTIMATE` wyłącznie dla
+  pary (cena + litry). Flaga z litrami i kwotą bez ceny to błąd pola „Cena” (`REFUEL_ESTIMATE_NEEDS_PRICE`):
+  domena wyliczyłaby cenę z szacunku obarczonego błędem czujnika. Każda inna kombinacja z flagą daje `null`
+  (domena wybiera `RECEIPT`/`DERIVED`). Domyślne `false` zostawia okno §13.3 bez zmian. Reguła jest warstwy UI –
+  test tylko w `RefuelFormTest`, bez odpowiednika w Pythonie.
+- Litry do pola: `RefuelFormatting.litersInput` – pełna precyzja domeny bez zer końcowych (`14,19`, `25,8`, `30`),
+  przecinek, bez `Locale`; `liters` dodaje ` l`.
 - Lista tankowań: czas `29.10 14:05` (strefa jako parametr, przez `TripsFormatting.startDateTime`), poziom
   `20% → 80%`, przebieg `12 345 km` — zwyczajna spacja jako separator tysięcy, `HALF_UP` do pełnych kilometrów,
   bez `Locale`.
@@ -294,6 +319,13 @@ Poza zakresem: szacunek litrów z czujnika (F2a), powiadomienia, edycja już pot
   przełącznik „Do pełna” aktywny tylko gdy podano litry; „Zapisz” blokuje przycisk i ignoruje drugi klik,
   „Odrzuć” ma `AlertDialog` z potwierdzeniem; błąd w karcie `errorContainer` (`ErrorCard`). Po sukcesie formularz
   wraca na odświeżoną listę; po błędzie zostaje z wpisanymi wartościami.
+- Pod polem „Litry” wiersz szacunku, gdy `estimate_refuel_liters` (§2a) daje wartość: „Szacunek z czujnika:
+  ok. 14,19 l” z `TextButton` „Użyj szacunku”, który wpisuje `litersInput(szacunek)` i ustawia flagę
+  (`rememberSaveable`). Z flagą wiersz mówi „Litry z szacunku czujnika”, a „Z paragonu” zdejmuje samą flagę –
+  wartość zostaje. Każda ręczna zmiana pola „Litry”, także wyczyszczenie, zdejmuje flagę. Szacunek liczony z
+  wpisu na ekranie, bez odczytu bazy; wiersz żyje tylko w gałęzi z istniejącym wpisem. Wejście z powiadomienia
+  (§13.1) startuje z flagą `false`. Pola formularza i flaga są w `rememberSaveable(id)`: dotknięcie powiadomienia
+  innego wpisu przy otwartym formularzu zeruje je, więc wartości jednego tankowania nie trafią do drugiego.
 - `openForm(id)` czyta listę ponownie, gdy jej jeszcze nie ma (`loading`) albo gdy odczyt był błędny
   (`loadFailed`). Po śmierci procesu formularz jest pierwszym kompozablem z pustym stanem i bez tego
   odczytu czekałby na `Texts.LOADING` w nieskończoność.

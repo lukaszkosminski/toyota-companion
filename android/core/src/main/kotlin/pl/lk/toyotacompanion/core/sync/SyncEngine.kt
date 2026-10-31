@@ -19,6 +19,7 @@ import pl.lk.toyotacompanion.core.data.TripRecord
 import pl.lk.toyotacompanion.core.data.TripRepository
 import pl.lk.toyotacompanion.core.data.VehicleRecord
 import pl.lk.toyotacompanion.core.data.VehicleRepository
+import pl.lk.toyotacompanion.core.domain.LitersSource
 import pl.lk.toyotacompanion.core.domain.Refuel
 import pl.lk.toyotacompanion.core.domain.RefuelStatus
 import pl.lk.toyotacompanion.core.domain.TripCost
@@ -135,8 +136,11 @@ class SyncEngine(
     /**
      * Confirms one pending refuel (PRD F2) and recounts the costs of the vehicle
      * (PRD F4, docs/SPEC.md §11.1). Only the domain [domainConfirmRefuel] validates
-     * the values and derives the missing one; `litersSource` is never a parameter
-     * here because the domain decides between `RECEIPT` and `DERIVED`.
+     * the values and derives the missing one; the caller never validates anything.
+     * [litersSource] is the one record the UI can hand over: `ESTIMATE` only after
+     * the user has plainly accepted the sensor estimate (PRD F2a, docs/SPEC.md §2a),
+     * `null` otherwise, so the domain still decides between `RECEIPT` and `DERIVED`
+     * and rejects a source without liters with [RefuelChange.Invalid].
      *
      * Unlike [fullSync], this waits for the mutex ([withLock]) instead of trying
      * it: a price typed while a synchronization runs has to be stored, not skipped.
@@ -147,6 +151,7 @@ class SyncEngine(
         liters: BigDecimal? = null,
         totalCost: BigDecimal? = null,
         filledToFull: Boolean? = null,
+        litersSource: LitersSource? = null,
     ): RefuelChange = editRefuel(id) { stored ->
         domainConfirmRefuel(
             stored,
@@ -154,6 +159,7 @@ class SyncEngine(
             liters = liters,
             totalCost = totalCost,
             filledToFull = filledToFull,
+            litersSource = litersSource,
         )
     }
 

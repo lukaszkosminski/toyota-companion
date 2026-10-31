@@ -153,6 +153,21 @@ object Texts {
     /** The form has to keep the combinations of docs/SPEC.md §2. */
     const val REFUEL_COMBINATION_ERROR = "Podaj cenę za litr albo litry i kwotę"
 
+    /** D3 of PRD F2a: an estimate cannot be the base of a price (docs/SPEC.md §11.2). */
+    const val REFUEL_ESTIMATE_NEEDS_PRICE = "Podaj cenę za litr \u2013 z szacunku litrów nie da się wyliczyć ceny"
+
+    /** Sensor estimate under the liters field, e.g. `Szacunek z czujnika: ok. 14,19 l` (§11.3). */
+    fun refuelEstimateHint(liters: String): String = "Szacunek z czujnika: ok. $liters"
+
+    /** Fills the liters field with the estimate. */
+    const val REFUEL_USE_ESTIMATE = "U\u017cyj szacunku"
+
+    /** Shown while the liters field holds the accepted estimate. */
+    const val REFUEL_LITERS_FROM_ESTIMATE = "Litry z szacunku czujnika"
+
+    /** Takes the estimate mark off: the same number is from the receipt. */
+    const val REFUEL_LITERS_FROM_RECEIPT = "Z paragonu"
+
     /** The domain refused the values although the form check passed (docs/SPEC.md §11.2). */
     const val REFUEL_WRITE_ERROR = "Nie udało się zapisać ceny. Popraw wartości i spróbuj ponownie."
 
