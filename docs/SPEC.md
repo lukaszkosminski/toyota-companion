@@ -674,7 +674,9 @@ w Pythonie.
   czytany tylko przy synchronizacji), nie mniej niż 0. `distance_to_empty_km` Toyoty **nie** jest używane – w
   archiwum podaje 730 km zarówno przy 30 %, jak i przy 94 %.
 - Spalanie = Σ `fuel_l` / Σ km tras ze startem w ostatnich 28 dniach; dzienny dystans = Σ km / liczba dni okna
-  (archiwum młodsze niż 28 dni – tyle dni, ile ma, w górę, min. 1).
+  (archiwum młodsze niż 28 dni – tyle dni, ile ma, w górę, min. 1). Dni liczone od pierwszej trasy archiwum, nie od
+  pierwszej trasy w oknie – dni bez jazdy też są dniami. Okno obejmuje oba brzegi; trasy z dystansem, który nie jest
+  skończoną liczbą ≥ 0, są pomijane.
 - Rezerwa = 10 % baku (4,3 l). Wynik: litry w baku (0,001), poziom (0,1 %), l/100 km (0,01), dzienne km (0,1), km do
   rezerwy (0,1), dni do rezerwy (0,1). `None` bez odczytu, bez tras w oknie, przy zerowym dystansie albo paliwie.
 - „Najtańsza stacja na trasie” – poza zakresem (brak źródła cen paliw, PRD F14).
@@ -682,7 +684,9 @@ w Pythonie.
 ### §20.2 Odczyt i ekran
 - `SyncEngine.refuelForecast(now)` – bez sieci, bez `refresh_status()`, bez mutexu; brak VIN → `None`.
 - Linia na ekranie statusu pod datą synchronizacji: „Tankowanie za ok. 17 dni (ok. 17.11) · w baku ok. 21,5 l (50 %) ·
-  ok. 344 km do rezerwy”; poniżej pół dnia – „Tankowanie dziś”; na rezerwie – „Paliwo na rezerwie – zatankuj”. Brak
+  ok. 344 km do rezerwy”; poniżej pół dnia – „Tankowanie dziś”, jeden dzień – „Tankowanie jutro”, powyżej 90 dni –
+  „Tankowanie za ponad 90 dni”, data z rokiem, gdy wypada w innym roku; dni liczone od chwili odczytu prognozy
+  (ostatniej synchronizacji), nie od chwili wyświetlenia; na rezerwie – „Paliwo na rezerwie – zatankuj”. Brak
   prognozy chowa linię. `ForecastController`: odczyt raz po zalogowaniu i po każdej udanej synchronizacji
   (`AppContainer.syncRunner`), `reset()` przy wylogowaniu.
 

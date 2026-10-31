@@ -103,7 +103,12 @@ fun StatsScreen(
                 if (view.tripTypes.isNotEmpty()) {
                     item { HorizontalDivider() }
                     item { Header(Texts.TRIP_TYPES_SECTION) }
-                    item { Text(Texts.TRIP_TYPES_HINT, style = MaterialTheme.typography.bodySmall) }
+                    item {
+                        Text(
+                            if (view.placesKnown) Texts.TRIP_TYPES_HINT else Texts.TRIP_TYPES_NO_PLACES,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
                     items(view.tripTypes, key = { "tt-" + it.type }) { summary ->
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Text(Texts.tripTypeName(summary.type), style = MaterialTheme.typography.titleSmall)

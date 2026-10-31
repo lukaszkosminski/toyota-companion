@@ -149,3 +149,7 @@
   Toyoty pominięty jako niewiarygodny) i linia na ekranie statusu odświeżana po synchronizacji; Dom i Praca rozpoznane
   automatycznie z postojów, trasy podzielone na dojazdy, sprawy, weekend i inne w „Statystykach”. Testy: Python +9,
   core +9, app +25 (app: 377 testów, core: 314, Python: 141)
+- Poprawki prognozy i typów tras po przeglądzie agenta 1: trasy z uszkodzonym dystansem pomijane w prognozie (Python
+  i Kotlin), „Tankowanie jutro”, „za ponad 90 dni”, rok przy dacie w następnym roku, dni liczone od chwili prognozy;
+  przy nierozpoznanym domu i pracy uczciwa podpowiedź zamiast „rozpoznane”; testy brzegów okna 28 dni i dosłownych
+  napisów (app: 380 testów, core: 316, Python: 143)

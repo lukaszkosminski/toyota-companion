@@ -89,6 +89,20 @@ class ForecastOpsTest {
         }
 
         @Test
+        fun `trips_on_the_window_edges_count`() {
+            val trips = listOf(trip("edge", 28.0, km = 40.0, fuel = "2.000"), trip("now", 0.0, km = 40.0, fuel = "2.000"))
+            val forecast = assertNotNull(refuelForecast(reading(50), trips, NOW))
+            assertBd("2.9", forecast.dailyKm)
+        }
+
+        @Test
+        fun `broken_distance_is_ignored`() {
+            val trips = monthOfTrips() + trip("nan", 1.0, km = Double.NaN) + trip("inf", 1.0, km = Double.POSITIVE_INFINITY)
+            val forecast = assertNotNull(refuelForecast(reading(50), trips, NOW))
+            assertBd("5.00", forecast.lPer100Km)
+        }
+
+        @Test
         fun `zero_fuel_no_forecast`() {
             assertNull(refuelForecast(reading(50), listOf(trip("ev", 1.0, fuel = "0.000")), NOW))
         }

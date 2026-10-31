@@ -36,7 +36,8 @@ data class StatsView(
     val seasons: List<PeriodStats>,
     val yearOverYear: Pair<PeriodStats, PeriodStats>?,
     val windowEnd: LocalDate?,
-    val tripTypes: List<TripTypeSummary> = emptyList(),
+    val tripTypes: List<TripTypeSummary>,
+    val placesKnown: Boolean,
 )
 
 /**
@@ -99,6 +100,7 @@ fun computeStats(stored: List<StoredTrip>, zone: ZoneId): StatsView {
     val trips = stored.map { it.record.trip }
     val costs = stored.mapNotNull { it.cost }
     val yoy = yearOverYear(trips, costs, zone)
+    val places = knownPlaces(parkingLogOf(stored), zone)
     return StatsView(
         evShare = aggregateElectricShare(trips),
         ranking = electricTripRanking(trips),
@@ -108,6 +110,7 @@ fun computeStats(stored: List<StoredTrip>, zone: ZoneId): StatsView {
         yearOverYear = yoy,
         windowEnd = if (yoy == null) null else trips.maxOf { it.start.atZone(zone).toLocalDate() },
         // Home and work come from the parking diary; positions stay inside (docs/SPEC.md §21).
-        tripTypes = tripTypeSummaries(stored, classifyTrips(stored, knownPlaces(parkingLogOf(stored), zone), zone)),
+        tripTypes = tripTypeSummaries(stored, classifyTrips(stored, places, zone)),
+        placesKnown = places.home != null && places.work != null,
     )
 }

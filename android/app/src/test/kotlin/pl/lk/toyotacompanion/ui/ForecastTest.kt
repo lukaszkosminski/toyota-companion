@@ -29,30 +29,47 @@ private fun forecast(km: String = "344.0", days: String = "17.2") = RefuelForeca
 /** docs/SPEC.md §20.2: the forecast line of the status screen. */
 class ForecastTest {
 
+    private fun line(days: String, km: String = "344.0", at: Instant = NOW) =
+        forecastLine(TimedForecast(forecast(km = km, days = days), at), WARSAW)
+
     @Test
     fun `the line names the day, the fuel left and the range`() {
         assertEquals(
-            listOf(Texts.forecastWhen(17, "17.11"), Texts.forecastLeft("21,5 l", "50 %"), Texts.forecastRange("344 km"))
-                .joinToString(Texts.SEPARATOR),
-            forecastLine(forecast(), NOW, WARSAW),
+            "Tankowanie za ok. 17 dni (ok. 17.11) \u00b7 w baku ok. 21,5 l (50 %) \u00b7 ok. 344 km do rezerwy",
+            line("17.2"),
         )
     }
 
     @Test
-    fun `less than half a day is today`() {
-        val line = requireNotNull(forecastLine(forecast(km = "8.0", days = "0.4"), NOW, WARSAW))
-        assertEquals(Texts.forecastWhen(0, "31.10"), line.substringBefore(Texts.SEPARATOR))
+    fun `less than half a day is today and one day is tomorrow`() {
+        assertEquals("Tankowanie dzi\u015b", line("0.4", km = "8.0")?.substringBefore(" \u00b7"))
+        assertEquals("Tankowanie jutro (1.11)", line("1.2", km = "24.0")?.substringBefore(" \u00b7"))
+    }
+
+    @Test
+    fun `beyond ninety days there is no date`() {
+        assertEquals("Tankowanie za ponad 90 dni", line("400.0")?.substringBefore(" \u00b7"))
+    }
+
+    @Test
+    fun `a date in the next year carries the year`() {
+        assertEquals("Tankowanie za ok. 40 dni (ok. 9.01.2027)", line("40.0", at = Instant.parse("2026-11-30T12:00:00Z"))?.substringBefore(" \u00b7"))
+    }
+
+    @Test
+    fun `the days count from the moment of the forecast`() {
+        // Computed on 29.10: the date stays 15.11 however late the screen shows it.
+        assertEquals("Tankowanie za ok. 17 dni (ok. 15.11)", line("17.2", at = Instant.parse("2026-10-29T12:00:00Z"))?.substringBefore(" \u00b7"))
     }
 
     @Test
     fun `at the reserve the line says refuel`() {
-        val line = requireNotNull(forecastLine(forecast(km = "0.0", days = "0.0"), NOW, WARSAW))
-        assertEquals(Texts.FORECAST_RESERVE, line.substringBefore(Texts.SEPARATOR))
+        assertEquals(Texts.FORECAST_RESERVE, line("0.0", km = "0.0")?.substringBefore(" \u00b7"))
     }
 
     @Test
     fun `no forecast hides the card`() {
-        assertNull(forecastLine(null, NOW, WARSAW))
+        assertNull(forecastLine(null, WARSAW))
     }
 
     @Test

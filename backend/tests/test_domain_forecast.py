@@ -79,5 +79,21 @@ class TestRefuelForecast:
     def test_no_trips_in_window_no_forecast(self) -> None:
         assert refuel_forecast(reading(50), [trip("old", 40)], NOW) is None
 
+    def test_trips_on_the_window_edges_count(self) -> None:
+        trips = [trip("edge", 28, km=40.0, fuel="2.000"), trip("now", 0, km=40.0, fuel="2.000")]
+        forecast = refuel_forecast(reading(50), trips, NOW)
+        assert forecast is not None
+        assert forecast.daily_km == D("2.9")
+
+    def test_broken_distance_is_ignored(self) -> None:
+        trips = [
+            *month_of_trips(),
+            trip("nan", 1, km=float("nan")),
+            trip("inf", 1, km=float("inf")),
+        ]
+        forecast = refuel_forecast(reading(50), trips, NOW)
+        assert forecast is not None
+        assert forecast.l_per_100km == D("5.00")
+
     def test_zero_fuel_no_forecast(self) -> None:
         assert refuel_forecast(reading(50), [trip("ev", 1, fuel="0.000")], NOW) is None

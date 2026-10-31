@@ -12,18 +12,34 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import pl.lk.toyotacompanion.core.domain.RefuelForecast
 
+/** Beyond this the forecast says only "over 90 days" (docs/SPEC.md §20.2). */
+const val FORECAST_HORIZON_DAYS: Long = 90
+
+/** A forecast with the moment it was computed: its days count from then, not from now. */
+data class TimedForecast(val forecast: RefuelForecast, val at: Instant)
+
 /** Polish line of the forecast card (docs/SPEC.md §20.2); `null` hides the card. */
-fun forecastLine(forecast: RefuelForecast?, now: Instant, zone: ZoneId): String? {
-    forecast ?: return null
+fun forecastLine(timed: TimedForecast?, zone: ZoneId): String? {
+    timed ?: return null
+    val forecast = timed.forecast
+    val now = timed.at
     val left = Texts.forecastLeft(
         TripsFormatting.plain(forecast.litersLeft, 1) + " l",
         TripsFormatting.plain(forecast.levelPct, 0) + " %",
     )
     if (forecast.kmToReserve.signum() <= 0) return Texts.FORECAST_RESERVE + Texts.SEPARATOR + left
-    val days = forecast.daysToReserve.setScale(0, java.math.RoundingMode.HALF_UP).toLong()
-    val day = now.atZone(zone).toLocalDate().plusDays(days)
-    val date = day.dayOfMonth.toString() + "." + day.monthValue.toString().padStart(2, '0')
-    return Texts.forecastWhen(days, date) + Texts.SEPARATOR + left + Texts.SEPARATOR +
+    val days = forecast.daysToReserve.min(java.math.BigDecimal(FORECAST_HORIZON_DAYS + 1))
+        .setScale(0, java.math.RoundingMode.HALF_UP).toLong()
+    val whenText = if (days > FORECAST_HORIZON_DAYS) {
+        Texts.forecastBeyond(FORECAST_HORIZON_DAYS)
+    } else {
+        val today = now.atZone(zone).toLocalDate()
+        val day = today.plusDays(days)
+        val date = day.dayOfMonth.toString() + "." + day.monthValue.toString().padStart(2, '0') +
+            (if (day.year != today.year) "." + day.year else "")
+        Texts.forecastWhen(days, date)
+    }
+    return whenText + Texts.SEPARATOR + left + Texts.SEPARATOR +
         Texts.forecastRange(TripsFormatting.plain(forecast.kmToReserve, 0) + " km")
 }
 
@@ -36,9 +52,10 @@ class ForecastController(
     private val read: suspend () -> RefuelForecast?,
     private val scope: CoroutineScope,
     private val io: CoroutineDispatcher,
+    private val clock: () -> Instant = { Instant.now() },
 ) {
-    private val ui = MutableStateFlow<RefuelForecast?>(null)
-    val state: StateFlow<RefuelForecast?> = ui.asStateFlow()
+    private val ui = MutableStateFlow<TimedForecast?>(null)
+    val state: StateFlow<TimedForecast?> = ui.asStateFlow()
 
     private var generation = 0
     private var loadStarted = false
@@ -48,7 +65,7 @@ class ForecastController(
         val startedIn = generation
         scope.launch {
             val forecast = try {
-                withContext(io) { read() }
+                withContext(io) { read()?.let { TimedForecast(it, clock()) } }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
