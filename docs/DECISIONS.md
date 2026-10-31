@@ -23,7 +23,8 @@ Litry przed = `level_before` % × 43 l. Litry zatankowane: z paragonu, wyliczone
 gdy użytkownik poda tylko cenę – szacunek `(level_after − level_before)` % × 43 l (właściciel: „pyta o cenę, ilość aplikacja sprawdzi sama”).
 Mianownik to suma wymieszanego paliwa, więc wynik zawsze leży między starą i nową ceną (poziom po tankowaniu z czujnika
 nie jest używany – niezgodny z paragonem dawałby cenę spoza zakresu).
-Szacunek z czujnika wystarcza do średniej ceny; do porównania spalania „komputer vs faktyczne” (F9) liczą się tylko litry z paragonu.
+Szacunek z czujnika wystarcza do średniej ceny; do porównania spalania „komputer vs faktyczne” (F9) liczą się tylko litry z paragonu –
+wpisane (`receipt`) albo wyliczone z kwoty i ceny z paragonu (`derived`, decyzja właściciela 2026-10-31).
 Zaimplementowane w Pythonie i Kotlinie (SPEC §6, `tank_price_after_refuel`/`tankPriceAfterRefuel`).
 Pierwsze tankowanie albo brak poprzedniej ceny -> własna cena paliwa. Zastępuje ADR-002.
 

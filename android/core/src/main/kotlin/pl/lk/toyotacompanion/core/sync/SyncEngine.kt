@@ -30,6 +30,7 @@ import pl.lk.toyotacompanion.core.domain.TripCost
 import pl.lk.toyotacompanion.core.domain.confirmRefuel as domainConfirmRefuel
 import pl.lk.toyotacompanion.core.domain.detectRefuel
 import pl.lk.toyotacompanion.core.domain.dismissRefuel as domainDismissRefuel
+import pl.lk.toyotacompanion.core.domain.fuelEconomyIntervals
 import pl.lk.toyotacompanion.core.domain.recomputeCosts
 import pl.lk.toyotacompanion.core.toyota.ToyotaApiException
 import pl.lk.toyotacompanion.core.toyota.ToyotaDataException
@@ -192,6 +193,23 @@ class SyncEngine(
             refuels.update(edited)
             RefuelChange.Done(edited, recomputeAndSave(vin))
         }
+
+    /**
+     * Confirmed refuels and the "computer vs actual" fuel economy of the selected
+     * vehicle (PRD F9, docs/SPEC.md §15). A read like [trips]: no network, no
+     * gateway call and no synchronization mutex; one read of the refuels and one
+     * of the trips, the intervals computed by the domain. Without a selected VIN
+     * the log is empty — the domain knows no VIN, so it must only ever see one car.
+     */
+    suspend fun refuelLog(): RefuelLog {
+        val vin = state.get().vin ?: return RefuelLog.EMPTY
+        val all = refuels.all(vin)
+        val tripList = trips.all(vin).map { it.toTrip() }
+        val confirmed = all
+            .filter { it.status == RefuelStatus.CONFIRMED }
+            .sortedWith(compareByDescending<Refuel> { it.ts }.thenBy { it.id })
+        return RefuelLog(confirmed, fuelEconomyIntervals(all, tripList))
+    }
 
     /**
      * The whole archive for the backup file (PRD F7, docs/SPEC.md §14): every

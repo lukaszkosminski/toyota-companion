@@ -64,6 +64,7 @@ fun StatusScreen(
     onRefresh: () -> Unit,
     onShowTrips: () -> Unit,
     onShowRefuels: () -> Unit,
+    onShowRefuelLog: () -> Unit,
     defaultPrice: BigDecimal?,
     onShowDefaultPrice: () -> Unit,
     backupReminder: BackupReminder,
@@ -161,6 +162,13 @@ fun StatusScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(Texts.defaultPricePrompt(defaultPrice))
+                }
+                // Confirmed refuels and the fuel economy check (PRD F9, docs/SPEC.md §15).
+                OutlinedButton(
+                    onClick = onShowRefuelLog,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(Texts.LOG_TITLE)
                 }
                 // The archive lives only on this phone (ADR-006); F8 asks for a copy (docs/SPEC.md §14.3).
                 when (backupReminder) {

@@ -293,6 +293,39 @@ object Texts {
 
     const val BACKUP_NONE_YET = "Archiwum nie ma jeszcze kopii"
 
+    // Dziennik tankowań (PRD F9, docs/SPEC.md §15).
+
+    /** Status button and the title of the screen. */
+    const val LOG_TITLE = "Dziennik tankowań"
+
+    const val LOG_EMPTY = "Brak potwierdzonych tankowań."
+    const val LOG_HINT =
+        "Żeby porównać spalanie z komputerem auta, przy tankowaniu zaznacz „Do pełna” i podaj litry z paragonu."
+    const val LOG_READ_ERROR = "Nie udało się odczytać dziennika. Spróbuj ponownie."
+
+    /** Where the liters of a refuel come from (docs/SPEC.md §2). */
+    const val LOG_SOURCE_RECEIPT = "z paragonu"
+    const val LOG_SOURCE_DERIVED = "wyliczone z paragonu"
+    const val LOG_SOURCE_ESTIMATE = "szacunek z czujnika"
+
+    /** Header of the open interval at the top of the log. */
+    const val LOG_CURRENT = "Bieżący odcinek"
+
+    fun economyCompared(actual: String, computer: String, difference: String): String =
+        "Spalanie: faktyczne $actual · komputer $computer ($difference)"
+
+    fun economyTrips(distance: String): String = "$distance tras"
+    fun economyOdometer(distance: String): String = "licznik $distance"
+    fun economyEv(distance: String): String = "w tym EV $distance"
+    fun economyComputerSoFar(consumption: String): String = "komputer $consumption"
+
+    const val ECONOMY_OPEN = "Czeka na kolejne tankowanie do pełna."
+    const val ECONOMY_PENDING = "Brak porównania: tankowanie w tym odcinku czeka na cenę."
+    const val ECONOMY_DISMISSED = "Brak porównania: w tym odcinku jest odrzucone tankowanie."
+    const val ECONOMY_MISSING_RECEIPT = "Brak porównania: tankowanie w tym odcinku nie ma litrów z paragonu."
+    const val ECONOMY_NO_TRIPS = "Brak porównania: brak tras w tym odcinku."
+    const val ECONOMY_TOO_SHORT = "Brak porównania: odcinek krótszy niż 100 km."
+
     // Arkusz tras (PRD F6, docs/SPEC.md §14.4).
 
     const val CSV_SECTION = "Arkusz kalkulacyjny"

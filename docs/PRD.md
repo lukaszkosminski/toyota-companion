@@ -19,6 +19,7 @@ Jeden właściciel pojazdu (właściciel projektu). Brak użytkowników zewnętr
 |---|---|---|
 | F1 | Wykrycie tankowania | Skok `fuel_level` o ≥ 8 pp między odczytami tworzy wpis `pending` (docs/SPEC.md §1) |
 | F2 | Podanie ceny | Użytkownik podaje cenę/l albo litry+kwotę; brakująca wartość jest wyliczana (SPEC §2) |
+| F9 | Dziennik tankowań i spalanie „komputer vs faktyczne” | Ekran „Dziennik tankowań”: potwierdzone tankowania od najnowszego; pod tankowaniem kończącym odcinek „do pełna – do pełna” spalanie faktyczne (litry z paragonu) i z komputera auta (trasy z tego odcinka) w l/100 km z różnicą w %, albo powód braku porównania; odcinek < 100 km nie jest porównywany (SPEC §15) |
 | F2a | Szacunek litrów z czujnika | Formularz ceny pokazuje „Szacunek z czujnika: ok. N l” (skok poziomu × 43 l); „Użyj szacunku” wpisuje litry i zapisuje `liters_source="estimate"`, ręczna zmiana albo „Z paragonu” daje `"receipt"`; szacunek bez ceny nie wylicza ceny (SPEC §2a, §11) |
 | F2b | Cena domyślna paliwa | Użytkownik ustawia cenę za litr w aplikacji; trasy bez potwierdzonego tankowania przed startem dostają koszt z tej ceny (`source="default"`, SPEC §4, §12), a usunięcie ceny przywraca „brak ceny” |
 | F2c | Pytanie o cenę zaraz po tankowaniu | Wykryte tankowanie pyta od razu: w tle powiadomieniem, które otwiera formularz ceny tego tankowania; w aplikacji oknem z polem „Cena za litr” (§13) |
@@ -38,7 +39,7 @@ Jeden właściciel pojazdu (właściciel projektu). Brak użytkowników zewnętr
 | ID | Funkcja | Dane | Ocena wykonalności |
 |---|---|---|---|
 | F9 | Dziennik tankowań + spalanie „komputer vs faktyczne” liczone od tankowania do tankowania | tankowania (F1–F2), trasy | Wykonalne. Wymaga litrów z paragonu – patrz F2a |
-| F2a | Litry przy tankowaniu | `fuel_level` przed/po × 43 l | Aplikacja proponuje szacunek z czujnika (`liters_source="estimate"`); użytkownik potwierdza lub poprawia z paragonu (`"receipt"`, albo `"derived"` z kwoty i ceny). Do średniej ceny w baku wystarczy szacunek (użytkownik może podać tylko cenę). Do porównania „komputer vs faktyczne” liczą się tylko litry z paragonu – szacunek z czujnika auta nie może weryfikować komputera auta |
+| F2a | Litry przy tankowaniu | `fuel_level` przed/po × 43 l | Aplikacja proponuje szacunek z czujnika (`liters_source="estimate"`); użytkownik potwierdza lub poprawia z paragonu (`"receipt"`, albo `"derived"` z kwoty i ceny). Do średniej ceny w baku wystarczy szacunek (użytkownik może podać tylko cenę). Do porównania „komputer vs faktyczne” liczą się tylko litry z paragonu (wpisane albo wyliczone z kwoty i ceny z paragonu) – szacunek z czujnika auta nie może weryfikować komputera auta |
 | F10 | Statystyki wieloletnie: rok do roku, zima vs lato, trendy | archiwum lokalne | Wykonalne; dane od dnia uruchomienia (starsze niż ~12 mies. Toyota usunęła) |
 | F11 | Udział jazdy elektrycznej na trasę + ranking tras | `hdc.evDistance/evTime`, `length` | Wykonalne |
 | F12 | Styl jazdy: wynik eco w czasie, porównanie tras na tym samym odcinku | `scores`, start/end lat/lon | Wykonalne; „ten sam odcinek” = start i koniec w promieniu np. 300 m |

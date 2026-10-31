@@ -27,16 +27,16 @@
 - Odporność na błędy lokalnego archiwum: `SyncErrorKind.STORAGE`, synchronizacja bez wyjątków (SPEC §8.4–§8.5)
 - Kopia archiwum: eksport/import całego archiwum do pliku JSON i przypomnienie o kopii po 30 dniach (SPEC §14, F7, F8)
 - Arkusz tras w CSV dla polskiego arkusza, ekran „Kopia i eksport” (SPEC §14.4, F6)
+- Dziennik tankowań i spalanie „komputer vs faktyczne” od tankowania do pełna do tankowania do pełna (SPEC §15, F9)
 
 ## NOW
 - Test klienta Toyoty na prawdziwym koncie: `./gradlew -q :core:liveCheck` (uruchamia właściciel, docs/HANDOFF.md)
 
 ## NEXT
-- Do decyzji właściciela – wymagania MVP F1–F8 są zrobione; kandydat z LATER: F9 dziennik tankowań
-  + „komputer vs faktyczne” (litry z paragonu są już zapisywane jako `receipt`, F2a)
+- Do decyzji właściciela; kandydat: edycja „do pełna” i litrów przy potwierdzonym tankowaniu (C9.1) – bez niej
+  dziennik F9 porówna dopiero tankowania potwierdzone od teraz
 
 ## LATER (kolejność wg wartości / kosztu)
-- F9 dziennik tankowań + „komputer vs faktyczne” (tylko litry z paragonu, SPEC §2)
 - F11 udział EV, F12 styl jazdy i ten sam odcinek, F10 statystyki wieloletnie
 - F16 typy tras, F17 dziennik parkowania, F13 anomalie spalania
 - F15 pogoda (Open-Meteo), F14 prognoza tankowania
