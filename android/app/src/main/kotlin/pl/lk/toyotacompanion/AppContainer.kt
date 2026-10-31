@@ -2,11 +2,13 @@ package pl.lk.toyotacompanion
 
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import androidx.room3.Room
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.work.WorkManager
 import java.time.Instant
 import java.time.LocalDate
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -138,8 +140,17 @@ class AppContainer(
      */
     val tripsLoader: suspend () -> List<StoredTrip> = { syncEngine.trips() }
 
-    /** UI scope for the login and status screens; state changes happen on the main thread. */
-    private val uiScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    /**
+     * UI scope for the login and status screens; state changes happen on the main thread.
+     * The controllers catch their own failures; the handler is only the last net, so a
+     * missed exception costs a log line with its class name, never the app (no message,
+     * no stack: it could carry personal data, docs/SECURITY.md).
+     */
+    private val uiScope = CoroutineScope(
+        SupervisorJob() + Dispatchers.Main.immediate + CoroutineExceptionHandler { _, e ->
+            Log.w(LOG_TAG, "Unhandled failure in the UI scope: ${e.javaClass.simpleName}")
+        },
+    )
 
     /**
      * Login + status screen state (docs/SPEC.md §9). Not a ViewModel: the Compose
@@ -234,5 +245,6 @@ class AppContainer(
         const val SECRETS_PREFS = "secrets"
         const val SETTINGS_PREFS = "settings"
         const val DATABASE_NAME = "toyota-companion.db"
+        const val LOG_TAG = "ToyotaCompanion"
     }
 }

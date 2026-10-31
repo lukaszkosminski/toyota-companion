@@ -42,6 +42,7 @@ object Texts {
         SyncErrorKind.API -> "Serwis Toyoty niedostępny. Spróbuj później."
         SyncErrorKind.NETWORK -> "Brak internetu. Spróbuj później."
         SyncErrorKind.DATA -> "Nieoczekiwana odpowiedź Toyoty. Spróbuj później."
+        SyncErrorKind.STORAGE -> "Nie udało się zapisać danych w telefonie. Sprawdź wolne miejsce i spróbuj ponownie."
     }
 
     /** "aktualne" / "nieaktualne" — local data on screen but not current (docs/SPEC.md §8.4). */

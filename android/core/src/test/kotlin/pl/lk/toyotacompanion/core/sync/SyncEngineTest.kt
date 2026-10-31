@@ -16,13 +16,19 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
 import pl.lk.toyotacompanion.core.data.CostRepository
+import pl.lk.toyotacompanion.core.data.FuelReadingRepository
 import pl.lk.toyotacompanion.core.data.InMemoryCostRepository
 import pl.lk.toyotacompanion.core.data.InMemoryStores
+import pl.lk.toyotacompanion.core.data.RefuelRepository
+import pl.lk.toyotacompanion.core.data.RepositoryStores
 import pl.lk.toyotacompanion.core.data.SyncConfig
 import pl.lk.toyotacompanion.core.data.SyncErrorKind
 import pl.lk.toyotacompanion.core.data.SyncState
+import pl.lk.toyotacompanion.core.data.SyncStateRepository
 import pl.lk.toyotacompanion.core.data.TripRecord
+import pl.lk.toyotacompanion.core.data.TripRepository
 import pl.lk.toyotacompanion.core.data.VehicleRecord
+import pl.lk.toyotacompanion.core.data.VehicleRepository
 import pl.lk.toyotacompanion.core.domain.CostSource
 import pl.lk.toyotacompanion.core.domain.FuelReading
 import pl.lk.toyotacompanion.core.domain.LitersSource
@@ -100,6 +106,68 @@ private fun pendingRefuel(id: String, ts: Instant): Refuel = Refuel(
     status = RefuelStatus.PENDING,
 )
 
+/** A broken archive: Room, a full disk, an unreadable file (docs/SPEC.md §8.4). */
+private class FakeStorageException(message: String = "cannot write") : RuntimeException(message)
+
+private class FailingVehicleRepository(
+    private val delegate: VehicleRepository,
+    private val failure: () -> Exception = { FakeStorageException() },
+) : VehicleRepository by delegate {
+    override suspend fun upsert(vehicle: VehicleRecord) {
+        throw failure()
+    }
+}
+
+private class FailingTripRepository(
+    private val delegate: TripRepository,
+    private val failure: () -> Exception = { FakeStorageException() },
+) : TripRepository by delegate {
+    override suspend fun upsertAll(records: List<TripRecord>): Int = throw failure()
+}
+
+private class FailingReadingRepository(
+    private val delegate: FuelReadingRepository,
+    private val failure: () -> Exception = { FakeStorageException() },
+) : FuelReadingRepository by delegate {
+    override suspend fun addIfAbsent(reading: FuelReading, vin: String): Boolean = throw failure()
+}
+
+private class FailingCostRepository(
+    private val delegate: CostRepository,
+    private val failure: () -> Exception = { FakeStorageException() },
+) : CostRepository by delegate {
+    override suspend fun saveAll(costs: List<TripCost>): Int = throw failure()
+}
+
+/** The sync bookkeeping row itself cannot be read or written. */
+private class FailingStateRepository(
+    private val delegate: SyncStateRepository,
+    private val getFails: Boolean = false,
+    private val saveFails: Boolean = false,
+    private val failure: () -> Exception = { FakeStorageException() },
+) : SyncStateRepository by delegate {
+    override suspend fun get(): SyncState {
+        if (getFails) throw failure()
+        return delegate.get()
+    }
+
+    override suspend fun save(state: SyncState) {
+        if (saveFails) throw failure()
+        delegate.save(state)
+    }
+}
+
+/** In-memory stores with one repository replaced by a failing decorator. */
+private class StoresWith(
+    val inner: InMemoryStores = InMemoryStores(),
+    override val vehicles: VehicleRepository = inner.vehicles,
+    override val trips: TripRepository = inner.trips,
+    override val refuels: RefuelRepository = inner.refuels,
+    override val readings: FuelReadingRepository = inner.readings,
+    override val costs: CostRepository = inner.costs,
+    override val state: SyncStateRepository = inner.state,
+) : RepositoryStores
+
 /**
  * The synchronization pipeline against in-memory repositories and a fake Toyota
  * client: offline, deterministic, injected clock (docs/SPEC.md §8, docs/DOD.md).
@@ -108,14 +176,14 @@ class SyncEngineTest {
 
     private class Ctx(
         val gateway: FakeToyotaGateway,
-        val stores: InMemoryStores,
+        val stores: RepositoryStores,
         val clock: FakeClock,
         val engine: SyncEngine,
     )
 
     private fun ctx(
         gateway: FakeToyotaGateway = FakeToyotaGateway(fleet = listOf(vehicleRecord())),
-        stores: InMemoryStores = InMemoryStores(),
+        stores: RepositoryStores = InMemoryStores(),
         start: Instant = DAY_1,
         config: SyncConfig = SyncConfig(),
         hasCredentials: suspend () -> Boolean = { true },
@@ -348,6 +416,131 @@ class SyncEngineTest {
         assertTrue(ok.telemetryFailed)
         assertEquals(1, ok.tripsAdded)
         assertTrue(!ok.state.isStale)
+    }
+
+    // ---------------- the archive itself fails (docs/SPEC.md §8.4, §8.5) ----------------
+
+    @Test
+    fun `storage failure in vehicles is reported and does not skip the next run`() = runTest {
+        val stores = InMemoryStores()
+        val c = ctx(
+            FakeToyotaGateway(fleet = listOf(vehicleRecord()), telemetry = reading(DAY_1, 40)),
+            StoresWith(stores, vehicles = FailingVehicleRepository(stores.vehicles)),
+        )
+
+        val failed = assertFailed(c.engine.fullSync(), SyncErrorKind.STORAGE)
+        assertEquals("Local storage failed: FakeStorageException", failed.error.message)
+
+        // The single flight was released: the second call runs again and fails the same way.
+        assertFailed(c.engine.fullSync(), SyncErrorKind.STORAGE)
+        assertEquals(2, c.gateway.vehiclesCalls, "the second run reached the gateway, so it was not Skipped")
+    }
+
+    @Test
+    fun `storage failure while saving the state still returns an outcome`() = runTest {
+        val stores = InMemoryStores()
+        val c = ctx(
+            FakeToyotaGateway(fleet = listOf(vehicleRecord())),
+            StoresWith(stores, state = FailingStateRepository(stores.state, saveFails = true)),
+        )
+
+        val failed = assertFailed(c.engine.fullSync(), SyncErrorKind.STORAGE)
+
+        assertEquals("Local storage failed: FakeStorageException", failed.error.message)
+        assertNull(stores.state.get().vin, "nothing was written to a store that cannot be written")
+    }
+
+    @Test
+    fun `storage failure while reading the state reports an empty state`() = runTest {
+        val stores = InMemoryStores()
+        val c = ctx(
+            FakeToyotaGateway(fleet = listOf(vehicleRecord())),
+            StoresWith(stores, state = FailingStateRepository(stores.state, getFails = true)),
+        )
+
+        val failed = assertFailed(c.engine.fullSync(), SyncErrorKind.STORAGE)
+
+        assertNull(failed.state.vin, "the fallback is a fresh SyncState, not a second exception")
+        assertNull(failed.state.lastSuccessAt)
+        assertEquals(DAY_1, failed.state.lastAttemptAt)
+        assertEquals(DAY_1, failed.state.lastErrorAt)
+        assertEquals(SyncErrorKind.STORAGE, requireNotNull(failed.state.lastErrorKind))
+        assertEquals("Local storage failed: FakeStorageException", requireNotNull(failed.state.lastErrorMessage))
+        assertTrue(failed.state.isStale)
+    }
+
+    @Test
+    fun `storage failure in the reading write is not hidden as telemetry`() = runTest {
+        val stores = InMemoryStores()
+        val c = ctx(
+            FakeToyotaGateway(fleet = listOf(vehicleRecord()), telemetry = reading(DAY_1, 40)),
+            StoresWith(stores, readings = FailingReadingRepository(stores.readings)),
+        )
+
+        assertFailed(c.engine.fullSync(), SyncErrorKind.STORAGE)
+
+        assertEquals(0, stores.readings.count())
+    }
+
+    @Test
+    fun `storage failure in the cost write is storage and not bad data`() = runTest {
+        val stores = InMemoryStores()
+        stores.trips.upsertAll(listOf(tripRecord("t1", DAY_1.minusSeconds(3_600))))
+        val c = ctx(
+            FakeToyotaGateway(fleet = listOf(vehicleRecord()), telemetry = reading(DAY_1, 40)),
+            StoresWith(stores, costs = FailingCostRepository(stores.costs)),
+        )
+
+        assertFailed(c.engine.fullSync(), SyncErrorKind.STORAGE)
+
+        assertEquals(0, stores.costs.count(), "the costs of this run were not stored")
+    }
+
+    @Test
+    fun `trip write failure is reported as storage`() = runTest {
+        val stores = InMemoryStores()
+        val c = ctx(
+            FakeToyotaGateway(
+                fleet = listOf(vehicleRecord()),
+                tripsProvider = { _, _, _ -> listOf(tripRecord("t1", DAY_1.minusSeconds(60))) },
+            ),
+            StoresWith(stores, trips = FailingTripRepository(stores.trips)),
+        )
+
+        assertFailed(c.engine.fullSync(), SyncErrorKind.STORAGE)
+
+        assertEquals(0, stores.trips.count())
+    }
+
+    @Test
+    fun `recompute costs reports storage when the archive fails`() = runTest {
+        val stores = InMemoryStores()
+        stores.trips.upsertAll(listOf(tripRecord("t1", DAY_1.minusSeconds(3_600))))
+        stores.state.save(SyncState(vin = VIN))
+        val c = ctx(
+            stores = StoresWith(stores, costs = FailingCostRepository(stores.costs)),
+        )
+
+        assertFailed(c.engine.recomputeCosts(), SyncErrorKind.STORAGE)
+
+        assertEquals(0, stores.costs.count())
+    }
+
+    @Test
+    fun `storage message names the class and never the exception text`() = runTest {
+        val stores = InMemoryStores()
+        val leaky = { FakeStorageException("cannot write VINJTDKN123456789 for token=secret-access") }
+        val c = ctx(
+            FakeToyotaGateway(fleet = listOf(vehicleRecord())),
+            StoresWith(stores, state = FailingStateRepository(stores.state, saveFails = true, failure = leaky)),
+        )
+
+        val failed = assertFailed(c.engine.fullSync(), SyncErrorKind.STORAGE)
+
+        assertEquals("Local storage failed: FakeStorageException", failed.error.message)
+        for (forbidden in listOf("JTDKN", "secret", "token")) {
+            assertTrue(forbidden !in failed.error.message, "$forbidden leaked into: $failed")
+        }
     }
 
     // ---------------- failures keep local data (docs/ARCHITECTURE.md) ----------------

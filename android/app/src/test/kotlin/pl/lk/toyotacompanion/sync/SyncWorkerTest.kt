@@ -49,7 +49,7 @@ class SyncWorkerTest {
 
     @Test
     fun `retryable failures retry`() {
-        for (kind in listOf(SyncErrorKind.API, SyncErrorKind.NETWORK, SyncErrorKind.DATA)) {
+        for (kind in listOf(SyncErrorKind.API, SyncErrorKind.NETWORK, SyncErrorKind.DATA, SyncErrorKind.STORAGE)) {
             assertEquals(Result.retry(), run(failed(kind)), kind.name)
         }
     }

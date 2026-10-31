@@ -124,13 +124,24 @@ Zapis typów w Room (`android/app/.../data/db`, `AppDatabase` v1, schemat w `and
 
 ### §8.4 Błędy
 - Rodzaje: `LOGIN`, `NO_CREDENTIALS`, `NO_VEHICLE` (bez ponawiania, UI prosi o działanie),
-  `API`, `NETWORK`, `DATA` (ponawiane przez WorkManager).
+  `API`, `NETWORK`, `DATA`, `STORAGE` (ponawiane przez WorkManager).
+- `STORAGE` – lokalnego archiwum nie dało się odczytać ani zapisać (Room, pełny dysk). Błędy gatewaya są
+  klasyfikowane tam, gdzie powstają (`classify`); wszystko, co mimo to wyjdzie z kroków synchronizacji, łapie
+  `guarded` i zamienia na `STORAGE`. Komunikat zawiera tylko nazwę klasy wyjątku, nigdy jego treść. W kroku
+  telemetrii miękko (`telemetryFailed`) kończy się wyłącznie samo żądanie do Toyoty; błąd zapisu odczytu albo
+  wykrytego tankowania to `STORAGE`, żeby tankowanie nie przepadło po cichu za wynikiem `Ok`. W kroku kosztów
+  `IllegalArgumentException` domeny to `DATA`, każdy inny wyjątek – `STORAGE`.
+- Zapis błędu w stanie (`failAt`) jest odporny na zepsute archiwum: nieczytelny stan zastępuje `SyncState()`,
+  a nieudany zapis jest pomijany – wynik `Failed` i tak wraca. Nieznana nazwa rodzaju w bazie (np. po powrocie
+  do starszej wersji aplikacji) czyta się jako brak rodzaju, bez wyjątku.
 - Błąd nigdy nie usuwa ani nie cofa danych; kroki wykonane przed błędem zostają zapisane;
   znacznik tras przesuwa się tylko po pełnym sukcesie. `isStale` = brak sukcesu albo błąd po ostatnim sukcesie.
 - Komunikat zapisany w stanie przechodzi przez `ToyotaSecrets.sanitize` (bez VIN, tokenów, hasła).
 
 ### §8.5 Wynik i współbieżność
-- Wynik jako `SyncOutcome` (`Ok`, `Failed`, `Skipped`), nie wyjątki (poza anulowaniem korutyny).
+- Wynik jako `SyncOutcome` (`Ok`, `Failed`, `Skipped`), nie wyjątki (poza anulowaniem korutyny) – dotyczy
+  `fullSync()` i `recomputeCosts()`; `confirmRefuel`, `dismissRefuel` i `recomputeCostsNow` przekazują wyjątek
+  bazy wołającemu, a kontrolery UI zamieniają go na własny komunikat (§11.3, §12.3).
 - Jedna synchronizacja naraz (mutex); równoległe wywołanie -> `Skipped`.
 - `recomputeCosts()` bez sieci – po potwierdzeniu ceny tankowania (F4).
 - Dług: koszty wszystkich tras są przeliczane przy każdej synchronizacji (O(trasy × tankowania));
@@ -195,6 +206,10 @@ Ekran logowania MyToyota i ekran statusu synchronizacji. Wymaganie właściciela
   sukcesu i `HorizontalDivider`; „Wyloguj” najpierw pokazuje `AlertDialog` z potwierdzeniem
   (archiwum Room zostaje), dopiero „Wyloguj” w oknie wykonuje wylogowanie.
 - Wynik „Synchronizuj teraz” jest stosowany tylko, gdy ekran nadal pokazuje status – spóźniony wynik po „Wyloguj” nie przywraca ekranu statusu.
+- „Synchronizuj teraz” nigdy nie zostaje w stanie „synchronizuję”: wyjątek z `SyncRunner` kończy się jak błąd
+  `STORAGE`. Odczyt zapisanego logowania przy starcie, który rzuci, to „niezalogowany”, a „Wyloguj” wykonuje każdy
+  krok na miarę możliwości i zawsze kończy na ekranie logowania. Ostatnią siatką jest `CoroutineExceptionHandler`
+  na `uiScope` – zapisuje w logu tylko nazwę klasy wyjątku (docs/SECURITY.md), nigdy nie wywraca aplikacji.
 - „Wyloguj”: wyczyszczenie tokena (po loginie), potem `CredentialStore.clear()`, anulowanie
   prac `toyota-sync` i `toyota-sync-now`. Archiwum Room NIE jest usuwane (F5, ADR-006) –
   ponowne logowanie dołącza dane. Stan UI -> ekran logowania.
