@@ -71,4 +71,7 @@ enum class Screen {
 
     /** Export and import of the whole archive (docs/SPEC.md §14). */
     Backup,
+
+    /** Confirmed refuels and the "computer vs actual" fuel economy (docs/SPEC.md §15). */
+    RefuelLog,
 }

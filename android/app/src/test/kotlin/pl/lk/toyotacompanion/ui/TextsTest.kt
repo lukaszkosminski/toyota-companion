@@ -11,6 +11,9 @@ import org.junit.Test
 import pl.lk.toyotacompanion.core.data.SyncErrorKind
 import pl.lk.toyotacompanion.core.data.SyncState
 import pl.lk.toyotacompanion.core.data.SyncStatus
+import pl.lk.toyotacompanion.core.domain.EconomyInterval
+import pl.lk.toyotacompanion.core.domain.EconomyStatus
+import pl.lk.toyotacompanion.core.domain.LitersSource
 import pl.lk.toyotacompanion.core.domain.Refuel
 import pl.lk.toyotacompanion.core.domain.RefuelStatus
 import pl.lk.toyotacompanion.core.sync.ArchiveImportCounts
@@ -204,6 +207,55 @@ class TextsTest {
                 Texts.CSV_SOURCE_REFUEL,
                 Texts.CSV_SOURCE_DEFAULT,
                 csvDateTime(Instant.parse("2026-10-29T14:05:00Z"), ZONE),
+            ) +
+            // Dziennik tankowan (docs/SPEC.md §15): kazdy nowy tekst i kazda formatowana wartosc.
+            listOf(
+                Texts.LOG_TITLE,
+                Texts.LOG_EMPTY,
+                Texts.LOG_HINT,
+                Texts.LOG_READ_ERROR,
+                Texts.LOG_SOURCE_RECEIPT,
+                Texts.LOG_SOURCE_DERIVED,
+                Texts.LOG_SOURCE_ESTIMATE,
+                Texts.LOG_CURRENT,
+                Texts.economyCompared("5,00 l/100 km", "4,50 l/100 km", "+11,1 %"),
+                Texts.economyTrips("600,0 km"),
+                Texts.economyOdometer("612,4 km"),
+                Texts.economyEv("70,3 km"),
+                Texts.economyComputerSoFar("4,50 l/100 km"),
+                Texts.ECONOMY_OPEN,
+                Texts.ECONOMY_PENDING,
+                Texts.ECONOMY_DISMISSED,
+                Texts.ECONOMY_MISSING_RECEIPT,
+                Texts.ECONOMY_NO_TRIPS,
+                Texts.ECONOMY_TOO_SHORT,
+            ) +
+            listOf(
+                RefuelLogFormatting.consumption(BigDecimal("4.82")),
+                RefuelLogFormatting.difference(BigDecimal("11.1")),
+                RefuelLogFormatting.difference(BigDecimal("-11.1")),
+                RefuelLogFormatting.difference(BigDecimal.ZERO),
+                RefuelLogFormatting.distance(BigDecimal("612.4")),
+                requireNotNull(
+                    RefuelLogFormatting.litersLine(
+                        Refuel(
+                            id = "refuel-2",
+                            ts = Instant.parse("2026-10-29T14:05:00Z"),
+                            odometerKm = 12_345.0,
+                            levelBefore = 20,
+                            levelAfter = 90,
+                            liters = BigDecimal("30.000"),
+                            pricePerLiter = BigDecimal("6.190"),
+                            totalCost = null,
+                            status = RefuelStatus.CONFIRMED,
+                            litersSource = LitersSource.RECEIPT,
+                            filledToFull = true,
+                        ),
+                    ),
+                ),
+                RefuelLogFormatting.economyLine(logInterval(EconomyStatus.OK)),
+                RefuelLogFormatting.economyLine(logInterval(EconomyStatus.MISSING_RECEIPT)),
+                RefuelLogFormatting.detailLine(logInterval(EconomyStatus.OPEN)),
             )
         for (text in all) {
             for (forbidden in listOf("token", "Token", "VIN1", "p@ss", "secret")) {
@@ -321,6 +373,54 @@ class TextsTest {
     }
 
     @Test
+    fun `the log names the liter sources and every reason without a comparison`() {
+        assertEquals("Dziennik tankowań", Texts.LOG_TITLE)
+        assertEquals("Brak potwierdzonych tankowań.", Texts.LOG_EMPTY)
+        assertEquals("Bieżący odcinek", Texts.LOG_CURRENT)
+        assertEquals("z paragonu", Texts.LOG_SOURCE_RECEIPT)
+        assertEquals("wyliczone z paragonu", Texts.LOG_SOURCE_DERIVED)
+        assertEquals("szacunek z czujnika", Texts.LOG_SOURCE_ESTIMATE)
+        // The hint is the only place that teaches the two conditions of PRD F9.
+        assertTrue("Do pełna" in Texts.LOG_HINT, Texts.LOG_HINT)
+        assertTrue("paragon" in Texts.LOG_HINT, Texts.LOG_HINT)
+        assertTrue("100 km" in Texts.ECONOMY_TOO_SHORT, Texts.ECONOMY_TOO_SHORT)
+
+        val compared = Texts.economyCompared("5,00 l/100 km", "4,50 l/100 km", "+11,1 %")
+        assertTrue("faktyczne 5,00 l/100 km" in compared, compared)
+        assertTrue("komputer 4,50 l/100 km" in compared, compared)
+        assertTrue("+11,1 %" in compared, compared)
+    }
+
+    @Test
+    fun `every refuel log reason is a polish sentence`() {
+        for (text in listOf(
+            Texts.LOG_TITLE,
+            Texts.LOG_EMPTY,
+            Texts.LOG_HINT,
+            Texts.LOG_READ_ERROR,
+            Texts.LOG_CURRENT,
+            Texts.ECONOMY_OPEN,
+            Texts.ECONOMY_PENDING,
+            Texts.ECONOMY_DISMISSED,
+            Texts.ECONOMY_MISSING_RECEIPT,
+            Texts.ECONOMY_NO_TRIPS,
+            Texts.ECONOMY_TOO_SHORT,
+        )) {
+            assertTrue(text.isNotBlank(), text)
+            assertTrue(text.first().isUpperCase(), text)
+        }
+        // The three words that name where the liters came from are lowercase fragments, not sentences.
+        for (text in listOf(
+            Texts.LOG_SOURCE_RECEIPT,
+            Texts.LOG_SOURCE_DERIVED,
+            Texts.LOG_SOURCE_ESTIMATE,
+        )) {
+            assertTrue(text.isNotBlank(), text)
+            assertTrue(text.first().isLowerCase(), text)
+        }
+    }
+
+    @Test
     fun `the notification line says when and how much and asks for the price`() {
         val text = Texts.refuelNotificationText("30.10 14:05", Texts.refuelPromptBody("30.10 14:05", "x"))
 
@@ -342,4 +442,20 @@ private fun refuel(): Refuel = Refuel(
     pricePerLiter = null,
     totalCost = null,
     status = RefuelStatus.PENDING,
+)
+
+/** An interval of the shape `fuelEconomyIntervals` returns, for the text of its status. */
+private fun logInterval(status: EconomyStatus): EconomyInterval = EconomyInterval(
+    startRefuelId = "a",
+    endRefuelId = if (status == EconomyStatus.OPEN) null else "b",
+    status = status,
+    trips = 3,
+    distanceKm = BigDecimal("600.0"),
+    evDistanceKm = BigDecimal("70.3"),
+    computerLiters = BigDecimal("27.000"),
+    actualLiters = BigDecimal("30.000"),
+    odometerKm = BigDecimal("612.4"),
+    computerLPer100Km = BigDecimal("4.50"),
+    actualLPer100Km = BigDecimal("5.00"),
+    differencePct = BigDecimal("11.1"),
 )

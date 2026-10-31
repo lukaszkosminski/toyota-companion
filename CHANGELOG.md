@@ -123,3 +123,10 @@
   i przycisk na statusie nazywają się „Kopia i eksport”; przycisk CSV nieaktywny bez tras; eksport CSV nie zmienia
   daty kopii archiwum. Testy: app +24 (`TripsCsvTest`, `BackupControllerTest`, `TripsFormattingTest`, `TextsTest`)
   (app: 250 testów, core: 239, Python: 84)
+- Dziennik tankowań i spalanie „komputer vs faktyczne” (PRD F9, SPEC §15): domena `fuel_economy_intervals` w Pythonie
+  i Kotlinie (te same 26 testów) – odcinki od tankowania do pełna do tankowania do pełna, paliwo faktyczne z litrów
+  z paragonu (`receipt` albo `derived` – decyzja właściciela), dystans i paliwo komputera z tych samych tras, statusy
+  braku porównania (czeka na cenę, odrzucone, brak paragonu, brak tras, odcinek < 100 km), nowe zaokrąglenia
+  `round_consumption`/`round_percent`/`round_distance`. `SyncEngine.refuelLog()`, ekran „Dziennik tankowań” ze statusu
+  (karta spalania pod tankowaniem kończącym odcinek, bieżący odcinek, licznik informacyjnie, „w tym EV”). Testy:
+  Python +26, core +31, app +20 (app: 270 testów, core: 270, Python: 110)

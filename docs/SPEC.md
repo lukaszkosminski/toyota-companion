@@ -34,8 +34,9 @@ Port w Kotlinie: `android/core/src/main/kotlin/pl/lk/toyotacompanion/core/domain
   jawne `estimate` także przy litrach wyliczonych z ceny i kwoty, więc przy (cena + kwota) UI podaje `null`,
   a domena zapisze `derived`.
 - przy `liters_source="estimate"` kwota wyliczona z ceny i litrów jest **szacunkowa** – mówi o tym samo źródło
-  litrów, bez osobnej kolumny (F2a). Porównanie spalania „komputer vs faktyczne” (F9) bierze wyłącznie
-  tankowania z `liters_source="receipt"`: szacunek z czujnika auta nie może weryfikować komputera auta (PRD F2a).
+  litrów, bez osobnej kolumny (F2a). Porównanie spalania „komputer vs faktyczne” (F9, §15) bierze
+  litry z paragonu: `liters_source="receipt"` albo `"derived"` (wyliczone z kwoty i ceny z paragonu – decyzja
+  właściciela 2026-10-31, D7); szacunek z czujnika (`"estimate"`) nie może weryfikować komputera auta (PRD F2a).
 
 ### §2a `estimate_refuel_liters(refuel, capacity_l=DEFAULT_TANK_CAPACITY_L) -> Decimal | None`
 (PRD F2a) Szacunek litrów z czujnika poziomu paliwa, który aplikacja proponuje użytkownikowi.
@@ -569,3 +570,32 @@ Arkusz tras w CSV (F6) – §14.4.
   bez VIN). Przycisk nieaktywny bez tras – systemowy wybór pliku tworzy plik, zanim aplikacja cokolwiek sprawdzi;
   lista pusta w chwili zapisu daje „Brak tras do eksportu.” bez zapisu. Bez ostrzeżenia o danych osobowych (brak GPS
   i VIN). Eksport CSV nie zmienia daty ostatniej kopii archiwum (F8 dotyczy tylko kopii).
+
+## §15 Dziennik tankowań i spalanie „komputer vs faktyczne” (PRD F9)
+
+### §15.1 Domena: `fuel_economy_intervals(refuels, trips, min_distance_km=100)` → `list[EconomyInterval]`
+(Python `app/domain/economy.py`, Kotlin `core/domain/EconomyOps.kt` – te same nazwy testów.) Dane **jednego** pojazdu.
+- Odcinek otwiera potwierdzone tankowanie z `filled_to_full = true` (A) i zamyka następne takie (B); kolejność po
+  `(ts, id)`. Tankowania przed pierwszym „do pełna” nie otwierają niczego; po ostatnim jest jeden odcinek `open`.
+- Paliwo faktyczne = suma litrów potwierdzonych tankowań w (A, B] (częściowe w środku + B); litry A nie wchodzą.
+  Dystans i paliwo komputera = sumy `distance_km` i `fuel_l` tras ze **startem** w [A.ts, B.ts) – ten sam zbiór tras
+  po obu stronach. `Refuel.ts` to chwila odczytu, który wykrył tankowanie (do 30 min po nim, §8.3), więc granica jest
+  przybliżona, ale przesuwa obie strony tak samo; trasa przekraczająca B należy do odcinka, w którym się zaczęła.
+- Status (pierwszy pasujący): `pending_refuel` (tankowanie w (A, B) czeka na cenę), `dismissed_refuel` (odrzucone –
+  paliwo wlano, litrów nie ma), `missing_receipt` (tankowanie w (A, B] bez litrów albo z `estimate`), `no_trips` (zerowy
+  dystans albo paliwo tras), `too_short` (dystans < 100 km – rozrzut „do pełna” ok. 0,5 l, decyzja D8), inaczej `ok`.
+- Wynik: `computer_l_per_100km`, gdy jest dystans; `actual_l_per_100km` i `difference_pct` = (faktyczne − komputer) /
+  komputer × 100 tylko przy `ok`. Zaokrąglenia HALF_UP: l/100 km do 0,01 (`round_consumption`), % do 0,1
+  (`round_percent`), km do 0,1 (`round_distance`). Licznik (`B.odometer − A.odometer`) tylko informacyjnie; ≤ 0 → brak.
+
+### §15.2 Odczyt i ekran
+- `SyncEngine.refuelLog()` – potwierdzone tankowania wybranego VIN od najnowszego i odcinki z §15.1; bez sieci i bez
+  mutexu (jak `trips()`, §10.1); brak VIN → pusty dziennik.
+- Ekran „Dziennik tankowań” z przycisku na statusie; odczyt w callbacku nawigacji (`RefuelLogController.load`), nie w
+  `LaunchedEffect` – obrót nie czyta bazy; `ensureLoaded` tylko po śmierci procesu. `reset()` przy wylogowaniu.
+- Wiersz tankowania: czas, skok poziomu, litry ze źródłem („z paragonu”, „wyliczone z paragonu”, „szacunek z
+  czujnika”) i „do pełna”, cena i kwota. Pod tankowaniem kończącym odcinek karta: „Spalanie: faktyczne 5,00 l/100 km ·
+  komputer 4,50 l/100 km (+11,1 %)” albo powód braku porównania, pod nią „600,0 km tras · licznik 600,0 km · w tym EV
+  70,3 km”. Odcinek otwarty jako pierwsza karta „Bieżący odcinek”. Pusty stan z podpowiedzią „Do pełna” + paragon.
+  Liczby przez `TripsFormatting.plain`, bez `Locale`; różnica ze znakiem (`+`, `−`). Bez VIN i GPS.
+- Poza zakresem: edycja „do pełna” i litrów przy potwierdzonym tankowaniu (kandydat C9.1).

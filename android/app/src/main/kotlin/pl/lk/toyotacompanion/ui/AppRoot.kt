@@ -40,6 +40,7 @@ fun AppRoot(
     defaultPrice: DefaultPriceController,
     prompt: RefuelPromptController,
     backup: BackupController,
+    refuelLog: RefuelLogController,
     askNotificationPermission: suspend () -> Boolean,
     deepLinkRefuelId: String? = null,
     onDeepLinkShown: () -> Unit = {},
@@ -70,6 +71,7 @@ fun AppRoot(
             defaultPrice.reset()
             prompt.reset()
             backup.reset()
+            refuelLog.reset()
         } else {
             // The status button shows the stored price. This effect also restarts when the
             // Activity is recreated, so the read is guarded: the file is touched only while
@@ -137,6 +139,11 @@ fun AppRoot(
                         onRefresh = session::reload,
                         onShowTrips = { screen = Screen.Trips },
                         onShowRefuels = { screen = Screen.Refuels },
+                        // Read in the navigation callback, so a rotation does not read again (§15.2).
+                        onShowRefuelLog = {
+                            refuelLog.load()
+                            screen = Screen.RefuelLog
+                        },
                         defaultPrice = priceState.price,
                         onShowDefaultPrice = { screen = Screen.DefaultPrice },
                         // Until the date is read there is no reminder: an unknown date is not "never".
@@ -151,6 +158,11 @@ fun AppRoot(
                         onShowBackup = { screen = Screen.Backup },
                         onLogout = session::logout,
                         askNotificationPermission = askNotificationPermission,
+                    )
+
+                    Screen.RefuelLog -> RefuelLogScreen(
+                        controller = refuelLog,
+                        onBack = { screen = Screen.Status },
                     )
 
                     // Leaving refreshes the counters: an import may have added trips (docs/SPEC.md §14.2).

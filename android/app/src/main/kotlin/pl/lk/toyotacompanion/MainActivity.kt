@@ -47,6 +47,7 @@ class MainActivity : ComponentActivity() {
                 container.defaultPriceController,
                 container.refuelPromptController,
                 container.backupController,
+                container.refuelLogController,
                 askNotificationPermission = container.askNotificationPermission,
                 deepLinkRefuelId = refuelDeepLinkId,
                 onDeepLinkShown = { refuelDeepLinkId = null },

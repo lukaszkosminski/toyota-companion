@@ -47,6 +47,7 @@ import pl.lk.toyotacompanion.ui.ARCHIVE_IMPORT_LIMIT_BYTES
 import pl.lk.toyotacompanion.ui.BackupController
 import pl.lk.toyotacompanion.ui.DefaultPriceController
 import pl.lk.toyotacompanion.ui.RefuelController
+import pl.lk.toyotacompanion.ui.RefuelLogController
 import pl.lk.toyotacompanion.ui.RefuelPromptController
 import pl.lk.toyotacompanion.ui.SessionController
 import pl.lk.toyotacompanion.ui.readArchiveBytes
@@ -259,6 +260,11 @@ class AppContainer(
             scope = uiScope,
             io = Dispatchers.IO,
         )
+    }
+
+    /** The refuel log and its fuel economy check (PRD F9, docs/SPEC.md §15). */
+    val refuelLogController: RefuelLogController by lazy {
+        RefuelLogController(read = { syncEngine.refuelLog() }, scope = uiScope, io = Dispatchers.IO)
     }
 
     /**
