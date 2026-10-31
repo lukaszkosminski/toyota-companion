@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.test.core.app.ApplicationProvider
 import java.math.BigDecimal
+import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -88,6 +89,37 @@ class SettingsStoreTest {
         store.forgetNotifiedRefuel("r2")
         assertEquals(emptySet<String>(), store.notifiedRefuelIds())
         assertNull(prefs.getString("refuel_notified_ids", null), "an empty set leaves no garbage key")
+    }
+
+    @Test
+    fun `the last copy has no date before the first export`() {
+        assertNull(store.lastArchiveExport(), "never exported is not an error (docs/SPEC.md 14.3)")
+    }
+
+    @Test
+    fun `a last copy key holding text reads as never`() {
+        prefs.edit().putString("last_archive_export", "garbage").commit()
+
+        assertNull(store.lastArchiveExport(), "a foreign value under the key must not crash the status screen")
+    }
+
+    @Test
+    fun `the last copy date round trips and the newer copy wins`() {
+        val first = Instant.parse("2026-10-31T06:00:00.123Z")
+
+        store.saveLastArchiveExport(first)
+
+        assertEquals(first, store.lastArchiveExport())
+        assertEquals(
+            first.toEpochMilli(),
+            prefs.getLong("last_archive_export", -1L),
+            "epoch millis, and the key survives logging out (it belongs to the phone)",
+        )
+
+        val second = Instant.parse("2026-11-01T06:00:00Z")
+        store.saveLastArchiveExport(second)
+
+        assertEquals(second, store.lastArchiveExport())
     }
 
     @Test

@@ -495,3 +495,56 @@ aplikacji (§13.3). Obie prowadzą do tej samej ścieżki ceny z §11 — bez no
   proszona raz na dotknięcie, więc obrót ekranu nie przenosi kursora z „Litry” z powrotem do ceny.
 - Okno nie pojawia się, gdy aktywny ekran to `Screen.Refuels`, `Screen.RefuelForm` albo `Screen.DefaultPrice`
   (każdy formularz), gdy brak zalogowanej sesji i gdy trwa zapis.
+
+## §14 Kopia archiwum (PRD F7, F8)
+
+Toyota usuwa trasy starsze niż ok. 12 miesięcy, a `allowBackup=false` (SECURITY.md), więc ręczna kopia jest jedyną
+ochroną archiwum (ADR-006). Kopia to jeden plik JSON; import dodaje tylko to, czego w telefonie jeszcze nie ma.
+Eksport CSV (F6) to osobny etap.
+
+### §14.1 Plik i reguły w `core`
+- `core/data/ArchiveFile.kt`: koperta `{"format":"toyota-companion-archive","version":1,"exportedAt":…,"vehicles":[…],
+  "trips":[…],"refuels":[…],"readings":[…]}`, UTF-8. Każda trasa, tankowanie i odczyt niesie swój `vin`. Czas jako
+  ISO-8601 (`Instant`), kwoty, ceny i litry jako tekst dziesiętny (`BigDecimal.toPlainString`, skala zachowana),
+  `NaN`/`Infinity` w liczbach GPS zapisywane jako `null`. Modele domeny zostają bez `@Serializable` – plik mapują
+  prywatne DTO z własnymi serializerami `Instant`/`BigDecimal` (kotlinx-serialization ich nie ma).
+- `decodeArchive(bytes)` → `Ok(snapshot)` | `Unsupported` (inny `format` albo `version` wyższa niż obsługiwana) |
+  `Corrupt` (zły JSON, brak pola, nieznana nazwa enuma, zły czas lub liczba); nigdy wyjątek. Nieznane dodatkowe klucze
+  są pomijane.
+- Zawartość: wszystkie pojazdy (`vehicles.all()`) i dla każdego jego trasy (pełny `TripRecord`, z GPS), tankowania
+  (każdy stan, `liters_source`, `filled_to_full`) i odczyty paliwa (`since(Instant.EPOCH, vin)`). **Bez:** kosztów tras
+  (liczone ponownie), `sync_state`, sekretów, ustawień telefonu (cena domyślna, data kopii, zbiór powiadomień).
+- `SyncEngine.exportArchive()` i `importArchive(snapshot)` działają pod `mutex.withLock` – czekają na trwającą
+  synchronizację, bez sieci. Wyjątek bazy trafia do wołającego (§8.5).
+- Import po tożsamości wiersza: trasy i tankowania po `id`, odczyty po `(vin, ts)`, pojazdy po VIN. To, co jest w
+  telefonie, zostaje – z jednym wyjątkiem: tankowanie `PENDING` w telefonie, a `CONFIRMED`/`DISMISSED` w pliku, bierze
+  wersję z pliku (`refuelsUpdated`). Tankowanie odrzucone w telefonie, a wycenione w pliku, zostaje odrzucone i jest
+  liczone jako pominięte (`refuelsSkipped`). Po imporcie koszty wybranego pojazdu są przeliczane. Reguła kolizji należy
+  do `core/sync`, nie do domeny – bez odpowiednika w Pythonie. Ponowny import tego samego pliku nic nie dodaje.
+- Import nie jest jedną transakcją: plik jest w całości dekodowany i sprawdzany **przed** pierwszym zapisem, a zapisy
+  są idempotentne, więc import przerwany w połowie naprawia ponowny import tego samego pliku.
+
+### §14.2 Ekran „Kopia archiwum” (kryteria akceptacji)
+- Wejście: przycisk „Kopia archiwum” na ekranie statusu (`Screen.Backup`); wyjście „Wstecz”/`BackHandler`, powrót
+  odświeża liczniki statusu (`session.reload()` w callbacku nawigacji).
+- „Eksportuj archiwum” → `AlertDialog` „Plik z danymi osobowymi” (GPS, VIN – SECURITY.md) → systemowy wybór pliku
+  `CreateDocument("application/json")` z nazwą `toyota-companion-RRRR-MM-DD.json` (bez VIN) → zapis. Data ostatniej kopii
+  jest zapisywana tylko po udanym zapisie pliku.
+- „Importuj archiwum” → `OpenDocument` (`application/json`, `application/octet-stream`, `text/plain`) → odczyt najwyżej
+  20 MB (`readArchiveBytes`, większy plik: „Plik jest za duży…”) → dekodowanie → import. Wynik po polsku bez form
+  mnogich („trasy: 3, tankowania: 1, …”), z liczbą uzupełnionych i pominiętych tankowań i tras innego pojazdu.
+  `Unsupported`/`Corrupt` mają własne komunikaty („Nic nie zostało zapisane.”); inne błędy – komunikat ogólny bez treści
+  wyjątku.
+- Stan trzyma `BackupController` (scope aplikacji, licznik generacji, `reset()` przy wylogowaniu). Pliki są dla niego
+  tekstem `Uri` – otwiera je `ContentResolver` w `AppContainer`, więc kontroler nie zna typów Androida.
+
+### §14.3 Przypomnienie (F8)
+- `SettingsStore.lastArchiveExport` (`last_archive_export`, milisekundy) – ustawienie telefonu: przeżywa wylogowanie,
+  nie trafia do pliku kopii. Odczyt raz na zalogowanie (`ensureLoaded`, jak §12.3).
+- `backupReminder(lastExport, now, tripsStored)` (czysta): puste archiwum → brak przypomnienia; kopii nie było →
+  „Zrób kopię archiwum – trasy starsze niż rok są już tylko w tym telefonie.”; ostatnia kopia starsza niż 30 pełnych
+  dni → „Od ostatniej kopii archiwum minęło N dni – zrób nową.”. Data w przyszłości (cofnięty zegar) liczy się jako
+  świeża. Dopóki data nie jest odczytana, przypomnienia nie ma.
+- Na ekranie statusu karta przypomnienia (kolory `tertiaryContainer` – to nie błąd), przycisk „Kopia archiwum” i linia
+  „Ostatnia kopia archiwum: 31.10.2026” albo „Archiwum nie ma jeszcze kopii”; data bez `Locale` (`backupDate`).
+- Bez powiadomień systemowych – przypomnienie żyje tylko w aplikacji.

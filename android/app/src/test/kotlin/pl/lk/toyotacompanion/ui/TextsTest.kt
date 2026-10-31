@@ -13,9 +13,22 @@ import pl.lk.toyotacompanion.core.data.SyncState
 import pl.lk.toyotacompanion.core.data.SyncStatus
 import pl.lk.toyotacompanion.core.domain.Refuel
 import pl.lk.toyotacompanion.core.domain.RefuelStatus
+import pl.lk.toyotacompanion.core.sync.ArchiveImportCounts
 import pl.lk.toyotacompanion.core.sync.RefuelChange
 
 private val ZONE = ZoneOffset.UTC
+
+/** Counts with every optional part of the summary, so the sweep sees all of them. */
+private fun counts(updated: Int = 0, skipped: Int = 0, other: Int = 0) = ArchiveImportCounts(
+    vehiclesAdded = 1,
+    tripsAdded = 3,
+    refuelsAdded = 2,
+    refuelsUpdated = updated,
+    refuelsSkipped = skipped,
+    readingsAdded = 4,
+    otherVehicleTrips = other,
+    tripsCosted = 3,
+)
 
 private fun status(fresh: Boolean) = SyncStatus(
     state = if (fresh) {
@@ -158,6 +171,27 @@ class TextsTest {
                 Texts.refuelPromptBody("30.10 14:05", "20% \u2192 80%"),
                 Texts.REFUEL_PROMPT_LATER,
                 Texts.REFUEL_PROMPT_MORE,
+            ) +
+            // Kopia archiwum (docs/SPEC.md §14): kazdy nowy tekst i kazda formatowana wartosc.
+            listOf(
+                Texts.BACKUP_TITLE,
+                Texts.BACKUP_EXPORT,
+                Texts.BACKUP_IMPORT,
+                Texts.BACKUP_WARNING_TITLE,
+                Texts.BACKUP_WARNING_BODY,
+                Texts.BACKUP_WARNING_OK,
+                Texts.BACKUP_WARNING_CANCEL,
+                Texts.BACKUP_EXPLANATION,
+                Texts.backupExported(3),
+                Texts.backupImported(counts(updated = 5, skipped = 7, other = 9)),
+                Texts.BACKUP_UNSUPPORTED,
+                Texts.BACKUP_CORRUPT,
+                Texts.BACKUP_TOO_LARGE,
+                Texts.BACKUP_FAILED,
+                Texts.lastBackup("31.10.2026"),
+                Texts.BACKUP_NONE_YET,
+                Texts.BACKUP_REMINDER_NEVER,
+                Texts.backupReminderOverdue(31),
             )
         for (text in all) {
             for (forbidden in listOf("token", "Token", "VIN1", "p@ss", "secret")) {
@@ -200,6 +234,59 @@ class TextsTest {
             "Szacunek z czujnika: ok. 14,19 l",
             Texts.refuelEstimateHint(RefuelFormatting.liters(BigDecimal("14.190"))),
         )
+    }
+
+    @Test
+    fun `the import summary shows only what happened`() {
+        val quiet = Texts.backupImported(counts())
+        assertTrue("trasy: 3" in quiet, quiet)
+        assertTrue("tankowania: 2" in quiet, quiet)
+        assertTrue("odczyty paliwa: 4" in quiet, quiet)
+        for (absent in listOf("Uzupełnione ceny", "Pominięte tankowania", "Trasy innego pojazdu")) {
+            assertTrue(absent !in quiet, "$absent in: $quiet")
+        }
+
+        val loud = Texts.backupImported(counts(updated = 5, skipped = 7, other = 9))
+        assertTrue("Uzupełnione ceny tankowań: 5." in loud, loud)
+        assertTrue("Pominięte tankowania (odrzucone w tym telefonie): 7." in loud, loud)
+        assertTrue("Trasy innego pojazdu: 9" in loud, loud)
+    }
+
+    @Test
+    fun `every backup text is a polish sentence`() {
+        for (text in listOf(
+            Texts.BACKUP_TITLE,
+            Texts.BACKUP_EXPORT,
+            Texts.BACKUP_IMPORT,
+            Texts.BACKUP_WARNING_TITLE,
+            Texts.BACKUP_WARNING_BODY,
+            Texts.BACKUP_WARNING_OK,
+            Texts.BACKUP_WARNING_CANCEL,
+            Texts.BACKUP_EXPLANATION,
+            Texts.backupExported(3),
+            Texts.backupImported(counts()),
+            Texts.BACKUP_UNSUPPORTED,
+            Texts.BACKUP_CORRUPT,
+            Texts.BACKUP_TOO_LARGE,
+            Texts.BACKUP_FAILED,
+            Texts.lastBackup("31.10.2026"),
+            Texts.BACKUP_NONE_YET,
+            Texts.BACKUP_REMINDER_NEVER,
+            Texts.backupReminderOverdue(31),
+        )) {
+            assertTrue(text.isNotBlank(), text)
+            assertTrue(text.first().isUpperCase(), text)
+        }
+    }
+
+    @Test
+    fun `the backup messages say what was kept and the reminder counts days`() {
+        assertEquals("Zapisano kopię archiwum (trasy: 3).", Texts.backupExported(3))
+        assertEquals("Ostatnia kopia archiwum: 31.10.2026", Texts.lastBackup("31.10.2026"))
+        assertTrue("31 dni" in Texts.backupReminderOverdue(31), Texts.backupReminderOverdue(31))
+        for (text in listOf(Texts.BACKUP_UNSUPPORTED, Texts.BACKUP_CORRUPT, Texts.BACKUP_TOO_LARGE)) {
+            assertTrue("Nic nie zostało zapisane" in text, text)
+        }
     }
 
     @Test

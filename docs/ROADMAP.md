@@ -24,12 +24,14 @@
   powiadomienie z deep linkiem do formularza ceny i okno w aplikacji (F2c)
 - Szacunek litrów z czujnika i wybór źródła litrów (`estimate_refuel_liters`, SPEC §2a, §11): „Użyj szacunku”
   / „Z paragonu” w formularzu ceny, `liters_source` zapisywane przez `SyncEngine.confirmRefuel` (F2a)
+- Odporność na błędy lokalnego archiwum: `SyncErrorKind.STORAGE`, synchronizacja bez wyjątków (SPEC §8.4–§8.5)
+- Kopia archiwum: eksport/import całego archiwum do pliku JSON i przypomnienie o kopii po 30 dniach (SPEC §14, F7, F8)
 
 ## NOW
 - Test klienta Toyoty na prawdziwym koncie: `./gradlew -q :core:liveCheck` (uruchamia właściciel, docs/HANDOFF.md)
 
 ## NEXT
-- Eksport CSV, ręczny eksport/import archiwum, przypomnienie o backupie (F6–F8)
+- Eksport CSV tras z kosztem (F6)
 
 ## LATER (kolejność wg wartości / kosztu)
 - F9 dziennik tankowań + „komputer vs faktyczne” (tylko litry z paragonu, SPEC §2)

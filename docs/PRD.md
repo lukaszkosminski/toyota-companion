@@ -26,8 +26,8 @@ Jeden właściciel pojazdu (właściciel projektu). Brak użytkowników zewnętr
 | F4 | Przeliczenie wstecz | Po potwierdzeniu ceny koszty tras są przeliczane (SPEC §5) |
 | F5 | Archiwum tras | Trasy z API Toyoty zapisywane lokalnie, deduplikacja po `trip.id`; zachowywane są też współrzędne start/koniec, `scores` i `hdc` (F11–F13) |
 | F6 | Eksport CSV | Eksport wszystkich tras z kosztem |
-| F7 | Ręczny backup archiwum | Użytkownik eksportuje pełne archiwum (trasy, tankowania, odczyty) do wybranego pliku (systemowy wybór pliku) i może je zaimportować na nowym telefonie bez duplikatów (deduplikacja po `id`) |
-| F8 | Przypomnienie o backupie | Aplikacja pokazuje datę ostatniego eksportu i przypomina, gdy minęło > 30 dni |
+| F7 | Ręczny backup archiwum | Użytkownik eksportuje pełne archiwum (pojazdy, trasy, tankowania, odczyty) do wybranego pliku JSON (systemowy wybór pliku, ostrzeżenie o GPS i VIN) i może je zaimportować na nowym telefonie bez duplikatów (trasy i tankowania po `id`, odczyty po `(vin, ts)`, pojazdy po VIN); tankowanie odrzucone w telefonie, a wycenione w pliku, zostaje odrzucone i jest pokazane jako pominięte (SPEC §14) |
+| F8 | Przypomnienie o backupie | Aplikacja pokazuje datę ostatniego eksportu i przypomina, gdy minęło > 30 dni albo kopii nie było, a archiwum ma trasy; przypomnienie w aplikacji, bez powiadomienia (SPEC §14.3) |
 
 ### Funkcje po MVP (zgłoszone przez właściciela 2026-10-28)
 Źródło danych: pola dostępne w API Toyoty (model `_TripModel` w pytoyoda v6.0.0). Trasy mają `summary.start_lat/lon`,

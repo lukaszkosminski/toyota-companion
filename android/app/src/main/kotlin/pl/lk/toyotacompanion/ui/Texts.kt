@@ -4,6 +4,7 @@ import java.math.BigDecimal
 import java.time.ZoneId
 import pl.lk.toyotacompanion.core.data.SyncErrorKind
 import pl.lk.toyotacompanion.core.data.SyncStatus
+import pl.lk.toyotacompanion.core.sync.ArchiveImportCounts
 import pl.lk.toyotacompanion.core.sync.RefuelChange
 
 /**
@@ -245,4 +246,57 @@ object Texts {
     /** Opens the full form of C3 with liters and total cost. */
     const val REFUEL_PROMPT_MORE = "Wi\u0119cej"
 
+
+    // Kopia archiwum (PRD F7, F8, docs/SPEC.md §14).
+
+    /** Status button and the title of the backup screen. */
+    const val BACKUP_TITLE = "Kopia archiwum"
+
+    const val BACKUP_EXPORT = "Eksportuj archiwum"
+    const val BACKUP_IMPORT = "Importuj archiwum"
+
+    /** Shown before the system file picker, docs/SECURITY.md. */
+    const val BACKUP_WARNING_TITLE = "Plik z danymi osobowymi"
+    const val BACKUP_WARNING_BODY =
+        "Kopia zawiera trasy z położeniem GPS i numer VIN samochodu. Zapisz ją w bezpiecznym miejscu i nie udostępniaj."
+    const val BACKUP_WARNING_OK = "Eksportuj"
+    const val BACKUP_WARNING_CANCEL = "Anuluj"
+
+    /** Explains the screen: the phone is the only place the old trips live (ADR-006). */
+    const val BACKUP_EXPLANATION =
+        "Toyota usuwa trasy starsze niż około rok, więc archiwum jest tylko w tym telefonie. " +
+            "Kopia to jeden plik – import na nowym telefonie dodaje tylko to, czego jeszcze nie ma."
+
+    fun backupExported(trips: Int): String = "Zapisano kopię archiwum (trasy: $trips)."
+
+    /** Counts without Polish plural forms: "trasy: 3" reads right for every number. */
+    fun backupImported(counts: ArchiveImportCounts): String = buildString {
+        append("Zaimportowano – trasy: ${counts.tripsAdded}, tankowania: ${counts.refuelsAdded}, ")
+        append("odczyty paliwa: ${counts.readingsAdded}.")
+        if (counts.refuelsUpdated > 0) append(" Uzupełnione ceny tankowań: ${counts.refuelsUpdated}.")
+        if (counts.refuelsSkipped > 0) {
+            append(" Pominięte tankowania (odrzucone w tym telefonie): ${counts.refuelsSkipped}.")
+        }
+        if (counts.otherVehicleTrips > 0) {
+            append(" Trasy innego pojazdu: ${counts.otherVehicleTrips} – widać je przy tamtym pojeździe.")
+        }
+    }
+
+    const val BACKUP_UNSUPPORTED =
+        "To nie jest kopia archiwum tej aplikacji albo pochodzi z nowszej wersji. Nic nie zostało zapisane."
+    const val BACKUP_CORRUPT = "Plik kopii jest uszkodzony. Nic nie zostało zapisane."
+    const val BACKUP_TOO_LARGE = "Plik jest za duży na kopię archiwum. Nic nie zostało zapisane."
+    const val BACKUP_FAILED = "Nie udało się zapisać ani odczytać pliku. Spróbuj ponownie."
+
+    /** Status line under the backup button, e.g. `Ostatnia kopia archiwum: 31.10.2026`. */
+    fun lastBackup(date: String): String = "Ostatnia kopia archiwum: $date"
+
+    const val BACKUP_NONE_YET = "Archiwum nie ma jeszcze kopii"
+
+    /** F8 reminder card on the status screen. */
+    const val BACKUP_REMINDER_NEVER =
+        "Zrób kopię archiwum – trasy starsze niż rok są już tylko w tym telefonie."
+
+    fun backupReminderOverdue(days: Long): String =
+        "Od ostatniej kopii archiwum minęło $days dni – zrób nową."
 }

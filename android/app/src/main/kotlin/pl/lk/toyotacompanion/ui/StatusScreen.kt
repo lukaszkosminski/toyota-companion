@@ -66,6 +66,9 @@ fun StatusScreen(
     onShowRefuels: () -> Unit,
     defaultPrice: BigDecimal?,
     onShowDefaultPrice: () -> Unit,
+    backupReminder: BackupReminder,
+    lastBackupLine: String,
+    onShowBackup: () -> Unit,
     onLogout: () -> Unit,
     askNotificationPermission: suspend () -> Boolean,
 ) {
@@ -159,6 +162,19 @@ fun StatusScreen(
                 ) {
                     Text(Texts.defaultPricePrompt(defaultPrice))
                 }
+                // The archive lives only on this phone (ADR-006); F8 asks for a copy (docs/SPEC.md §14.3).
+                when (backupReminder) {
+                    BackupReminder.Never -> ReminderCard(Texts.BACKUP_REMINDER_NEVER)
+                    is BackupReminder.Overdue -> ReminderCard(Texts.backupReminderOverdue(backupReminder.days))
+                    BackupReminder.None -> Unit
+                }
+                OutlinedButton(
+                    onClick = onShowBackup,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(Texts.BACKUP_TITLE)
+                }
+                Text(lastBackupLine, style = MaterialTheme.typography.bodySmall)
             }
         }
     }
@@ -232,5 +248,19 @@ private fun RowScope.Stat(value: Int, caption: String) {
     ) {
         Text(value.toString(), style = MaterialTheme.typography.headlineSmall)
         Text(caption, style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+/** A reminder, not an error: the tertiary colours of the theme instead of the error card. */
+@Composable
+private fun ReminderCard(text: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        ),
+    ) {
+        Text(text, modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium)
     }
 }
