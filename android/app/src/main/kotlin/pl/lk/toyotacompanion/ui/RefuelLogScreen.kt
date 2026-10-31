@@ -5,17 +5,22 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -23,8 +28,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
@@ -47,6 +56,8 @@ fun RefuelLogScreen(
 ) {
     BackHandler(onBack = onBack)
     val state by controller.state.collectAsState()
+    // Which confirmed refuel the correction dialog edits; an id is not a secret.
+    var amendingId by rememberSaveable { mutableStateOf<String?>(null) }
     // The navigation callback reads the log; this only covers a screen restored after a process death.
     LaunchedEffect(Unit) { controller.ensureLoaded() }
 
@@ -85,7 +96,15 @@ fun RefuelLogScreen(
                     if (open != null) item(key = "open") { EconomyCard(open, title = Texts.LOG_CURRENT) }
                     items(log.refuels, key = { it.id }) { refuel ->
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            RefuelRow(refuel, zone)
+                            RefuelRow(
+                                refuel = refuel,
+                                zone = zone,
+                                busy = state.busyId != null,
+                                onAmend = {
+                                    controller.amendDismissed()
+                                    amendingId = refuel.id
+                                },
+                            )
                             closedBy[refuel.id]?.let { EconomyCard(it, title = null) }
                         }
                     }
@@ -93,6 +112,84 @@ fun RefuelLogScreen(
             }
         }
     }
+    val amending = amendingId?.let { id -> state.log.refuels.firstOrNull { it.id == id } }
+    if (amending != null) {
+        AmendDialog(
+            refuel = amending,
+            busy = state.busyId == amending.id,
+            error = state.amendError,
+            onSave = { liters, total, full -> controller.amendLiters(amending.id, liters, total, full) },
+            onDismiss = {
+                controller.amendDismissed()
+                amendingId = null
+            },
+        )
+    }
+    // The write went through: the dialog closes, the fresh log shows the correction.
+    LaunchedEffect(state.amendedId) {
+        if (state.amendedId != null && state.amendedId == amendingId) {
+            amendingId = null
+            controller.amendDismissed()
+        }
+    }
+}
+
+/**
+ * Correction of a confirmed refuel with the receipt (docs/SPEC.md §15.3). The liters
+ * field starts empty on purpose: only a number the user typed becomes "z paragonu", so a
+ * sensor estimate can never be passed off as a receipt. "Do pełna" needs liters.
+ */
+@Composable
+private fun AmendDialog(
+    refuel: Refuel,
+    busy: Boolean,
+    error: String?,
+    onSave: (liters: String, total: String, filledToFull: Boolean) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var litersText by rememberSaveable(refuel.id) { mutableStateOf("") }
+    var totalText by rememberSaveable(refuel.id) { mutableStateOf("") }
+    var full by rememberSaveable(refuel.id) { mutableStateOf(refuel.filledToFull == true) }
+    val litersGiven = parseRefuelAmount(litersText) is RefuelAmount.Given
+    AlertDialog(
+        onDismissRequest = { if (!busy) onDismiss() },
+        title = { Text(Texts.AMEND_TITLE) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(Texts.AMEND_BODY, style = MaterialTheme.typography.bodyMedium)
+                OutlinedTextField(
+                    value = litersText,
+                    onValueChange = { litersText = it },
+                    label = { Text(Texts.AMEND_FIELD_LITERS) },
+                    singleLine = true,
+                    enabled = !busy,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+                OutlinedTextField(
+                    value = totalText,
+                    onValueChange = { totalText = it },
+                    label = { Text(Texts.AMEND_FIELD_TOTAL) },
+                    singleLine = true,
+                    enabled = !busy,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(Texts.REFUEL_FILLED_FULL, modifier = Modifier.weight(1f))
+                    // Shows the stored mark even before liters are typed; only liters make it editable.
+                    Switch(checked = full, onCheckedChange = { full = it }, enabled = litersGiven && !busy)
+                }
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(litersText, totalText, full && litersGiven) }, enabled = !busy) {
+                Text(Texts.AMEND_SAVE)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !busy) { Text(Texts.AMEND_CANCEL) }
+        },
+    )
 }
 
 @Composable
@@ -104,7 +201,7 @@ private fun Centered(innerPadding: PaddingValues, content: @Composable () -> Uni
 }
 
 @Composable
-private fun RefuelRow(refuel: Refuel, zone: ZoneId) {
+private fun RefuelRow(refuel: Refuel, zone: ZoneId, busy: Boolean, onAmend: () -> Unit) {
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(
             RefuelFormatting.time(refuel.ts, zone) + Texts.SEPARATOR +
@@ -117,6 +214,7 @@ private fun RefuelRow(refuel: Refuel, zone: ZoneId) {
             refuel.totalCost?.let { TripsFormatting.money(it) },
         )
         if (money.isNotEmpty()) Text(money.joinToString(Texts.SEPARATOR), style = MaterialTheme.typography.bodyMedium)
+        TextButton(onClick = onAmend, enabled = !busy) { Text(Texts.AMEND_BUTTON) }
     }
 }
 

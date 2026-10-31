@@ -184,6 +184,7 @@ object Texts {
         is RefuelChange.Done -> null
         RefuelChange.Invalid -> REFUEL_WRITE_ERROR
         RefuelChange.NotFound, RefuelChange.NotPending, RefuelChange.NoVehicle -> REFUEL_STALE_ENTRY
+        RefuelChange.NotConfirmed -> AMEND_NOT_CONFIRMED
     }
 
     // ---------------- domyślna cena paliwa (docs/SPEC.md §12) ----------------
@@ -318,6 +319,17 @@ object Texts {
     fun economyOdometer(distance: String): String = "licznik $distance"
     fun economyEv(distance: String): String = "w tym EV $distance"
     fun economyComputerSoFar(consumption: String): String = "komputer $consumption"
+
+    // Poprawka potwierdzonego tankowania (docs/SPEC.md §15.3).
+    const val AMEND_BUTTON = "Popraw litry"
+    const val AMEND_TITLE = "Litry z paragonu"
+    const val AMEND_BODY = "Wpisz litry z paragonu. Kwota jest opcjonalna – z nią cena za litr policzy się z paragonu."
+    const val AMEND_FIELD_LITERS = "Litry z paragonu"
+    const val AMEND_FIELD_TOTAL = "Kwota z paragonu (opcjonalnie)"
+    const val AMEND_SAVE = "Zapisz"
+    const val AMEND_CANCEL = "Anuluj"
+    const val AMEND_LITERS_REQUIRED = "Podaj litry z paragonu."
+    const val AMEND_NOT_CONFIRMED = "Najpierw podaj cenę tego tankowania."
 
     const val ECONOMY_OPEN = "Czeka na kolejne tankowanie do pełna."
     const val ECONOMY_PENDING = "Brak porównania: tankowanie w tym odcinku czeka na cenę."

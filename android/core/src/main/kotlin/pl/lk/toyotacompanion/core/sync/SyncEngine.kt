@@ -172,19 +172,55 @@ class SyncEngine(
     suspend fun dismissRefuel(id: String): RefuelChange = editRefuel(id) { domainDismissRefuel(it) }
 
     /**
+     * Corrects the liters of a **confirmed** refuel with the receipt (PRD F9, docs/SPEC.md
+     * §15.3): the liters become `RECEIPT` and [filledToFull] is set. With [totalCost] the
+     * domain derives the real price from the receipt (liters + total); without it the
+     * stored price stays and the total is price × liters. Same write path as a price:
+     * under the mutex, costs recomputed (the liters change the tank price, §6).
+     * `NotConfirmed` for a pending or dismissed entry; the domain alone validates.
+     */
+    suspend fun amendRefuel(
+        id: String,
+        liters: BigDecimal,
+        totalCost: BigDecimal? = null,
+        filledToFull: Boolean,
+    ): RefuelChange = editRefuel(
+        id,
+        required = RefuelStatus.CONFIRMED,
+        // A confirmed entry is never in pending(vin); all(vin) proves it is of this car.
+        belongsToVehicle = { vin -> refuels.all(vin).any { it.id == id } },
+    ) { stored ->
+        domainConfirmRefuel(
+            stored,
+            pricePerLiter = if (totalCost == null) stored.pricePerLiter else null,
+            liters = liters,
+            totalCost = totalCost,
+            litersSource = LitersSource.RECEIPT,
+            filledToFull = filledToFull,
+        )
+    }
+
+    /**
      * The one write path of both edits. The write and the recount run under the
      * same [mutex] as the synchronization, so no other run can see a confirmed
      * refuel whose trip costs were not recomputed yet (docs/SPEC.md §11.1). A
      * rejection by the domain leaves the archive untouched, and
      * `CancellationException` is never caught here.
      */
-    private suspend fun editRefuel(id: String, edit: (Refuel) -> Refuel): RefuelChange =
+    private suspend fun editRefuel(
+        id: String,
+        required: RefuelStatus = RefuelStatus.PENDING,
+        belongsToVehicle: suspend (vin: String) -> Boolean = { vin -> refuels.pending(vin).any { it.id == id } },
+        edit: (Refuel) -> Refuel,
+    ): RefuelChange =
         mutex.withLock {
             val vin = state.get().vin ?: return@withLock RefuelChange.NoVehicle
             val stored = refuels.byId(id) ?: return@withLock RefuelChange.NotFound
-            if (stored.status != RefuelStatus.PENDING) return@withLock RefuelChange.NotPending
+            if (stored.status != required) {
+                return@withLock if (required == RefuelStatus.PENDING) RefuelChange.NotPending else RefuelChange.NotConfirmed
+            }
             // An entry of another vehicle is invisible to this screen, so it counts as missing.
-            if (refuels.pending(vin).none { it.id == id }) return@withLock RefuelChange.NotFound
+            if (!belongsToVehicle(vin)) return@withLock RefuelChange.NotFound
             val edited = try {
                 edit(stored)
             } catch (e: IllegalArgumentException) {

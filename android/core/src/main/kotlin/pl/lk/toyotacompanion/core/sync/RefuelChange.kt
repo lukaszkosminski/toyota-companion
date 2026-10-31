@@ -30,6 +30,12 @@ sealed class RefuelChange {
     /** The entry exists but is already confirmed or dismissed, so nothing was written. */
     data object NotPending : RefuelChange()
 
+    /**
+     * A correction was asked for an entry that is not confirmed — it still waits for a
+     * price or was dismissed (docs/SPEC.md §15.3); nothing was written.
+     */
+    data object NotConfirmed : RefuelChange()
+
     /** The domain refused the values; nothing was written and nothing was recomputed. */
     data object Invalid : RefuelChange()
 

@@ -188,7 +188,8 @@ class RefuelController(
             // its notification stays (docs/SPEC.md §11.3, §13.1).
             val stale = when (change) {
                 RefuelChange.NotFound, RefuelChange.NotPending -> true
-                is RefuelChange.Done, RefuelChange.Invalid, RefuelChange.NoVehicle -> false
+                // NotConfirmed comes only from a correction of the log (§15.3), never from this form.
+                is RefuelChange.Done, RefuelChange.Invalid, RefuelChange.NoVehicle, RefuelChange.NotConfirmed -> false
             }
             ui.value = ui.value.copy(
                 busyId = null,

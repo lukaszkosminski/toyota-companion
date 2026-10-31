@@ -130,3 +130,8 @@
   `round_consumption`/`round_percent`/`round_distance`. `SyncEngine.refuelLog()`, ekran „Dziennik tankowań” ze statusu
   (karta spalania pod tankowaniem kończącym odcinek, bieżący odcinek, licznik informacyjnie, „w tym EV”). Testy:
   Python +26, core +31, app +20 (app: 270 testów, core: 270, Python: 110)
+- Domknięcie MVP: ikona aplikacji (adaptacyjna, wektorowa, czerwień Toyoty z białą kroplą, wersja monochrome) oraz
+  poprawka potwierdzonego tankowania z paragonu (SPEC §15.3): „Popraw litry” w dzienniku – litry z paragonu (pole
+  startuje puste), opcjonalna kwota z paragonu (wtedy cena liczy się z paragonu), „Do pełna”; `SyncEngine.amendRefuel`
+  tylko dla potwierdzonych (`RefuelChange.NotConfirmed`), przynależność do pojazdu przez `refuels.all(vin)`, koszty
+  przeliczane. Testy: core +13, app +7 (app: 277 testów, core: 283, Python: 110)
