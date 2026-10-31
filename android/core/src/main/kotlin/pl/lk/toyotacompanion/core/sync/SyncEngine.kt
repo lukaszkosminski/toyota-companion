@@ -7,6 +7,9 @@ import java.time.ZoneOffset
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import pl.lk.toyotacompanion.core.data.ArchiveReading
+import pl.lk.toyotacompanion.core.data.ArchiveRefuel
+import pl.lk.toyotacompanion.core.data.ArchiveSnapshot
 import pl.lk.toyotacompanion.core.data.CostRepository
 import pl.lk.toyotacompanion.core.data.FuelReadingRepository
 import pl.lk.toyotacompanion.core.data.RefuelRepository
@@ -188,6 +191,93 @@ class SyncEngine(
             }
             refuels.update(edited)
             RefuelChange.Done(edited, recomputeAndSave(vin))
+        }
+
+    /**
+     * The whole archive for the backup file (PRD F7, docs/SPEC.md §14): every
+     * vehicle and, for each of them, its trips, refuels and fuel readings. No costs
+     * (they are recomputed), no [SyncState] and no secrets. Waits for a running
+     * synchronization ([kotlinx.coroutines.sync.Mutex.withLock]) so the copy is
+     * consistent; no network.
+     */
+    suspend fun exportArchive(): ArchiveSnapshot =
+        mutex.withLock {
+            val fleet = vehicles.all()
+            ArchiveSnapshot(
+                exportedAt = clock(),
+                vehicles = fleet,
+                trips = fleet.flatMap { trips.all(it.vin) },
+                refuels = fleet.flatMap { vehicle -> refuels.all(vehicle.vin).map { ArchiveRefuel(vehicle.vin, it) } },
+                // Readings are never older than the epoch; `since` with it reads them all.
+                readings = fleet.flatMap { vehicle ->
+                    readings.since(Instant.EPOCH, vehicle.vin).map { ArchiveReading(vehicle.vin, it) }
+                },
+            )
+        }
+
+    /**
+     * Adds a decoded backup to the archive (PRD F7, docs/SPEC.md §14). Rows already
+     * on the phone stay as they are, except a refuel still waiting for a price
+     * here that the file has priced or refused. Costs of the selected vehicle are
+     * recomputed afterwards. Under the same mutex as a synchronization, waiting
+     * for it like [confirmRefuel]; the collision rule belongs to this layer, not to
+     * the domain, so it has no Python mirror.
+     */
+    suspend fun importArchive(snapshot: ArchiveSnapshot): ArchiveImport =
+        mutex.withLock {
+            var vehiclesAdded = 0
+            for (vehicle in snapshot.vehicles) {
+                if (vehicles.byVin(vehicle.vin) == null) {
+                    vehicles.upsert(vehicle)
+                    vehiclesAdded++
+                }
+            }
+
+            var tripsAdded = 0
+            for ((vin, records) in snapshot.trips.groupBy { it.vin }) {
+                val known = trips.all(vin).mapTo(HashSet()) { it.id }
+                val fresh = records.filter { it.id !in known }.distinctBy { it.id }
+                if (fresh.isNotEmpty()) tripsAdded += trips.upsertAll(fresh)
+            }
+
+            var refuelsAdded = 0
+            var refuelsUpdated = 0
+            var refuelsSkipped = 0
+            for (entry in snapshot.refuels) {
+                val incoming = entry.refuel
+                val stored = refuels.byId(incoming.id)
+                when {
+                    stored == null -> if (refuels.addIfAbsent(incoming, entry.vin)) refuelsAdded++
+                    stored.status == RefuelStatus.PENDING && incoming.status != RefuelStatus.PENDING -> {
+                        refuels.update(incoming)
+                        refuelsUpdated++
+                    }
+                    stored.status == RefuelStatus.DISMISSED && incoming.status == RefuelStatus.CONFIRMED ->
+                        refuelsSkipped++
+                    else -> Unit
+                }
+            }
+
+            var readingsAdded = 0
+            for (entry in snapshot.readings) {
+                if (readings.addIfAbsent(entry.reading, entry.vin)) readingsAdded++
+            }
+
+            val vin = state.get().vin
+            val tripsCosted = if (vin != null) recomputeAndSave(vin) else 0
+            ArchiveImport.Done(
+                ArchiveImportCounts(
+                    vehiclesAdded = vehiclesAdded,
+                    tripsAdded = tripsAdded,
+                    refuelsAdded = refuelsAdded,
+                    refuelsUpdated = refuelsUpdated,
+                    refuelsSkipped = refuelsSkipped,
+                    readingsAdded = readingsAdded,
+                    // Without a selected vehicle there is no "other" one to point at.
+                    otherVehicleTrips = if (vin == null) 0 else snapshot.trips.count { it.vin != vin },
+                    tripsCosted = tripsCosted,
+                ),
+            )
         }
 
     // ---------------- steps ----------------

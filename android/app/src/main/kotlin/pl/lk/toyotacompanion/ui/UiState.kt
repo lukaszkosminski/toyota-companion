@@ -68,4 +68,7 @@ enum class Screen {
 
     /** Default fuel price of the phone (docs/SPEC.md §12.3). */
     DefaultPrice,
+
+    /** Export and import of the whole archive (docs/SPEC.md §14). */
+    Backup,
 }

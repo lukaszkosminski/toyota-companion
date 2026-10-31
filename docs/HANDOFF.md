@@ -14,7 +14,7 @@
   karta błędu `errorContainer`; status z `TopAppBar`, `PullToRefreshBox`, kartą liczników, chipem stanu,
   `HorizontalDivider` i `AlertDialog` potwierdzającym „Wyloguj”. `SessionController.reload()` powtarza tylko
   odczyt lokalnej bazy (bez API Toyoty i bez `refresh_status`).
-- Testy: core 216, app 196 (JUnit 4, w tym Robolectric), Python 84. CI: ruff/mypy/pytest, Android (core + app unit), gitleaks 8.30.1.
+- Testy: core 239, app 226 (JUnit 4, w tym Robolectric), Python 84. CI: ruff/mypy/pytest, Android (core + app unit), gitleaks 8.30.1.
 - Lista tras z kosztem (SPEC §10): `SyncEngine.trips()` — trasy bieżącego VIN od najnowszej, wszystkie koszty jednym odczytem `costs.all()` (bez zapytania na trasę), brak VIN = pusta lista, bez sieci i bez `mutex` synchronizacji; w `app` czyste funkcje `groupTripsByMonth` (miesiąc z `trip.start` w przekazanej strefie, sumy km/l/zł, licznik tras bez ceny, `totalCost = null` gdy żadna trasa nie ma ceny) i `TripsFormatting` (przecinek, `HALF_UP`, własna tablica 12 nazw miesięcy w mianowniku, start `29.10 14:05`, formaty niezależne od `Locale`); ekran `TripsScreen` (nazwa + sumy miesiąca, wiersze z `key = trip.id`, cena za litr · a przy „cena domyślna” także dopisek w tej samej linii, `contentPadding` z `innerPadding`, stany ładowanie/pusto/błąd bez treści wyjątku, `TextButton` „Wstecz” + `BackHandler`) i przycisk „Trasy” na ekranie statusu; `AppContainer.tripsLoader` jako jedyne wejście do bazy, `AppRoot` przełącza ekrany enumem `Screen` w `rememberSaveable` (reset do statusu po wylogowaniu przez `LaunchedEffect`). Na ekranie brak współrzędnych GPS i VIN (SECURITY.md).
 - Formularz ceny tankowania (SPEC §11): `pendingRefuels()`, `confirmRefuel(...)` i `dismissRefuel(id)` w `SyncEngine`
   zwracają `RefuelChange` (`Done`, `NotFound`, `NotPending`, `Invalid`, `NoVehicle`). Zapis i przeliczenie kosztów idą
@@ -70,6 +70,12 @@
   `ESTIMATE` tylko dla pary cena + litry, szacunek z kwotą bez ceny to błąd pola „Cena” (D3). Okno C5 bez zmian.
   Plan: briefs/toyota-companion/C6-plan.md (v2, poza repo). Domena i testy Kotlin/Python oraz testy UI
   napisał agent 1, sprawdzone przez agenta 2; Python 84, core 208, app 193.
+- Kopia archiwum (PRD F7, F8, SPEC §14): `core/data/ArchiveFile.kt` (JSON z `format`/`version`, `Unsupported`/`Corrupt`),
+  `SyncEngine.exportArchive`/`importArchive` pod `mutex.withLock` (reguła kolizji w `core/sync`, bez lustra w Pythonie),
+  `BackupController` (pliki jako tekst `Uri`, I/O w `AppContainer` przez `ContentResolver`, limit 20 MB), ekran „Kopia
+  archiwum” z ostrzeżeniem o GPS/VIN, przypomnienie F8 na statusie. Format pliku i testy napisał agent 1, reszta i
+  przegląd – agent 2; agent 1 znalazł 3 usterki w kodzie agenta 2 (odczyt daty z obcą wartością, podwójny odczyt
+  daty, „trasy innego pojazdu” bez wybranego pojazdu) – poprawione z testami. Eksport CSV (F6) to następny etap.
 
 ## Następny krok
 Sprawdzone na emulatorze (API 36) 2026-10-29: logowanie prawdziwym kontem, pierwsza synchronizacja (562 trasy, 1 odczyt),
@@ -80,7 +86,13 @@ Sprawdzone na emulatorze (API 36) 2026-10-31, build C5 po przeglądzie: prośba 
 Sprawdzone na emulatorze 2026-10-31, build C6: wiersz „Szacunek z czujnika: ok. 27,52 l” dla wpisu 30 % → 94 %,
 „Użyj szacunku” wpisuje 27,52, „Z paragonu” zdejmuje oznaczenie, szacunek z kwotą bez ceny daje błąd pola „Cena”
 i nic nie zapisuje; brak awarii.
-- Następny krok: eksport CSV, ręczny eksport/import archiwum, przypomnienie o backupie (F6–F8, ROADMAP „NEXT”).
+Sprawdzone na emulatorze 2026-10-31, build C7: karta „Zrób kopię archiwum…” na statusie, ostrzeżenie o GPS/VIN,
+eksport do Downloads (`toyota-companion-2026-10-31.json`, 235 kB: 1 pojazd, 562 trasy, 1 tankowanie, 2 odczyty, bez
+sekretów), import tego samego pliku – „trasy: 0, tankowania: 0, odczyty paliwa: 0”, plik ucięty → „uszkodzony”, obcy
+format → „nie jest kopią…”, po eksporcie karta znika i jest „Ostatnia kopia archiwum: 31.10.2026”; brak awarii. Plik
+kopii został w Downloads emulatora. Nie sprawdzone: import do czystej instalacji (wymagałby skasowania danych
+właściciela; pokrywa go test `a file written here restores the same rows on an empty phone`).
+- Następny krok: eksport CSV tras z kosztem (F6, ROADMAP „NEXT”).
 
 Test klienta na prawdziwym koncie MyToyota (uruchamia właściciel; hasło nie trafia do repo ani rozmowy):
 ```bash

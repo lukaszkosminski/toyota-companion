@@ -2,6 +2,7 @@ package pl.lk.toyotacompanion.settings
 
 import android.content.SharedPreferences
 import java.math.BigDecimal
+import java.time.Instant
 
 /**
  * The phone's own settings, kept in the SharedPreferences file `settings`
@@ -74,6 +75,26 @@ class SettingsStore(private val prefs: SharedPreferences) {
         editor.apply()
     }
 
+    /**
+     * When the whole archive was last exported (PRD F8, docs/SPEC.md §14.3), or `null`
+     * when never or when the stored text is garbage. Survives logging out: the copy
+     * belongs to the phone, like the default price.
+     */
+    fun lastArchiveExport(): Instant? {
+        val millis = try {
+            prefs.getLong(KEY_LAST_ARCHIVE_EXPORT, -1L)
+        } catch (e: ClassCastException) {
+            // Something else was stored under the key: read as "never", like a garbage price.
+            return null
+        }
+        return if (millis < 0) null else Instant.ofEpochMilli(millis)
+    }
+
+    /** Stores the moment of a successful archive export. */
+    fun saveLastArchiveExport(at: Instant) {
+        prefs.edit().putLong(KEY_LAST_ARCHIVE_EXPORT, at.toEpochMilli()).apply()
+    }
+
     /** Whether the runtime notification permission was already requested (docs/SPEC.md §13.2). */
     fun notificationsAsked(): Boolean = prefs.getBoolean(KEY_NOTIFICATIONS_ASKED, false)
 
@@ -86,5 +107,6 @@ class SettingsStore(private val prefs: SharedPreferences) {
         const val KEY_DEFAULT_PRICE = "default_price"
         const val KEY_NOTIFIED_REFUELS = "refuel_notified_ids"
         const val KEY_NOTIFICATIONS_ASKED = "notifications_asked"
+        const val KEY_LAST_ARCHIVE_EXPORT = "last_archive_export"
     }
 }

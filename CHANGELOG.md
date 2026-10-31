@@ -107,3 +107,12 @@
   zostaje w stanie „synchronizuję”, „Wyloguj” zawsze kończy na logowaniu, `uiScope` ma `CoroutineExceptionHandler`
   (log tylko z nazwą klasy), nieznany rodzaj błędu w bazie czyta się jako brak. Testy: core +8, app +3
   (app: 196 testów, core: 216, Python: 84)
+- Kopia archiwum (PRD F7, F8, SPEC §14): eksport całego archiwum (pojazdy, trasy z GPS, tankowania, odczyty paliwa)
+  do pliku JSON przez systemowy wybór pliku, po ostrzeżeniu o GPS i VIN; import bez duplikatów (trasy i tankowania po
+  `id`, odczyty po `(vin, ts)`, pojazdy po VIN), tankowanie oczekujące w telefonie przejmuje cenę z pliku, odrzucone
+  zostaje odrzucone i jest liczone jako pominięte; koszty przeliczane po imporcie. Format w `core/data/ArchiveFile.kt`
+  (koperta z `format`/`version`, własne serializery `Instant`/`BigDecimal`, `Unsupported`/`Corrupt` zamiast wyjątków),
+  limit importu 20 MB. Na statusie przycisk „Kopia archiwum”, data ostatniej kopii i przypomnienie, gdy kopii nie było
+  albo minęło > 30 dni (`backupReminder`, `SettingsStore.lastArchiveExport`). Testy: core +23 (`ArchiveFileTest`,
+  `SyncEngineArchiveTest`), app +30 (`BackupControllerTest` bez Robolectric, `BackupRulesTest`, `SettingsStoreTest`,
+  `TextsTest`) (app: 226 testów, core: 239, Python: 84)

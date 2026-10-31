@@ -1,11 +1,13 @@
 package pl.lk.toyotacompanion
 
 import android.content.Context
+import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.room3.Room
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.work.WorkManager
+import java.io.IOException
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -15,17 +17,14 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import pl.lk.toyotacompanion.core.data.StoredTrip
+import pl.lk.toyotacompanion.core.data.TripRecord
 import pl.lk.toyotacompanion.core.data.VehicleRecord
 import pl.lk.toyotacompanion.core.domain.FuelReading
-import pl.lk.toyotacompanion.core.data.TripRecord
 import pl.lk.toyotacompanion.core.sync.NoCredentialsException
 import pl.lk.toyotacompanion.core.sync.SyncEngine
 import pl.lk.toyotacompanion.core.sync.SyncOutcome
 import pl.lk.toyotacompanion.core.sync.ToyotaGateway
 import pl.lk.toyotacompanion.core.sync.ToyotaGatewayFactory
-import pl.lk.toyotacompanion.notify.RefuelNotifier
-import pl.lk.toyotacompanion.notify.notificationPermissionGranted
-import pl.lk.toyotacompanion.notify.shouldAskNotificationPermission
 import pl.lk.toyotacompanion.data.db.AppDatabase
 import pl.lk.toyotacompanion.data.db.RoomCostRepository
 import pl.lk.toyotacompanion.data.db.RoomFuelReadingRepository
@@ -33,6 +32,9 @@ import pl.lk.toyotacompanion.data.db.RoomRefuelRepository
 import pl.lk.toyotacompanion.data.db.RoomSyncStateRepository
 import pl.lk.toyotacompanion.data.db.RoomTripRepository
 import pl.lk.toyotacompanion.data.db.RoomVehicleRepository
+import pl.lk.toyotacompanion.notify.RefuelNotifier
+import pl.lk.toyotacompanion.notify.notificationPermissionGranted
+import pl.lk.toyotacompanion.notify.shouldAskNotificationPermission
 import pl.lk.toyotacompanion.security.AndroidKeystoreCipher
 import pl.lk.toyotacompanion.security.CredentialStore
 import pl.lk.toyotacompanion.security.EncryptedSecretStore
@@ -40,10 +42,13 @@ import pl.lk.toyotacompanion.security.KeystoreTokenStore
 import pl.lk.toyotacompanion.security.SecretCipher
 import pl.lk.toyotacompanion.settings.SettingsStore
 import pl.lk.toyotacompanion.sync.SyncRunner
+import pl.lk.toyotacompanion.ui.ARCHIVE_IMPORT_LIMIT_BYTES
+import pl.lk.toyotacompanion.ui.BackupController
 import pl.lk.toyotacompanion.ui.DefaultPriceController
 import pl.lk.toyotacompanion.ui.RefuelController
 import pl.lk.toyotacompanion.ui.RefuelPromptController
 import pl.lk.toyotacompanion.ui.SessionController
+import pl.lk.toyotacompanion.ui.readArchiveBytes
 
 /** Hand-wired dependencies (no DI framework). Everything is lazy: nothing touches Keystore or disk at app start. */
 class AppContainer(
@@ -220,6 +225,34 @@ class AppContainer(
             confirmRefuel = { id, price -> syncEngine.confirmRefuel(id, price, null, null, null) },
             onResolved = { id -> uiScope.launch { refuelNotifier.cancel(id) } },
             onSaved = { session.reload() },
+            scope = uiScope,
+            io = Dispatchers.IO,
+        )
+    }
+
+    /**
+     * Backup of the whole archive (PRD F7, F8, docs/SPEC.md §14). The file is the
+     * `Uri` of the system picker, opened through the `ContentResolver`; reading stops
+     * at [ARCHIVE_IMPORT_LIMIT_BYTES]. The date of the last export lives in
+     * `SettingsStore`, next to the default price.
+     */
+    val backupController: BackupController by lazy {
+        BackupController(
+            export = { syncEngine.exportArchive() },
+            import = { snapshot -> syncEngine.importArchive(snapshot) },
+            writeFile = { target, bytes ->
+                // "wt": an existing file chosen again is replaced, not appended to.
+                val out = context.contentResolver.openOutputStream(Uri.parse(target), "wt")
+                    ?: throw IOException("no output stream")
+                out.use { it.write(bytes) }
+            },
+            readFile = { source ->
+                val input = context.contentResolver.openInputStream(Uri.parse(source))
+                    ?: throw IOException("no input stream")
+                input.use { readArchiveBytes(it) }
+            },
+            readLastExport = { settingsStore.lastArchiveExport() },
+            saveLastExport = { at -> settingsStore.saveLastArchiveExport(at) },
             scope = uiScope,
             io = Dispatchers.IO,
         )

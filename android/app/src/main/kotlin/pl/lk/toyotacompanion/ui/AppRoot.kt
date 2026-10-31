@@ -9,6 +9,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import java.time.Instant
+import java.time.ZoneId
 import pl.lk.toyotacompanion.core.data.StoredTrip
 import pl.lk.toyotacompanion.ui.theme.ToyotaTheme
 
@@ -37,6 +39,7 @@ fun AppRoot(
     refuel: RefuelController,
     defaultPrice: DefaultPriceController,
     prompt: RefuelPromptController,
+    backup: BackupController,
     askNotificationPermission: suspend () -> Boolean,
     deepLinkRefuelId: String? = null,
     onDeepLinkShown: () -> Unit = {},
@@ -44,6 +47,7 @@ fun AppRoot(
     val state by session.state.collectAsState()
     val priceState by defaultPrice.state.collectAsState()
     val promptState by prompt.state.collectAsState()
+    val backupState by backup.state.collectAsState()
     var screen by rememberSaveable { mutableStateOf(Screen.Status) }
     // Which entry the price form edits; an id is not a secret (docs/SECURITY.md).
     var editedRefuelId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -65,12 +69,14 @@ fun AppRoot(
             refuel.reset()
             defaultPrice.reset()
             prompt.reset()
+            backup.reset()
         } else {
             // The status button shows the stored price. This effect also restarts when the
             // Activity is recreated, so the read is guarded: the file is touched only while
             // the price is still unknown, never again on a rotation (docs/SPEC.md §12.3).
             defaultPrice.ensureLoaded()
             prompt.ensureLoaded()
+            backup.ensureLoaded()
         }
     }
 
@@ -133,8 +139,27 @@ fun AppRoot(
                         onShowRefuels = { screen = Screen.Refuels },
                         defaultPrice = priceState.price,
                         onShowDefaultPrice = { screen = Screen.DefaultPrice },
+                        // Until the date is read there is no reminder: an unknown date is not "never".
+                        backupReminder = if (backupState.loaded) {
+                            backupReminder(backupState.lastExport, Instant.now(), current.status?.tripsStored ?: 0)
+                        } else {
+                            BackupReminder.None
+                        },
+                        lastBackupLine = backupState.lastExport
+                            ?.let { Texts.lastBackup(backupDate(it, ZoneId.systemDefault())) }
+                            ?: Texts.BACKUP_NONE_YET,
+                        onShowBackup = { screen = Screen.Backup },
                         onLogout = session::logout,
                         askNotificationPermission = askNotificationPermission,
+                    )
+
+                    // Leaving refreshes the counters: an import may have added trips (docs/SPEC.md §14.2).
+                    Screen.Backup -> BackupScreen(
+                        controller = backup,
+                        onBack = {
+                            screen = Screen.Status
+                            session.reload()
+                        },
                     )
 
                     Screen.Trips -> TripsScreen(onBack = { screen = Screen.Status }, loadTrips = loadTrips)
