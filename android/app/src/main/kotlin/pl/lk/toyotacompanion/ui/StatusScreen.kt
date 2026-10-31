@@ -67,6 +67,7 @@ fun StatusScreen(
     onShowRefuelLog: () -> Unit,
     onShowStats: () -> Unit,
     onShowParking: () -> Unit,
+    onShowDrivingStyle: () -> Unit,
     defaultPrice: BigDecimal?,
     onShowDefaultPrice: () -> Unit,
     backupReminder: BackupReminder,
@@ -178,6 +179,13 @@ fun StatusScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(Texts.STATS_TITLE)
+                }
+                // Eco score, repeated routes and fuel anomalies (PRD F12, F13, docs/SPEC.md §19).
+                OutlinedButton(
+                    onClick = onShowDrivingStyle,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(Texts.STYLE_TITLE)
                 }
                 // Places and stops, the only screen with positions (PRD F17, docs/SPEC.md §18).
                 OutlinedButton(

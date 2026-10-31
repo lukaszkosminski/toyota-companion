@@ -318,6 +318,29 @@ object Texts {
         "Pominięte – bez danych o prądzie: $withoutData, krótsze niż 1 km: $tooShort."
     fun statsWindow(window: String, current: Int, previous: Int): String = "$window $current vs $previous"
 
+    // Styl jazdy (PRD F12, F13, docs/SPEC.md §19).
+
+    const val STYLE_TITLE = "Styl jazdy"
+    const val STYLE_EMPTY = "Brak tras do oceny stylu jazdy."
+    const val STYLE_READ_ERROR = "Nie udało się odczytać stylu jazdy. Spróbuj ponownie."
+    const val STYLE_ECO_SECTION = "Wynik eco Toyoty po miesiącach"
+    const val STYLE_ECO_NONE = "Toyota nie przysłała wyników eco."
+    const val STYLE_ROUTES_SECTION = "Ten sam odcinek"
+    fun styleRoutesNone(minTrips: Int): String = "Żaden odcinek nie powtórzył się jeszcze $minTrips razy."
+    const val STYLE_ANOMALIES_SECTION = "Spalanie wyższe niż zwykle"
+    const val STYLE_ANOMALIES_NONE = "Brak przejazdów ze spalaniem wyższym niż zwykle."
+    const val STYLE_ANOMALIES_HINT =
+        "Aplikacja nie zna przyczyny. Częste powody: zimny silnik i mróz, korki, bagaż lub bagażnik dachowy, za niskie ciśnienie w oponach."
+
+    fun styleEco(score: String, trips: Int): String = "$score pkt · ocenione trasy: $trips"
+    fun styleRoute(number: Int): String = "Odcinek $number"
+    fun styleRouteLine(km: String, trips: Int, hour: String?): String =
+        "ok. $km · przejazdy: $trips" + (hour?.let { " · zwykle ok. $it" } ?: "")
+    fun styleRouteFacts(eco: String?, usual: String?): String =
+        listOfNotNull(eco?.let { "eco $it pkt" }, usual?.let { "zwykle $it" }).joinToString(" · ")
+    fun styleAnomaly(route: Int, actual: String, usual: String, excess: String): String =
+        "Odcinek $route: $actual zamiast zwykle $usual ($excess)"
+
     // Postoje (PRD F17, docs/SPEC.md §18).
 
     const val PARKING_TITLE = "Postoje"

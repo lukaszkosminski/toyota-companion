@@ -80,4 +80,7 @@ enum class Screen {
 
     /** Places and recent stops of the car (docs/SPEC.md §18). */
     Parking,
+
+    /** Eco score, repeated routes and fuel anomalies (docs/SPEC.md §19). */
+    DrivingStyle,
 }

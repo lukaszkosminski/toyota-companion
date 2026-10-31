@@ -140,3 +140,7 @@
   zakresie dni; te same 22 testy w Pythonie i Kotlinie), ekran „Statystyki”; ekran „Postoje” – miejsca, do których
   auto wraca, i ostatnie postoje z tras w archiwum (≤ 150 m, 30 min – 21 dni), położenie zaokrąglone do ok. 100 m tylko
   na ekranie. Testy: Python +22, core +22, app +46 (app: 323 testy, core: 305, Python: 132)
+- Styl jazdy i anomalie spalania (PRD F12, F13, SPEC §19): ekran „Styl jazdy” – wynik eco Toyoty po miesiącach (ważony
+  dystansem), odcinki jeżdżone co najmniej 3 razy (start i koniec ≤ 300 m, kierunek ma znaczenie) opisane bez położenia
+  (typowa długość, godzina, eco, spalanie), przejazdy ze spalaniem ≥ 25 % powyżej mediany odcinka z podpowiedzią
+  możliwych przyczyn. Testy: app +29 (app: 352 testy, core: 305, Python: 132)

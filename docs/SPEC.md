@@ -647,3 +647,21 @@ Domena: Python `app/domain/tripstats.py`, Kotlin `core/domain/TripStatsOps.kt` �
   Ekran: miejsca (`54.372, 18.638` – 0,001°, ok. 100 m), 50 ostatnich postojów, liczniki pominiętych. Położenie tylko
   na tym ekranie – nie w logach, CSV, nazwach plików ani innych aplikacjach (bez intentu `geo:` – decyzja właściciela
   otwarta). Nic nie pyta auta o pozycję (`refresh_status()` zakazany).
+
+## §19 Styl jazdy i anomalie spalania (PRD F12, F13)
+Funkcje czyste w `app` na `StoredTrip` (wynik eco i GPS są w `TripRecord`, nie w domenie – jak §18, ADR-008), bez lustra
+w Pythonie.
+- **Ten sam odcinek** (`SameRoutes.kt`): trasy od najstarszej łączone zachłannie z pierwszą grupą, której wzorzec
+  (pierwsza trasa) ma start i koniec ≤ 300 m od startu i końca trasy; kierunek ma znaczenie; trasy bez czterech
+  współrzędnych pomijane. Wzorzec się nie przesuwa, a trasa trafia do **najstarszej** pasującej grupy, nie do
+  najbliższej. Odcinek od 3 przejazdów, od najczęstszego (remis – jeżdżony najpóźniej); ekran pokazuje 10, a anomalie
+  dotyczą tylko pokazanych odcinków (numer anomalii = numer na ekranie).
+- **Bez położenia na ekranie:** odcinek opisany numerem, typową długością (mediana km), liczbą przejazdów, typową
+  godziną startu (najczęstsza pełna godzina, czas lokalny), średnim wynikiem eco ważonym dystansem i medianą l/100 km.
+- **Wynik eco po miesiącach** (`DrivingStyle.kt`): średnia `scoreGlobal` Toyoty ważona dystansem, 0,1 pkt, miesiąc startu
+  w strefie listy tras, od najnowszego; trasy bez wyniku pominięte.
+- **Anomalie:** w pokazanym odcinku z ≥ 5 przejazdami (≥ 2 km, paliwo > 0) przejazd, którego l/100 km przekracza medianę
+  odcinka o ≥ 25 %; mediana 0 (jazda na prądzie) – brak anomalii. „Przejazdy” odcinka to wszystkie trasy, mediana
+  spalania liczy się tylko z przejazdów ≥ 2 km z paliwem > 0; trasy z dystansem niezapisanym poprawnie są pomijane. Od najnowszej, do 20. Aplikacja nie rozpoznaje
+  przyczyny – stała podpowiedź (zimno, korki, bagaż, ciśnienie w oponach).
+- Ekran „Styl jazdy” ze statusu; odczyt w callbacku nawigacji, `reset()` przy wylogowaniu.

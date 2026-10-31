@@ -30,17 +30,18 @@
 - Dziennik tankowań i spalanie „komputer vs faktyczne” od tankowania do pełna do tankowania do pełna (SPEC §15, F9)
 - Ikona aplikacji (adaptacyjna, wektorowa) i poprawka litrów potwierdzonego tankowania z paragonu (SPEC §15.3)
 - Statystyki: jazda na prądzie i ranking tras, lata, pory roku, rok do roku (SPEC §16–§17, F10, F11); „Postoje” (SPEC §18, F17)
+- Styl jazdy: wynik eco po miesiącach, ten sam odcinek, anomalie spalania (SPEC §19, F12, F13)
 
 ## NOW
 - Test klienta Toyoty na prawdziwym koncie: `./gradlew -q :core:liveCheck` (uruchamia właściciel, docs/HANDOFF.md)
 
 ## NEXT
-- Do decyzji właściciela: F12 styl jazdy, F13 anomalie spalania, F16 typy tras, F14 prognoza tankowania,
+- Do decyzji właściciela: F16 typy tras, F14 prognoza tankowania,
   F15 pogoda (wysyła przybliżone współrzędne do Open-Meteo – wymaga zgody); otwarte pytanie: przycisk „Otwórz w mapie”
   w „Postojach” (przekazanie współrzędnych innej aplikacji)
 
 ## LATER (kolejność wg wartości / kosztu)
-- F12 styl jazdy i ten sam odcinek, F13 anomalie spalania, F16 typy tras
+- F16 typy tras
 - F15 pogoda (Open-Meteo), F14 prognoza tankowania
 
 ## DO ZBADANIA
