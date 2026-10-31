@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import pl.lk.toyotacompanion.core.data.ArchiveDecode
 import pl.lk.toyotacompanion.core.data.ArchiveSnapshot
+import pl.lk.toyotacompanion.core.data.StoredTrip
 import pl.lk.toyotacompanion.core.data.decodeArchive
 import pl.lk.toyotacompanion.core.data.encodeArchive
 import pl.lk.toyotacompanion.core.sync.ArchiveImport
@@ -109,6 +110,8 @@ data class BackupUiState(
  * @param writeFile writes the bytes to the chosen file
  * @param readFile reads the chosen file; throws [ArchiveTooLargeException] past the limit
  * @param readLastExport / [saveLastExport] the date in `SettingsStore`
+ * @param loadTrips the trips of the selected vehicle for the CSV (`SyncEngine.trips`, docs/SPEC.md §14.4)
+ * @param zone the zone of the trips list, so the CSV shows the same times
  */
 class BackupController(
     private val export: suspend () -> ArchiveSnapshot,
@@ -117,6 +120,8 @@ class BackupController(
     private val readFile: suspend (source: String) -> ByteArray,
     private val readLastExport: suspend () -> Instant?,
     private val saveLastExport: suspend (Instant) -> Unit,
+    private val loadTrips: suspend () -> List<StoredTrip>,
+    private val zone: () -> ZoneId,
     private val scope: CoroutineScope,
     private val io: CoroutineDispatcher,
 ) {
@@ -163,6 +168,15 @@ class BackupController(
         launchOperation { exportArchiveTo(target) }
     }
 
+    /**
+     * Writes the trips of the selected vehicle as CSV to [target] (PRD F6, docs/SPEC.md §14.4).
+     * Not a backup: the date of the last archive copy stays as it is.
+     */
+    fun exportTripsCsv(target: String) {
+        if (ui.value.busy) return
+        launchOperation { exportCsvTo(target) }
+    }
+
     /** Reads [source] and adds what is missing from the phone (docs/SPEC.md §14.1). */
     fun importFrom(source: String) {
         if (ui.value.busy) return
@@ -190,6 +204,7 @@ class BackupController(
             }
             if (generation != startedIn) return@launch
             ui.value = when (result) {
+                is BackupResult.CsvExported -> ui.value.copy(busy = false, message = Texts.csvExported(result.trips))
                 is BackupResult.Exported -> ui.value.copy(
                     busy = false,
                     lastExport = result.at,
@@ -209,6 +224,15 @@ class BackupController(
         return BackupResult.Exported(snapshot.exportedAt, snapshot.trips.size)
     }
 
+    private suspend fun exportCsvTo(target: String): BackupResult {
+        val trips = withContext(io) { loadTrips() }
+        // The button is disabled without trips; a list that emptied meanwhile writes nothing.
+        if (trips.isEmpty()) return BackupResult.Failed(Texts.CSV_NO_TRIPS)
+        val bytes = (CSV_BOM + tripsCsv(trips, zone())).toByteArray(Charsets.UTF_8)
+        withContext(io) { writeFile(target, bytes) }
+        return BackupResult.CsvExported(trips.size)
+    }
+
     private suspend fun importArchiveFrom(source: String): BackupResult {
         val bytes = try {
             withContext(io) { readFile(source) }
@@ -226,6 +250,7 @@ class BackupController(
 
     private sealed class BackupResult {
         data class Exported(val at: Instant, val trips: Int) : BackupResult()
+        data class CsvExported(val trips: Int) : BackupResult()
         data class Imported(val counts: ArchiveImportCounts) : BackupResult()
         data class Failed(val message: String) : BackupResult()
     }

@@ -10,6 +10,7 @@ import androidx.work.WorkManager
 import java.io.IOException
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -253,6 +254,8 @@ class AppContainer(
             },
             readLastExport = { settingsStore.lastArchiveExport() },
             saveLastExport = { at -> settingsStore.saveLastArchiveExport(at) },
+            loadTrips = tripsLoader,
+            zone = { ZoneId.systemDefault() },
             scope = uiScope,
             io = Dispatchers.IO,
         )

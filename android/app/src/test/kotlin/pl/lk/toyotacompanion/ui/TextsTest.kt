@@ -192,6 +192,18 @@ class TextsTest {
                 Texts.BACKUP_NONE_YET,
                 Texts.BACKUP_REMINDER_NEVER,
                 Texts.backupReminderOverdue(31),
+            ) +
+            // Arkusz tras (docs/SPEC.md §14.4): kazdy nowy tekst i kazda formatowana wartosc.
+            listOf(
+                Texts.CSV_SECTION,
+                Texts.CSV_EXPLANATION,
+                Texts.CSV_EXPORT,
+                Texts.CSV_NO_TRIPS,
+                Texts.csvExported(3),
+                Texts.CSV_HEADER.joinToString(";"),
+                Texts.CSV_SOURCE_REFUEL,
+                Texts.CSV_SOURCE_DEFAULT,
+                csvDateTime(Instant.parse("2026-10-29T14:05:00Z"), ZONE),
             )
         for (text in all) {
             for (forbidden in listOf("token", "Token", "VIN1", "p@ss", "secret")) {
@@ -234,6 +246,25 @@ class TextsTest {
             "Szacunek z czujnika: ok. 14,19 l",
             Texts.refuelEstimateHint(RefuelFormatting.liters(BigDecimal("14.190"))),
         )
+    }
+
+    @Test
+    fun `the files screen is named for the copy and for the export`() {
+        assertEquals("Kopia i eksport", Texts.BACKUP_TITLE)
+        assertEquals("Arkusz kalkulacyjny", Texts.CSV_SECTION)
+        assertTrue("CSV" in Texts.CSV_EXPORT, Texts.CSV_EXPORT)
+        assertEquals("Brak tras do eksportu.", Texts.CSV_NO_TRIPS)
+        assertTrue("GPS" in Texts.CSV_EXPLANATION && "VIN" in Texts.CSV_EXPLANATION, Texts.CSV_EXPLANATION)
+        assertTrue("trasy: 3" in Texts.csvExported(3), Texts.csvExported(3))
+    }
+
+    @Test
+    fun `the csv header cells and the price sources are fixed words`() {
+        // The unit lives in the header, so the cells below stay plain numbers.
+        assertEquals(8, Texts.CSV_HEADER.size)
+        assertEquals(listOf("Start", "Koniec", "Dystans [km]", "Paliwo [l]", "Dystans EV [km]", "Cena [zł/l]", "Koszt [zł]", "Źródło ceny"), Texts.CSV_HEADER)
+        assertEquals("tankowanie", Texts.CSV_SOURCE_REFUEL)
+        assertEquals("cena domy\u015Blna", Texts.CSV_SOURCE_DEFAULT)
     }
 
     @Test

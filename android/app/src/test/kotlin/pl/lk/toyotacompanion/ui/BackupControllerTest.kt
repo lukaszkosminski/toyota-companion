@@ -4,6 +4,7 @@ package pl.lk.toyotacompanion.ui
 
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.ZoneOffset
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
@@ -21,15 +22,18 @@ import pl.lk.toyotacompanion.core.data.ArchiveDecode
 import pl.lk.toyotacompanion.core.data.ArchiveReading
 import pl.lk.toyotacompanion.core.data.ArchiveRefuel
 import pl.lk.toyotacompanion.core.data.ArchiveSnapshot
+import pl.lk.toyotacompanion.core.data.StoredTrip
+import pl.lk.toyotacompanion.core.data.TripRecord
 import pl.lk.toyotacompanion.core.data.VehicleRecord
 import pl.lk.toyotacompanion.core.data.decodeArchive
 import pl.lk.toyotacompanion.core.data.encodeArchive
 import pl.lk.toyotacompanion.core.domain.FuelReading
 import pl.lk.toyotacompanion.core.domain.LitersSource
 import pl.lk.toyotacompanion.core.domain.Refuel
+import pl.lk.toyotacompanion.core.domain.CostSource
 import pl.lk.toyotacompanion.core.domain.RefuelStatus
+import pl.lk.toyotacompanion.core.domain.TripCost
 import pl.lk.toyotacompanion.core.domain.Trip
-import pl.lk.toyotacompanion.core.data.TripRecord
 import pl.lk.toyotacompanion.core.sync.ArchiveImport
 import pl.lk.toyotacompanion.core.sync.ArchiveImportCounts
 
@@ -43,6 +47,17 @@ private val EXPORTED_AT: Instant = Instant.parse("2026-10-05T06:00:00Z")
 private val OLD_EXPORT: Instant = Instant.parse("2026-09-01T06:00:00Z")
 
 private const val TARGET = "content://downloads/archive.json"
+
+private const val CSV_TARGET = "content://downloads/trasy.csv"
+
+/** One row of the spreadsheet: the content itself is tested in [TripsCsvTest]. */
+private fun csvTrip(id: String, start: String): StoredTrip = StoredTrip(
+    record = TripRecord(
+        trip = Trip(id, Instant.parse(start), Instant.parse(start).plusSeconds(1_800), 12.3, BigDecimal("0.600"), 3.2),
+        vin = "VIN1",
+    ),
+    cost = TripCost(id, BigDecimal("3.68"), BigDecimal("6.190"), "r1", CostSource.REFUEL),
+)
 
 private fun snapshotOf(trips: Int = 2): ArchiveSnapshot = ArchiveSnapshot(
     exportedAt = EXPORTED_AT,
@@ -93,6 +108,10 @@ private class FakeBackup {
     var readError: Exception? = null
     var readCalls = 0
 
+    var trips: List<StoredTrip> = listOf(csvTrip("t1", "2026-10-01T08:00:00Z"), csvTrip("t2", "2026-10-02T08:00:00Z"))
+    var loadCalls = 0
+    var loadError: Exception? = null
+
     var lastExport: Instant? = null
     var readDateCalls = 0
     var readDateError: Exception? = null
@@ -124,6 +143,12 @@ private class FakeBackup {
         return fileBytes
     }
 
+    suspend fun loadTrips(): List<StoredTrip> {
+        loadCalls++
+        loadError?.let { throw it }
+        return trips
+    }
+
     suspend fun readDate(): Instant? {
         readDateCalls++
         readDateError?.let { throw it }
@@ -148,6 +173,8 @@ class BackupControllerTest {
         readFile = { backup.read(it) },
         readLastExport = { backup.readDate() },
         saveLastExport = { backup.saveDate(it) },
+        loadTrips = { backup.loadTrips() },
+        zone = { ZoneOffset.UTC },
         scope = CoroutineScope(SupervisorJob() + io),
         io = io,
     )
@@ -353,6 +380,104 @@ class BackupControllerTest {
         val state = controller.state.value
         assertNull(state.lastExport)
         assertTrue(state.loaded, "the screen must not wait forever for a date that will not come")
+    }
+
+    @Test
+    fun `csv export writes a byte order mark and the trips text`() = runTest {
+        val rows = listOf(csvTrip("t2", "2026-10-02T08:00:00Z"), csvTrip("t1", "2026-10-01T08:00:00Z"))
+        val backup = FakeBackup().apply { trips = rows }
+        val controller = controller(backup, StandardTestDispatcher(testScheduler))
+
+        controller.exportTripsCsv(CSV_TARGET)
+        advanceUntilIdle()
+
+        val bytes = requireNotNull(backup.written)
+        assertEquals(CSV_TARGET, backup.writeTarget)
+        assertEquals(0xEF, bytes[0].toInt() and 0xFF, "Excel without a BOM reads cp1250 (docs/SPEC.md §14.4)")
+        assertEquals(0xBB, bytes[1].toInt() and 0xFF)
+        assertEquals(0xBF, bytes[2].toInt() and 0xFF)
+        assertEquals(CSV_BOM + tripsCsv(rows, ZoneOffset.UTC), String(bytes, Charsets.UTF_8))
+        assertEquals(Texts.csvExported(2), controller.state.value.message)
+        assertNull(controller.state.value.error)
+        assertFalse(controller.state.value.busy)
+    }
+
+    @Test
+    fun `csv export leaves the date of the archive copy alone`() = runTest {
+        val backup = FakeBackup().apply { lastExport = OLD_EXPORT }
+        val controller = controller(backup, StandardTestDispatcher(testScheduler))
+
+        controller.ensureLoaded()
+        advanceUntilIdle()
+
+        controller.exportTripsCsv(CSV_TARGET)
+        advanceUntilIdle()
+
+        assertTrue(backup.savedDates.isEmpty(), "a spreadsheet is not a backup (PRD F8)")
+        assertEquals(OLD_EXPORT, controller.state.value.lastExport)
+    }
+
+    @Test
+    fun `an empty trip list writes no file`() = runTest {
+        val backup = FakeBackup().apply { trips = emptyList() }
+        val controller = controller(backup, StandardTestDispatcher(testScheduler))
+
+        controller.exportTripsCsv(CSV_TARGET)
+        advanceUntilIdle()
+
+        assertEquals(1, backup.loadCalls)
+        assertEquals(0, backup.writeCalls, "no file content and no half file (docs/SPEC.md §14.4)")
+        assertEquals(Texts.CSV_NO_TRIPS, controller.state.value.error)
+        assertNull(controller.state.value.message)
+        assertFalse(controller.state.value.busy)
+    }
+
+    @Test
+    fun `a csv write that fails shows the general error`() = runTest {
+        val backup = FakeBackup().apply { writeError = IllegalStateException("cannot write content://downloads/trasy.csv") }
+        val controller = controller(backup, StandardTestDispatcher(testScheduler))
+
+        controller.exportTripsCsv(CSV_TARGET)
+        advanceUntilIdle()
+
+        assertEquals(Texts.BACKUP_FAILED, controller.state.value.error)
+        assertTrue("trasy" !in requireNotNull(controller.state.value.error), "the file name must not reach the screen")
+        assertNull(controller.state.value.message)
+        assertFalse(controller.state.value.busy)
+    }
+
+    @Test
+    fun `a trip read that fails shows the general error`() = runTest {
+        val backup = FakeBackup().apply { loadError = IllegalStateException("archive is unreadable") }
+        val controller = controller(backup, StandardTestDispatcher(testScheduler))
+
+        controller.exportTripsCsv(CSV_TARGET)
+        advanceUntilIdle()
+
+        assertEquals(Texts.BACKUP_FAILED, controller.state.value.error)
+        assertEquals(0, backup.writeCalls)
+    }
+
+    @Test
+    fun `busy blocks a second csv export`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val backup = FakeBackup().apply { writeGate = gate }
+        val controller = controller(backup, StandardTestDispatcher(testScheduler))
+
+        controller.exportTripsCsv(CSV_TARGET)
+        advanceUntilIdle()
+        assertTrue(controller.state.value.busy)
+
+        controller.exportTripsCsv(CSV_TARGET)
+        controller.exportTo(TARGET)
+        advanceUntilIdle()
+        assertEquals(1, backup.loadCalls, "the second request was refused before reading the trips")
+        assertEquals(0, backup.writeCalls)
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(1, backup.writeCalls)
+        assertFalse(controller.state.value.busy)
     }
 
     @Test

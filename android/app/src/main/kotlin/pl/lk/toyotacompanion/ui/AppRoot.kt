@@ -156,6 +156,7 @@ fun AppRoot(
                     // Leaving refreshes the counters: an import may have added trips (docs/SPEC.md §14.2).
                     Screen.Backup -> BackupScreen(
                         controller = backup,
+                        hasTrips = (current.status?.tripsStored ?: 0) > 0,
                         onBack = {
                             screen = Screen.Status
                             session.reload()

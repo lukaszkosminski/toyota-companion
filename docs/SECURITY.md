@@ -14,6 +14,8 @@
 - Plik eksportu zawiera dane osobowe (GPS, VIN) i nie zawiera hasła ani tokenów Toyoty. Aplikacja ostrzega o tym przy eksporcie.
   Zawartość (SPEC §14.1): pojazdy, trasy z GPS, tankowania, odczyty paliwa; bez sekretów, `sync_state`, kosztów i ustawień
   telefonu. Nazwa pliku `toyota-companion-RRRR-MM-DD.json` nie zawiera VIN; treść pliku i wyjątki nie trafiają do logów ani na ekran.
+- Arkusz CSV (F6, SPEC §14.4) nie zawiera GPS ani VIN, ale czasy i dystanse tras to też dane osobowe – plik trafia
+  tylko tam, gdzie wskaże użytkownik; bez ostrzeżenia jak przy kopii. Komórki tekstowe chronione przed CSV injection.
 - CI skanuje sekrety (gitleaks).
 - Zapytania do usług zewnętrznych (np. Open-Meteo, F15) wysyłają tylko zaokrąglone współrzędne (~1 km) i czas; nigdy VIN ani identyfikator konta.
 
