@@ -59,3 +59,32 @@
   wygrywa z ceną domyślną, `fullSync` zna aktualną cenę, `recomputeCostsNow` czeka na trwającą synchronizację i
   zgłasza brak pojazdu), app +24 (`SettingsStoreTest`, `DefaultPriceFormTest`, `DefaultPriceControllerTest`,
   `TextsTest`) (app: 140 testów, core: 198)
+- UI: pytanie o cenę zaraz po tankowaniu (`RefuelNotifier`, `RefuelPromptController`, SPEC §13): kanał
+  „Tankowania” (`IMPORTANCE_HIGH`) melduje każde nowe tankowanie bez ceny — hak w dekoratorze `SyncRunner` w
+  `AppContainer`, więc działa i w `SyncWorker`, i w „Synchronizuj teraz”. `PendingIntent` (`FLAG_IMMUTABLE`,
+  `requestCode` = id powiadomienia `NOTIFICATION_ID_BASE + Math.floorMod(id.hashCode(), 100000)`) otwiera
+  `MainActivity` (`launchMode="singleTop"`, `onNewIntent`) z extra `refuel_id`, a `AppRoot` idzie od razu na
+  pełny formularz ceny z fokusem w polu (`showKeyboardOnFocus`). Zbiór powiadomionych id i flaga „pytaliśmy już o
+  uprawnienie” trafia do `SettingsStore` (`refuel_notified_ids`, `notifications_asked`), a `cancel` kasuje
+  powiadomienie, gdy wpis przestaje czekać (`RefuelController.onResolved` albo `RefuelPromptController`).
+  W aplikacji okno `RefuelPromptDialog` dla najnowszego tankowania bez ceny: „Zapisz” przez
+  `SyncEngine.confirmRefuel` (§11.2) i `session.reload()`, „Później” wycisza tylko ten wpis do końca procesu,
+  „Więcej” otwiera formularz C3. Decyzję podejmuje czysta funkcja `refuelPromptTarget` (`RefuelPromptTest`), a
+  stan trzyma `RefuelPromptController`: `priceText` przeżywa obrót ekranu, `reset()` przy wylogowaniu kasuje
+  wyciszenie. Okno anuluje powiadomienie tego tankowania i nie pojawia się na liście tankowań ani na żadnym
+  formularzu; `NotFound`/`NotPending` przechodzi do następnego wpisu bez błędu, błąd zapisu zostaje w oknie.
+  Uprawnienie `POST_NOTIFICATIONS` (API 33+) pytane raz po zalogowaniu na ekranie statusu
+  (`shouldAskNotificationPermission`, `rememberLauncherForActivityResult`), decyzja bez wartości
+  domyślnej — `MainActivity` podaje `container.askNotificationPermission` przez `AppRoot` do `StatusScreen`;
+  odmowa nic nie blokuje, a powiadomienie przyjdzie, gdy uprawnienie zostanie przyznane. Dodana ikona
+  `res/drawable/ic_stat_refuel.xml` — aplikacja nadal nie ma ikony launchera (poza zakresem C5).
+  Po przeglądzie: zimny start z powiadomienia czeka na wczytanie logowania (`LaunchedEffect(deepLinkRefuelId,
+  loggedIn)`), `post()` zwraca `Boolean`, więc cofnięte w trakcie uprawnienie nie oznacza wpisu, `cancel` jest
+  `suspend` i dotyka `SettingsStore` na `io`, zmiana ekranu decyduje z ostatniego odczytu (`screenChanged()`,
+  `resolvedElsewhere(id)`) bez czytania bazy, a `NoVehicle` w formularzu C3 nie anuluje powiadomienia.
+  Po teście na emulatorze: fokus i klawiatura formularza otwartego z powiadomienia przy zimnym starcie (efekt
+  w gałęzi z polem, nie przed „Ładowanie…”), flaga wejścia z powiadomienia w `remember` (obrót nie ściąga kursora
+  z powrotem do ceny), marginesy linii z datą i karty błędu w formularzu C3.
+  `core` bez zmian; testy: app +41 (`RefuelNotifierTest` z Robolectric, `NotificationPermissionTest`,
+  `RefuelPromptTest`, `RefuelPromptControllerTest`, `SettingsStoreTest`, `TextsTest`, `RefuelControllerTest`)
+  (app: 181 testów, core: 198)

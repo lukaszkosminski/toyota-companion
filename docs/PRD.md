@@ -20,6 +20,7 @@ Jeden właściciel pojazdu (właściciel projektu). Brak użytkowników zewnętr
 | F1 | Wykrycie tankowania | Skok `fuel_level` o ≥ 8 pp między odczytami tworzy wpis `pending` (docs/SPEC.md §1) |
 | F2 | Podanie ceny | Użytkownik podaje cenę/l albo litry+kwotę; brakująca wartość jest wyliczana (SPEC §2) |
 | F2b | Cena domyślna paliwa | Użytkownik ustawia cenę za litr w aplikacji; trasy bez potwierdzonego tankowania przed startem dostają koszt z tej ceny (`source="default"`, SPEC §4, §12), a usunięcie ceny przywraca „brak ceny” |
+| F2c | Pytanie o cenę zaraz po tankowaniu | Wykryte tankowanie pyta od razu: w tle powiadomieniem, które otwiera formularz ceny tego tankowania; w aplikacji oknem z polem „Cena za litr” (§13) |
 | F3 | Koszt trasy | Koszt = `fuel_l` × średnia ważona cena paliwa w baku (ADR-005) po potwierdzonych tankowaniach przed startem trasy; przykład 0,60 l × 6,140 = 3,68 zł (SPEC §4, §6) |
 | F4 | Przeliczenie wstecz | Po potwierdzeniu ceny koszty tras są przeliczane (SPEC §5) |
 | F5 | Archiwum tras | Trasy z API Toyoty zapisywane lokalnie, deduplikacja po `trip.id`; zachowywane są też współrzędne start/koniec, `scores` i `hdc` (F11–F13) |
@@ -67,6 +68,9 @@ Jeden właściciel pojazdu (właściciel projektu). Brak użytkowników zewnętr
 - Architektura: wszystko na telefonie, klient w Kotlinie (ADR-006).
 - Backup: ręczny eksport do pliku + import (F7, F8).
 - Cena domyślna paliwa: ustawienie w aplikacji, nie w kodzie (decyzja właściciela 2026-10-30, F2b); cena przeżywa wylogowanie, bo to ustawienie telefonu, nie konta.
+- Pytanie o cenę zaraz po wykryciu tankowania (decyzja właściciela 2026-10-30, F2c):
+  w tle powiadomienie, w aplikacji okno; „Później” odkłada tylko to jedno tankowanie
+  do końca procesu aplikacji, a nowe tankowanie pyta ponownie.
 
 ## 8. Otwarte pytania
 Brak.

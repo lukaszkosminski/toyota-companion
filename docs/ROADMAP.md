@@ -20,11 +20,14 @@
 - UI: domyślna cena paliwa jako ustawienie telefonu (`defaultPriceProvider`, `recomputeCostsNow`, SPEC §12):
   ekran „Cena domyślna”, zapis w `SettingsStore`, przeliczenie kosztów bez synchronizacji (F2b)
 
+- UI: pytanie o cenę zaraz po tankowaniu (`RefuelNotifier`, `RefuelPromptController`, SPEC §13):
+  powiadomienie z deep linkiem do formularza ceny i okno w aplikacji (F2c)
+
 ## NOW
 - Test klienta Toyoty na prawdziwym koncie: `./gradlew -q :core:liveCheck` (uruchamia właściciel, docs/HANDOFF.md)
 
 ## NEXT
-- UI: szacunek litrów z czujnika i wybór źródła litrów (F2a), powiadomienie o tankowaniu
+- UI: szacunek litrów z czujnika i wybór źródła litrów (F2a)
 - Eksport CSV, ręczny eksport/import archiwum, przypomnienie o backupie (F6–F8)
 
 ## LATER (kolejność wg wartości / kosztu)

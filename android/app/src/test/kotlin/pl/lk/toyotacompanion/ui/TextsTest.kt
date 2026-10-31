@@ -139,6 +139,15 @@ class TextsTest {
                 Texts.DEFAULT_PRICE_REMOVE_YES,
                 Texts.DEFAULT_PRICE_REMOVE_NO,
                 Texts.DEFAULT_PRICE_EMPTY_ERROR,
+            ) +
+            // Pytanie o cenę tankowania (docs/SPEC.md §13).
+            listOf(
+                Texts.REFUEL_NOTIFICATION_CHANNEL,
+                Texts.REFUEL_NOTIFICATION_TITLE,
+                Texts.refuelNotificationText("30.10 14:05", "20% \u2192 80%"),
+                Texts.refuelPromptBody("30.10 14:05", "20% \u2192 80%"),
+                Texts.REFUEL_PROMPT_LATER,
+                Texts.REFUEL_PROMPT_MORE,
             )
         for (text in all) {
             for (forbidden in listOf("token", "Token", "VIN1", "p@ss", "secret")) {
@@ -170,6 +179,16 @@ class TextsTest {
         val prompt = Texts.defaultPricePrompt(BigDecimal("6.19"))
         assertTrue(prompt.startsWith(Texts.DEFAULT_PRICE_TITLE), prompt)
         assertTrue(prompt.endsWith(TripsFormatting.pricePerLiter(BigDecimal("6.19"))), prompt)
+    }
+
+
+    @Test
+    fun `the notification line says when and how much and asks for the price`() {
+        val text = Texts.refuelNotificationText("30.10 14:05", Texts.refuelPromptBody("30.10 14:05", "x"))
+
+        assertTrue(text.startsWith("30.10 14:05"), text)
+        assertTrue(text.endsWith(". Podaj cenę za litr."), text)
+        assertEquals("30.10 14:05 · x", Texts.refuelPromptBody("30.10 14:05", "x"))
     }
 
 }

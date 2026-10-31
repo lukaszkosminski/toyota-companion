@@ -35,6 +35,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
@@ -50,6 +52,8 @@ import java.time.ZoneId
  *
  * @param id which refuel is edited
  * @param onBackToList back to the list, also after a write went through
+ * @param focusPriceOnOpen open the keyboard in the price field: the form reached
+ *   from a notification tap is a direct answer, not a browse (docs/SPEC.md §13.1)
  * @param zone zone the timestamp of the entry is shown in
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,6 +62,7 @@ fun RefuelFormScreen(
     controller: RefuelController,
     id: String,
     onBackToList: () -> Unit,
+    focusPriceOnOpen: Boolean = false,
     zone: ZoneId = ZoneId.systemDefault(),
 ) {
     BackHandler(onBack = onBackToList)
@@ -69,6 +74,7 @@ fun RefuelFormScreen(
     var totalText by rememberSaveable { mutableStateOf("") }
     var filledToFull by rememberSaveable { mutableStateOf(false) }
     var asksAboutDismissing by remember { mutableStateOf(false) }
+    val priceFocus = remember { FocusRequester() }
 
     LaunchedEffect(id) { controller.openForm(id) }
     // The controller reloads the list itself; the form only leaves when its own write is done.
@@ -103,14 +109,20 @@ fun RefuelFormScreen(
                 val litersGiven = parseRefuelAmount(litersText) is RefuelAmount.Given
                 val busy = state.busyId == id
 
+                // Called from the notification: put the cursor in the price and open the keyboard.
+                // Only here, where the field exists: on a cold start the form shows the loading
+                // text first, and a focus asked for before the field is composed is lost for good.
+                if (focusPriceOnOpen) showKeyboardOnFocus(priceFocus, id)
+
                 Text(
                     RefuelFormatting.time(entry.ts, zone) +
                         Texts.SEPARATOR + RefuelFormatting.levelJump(entry.levelBefore, entry.levelAfter) +
                         Texts.SEPARATOR + RefuelFormatting.odometer(entry.odometerKm),
                     style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp),
                 )
 
-                state.formError?.let { ErrorCard(it) }
+                state.formError?.let { Box(Modifier.padding(horizontal = 16.dp)) { ErrorCard(it) } }
 
                 OutlinedTextField(
                     value = priceText,
@@ -121,7 +133,7 @@ fun RefuelFormScreen(
                     singleLine = true,
                     enabled = !busy,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).focusRequester(priceFocus),
                 )
                 OutlinedTextField(
                     value = litersText,

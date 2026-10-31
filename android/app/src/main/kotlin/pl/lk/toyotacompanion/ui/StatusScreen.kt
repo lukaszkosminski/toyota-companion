@@ -1,5 +1,6 @@
 package pl.lk.toyotacompanion.ui
 
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,7 +29,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,6 +50,11 @@ import pl.lk.toyotacompanion.core.data.SyncStatus
  *
  * Nothing here calls `refresh_status()` (docs/SPEC.md §9.3): pulling to refresh
  * re-reads the local archive, "Synchronizuj teraz" starts a normal sync job.
+ *
+ * The notification permission is asked for here, once, after the login
+ * (docs/SPEC.md §13.2): [askNotificationPermission] decides (pure rule + the
+ * "already asked" flag read off the IO dispatcher) and the answer is not repeated.
+ * A refusal changes nothing on this screen — the in-app prompt and the buttons stay.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,8 +67,14 @@ fun StatusScreen(
     defaultPrice: BigDecimal?,
     onShowDefaultPrice: () -> Unit,
     onLogout: () -> Unit,
+    askNotificationPermission: suspend () -> Boolean,
 ) {
     var confirmLogout by remember { mutableStateOf(false) }
+    val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+
+    LaunchedEffect(Unit) {
+        if (askNotificationPermission()) askPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
 
     Scaffold(
         topBar = {
