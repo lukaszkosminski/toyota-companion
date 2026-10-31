@@ -264,7 +264,12 @@ class AppContainer(
 
     /** The refuel log and its fuel economy check (PRD F9, docs/SPEC.md §15). */
     val refuelLogController: RefuelLogController by lazy {
-        RefuelLogController(read = { syncEngine.refuelLog() }, scope = uiScope, io = Dispatchers.IO)
+        RefuelLogController(
+            read = { syncEngine.refuelLog() },
+            amend = { id, liters, total, full -> syncEngine.amendRefuel(id, liters, total, full) },
+            scope = uiScope,
+            io = Dispatchers.IO,
+        )
     }
 
     /**

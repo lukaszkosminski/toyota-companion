@@ -272,14 +272,14 @@ API Toyoty, w tym `refresh_status()` (§9 wstęp, AGENTS.md).
 Formularz ceny tankowania (PRD F2, F4): użytkownik podaje cenę albo litry i kwotę dla wpisu `PENDING`,
 brakującą wielkość wylicza domena (§2), a koszty tras są przeliczane wstecz (§5). Wymaganie właściciela
 produktu (ROADMAP NOW). Operacje nie wołają żadnego API Toyoty, w tym `refresh_status()` (§9 wstęp, AGENTS.md).
-Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – §13. Poza zakresem: edycja już
-potwierdzonego tankowania.
+Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – §13. Poprawka litrów potwierdzonego tankowania – §15.3.
 
 ### §11.1 Operacje w `core`
 - `pendingRefuels(): List<Refuel>` — oczekujące tankowania wybranego VIN (`state.get().vin`), najnowsze pierwsze
   (`RefuelRepository.pending(vin)`); brak VIN -> pusta lista. Odczyt bez `mutex` i bez gatewaya (jak `status()`, §8.5).
-- `confirmRefuel(id, pricePerLiter, liters, totalCost, filledToFull, litersSource)` i `dismissRefuel(id)` zwracają `RefuelChange`
-  (`Done(refuel, tripsCosted)`, `NotFound`, `NotPending`, `Invalid`, `NoVehicle`) — bez wyjątków i bez `SyncOutcome`.
+- `confirmRefuel(id, pricePerLiter, liters, totalCost, filledToFull, litersSource)`, `dismissRefuel(id)` i `amendRefuel` (§15.3) zwracają `RefuelChange`
+  (`Done(refuel, tripsCosted)`, `NotFound`, `NotPending`, `NotConfirmed` – tylko poprawka §15.3, `Invalid`, `NoVehicle`) — bez
+  wyjątków i bez `SyncOutcome`.
 - Kolejność decyzji: brak VIN -> `NoVehicle`; `refuels.byId(id) == null` -> `NotFound`; `status != PENDING` ->
   `NotPending`; wpis `PENDING`, ale nienależący do bieżącego VIN-u (ma go brak w `pending(vin)`) -> `NotFound`,
   bo cudze tankowania są dla tego ekranu niewidoczne i nie mają mieć własnego rodzaju błędu.
@@ -598,4 +598,17 @@ Arkusz tras w CSV (F6) – §14.4.
   komputer 4,50 l/100 km (+11,1 %)” albo powód braku porównania, pod nią „600,0 km tras · licznik 600,0 km · w tym EV
   70,3 km”. Odcinek otwarty jako pierwsza karta „Bieżący odcinek”. Pusty stan z podpowiedzią „Do pełna” + paragon.
   Liczby przez `TripsFormatting.plain`, bez `Locale`; różnica ze znakiem (`+`, `−`). Bez VIN i GPS.
-- Poza zakresem: edycja „do pełna” i litrów przy potwierdzonym tankowaniu (kandydat C9.1).
+- Każde potwierdzone tankowanie ma przycisk „Popraw litry” (§15.3).
+
+### §15.3 Poprawka potwierdzonego tankowania (C9.1)
+- `SyncEngine.amendRefuel(id, liters, totalCost?, filledToFull)` – tylko dla `CONFIRMED` (inaczej `NotConfirmed`:
+  „Najpierw podaj cenę tego tankowania.”); przynależność do pojazdu przez `refuels.all(vin)` (potwierdzonego wpisu nie
+  ma w `pending(vin)`), inny VIN → `NotFound`. Ta sama ścieżka zapisu co cena (`mutex.withLock`, przeliczenie kosztów
+  wszystkich tras pojazdu – litry zmieniają cenę w baku, §6). Walidacja tylko w domenie (`confirm_refuel` nie sprawdza
+  stanu wpisu): bez kwoty – cena zostaje, kwota = cena × litry; z kwotą z paragonu – kombinacja litry + kwota, cena
+  wyliczona z paragonu. Litry zawsze `receipt`, „do pełna” ustawione wprost. Synchronizacja ani import kopii (§14)
+  potwierdzonego wpisu nie nadpiszą (straż `PENDING`).
+- Okno „Litry z paragonu”: pole litrów **startuje puste** (szacunek z czujnika nigdy nie staje się „z paragonu”),
+  opcjonalna „Kwota z paragonu”, przełącznik „Do pełna” aktywny dopiero z litrami. Litry ≤ 0 albo puste → „Podaj litry
+  z paragonu.”; zła kwota → „To nie jest liczba”. Po zapisie dziennik czyta się ponownie, karta odcinka może się zmienić.
+  `busy` nie przeżywa wylogowania (licznik generacji).

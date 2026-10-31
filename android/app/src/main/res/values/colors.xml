@@ -2,4 +2,7 @@
 <resources>
     <!-- Tlo okna dla motywu jasnego (zgodne z ToyotaTheme). -->
     <color name="window_background">#FFFBFF</color>
+    <!-- Tlo ikony aplikacji: czerwien Toyoty (TOYOTA_RED w ui/theme/Theme.kt); bez wariantu nocnego,
+         bo ikona w launcherze nie zmienia koloru razem z motywem. -->
+    <color name="ic_launcher_background">#EB0A1E</color>
 </resources>

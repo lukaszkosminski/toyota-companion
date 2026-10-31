@@ -1,5 +1,6 @@
 package pl.lk.toyotacompanion.ui
 
+import java.math.BigDecimal
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -8,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import pl.lk.toyotacompanion.core.sync.RefuelChange
 import pl.lk.toyotacompanion.core.sync.RefuelLog
 
 /**
@@ -21,6 +23,9 @@ data class RefuelLogUiState(
     val loading: Boolean = true,
     val log: RefuelLog = RefuelLog.EMPTY,
     val loadFailed: Boolean = false,
+    val busyId: String? = null,
+    val amendError: String? = null,
+    val amendedId: String? = null,
 )
 
 /**
@@ -31,9 +36,11 @@ data class RefuelLogUiState(
  * screen restored after a process death.
  *
  * @param read the log of the selected vehicle (`SyncEngine.refuelLog`)
+ * @param amend corrects a confirmed refuel with the receipt (`SyncEngine.amendRefuel`, §15.3)
  */
 class RefuelLogController(
     private val read: suspend () -> RefuelLog,
+    private val amend: suspend (id: String, liters: BigDecimal, totalCost: BigDecimal?, filledToFull: Boolean) -> RefuelChange,
     private val scope: CoroutineScope,
     private val io: CoroutineDispatcher,
 ) {
@@ -57,11 +64,60 @@ class RefuelLogController(
             }
             if (generation != startedIn) return@launch
             ui.value = if (result.isSuccess) {
-                RefuelLogUiState(loading = false, log = result.getOrThrow())
+                // A correction's result stays visible over the fresh read.
+                ui.value.copy(loading = false, loadFailed = false, log = result.getOrThrow())
             } else {
                 ui.value.copy(loading = false, loadFailed = true)
             }
         }
+    }
+
+    /**
+     * Corrects one confirmed refuel with the receipt (docs/SPEC.md §15.3). The liters are
+     * required, the total is optional; a second click while a write runs is ignored. On
+     * success the log is read again, so the economy card shows the correction at once.
+     */
+    fun amendLiters(id: String, litersText: String, totalText: String, filledToFull: Boolean) {
+        val shown = ui.value
+        if (shown.busyId != null) return
+        val liters = (parseRefuelAmount(litersText) as? RefuelAmount.Given)?.value
+        val total = when (val amount = parseRefuelAmount(totalText)) {
+            RefuelAmount.Missing -> null
+            is RefuelAmount.Given -> amount.value
+            RefuelAmount.NotANumber -> {
+                ui.value = shown.copy(amendError = Texts.REFUEL_NUMBER_ERROR, amendedId = null)
+                return
+            }
+        }
+        if (liters == null || liters <= BigDecimal.ZERO || (total != null && total <= BigDecimal.ZERO)) {
+            ui.value = shown.copy(amendError = Texts.AMEND_LITERS_REQUIRED, amendedId = null)
+            return
+        }
+        val startedIn = generation
+        ui.value = shown.copy(busyId = id, amendError = null, amendedId = null)
+        scope.launch {
+            val change: RefuelChange? = try {
+                withContext(io) { amend(id, liters, total, filledToFull) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // The database failed; its text is never shown (docs/SECURITY.md).
+                null
+            }
+            if (generation != startedIn) return@launch
+            if (change is RefuelChange.Done) {
+                ui.value = ui.value.copy(busyId = null, amendedId = id)
+                load()
+            } else {
+                val message = change?.let { Texts.refuelChangeError(it) } ?: Texts.REFUEL_SAVE_FAILED
+                ui.value = ui.value.copy(busyId = null, amendError = message)
+            }
+        }
+    }
+
+    /** The correction dialog was closed: its message is gone. */
+    fun amendDismissed() {
+        ui.value = ui.value.copy(amendError = null, amendedId = null)
     }
 
     /** A screen that is shown without a navigation callback (process death) reads once. */

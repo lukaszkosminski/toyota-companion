@@ -4,6 +4,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
@@ -16,6 +17,7 @@ import org.junit.Test
 import pl.lk.toyotacompanion.core.domain.LitersSource
 import pl.lk.toyotacompanion.core.domain.Refuel
 import pl.lk.toyotacompanion.core.domain.RefuelStatus
+import pl.lk.toyotacompanion.core.sync.RefuelChange
 import pl.lk.toyotacompanion.core.sync.RefuelLog
 
 private val TS: Instant = Instant.parse("2026-10-29T13:00:00Z")
@@ -51,6 +53,23 @@ private class FakeRead {
     }
 }
 
+private data class Call(val id: String, val liters: BigDecimal, val total: BigDecimal?, val full: Boolean)
+
+/** The write behind "Popraw litry": records the calls and answers what the test decided. */
+private class FakeAmend {
+    var answer: RefuelChange = RefuelChange.Done(confirmed("r1"), 3)
+    var error: Exception? = null
+    var gate: CompletableDeferred<Unit>? = null
+    val calls = mutableListOf<Call>()
+
+    suspend fun amend(id: String, liters: BigDecimal, total: BigDecimal?, full: Boolean): RefuelChange {
+        calls += Call(id, liters, total, full)
+        gate?.await()
+        error?.let { throw it }
+        return answer
+    }
+}
+
 /**
  * docs/SPEC.md §15.2: the log is read on every navigation, a screen restored without
  * one reads once, and a logout drops a result that arrives late. The scope is the
@@ -58,11 +77,115 @@ private class FakeRead {
  */
 class RefuelLogControllerTest {
 
-    private fun controller(read: FakeRead, io: CoroutineDispatcher) = RefuelLogController(
+    private fun controller(read: FakeRead, io: CoroutineDispatcher, amend: FakeAmend = FakeAmend()) = RefuelLogController(
         read = { read.read() },
+        amend = { id, liters, total, full -> amend.amend(id, liters, total, full) },
         scope = CoroutineScope(SupervisorJob() + io),
         io = io,
     )
+
+    // ---------------- correction of a confirmed refuel (docs/SPEC.md §15.3) ----------------
+
+    @Test
+    fun `a correction is written and the log is read again`() = runTest {
+        val read = FakeRead()
+        val amend = FakeAmend()
+        val controller = controller(read, StandardTestDispatcher(testScheduler), amend)
+        controller.load()
+        advanceUntilIdle()
+
+        controller.amendLiters("r1", "30,5", "", filledToFull = true)
+        advanceUntilIdle()
+
+        assertEquals(listOf(Call("r1", BigDecimal("30.5"), null, true)), amend.calls)
+        assertEquals(2, read.calls, "the economy card has to show the correction at once")
+        assertEquals("r1", controller.state.value.amendedId)
+        assertNull(controller.state.value.busyId)
+        assertNull(controller.state.value.amendError)
+    }
+
+    @Test
+    fun `the receipt total travels with the liters`() = runTest {
+        val amend = FakeAmend()
+        val controller = controller(FakeRead(), StandardTestDispatcher(testScheduler), amend)
+
+        controller.amendLiters("r1", "30", "186,00", filledToFull = false)
+        advanceUntilIdle()
+
+        assertEquals(Call("r1", BigDecimal("30"), BigDecimal("186.00"), false), amend.calls.single())
+    }
+
+    @Test
+    fun `missing or bad liters never reach the archive`() = runTest {
+        val amend = FakeAmend()
+        val controller = controller(FakeRead(), StandardTestDispatcher(testScheduler), amend)
+
+        for (liters in listOf("", "0", "-3")) {
+            controller.amendLiters("r1", liters, "", filledToFull = true)
+            assertEquals(Texts.AMEND_LITERS_REQUIRED, controller.state.value.amendError, "liters '$liters'")
+        }
+        controller.amendLiters("r1", "30", "abc", filledToFull = true)
+        assertEquals(Texts.REFUEL_NUMBER_ERROR, controller.state.value.amendError)
+        advanceUntilIdle()
+
+        assertTrue(amend.calls.isEmpty())
+    }
+
+    @Test
+    fun `a refused correction shows the reason and does not read again`() = runTest {
+        val read = FakeRead()
+        val amend = FakeAmend().apply { answer = RefuelChange.NotConfirmed }
+        val controller = controller(read, StandardTestDispatcher(testScheduler), amend)
+
+        controller.amendLiters("r1", "30", "", filledToFull = true)
+        advanceUntilIdle()
+
+        assertEquals(Texts.AMEND_NOT_CONFIRMED, controller.state.value.amendError)
+        assertEquals(0, read.calls)
+        assertNull(controller.state.value.amendedId)
+    }
+
+    @Test
+    fun `a database failure is shown without its text`() = runTest {
+        val amend = FakeAmend().apply { error = IllegalStateException("disk full at /data/secret") }
+        val controller = controller(FakeRead(), StandardTestDispatcher(testScheduler), amend)
+
+        controller.amendLiters("r1", "30", "", filledToFull = true)
+        advanceUntilIdle()
+
+        assertEquals(Texts.REFUEL_SAVE_FAILED, controller.state.value.amendError)
+        assertNull(controller.state.value.busyId)
+    }
+
+    @Test
+    fun `a second correction while one is written is ignored`() = runTest {
+        val amend = FakeAmend().apply { gate = CompletableDeferred() }
+        val controller = controller(FakeRead(), StandardTestDispatcher(testScheduler), amend)
+
+        controller.amendLiters("r1", "30", "", filledToFull = true)
+        advanceUntilIdle()
+        controller.amendLiters("r1", "31", "", filledToFull = true)
+        assertEquals("r1", controller.state.value.busyId)
+
+        requireNotNull(amend.gate).complete(Unit)
+        advanceUntilIdle()
+        assertEquals(1, amend.calls.size)
+    }
+
+    @Test
+    fun `logout drops a correction that ends late`() = runTest {
+        val amend = FakeAmend().apply { gate = CompletableDeferred() }
+        val controller = controller(FakeRead(), StandardTestDispatcher(testScheduler), amend)
+        controller.amendLiters("r1", "30", "", filledToFull = true)
+        advanceUntilIdle()
+
+        controller.reset()
+        requireNotNull(amend.gate).complete(Unit)
+        advanceUntilIdle()
+
+        assertNull(controller.state.value.busyId, "busy must not survive the logout")
+        assertNull(controller.state.value.amendedId)
+    }
 
     @Test
     fun `load publishes the log of the selected vehicle`() = runTest {
