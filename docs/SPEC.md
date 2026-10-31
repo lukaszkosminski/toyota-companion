@@ -665,3 +665,34 @@ w Pythonie.
   spalania liczy się tylko z przejazdów ≥ 2 km z paliwem > 0; trasy z dystansem niezapisanym poprawnie są pomijane. Od najnowszej, do 20. Aplikacja nie rozpoznaje
   przyczyny – stała podpowiedź (zimno, korki, bagaż, ciśnienie w oponach).
 - Ekran „Styl jazdy” ze statusu; odczyt w callbacku nawigacji, `reset()` przy wylogowaniu.
+
+## §20 Prognoza tankowania (PRD F14)
+
+### §20.1 Domena: `refuel_forecast(reading, trips, now, capacity_l=43, reserve_pct=10, window_days=28)`
+(Python `app/domain/forecast.py`, Kotlin `core/domain/ForecastOps.kt` – te same nazwy testów.) Dane jednego pojazdu.
+- W baku = `level_pct × 43 l` z ostatniego odczytu minus `fuel_l` tras ze startem ≥ chwila odczytu (czujnik jest
+  czytany tylko przy synchronizacji), nie mniej niż 0. `distance_to_empty_km` Toyoty **nie** jest używane – w
+  archiwum podaje 730 km zarówno przy 30 %, jak i przy 94 %.
+- Spalanie = Σ `fuel_l` / Σ km tras ze startem w ostatnich 28 dniach; dzienny dystans = Σ km / liczba dni okna
+  (archiwum młodsze niż 28 dni – tyle dni, ile ma, w górę, min. 1).
+- Rezerwa = 10 % baku (4,3 l). Wynik: litry w baku (0,001), poziom (0,1 %), l/100 km (0,01), dzienne km (0,1), km do
+  rezerwy (0,1), dni do rezerwy (0,1). `None` bez odczytu, bez tras w oknie, przy zerowym dystansie albo paliwie.
+- „Najtańsza stacja na trasie” – poza zakresem (brak źródła cen paliw, PRD F14).
+
+### §20.2 Odczyt i ekran
+- `SyncEngine.refuelForecast(now)` – bez sieci, bez `refresh_status()`, bez mutexu; brak VIN → `None`.
+- Linia na ekranie statusu pod datą synchronizacji: „Tankowanie za ok. 17 dni (ok. 17.11) · w baku ok. 21,5 l (50 %) ·
+  ok. 344 km do rezerwy”; poniżej pół dnia – „Tankowanie dziś”; na rezerwie – „Paliwo na rezerwie – zatankuj”. Brak
+  prognozy chowa linię. `ForecastController`: odczyt raz po zalogowaniu i po każdej udanej synchronizacji
+  (`AppContainer.syncRunner`), `reset()` przy wylogowaniu.
+
+## §21 Typy tras (PRD F16)
+Funkcje czyste w `app/ui/TripTypes.kt` na dzienniku postojów (§18) – GPS, więc bez lustra w Pythonie (ADR-008).
+- **Dom** = miejsce z największym łącznym czasem postoju (≥ 5 postojów). **Praca** = inne miejsce z największą liczbą
+  postojów w dni robocze, zaczętych 6:00–10:59 czasu lokalnego i trwających ≥ 4 h (≥ 5 takich; remis – większy łączny
+  czas). Nazwy nadawane automatycznie (decyzja właściciela 2026-10-31).
+- Typ trasy (pierwszy pasujący): **dojazd** – start przy Domu i koniec przy Pracy albo odwrotnie (≤ 150 m);
+  **weekend** – start w sobotę albo niedzielę; **sprawy** – dzień roboczy, koniec ani przy Domu, ani przy Pracy, a
+  następna trasa startuje < 2 h później; **inne** – reszta (także ostatnia trasa archiwum).
+- Ekran: sekcja „Typy tras” w „Statystykach” – liczba tras, km, koszt (bez cen: „brak ceny”), bez położenia; etykiety
+  „Dom” i „Praca” przy miejscach w „Postojach” (jedynym ekranie z położeniem).

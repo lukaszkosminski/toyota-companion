@@ -2,6 +2,7 @@
 
 from .cost import compute_trip_cost, recompute_costs
 from .economy import MIN_COMPARABLE_DISTANCE_KM, fuel_economy_intervals
+from .forecast import RESERVE_PCT, WINDOW_DAYS, RefuelForecast, refuel_forecast
 from .models import (
     DEFAULT_TANK_CAPACITY_L,
     EconomyInterval,
@@ -44,6 +45,10 @@ from .tripstats import (
 )
 
 __all__ = [
+    "RESERVE_PCT",
+    "WINDOW_DAYS",
+    "RefuelForecast",
+    "refuel_forecast",
     "MIN_RANKED_DISTANCE_KM",
     "RANKING_LIMIT",
     "ElectricRanking",

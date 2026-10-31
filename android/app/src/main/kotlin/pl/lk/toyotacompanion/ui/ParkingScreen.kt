@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -55,6 +56,7 @@ fun ParkingScreen(
         },
     ) { innerPadding ->
         val log = state.log
+        val known = remember(log) { log?.let { knownPlaces(it, zone) } }
         when {
             state.loading -> Message(innerPadding) { CircularProgressIndicator() }
             state.loadFailed -> Message(innerPadding) { Text(Texts.PARKING_READ_ERROR) }
@@ -74,7 +76,12 @@ fun ParkingScreen(
                     item { Text(Texts.PARKING_PLACES, style = MaterialTheme.typography.titleMedium) }
                     items(log.places, key = { "p-" + it.lat + "," + it.lon }) { place ->
                         Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(ParkingFormatting.place(place.lat, place.lon), style = MaterialTheme.typography.titleSmall)
+                            val label = when (place) {
+                            known?.home -> Texts.PLACE_HOME + Texts.SEPARATOR
+                            known?.work -> Texts.PLACE_WORK + Texts.SEPARATOR
+                            else -> ""
+                        }
+                        Text(label + ParkingFormatting.place(place.lat, place.lon), style = MaterialTheme.typography.titleSmall)
                             Text(ParkingFormatting.placeLine(place, zone), style = MaterialTheme.typography.bodyMedium)
                         }
                     }

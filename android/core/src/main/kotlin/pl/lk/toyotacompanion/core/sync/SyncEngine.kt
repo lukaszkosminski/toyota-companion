@@ -32,6 +32,8 @@ import pl.lk.toyotacompanion.core.domain.detectRefuel
 import pl.lk.toyotacompanion.core.domain.dismissRefuel as domainDismissRefuel
 import pl.lk.toyotacompanion.core.domain.fuelEconomyIntervals
 import pl.lk.toyotacompanion.core.domain.recomputeCosts
+import pl.lk.toyotacompanion.core.domain.refuelForecast
+import pl.lk.toyotacompanion.core.domain.RefuelForecast
 import pl.lk.toyotacompanion.core.toyota.ToyotaApiException
 import pl.lk.toyotacompanion.core.toyota.ToyotaDataException
 import pl.lk.toyotacompanion.core.toyota.ToyotaLoginException
@@ -229,6 +231,16 @@ class SyncEngine(
             refuels.update(edited)
             RefuelChange.Done(edited, recomputeAndSave(vin))
         }
+
+    /**
+     * When the selected vehicle reaches its fuel reserve (PRD F14, docs/SPEC.md §20): the
+     * latest fuel reading and the trips, computed by the domain. A read like [trips]: no
+     * network, no `refresh_status()`, no mutex. `null` without a vehicle or without data.
+     */
+    suspend fun refuelForecast(now: Instant = clock()): RefuelForecast? {
+        val vin = state.get().vin ?: return null
+        return refuelForecast(readings.latest(vin), trips.all(vin).map { it.toTrip() }, now, config.tankCapacityL)
+    }
 
     /**
      * Confirmed refuels and the "computer vs actual" fuel economy of the selected

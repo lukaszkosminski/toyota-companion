@@ -318,6 +318,27 @@ object Texts {
         "Pominięte – bez danych o prądzie: $withoutData, krótsze niż 1 km: $tooShort."
     fun statsWindow(window: String, current: Int, previous: Int): String = "$window $current vs $previous"
 
+    // Typy tras (PRD F16, docs/SPEC.md §21).
+
+    const val TRIP_TYPES_SECTION = "Typy tras"
+    const val TRIP_TYPES_HINT = "Dom i praca rozpoznane z postojów; dojazdy to trasy między nimi."
+    fun tripTypeName(type: TripType): String = when (type) {
+        TripType.COMMUTE -> "Dojazdy dom – praca"
+        TripType.ERRAND -> "Sprawy i zakupy"
+        TripType.WEEKEND -> "Weekend"
+        TripType.OTHER -> "Inne"
+    }
+    const val PLACE_HOME = "Dom"
+    const val PLACE_WORK = "Praca"
+
+    // Prognoza tankowania (PRD F14, docs/SPEC.md §20).
+
+    fun forecastWhen(days: Long, date: String): String =
+        if (days == 0L) "Tankowanie dziś" else "Tankowanie za ok. $days dni (ok. $date)"
+    fun forecastLeft(liters: String, level: String): String = "w baku ok. $liters ($level)"
+    fun forecastRange(km: String): String = "ok. $km do rezerwy"
+    const val FORECAST_RESERVE = "Paliwo na rezerwie – zatankuj"
+
     // Styl jazdy (PRD F12, F13, docs/SPEC.md §19).
 
     const val STYLE_TITLE = "Styl jazdy"

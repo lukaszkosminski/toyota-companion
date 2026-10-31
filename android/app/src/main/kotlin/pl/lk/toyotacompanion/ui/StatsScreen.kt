@@ -100,6 +100,25 @@ fun StatsScreen(
                     item { PeriodRow(yoy.second) }
                 }
 
+                if (view.tripTypes.isNotEmpty()) {
+                    item { HorizontalDivider() }
+                    item { Header(Texts.TRIP_TYPES_SECTION) }
+                    item { Text(Texts.TRIP_TYPES_HINT, style = MaterialTheme.typography.bodySmall) }
+                    items(view.tripTypes, key = { "tt-" + it.type }) { summary ->
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(Texts.tripTypeName(summary.type), style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                listOf(
+                                    Texts.statsTrips(summary.trips),
+                                    TripsFormatting.plain(summary.distanceKm, 1) + " km",
+                                    summary.costPln?.let { TripsFormatting.money(it) } ?: Texts.NO_PRICE,
+                                ).joinToString(Texts.SEPARATOR),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
+                }
+
                 item { HorizontalDivider() }
                 item { Header(Texts.STATS_YEARS) }
                 items(view.years.asReversed(), key = { "y-" + it.year }) { PeriodRow(it) }

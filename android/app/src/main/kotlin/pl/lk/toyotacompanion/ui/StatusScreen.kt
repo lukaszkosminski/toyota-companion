@@ -72,6 +72,7 @@ fun StatusScreen(
     onShowDefaultPrice: () -> Unit,
     backupReminder: BackupReminder,
     lastBackupLine: String,
+    forecastLine: String?,
     onShowBackup: () -> Unit,
     onLogout: () -> Unit,
     askNotificationPermission: suspend () -> Boolean,
@@ -115,6 +116,8 @@ fun StatusScreen(
                     StatusChip(status, state.lastSyncFailed)
                     StatRow(status)
                     Text(Texts.lastSuccess(status), style = MaterialTheme.typography.bodyMedium)
+                    // Refuel forecast from the archive, never from the car (PRD F14, docs/SPEC.md §20).
+                    forecastLine?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
                     HorizontalDivider()
                 }
 

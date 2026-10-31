@@ -14,7 +14,7 @@
   karta błędu `errorContainer`; status z `TopAppBar`, `PullToRefreshBox`, kartą liczników, chipem stanu,
   `HorizontalDivider` i `AlertDialog` potwierdzającym „Wyloguj”. `SessionController.reload()` powtarza tylko
   odczyt lokalnej bazy (bez API Toyoty i bez `refresh_status`).
-- Testy: core 305, app 352 (JUnit 4, w tym Robolectric), Python 132. CI: ruff/mypy/pytest, Android (core + app unit), gitleaks 8.30.1.
+- Testy: core 314, app 377 (JUnit 4, w tym Robolectric), Python 141. CI: ruff/mypy/pytest, Android (core + app unit), gitleaks 8.30.1.
 - Lista tras z kosztem (SPEC §10): `SyncEngine.trips()` — trasy bieżącego VIN od najnowszej, wszystkie koszty jednym odczytem `costs.all()` (bez zapytania na trasę), brak VIN = pusta lista, bez sieci i bez `mutex` synchronizacji; w `app` czyste funkcje `groupTripsByMonth` (miesiąc z `trip.start` w przekazanej strefie, sumy km/l/zł, licznik tras bez ceny, `totalCost = null` gdy żadna trasa nie ma ceny) i `TripsFormatting` (przecinek, `HALF_UP`, własna tablica 12 nazw miesięcy w mianowniku, start `29.10 14:05`, formaty niezależne od `Locale`); ekran `TripsScreen` (nazwa + sumy miesiąca, wiersze z `key = trip.id`, cena za litr · a przy „cena domyślna” także dopisek w tej samej linii, `contentPadding` z `innerPadding`, stany ładowanie/pusto/błąd bez treści wyjątku, `TextButton` „Wstecz” + `BackHandler`) i przycisk „Trasy” na ekranie statusu; `AppContainer.tripsLoader` jako jedyne wejście do bazy, `AppRoot` przełącza ekrany enumem `Screen` w `rememberSaveable` (reset do statusu po wylogowaniu przez `LaunchedEffect`). Na ekranie brak współrzędnych GPS i VIN (SECURITY.md).
 - Formularz ceny tankowania (SPEC §11): `pendingRefuels()`, `confirmRefuel(...)` i `dismissRefuel(id)` w `SyncEngine`
   zwracają `RefuelChange` (`Done`, `NotFound`, `NotPending`, `Invalid`, `NoVehicle`). Zapis i przeliczenie kosztów idą
@@ -91,6 +91,9 @@
   funkcje `ParkingStops.kt` i testy (agent 1), ekran „Postoje” (agent 2). Położenie tylko na ekranie „Postoje”.
 - Styl jazdy i anomalie (C12, PRD F12, F13, SPEC §19): `SameRoutes.kt` (odcinki ≤ 300 m, agent 2), `DrivingStyle.kt`
   (eco po miesiącach, mediana i anomalie ≥ 25 %, agent 1), ekran „Styl jazdy” bez położenia (agent 2).
+- Prognoza tankowania i typy tras (C13, PRD F14, F16, SPEC §20–§21): domena `forecast.py` / `ForecastOps.kt` (9 testów
+  o tych samych nazwach; zasięg Toyoty pominięty jako niewiarygodny), linia na statusie odświeżana po synchronizacji
+  – agent 2; `TripTypes.kt` (Dom/Praca z postojów, dojazdy/sprawy/weekend/inne) i testy – agent 1.
 
 ## Następny krok
 Sprawdzone na emulatorze (API 36) 2026-10-29: logowanie prawdziwym kontem, pierwsza synchronizacja (562 trasy, 1 odczyt),
@@ -119,7 +122,10 @@ Sprawdzone na emulatorze 2026-10-31, build C11: „Statystyki” na 562 trasach 
 brak awarii. Rok do roku pojawi się, gdy archiwum obejmie dwa lata.
 Sprawdzone na emulatorze 2026-10-31, build C12: „Styl jazdy” na 562 trasach – eco 85–92 pkt na miesiąc, najczęstszy
 odcinek 7,9 km (46 przejazdów), anomalie m.in. 26–28.10 (+39–56 %); brak awarii.
-- Następny krok: do decyzji właściciela – F16 typy tras, F14 prognoza tankowania, F15 pogoda (zgoda na wysyłanie
+Sprawdzone na emulatorze 2026-10-31, build C13: „Tankowanie za ok. 30 dni (ok. 30.11) · w baku ok. 40,4 l (94 %) ·
+ok. 797 km do rezerwy”; typy tras: dojazdy 71, sprawy 118, weekend 177, inne 196; Dom i Praca w „Postojach”.
+- Następny krok: do decyzji właściciela – F15 pogoda (zgoda na wysyłanie przybliżonych współrzędnych do Open-Meteo),
+  przycisk „Otwórz w mapie” w „Postojach”; F18 Android Auto (PRD odradza).
   przybliżonych współrzędnych), przycisk mapy w „Postojach”.
 
 Test klienta na prawdziwym koncie MyToyota (uruchamia właściciel; hasło nie trafia do repo ani rozmowy):

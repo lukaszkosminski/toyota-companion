@@ -144,3 +144,8 @@
   dystansem), odcinki jeżdżone co najmniej 3 razy (start i koniec ≤ 300 m, kierunek ma znaczenie) opisane bez położenia
   (typowa długość, godzina, eco, spalanie), przejazdy ze spalaniem ≥ 25 % powyżej mediany odcinka z podpowiedzią
   możliwych przyczyn. Testy: app +29 (app: 352 testy, core: 305, Python: 132)
+- Prognoza tankowania i typy tras (PRD F14, F16, SPEC §20–§21): `refuel_forecast` / `refuelForecast` w Pythonie i Kotlinie
+  (paliwo w baku z poziomu czujnika minus trasy od odczytu, spalanie i dzienny dystans z 28 dni, rezerwa 10 %; zasięg
+  Toyoty pominięty jako niewiarygodny) i linia na ekranie statusu odświeżana po synchronizacji; Dom i Praca rozpoznane
+  automatycznie z postojów, trasy podzielone na dojazdy, sprawy, weekend i inne w „Statystykach”. Testy: Python +9,
+  core +9, app +25 (app: 377 testów, core: 314, Python: 141)
