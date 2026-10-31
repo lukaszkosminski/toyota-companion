@@ -45,7 +45,46 @@ class SettingsStore(private val prefs: SharedPreferences) {
         prefs.edit().remove(KEY_DEFAULT_PRICE).apply()
     }
 
+    /**
+     * Ids of refuels the app has already announced with a notification
+     * (docs/SPEC.md §13.1). Plain ids of local rows, not secrets — they live in
+     * this same unencrypted file. The set is what keeps a repeated
+     * synchronization from notifying twice.
+     */
+    fun notifiedRefuelIds(): Set<String> {
+        val text = prefs.getString(KEY_NOTIFIED_REFUELS, null) ?: return emptySet()
+        return text.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+    }
+
+    /** Remembers that [id] was announced; the next synchronization leaves it alone. */
+    fun markRefuelNotified(id: String) {
+        val ids = notifiedRefuelIds() + id
+        prefs.edit().putString(KEY_NOTIFIED_REFUELS, ids.joinToString(",")).apply()
+    }
+
+    /**
+     * Forgets [id] after its notification was cancelled (docs/SPEC.md §13.1).
+     * Without this the set would only grow, and a refuel is announced once and
+     * then leaves the waiting list for good.
+     */
+    fun forgetNotifiedRefuel(id: String) {
+        val ids = notifiedRefuelIds() - id
+        val editor = prefs.edit()
+        if (ids.isEmpty()) editor.remove(KEY_NOTIFIED_REFUELS) else editor.putString(KEY_NOTIFIED_REFUELS, ids.joinToString(","))
+        editor.apply()
+    }
+
+    /** Whether the runtime notification permission was already requested (docs/SPEC.md §13.2). */
+    fun notificationsAsked(): Boolean = prefs.getBoolean(KEY_NOTIFICATIONS_ASKED, false)
+
+    /** A refused permission is never asked for again. */
+    fun markNotificationsAsked() {
+        prefs.edit().putBoolean(KEY_NOTIFICATIONS_ASKED, true).apply()
+    }
+
     private companion object {
         const val KEY_DEFAULT_PRICE = "default_price"
+        const val KEY_NOTIFIED_REFUELS = "refuel_notified_ids"
+        const val KEY_NOTIFICATIONS_ASKED = "notifications_asked"
     }
 }

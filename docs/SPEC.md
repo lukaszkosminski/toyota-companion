@@ -298,7 +298,9 @@ Poza zakresem: szacunek litrów z czujnika (F2a), powiadomienia, edycja już pot
   (`loadFailed`). Po śmierci procesu formularz jest pierwszym kompozablem z pustym stanem i bez tego
   odczytu czekałby na `Texts.LOADING` w nieskończoność.
 - `NotFound`, `NotPending` i `NoVehicle` pokazują komunikat o nieaktualnym wpisie (`REFUEL_STALE_ENTRY`)
-  i przeładowują listę – wpis przestał czekać (potwierdził go ktoś inny albo go nie ma).
+  i przeładowują listę – wpis przestał czekać (potwierdził go ktoś inny albo go nie ma). Wyjątek: przy `NoVehicle`
+  wpis nadal czeka, więc jego powiadomienie (§13.1) zostaje — `onResolved` idzie tylko dla `Done`, `NotFound`
+  i `NotPending`.
   `Invalid` dostaje komunikat o wartościach (`REFUEL_WRITE_ERROR`), a wyjątek bazy osobny (`REFUEL_SAVE_FAILED`).
 - Ekran nie pokazuje VIN-u ani współrzędnych GPS (`docs/SECURITY.md`); wszystkie teksty UI w `Texts`, bez Icons;
   komentarze i KDoc po angielsku.
@@ -364,3 +366,85 @@ Poza zakresem: szacunek litrów z czujnika (F2a), powiadomienia, edycja już pot
 - Wyjątek zapisu pokazuje `Texts.REFUEL_SAVE_FAILED` („Nie udało się zapisać…”), treść wyjątku nie trafia do UI
   (`docs/SECURITY.md`).
 - Ekran nie pokazuje VIN-u ani GPS; wszystkie teksty w `Texts`; bez Icons; komentarze i KDoc po angielsku.
+
+## §13 Pytanie o cenę zaraz po tankowaniu (F2c)
+
+Dwie drogi tej samej informacji: powiadomienie, gdy aplikacji nie ma na pierwszym planie (§13.1), oraz okno w
+aplikacji (§13.3). Obie prowadzą do tej samej ścieżki ceny z §11 — bez nowych tabel i bez zmian w `core.domain`.
+
+### §13.1 Powiadomienie z tła (`notify/RefuelNotifier`)
+- Hak: dekorator `SyncRunner` w `AppContainer` (`fullSync()`, potem `notifier.onSyncOutcome(outcome)`), więc działa
+  i dla `SyncWorker`, i dla „Synchronizuj teraz”. `SyncEngine` i `SyncOutcome` bez zmian — `core` bez nowych testów.
+- Powiadamia tylko `SyncOutcome.Ok` z `refuelsDetected > 0`. Czyta `syncEngine.pendingRefuels()` i wysyła dla
+  wpisów, o których jeszcze nie powiadomił. Zbiór powiadomionych id w `SettingsStore` (`refuel_notified_ids`) —
+  plain text, nie sekret: bez duplikatów po kolejnej synchronizacji i po restarcie telefonu.
+- Powiadomienie wysyłamy PRZED zapisaniem id w `SettingsStore`: jeśli wysłanie się nie uda (wyjątek
+  serwisu powiadomień albo `post` zwraca `false`, bo uprawnienie cofnięto w międzyczasie), wpis zostaje nieoznaczony i następna
+  synchronizacja spróbuje ponownie.
+- Kanał `refuels` / „Tankowania”, `IMPORTANCE_HIGH` (wysuwane), tworzony leniwie i idempotentnie przy wysyłaniu.
+- Id powiadomienia: `NOTIFICATION_ID_BASE + Math.floorMod(entry.id.hashCode(), 100000)`, baza 1000 (`hashCode` bywa ujemny);
+  `requestCode` `PendingIntent` to samo, `FLAG_IMMUTABLE | FLAG_UPDATE_CURRENT`, `setAutoCancel(true)`.
+- Treść z `Texts` + `RefuelFormatting.time` i `RefuelFormatting.levelJump` (strefa `ZoneId.systemDefault()`):
+  tytuł `Wykryto tankowanie`, tekst `30.10 14:05 · 20% → 80%. Podaj cenę za litr.` Bez VIN, GPS, przebiegu
+  i tokenów: `RefuelFormatting.odometer` nie jest tu używany (docs/SECURITY.md).
+- Dotknięcie otwiera `MainActivity` (`launchMode="singleTop"` + `onNewIntent`) z extra `refuel_id`; `AppRoot`
+  przechodzi na pełny formularz ceny tego tankowania z fokusem w polu ceny i otwartą klawiaturą. Extra jest czytane
+  tylko gdy `savedInstanceState == null` (obrót nie odtwarza wejścia); `onNewIntent` woła też `setIntent`.
+  Zimny start z powiadomienia (proces zabity, typowe po `SyncWorker`): sesja jest jeszcze `Loading`, więc efekt ma
+  klucz `(deepLinkRefuelId, loggedIn)` i formularz otwiera się, gdy tylko zapisane logowanie zostanie wczytane. Bez
+  zalogowanej sesji nic się nie dzieje, a wpis, który nie jest już oczekujący, zostawia ekran statusu (decyzja
+  właściciela).
+- `cancel(refuelId)` przy `Confirmed`/`Rejected` z dowolnego ekranu (`RefuelController.onResolved`,
+  `RefuelPromptController`) usuwa to id ze zbioru — zbiór jest ograniczony liczbą oczekujących wpisów. `cancel`
+  jest `suspend`: powiadomienie znika od razu, a zbiór w `SettingsStore` zmienia się na `io`, nigdy z wątku UI
+  (§12.2); `AppContainer` woła je w `uiScope.launch`.
+- Brak uprawnienia (`canPost() == false`): notifier nie wysyła i nie zaznacza nic, bez wyjątku; po przyznaniu
+  uprawnienia trafia to, co w międzyczasie wpadło. Wyjątki notifiera są połykane — powiadomienie nie może przerwać
+  synchronizacji ani wywrócić `SyncWorker`.
+
+### §13.2 Uprawnienie `POST_NOTIFICATIONS` (API 33+)
+- Manifest + jedna prośba w czasie działania, po zalogowaniu, na ekranie statusu
+  (`rememberLauncherForActivityResult` z `activity-compose`). Ścieżka jest wymuszona przez kompilator:
+  `StatusScreen` i `AppRoot` nie mają wartości domyślnej dla `askNotificationPermission`, więc
+  nieprzekazanie decyzji się nie skompiluje. Decyzja to `AppContainer.askNotificationPermission`;
+  `MainActivity` podaje ją do `AppRoot`, a `AppRoot` do `StatusScreen`.
+- Decyzja w czystej funkcji `shouldAskNotificationPermission(sdkInt, granted, askedBefore)`; flaga `askedBefore`
+  w `SettingsStore` (`notifications_asked`) — odmowy nie odpytujemy ponownie. Flaga czytana z `Dispatchers.IO`, nie
+  z wątku UI (§12.2). Na API 29-32 uprawnienie nie istnieje, liczy się sam kanał.
+- Odmowa nie degraduje aplikacji: okno z §13.3 i przycisk z §11.3 działają dalej.
+
+### §13.3 Okno w aplikacji (`ui/RefuelPrompt*`)
+- Decyzja czysta i testowana bez Compose: `refuelPromptTarget(RefuelPromptInput(loggedIn, pending, deferred,
+  onFormScreen, busy))` zwraca najnowszy wpis nieodłożony albo `null`; `deferred` to id odłożone „Później”.
+  Kontroler podaje `loggedIn = true`: strażnikiem sesji jest gałąź `UiState.LoggedIn` w `AppRoot` (tylko tam okno
+  jest rysowane) i `reset()` przy wylogowaniu, który czyści stan i unieważnia spóźnione odczyty.
+- „Później” wycisza **tylko to jedno tankowanie** — w pamięci kontrolera, do końca procesu; `reset()` przy
+  wylogowaniu kasuje wyciszenie. Nowe tankowanie wykryte w tym samym procesie pokazuje okno — to sedno F2c (test
+  `later for A still prompts for a newer B`).
+- Stan trzyma `RefuelPromptController` (scope aplikacji, wstrzykiwane `io`): `entry`, `priceText`, `error`, `busy`.
+  `priceText` w kontrolerze, więc obrót ekranu go nie gubi; kontroler nie używa stanu `RefuelController` — `busyId`
+  i `formError` należą do formularza z §11.3.
+- `refresh()` woła dekorator `SyncRunner` po każdej synchronizacji z `Ok && refuelsDetected > 0`, a `ensureLoaded()`
+  przy wejściu zalogowanego czyta tylko gdy stan jest jeszcze nieznany (jak §12.3), więc obrót nie czyta bazy
+  ponownie.
+- Zmiana ekranu (`LaunchedEffect(screen)` → `screenChanged()`, także po obrocie) decyduje ponownie z ostatniego
+  odczytu, bez bazy. Wpisy wycenione albo odrzucone w C3 wypadają z tego odczytu przez `resolvedElsewhere(id)`,
+  które `AppContainer` woła z `RefuelController.onResolved`. `onFormScreen` ustawia `SideEffect`, więc pierwsza
+  decyzja kontrolera już widzi właściwy ekran.
+- Zapis ceny: `checkRefuelForm(priceText, "", "")` (§11.2) i lambda `confirmRefuel` (`SyncEngine.confirmRefuel`,
+  `withLock`). `Confirmed` -> `onResolved(id)` (anuluje powiadomienie) + `session.reload()` + następny oczekujący
+  wpis albo koniec. `NotFound`/`NotPending` -> przejście do następnego wpisu bez błędu (id traktowane jak odłożone).
+  `NoVehicle` -> okno się zamyka bez błędu. `Failed` -> błąd w oknie, okno zostaje (tak jak §11.3).
+- Zamknięcie okna obok przycisków (dotknięcie poza oknem, Wstecz) działa jak „Później” dla tego wpisu.
+- Pokazanie okna anuluje powiadomienie tego tankowania: użytkownik przed ekranem widzi okno, a nie okno i nagłówek;
+  użytkownik w tle dostaje tylko powiadomienie.
+- „Więcej” i dotknięcie powiadomienia otwiera pełny formularz C3 (`Screen.RefuelForm`) z litrami i kwotą;
+  `RefuelFormScreen` dostaje `focusPriceOnOpen`. Fokus i klawiatura po pierwszej narysowanej klatce
+  (`withFrameNanos` przed `requestFocus()` — przed pierwszym layoutem nie ma komu przekazać fokusu), a
+  kontroler klawiatury brany z composition (`LocalSoftwareKeyboardController`), czyli z okna dialogu, nie
+  z aktywności. W formularzu efekt fokusu żyje w gałęzi z istniejącym wpisem, nie na górze ekranu: przy zimnym
+  starcie formularz najpierw pokazuje „Ładowanie…”, a fokus poproszony, zanim pole powstało, przepadłby.
+  Flaga „wejście z powiadomienia” w `AppRoot` jest w `remember`, nie w `rememberSaveable`: klawiatura jest
+  proszona raz na dotknięcie, więc obrót ekranu nie przenosi kursora z „Litry” z powrotem do ceny.
+- Okno nie pojawia się, gdy aktywny ekran to `Screen.Refuels`, `Screen.RefuelForm` albo `Screen.DefaultPrice`
+  (każdy formularz), gdy brak zalogowanej sesji i gdy trwa zapis.

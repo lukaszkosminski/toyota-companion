@@ -15,6 +15,15 @@
 - CI skanuje sekrety (gitleaks).
 - Zapytania do usług zewnętrznych (np. Open-Meteo, F15) wysyłają tylko zaokrąglone współrzędne (~1 km) i czas; nigdy VIN ani identyfikator konta.
 
+### Treść powiadomienia (F2c)
+
+Powiadomienie o wykrytym tankowaniu zawiera wyłącznie datę i godzinę tankowania oraz poziom
+paliwa przed i po (np. „30.10 14:05 · 20% → 80%. Podaj cenę za litr.”). Nie ma VIN ani jego fragmentu, numeru
+silnika, przebiegu, lokalizacji ani tokenów. Treść jest liczona z danych już zapisanych w bazie, a samo
+wysłanie powiadomienia nie woła `refresh_status()` ani żadnego innego żądania do sieci
+(§8.5). `PendingIntent` niesie wyłącznie `refuel_id` — klucz wpisu w lokalnej bazie, nie sekret i nie
+współrzędne.
+
 ## Szyfrowanie sekretów na telefonie (ADR-007)
 - Login, hasło i tokeny: `EncryptedSecretStore` w SharedPreferences `secrets`. Wartość = Base64 z `wersja (1 B) || IV (12 B) || szyfrogram+tag`.
 - AES-256-GCM (`AES/GCM/NoPadding`, tag 128 bit), losowe IV od szyfru. Klucz w „AndroidKeyStore” (alias `toyota-companion-secrets-v1`), nieeksportowalny,

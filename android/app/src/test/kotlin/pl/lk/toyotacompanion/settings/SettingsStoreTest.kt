@@ -73,4 +73,30 @@ class SettingsStoreTest {
         }
     }
 
+
+    @Test
+    fun `notified refuel ids round trip and can be forgotten`() {
+        store.markRefuelNotified("r1")
+        store.markRefuelNotified("r2")
+
+        assertEquals(setOf("r1", "r2"), store.notifiedRefuelIds())
+        assertNotNull(prefs.getString("refuel_notified_ids", null), "plain ids, not a secret")
+
+        store.forgetNotifiedRefuel("r1")
+        assertEquals(setOf("r2"), store.notifiedRefuelIds())
+
+        store.forgetNotifiedRefuel("r2")
+        assertEquals(emptySet<String>(), store.notifiedRefuelIds())
+        assertNull(prefs.getString("refuel_notified_ids", null), "an empty set leaves no garbage key")
+    }
+
+    @Test
+    fun `the permission question is remembered as asked`() {
+        assertEquals(false, store.notificationsAsked(), "first login asks (docs/SPEC.md 13.2)")
+
+        store.markNotificationsAsked()
+
+        assertEquals(true, store.notificationsAsked())
+    }
+
 }

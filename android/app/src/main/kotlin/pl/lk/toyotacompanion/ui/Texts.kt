@@ -202,4 +202,31 @@ object Texts {
     const val DEFAULT_PRICE_EMPTY_ERROR =
         "Podaj cenę za litr albo usuń cenę przyciskiem poniżej"
 
+
+    /** Name of the notification channel of refuels (docs/SPEC.md §13.1). */
+    const val REFUEL_NOTIFICATION_CHANNEL = "Tankowania"
+
+    /**
+     * Title of the heads-up notification and of the in-app prompt: the same words,
+     * because both say the same thing (docs/SPEC.md §13).
+     */
+    const val REFUEL_NOTIFICATION_TITLE = "Wykryto tankowanie"
+
+    /**
+     * Notification text: when and how much the level changed, then the request, e.g.
+     * `30.10 14:05 · 20% → 80%. Podaj cenę za litr.` No VIN, no GPS, no odometer
+     * (docs/SECURITY.md, docs/SPEC.md §13.1).
+     */
+    fun refuelNotificationText(time: String, levelJump: String): String =
+        "$time \u00b7 $levelJump. Podaj cen\u0119 za litr."
+
+    /** First line of the in-app prompt: the refuel this question is about. */
+    fun refuelPromptBody(time: String, levelJump: String): String = "$time \u00b7 $levelJump"
+
+    /** "Not now": silences this one entry for the rest of the process (docs/SPEC.md §13.3). */
+    const val REFUEL_PROMPT_LATER = "P\u00f3\u017aniej"
+
+    /** Opens the full form of C3 with liters and total cost. */
+    const val REFUEL_PROMPT_MORE = "Wi\u0119cej"
+
 }

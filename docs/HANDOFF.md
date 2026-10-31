@@ -14,7 +14,7 @@
   karta błędu `errorContainer`; status z `TopAppBar`, `PullToRefreshBox`, kartą liczników, chipem stanu,
   `HorizontalDivider` i `AlertDialog` potwierdzającym „Wyloguj”. `SessionController.reload()` powtarza tylko
   odczyt lokalnej bazy (bez API Toyoty i bez `refresh_status`).
-- Testy: core 198, app 140 (JUnit 4, w tym Robolectric), Python 76. CI: ruff/mypy/pytest, Android (core + app unit), gitleaks 8.30.1.
+- Testy: core 198, app 181 (JUnit 4, w tym Robolectric), Python 76. CI: ruff/mypy/pytest, Android (core + app unit), gitleaks 8.30.1.
 - Lista tras z kosztem (SPEC §10): `SyncEngine.trips()` — trasy bieżącego VIN od najnowszej, wszystkie koszty jednym odczytem `costs.all()` (bez zapytania na trasę), brak VIN = pusta lista, bez sieci i bez `mutex` synchronizacji; w `app` czyste funkcje `groupTripsByMonth` (miesiąc z `trip.start` w przekazanej strefie, sumy km/l/zł, licznik tras bez ceny, `totalCost = null` gdy żadna trasa nie ma ceny) i `TripsFormatting` (przecinek, `HALF_UP`, własna tablica 12 nazw miesięcy w mianowniku, start `29.10 14:05`, formaty niezależne od `Locale`); ekran `TripsScreen` (nazwa + sumy miesiąca, wiersze z `key = trip.id`, cena za litr · a przy „cena domyślna” także dopisek w tej samej linii, `contentPadding` z `innerPadding`, stany ładowanie/pusto/błąd bez treści wyjątku, `TextButton` „Wstecz” + `BackHandler`) i przycisk „Trasy” na ekranie statusu; `AppContainer.tripsLoader` jako jedyne wejście do bazy, `AppRoot` przełącza ekrany enumem `Screen` w `rememberSaveable` (reset do statusu po wylogowaniu przez `LaunchedEffect`). Na ekranie brak współrzędnych GPS i VIN (SECURITY.md).
 - Formularz ceny tankowania (SPEC §11): `pendingRefuels()`, `confirmRefuel(...)` i `dismissRefuel(id)` w `SyncEngine`
   zwracają `RefuelChange` (`Done`, `NotFound`, `NotPending`, `Invalid`, `NoVehicle`). Zapis i przeliczenie kosztów idą
@@ -37,14 +37,38 @@
   generacji) oraz ekran „Cena domyślna” z jednym polem, „Zapisz” i „Usuń cenę domyślną” z `AlertDialog`; wejście z
   ekranu statusu przyciskiem pokazującym zapisaną cenę (`Texts.defaultPricePrompt`). **Cena przeżywa wylogowanie**
   (ustawienie telefonu, nie konta — ADR-006); odczyt i zapis preferencji idą z `Dispatchers.IO`, nie z wątku UI.
+- Pytanie o cenę zaraz po tankowaniu (SPEC §13, PRD F2c): `notify/RefuelNotifier` woła dekorator `SyncRunner` w
+  `AppContainer`, więc powiadamia kanałem „Tankowania” (`IMPORTANCE_HIGH`) po każdej synchronizacji, która
+  wykryła tankowanie — `SyncWorker` i „Synchronizuj teraz” są tym samym traktowane. Id powiadomienia
+  `NOTIFICATION_ID_BASE + Math.floorMod(id.hashCode(), 100000)` (`hashCode` bywa ujemny) jest również
+  `requestCode` `PendingIntent`, który otwiera `MainActivity` (`launchMode="singleTop"` + `onNewIntent`, extra
+  `refuel_id`) i prowadzi prosto na pełny formularz ceny z fokusem w polu (`showKeyboardOnFocus`: fokus i
+  `LocalSoftwareKeyboardController.current?.show()` po pierwszej narysowanej klatce (`withFrameNanos`),
+  z okna samego dialogu, nie z aktywności). Zbiór powiadomionych id i flaga
+  „pytaliśmy już o uprawnienie” trzymamy w `SettingsStore` (plik jawny, to nie sekrety), więc powtórzona
+  synchronizacja nie melduje ponownie, a śmierć procesu nie kasuje tego, co już wyszło. `cancel` przy
+  `Confirmed`/`Rejected` (`RefuelController.onResolved`) i przy pokazaniu okna — okno i powiadomienie nigdy nie
+  pytają o to samo. Okno: `RefuelPrompt.refuelPromptTarget` (czysta funkcja) + `RefuelPromptController` +
+  `RefuelPromptDialog`; „Później” wycisza TYLKO dany wpis do końca procesu (wylogowanie kasuje), więc nowe
+  tankowanie pytane jest nadal — to sedno F2c. `refresh()` dekoratora po `Ok && refuelsDetected > 0` pokazuje okno
+  nawet gdy aplikacja stoi otworem, a `ensureLoaded()` czyta raz na logowanie (jak §12.3). Uprawnienie
+  `POST_NOTIFICATIONS` (API 33+) pytane raz na ekranie statusu (`shouldAskNotificationPermission`, flaga w
+  `SettingsStore`; decyzja bez wartości domyślnej, `MainActivity` podaje
+  `container.askNotificationPermission` przez `AppRoot` do `StatusScreen`); po odmowie aplikacja działa jak
+  wcześniej (okno + przyciski). Bez VIN, GPS i przebiegu w
+  treści powiadomienia (`Texts.refuelNotificationText`, `RefuelFormatting.odometer` nie jest użyty). Dodano
+  `res/drawable/ic_stat_refuel.xml` — aplikacja NADAL nie ma ikony launchera (`android:icon` nie ustawiony, poza
+  zakresem C5). Po przeglądzie: deep link przy zimnym starcie czeka na `loggedIn`, `post()` zwraca `Boolean`,
+  `suspend cancel` z `SettingsStore` na `io`, `screenChanged()`/`resolvedElsewhere(id)` zamiast odczytu bazy przy
+  każdej zmianie ekranu, `NoVehicle` w C3 nie anuluje powiadomienia; testy app 181, core bez zmian 198.
 
 ## Następny krok
 Sprawdzone na emulatorze (API 36) 2026-10-29: logowanie prawdziwym kontem, pierwsza synchronizacja (562 trasy, 1 odczyt),
 sekrety zaszyfrowane w `secrets.xml` (Keystore), praca `toyota-sync` zaplanowana z wymogiem sieci, brak awarii i sekretów w logach.
 Sprawdzone na emulatorze 2026-10-30: status, lista tras (motyw jasny i nocny, 562 trasy), ekran „Cena domyślna” –
 6,19 zł/l nadaje koszt wszystkim trasom (październik 2026: 217,90 zł, dopisek „cena domyślna”), brak awarii.
-Nie sprawdzone: lista tankowań i formularz ceny – archiwum ma 1 odczyt paliwa, więc żadne tankowanie nie czeka na cenę.
-- Następny krok: szacunek litrów z czujnika i wybór źródła litrów (F2a) albo powiadomienie o tankowaniu (ROADMAP „NEXT”).
+Sprawdzone na emulatorze (API 36) 2026-10-31, build C5 po przeglądzie: prośba `POST_NOTIFICATIONS` po zalogowaniu (flaga `notifications_asked` zapisana), okno „Wykryto tankowanie” z klawiaturą numeryczną w oknie dialogu, „Później”, intent powiadomienia przy zimnym starcie i do działającej aplikacji (`onNewIntent`) – formularz z fokusem w cenie; brak awarii. Nie sprawdzone: samo wysłanie powiadomienia (wymaga nowego tankowania z czujnika; pokryte testami Robolectric) oraz zapis ceny z okna (wpis 30 % → 94 % zostawiony do testu właściciela). Uwaga: AVD ma `hw.keyboard = yes`, więc klawiatura ekranowa jest ukryta, dopóki `show_ime_with_hard_keyboard` = 0. Znane (C3, poza zakresem): komunikat błędu walidacji w formularzu znika po obrocie ekranu, bo `openForm(id)` przy odtworzeniu czyści `formError`; wpisane wartości zostają.
+- Następny krok: szacunek litrów z czujnika i wybór źródła litrów (F2a) albo eksport CSV, ręczny eksport i import archiwum (ROADMAP „NEXT”).
 
 Test klienta na prawdziwym koncie MyToyota (uruchamia właściciel; hasło nie trafia do repo ani rozmowy):
 ```bash

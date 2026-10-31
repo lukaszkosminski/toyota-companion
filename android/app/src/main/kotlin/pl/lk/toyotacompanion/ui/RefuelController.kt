@@ -52,6 +52,8 @@ data class RefuelUiState(
  * @param pending reads the waiting refuels (`SyncEngine.pendingRefuels`).
  * @param confirmRefuel writes a price (`SyncEngine.confirmRefuel`), values already parsed.
  * @param dismissRefuel refuses an entry (`SyncEngine.dismissRefuel`).
+ * @param onResolved an entry that stopped waiting: its notification is cancelled here, from
+ *   whichever screen the write came (docs/SPEC.md §13.1).
  */
 class RefuelController(
     private val pending: suspend () -> List<Refuel>,
@@ -63,6 +65,7 @@ class RefuelController(
         filledToFull: Boolean?,
     ) -> RefuelChange,
     private val dismissRefuel: suspend (id: String) -> RefuelChange,
+    private val onResolved: (String) -> Unit = {},
     private val scope: CoroutineScope,
     private val io: CoroutineDispatcher,
 ) {
@@ -170,9 +173,11 @@ class RefuelController(
                 return@launch
             }
             val saved = change is RefuelChange.Done
+            // NoVehicle reloads the list too, but the entry still waits for its price, so
+            // its notification stays (docs/SPEC.md §11.3, §13.1).
             val stale = when (change) {
-                RefuelChange.NotFound, RefuelChange.NotPending, RefuelChange.NoVehicle -> true
-                is RefuelChange.Done, RefuelChange.Invalid -> false
+                RefuelChange.NotFound, RefuelChange.NotPending -> true
+                is RefuelChange.Done, RefuelChange.Invalid, RefuelChange.NoVehicle -> false
             }
             ui.value = ui.value.copy(
                 busyId = null,
@@ -180,7 +185,8 @@ class RefuelController(
                 savedId = if (saved) id else null,
             )
             // Saved by us or answered elsewhere: in both cases the entry is no longer waiting.
-            if (saved || stale) reload()
+            if (saved || stale) onResolved(id)
+            if (saved || stale || change == RefuelChange.NoVehicle) reload()
         }
     }
 }

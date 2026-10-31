@@ -1,6 +1,7 @@
 package pl.lk.toyotacompanion
 
 import android.content.Context
+import android.os.Build
 import androidx.room3.Room
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.work.WorkManager
@@ -9,14 +10,20 @@ import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import pl.lk.toyotacompanion.core.data.StoredTrip
 import pl.lk.toyotacompanion.core.data.VehicleRecord
 import pl.lk.toyotacompanion.core.domain.FuelReading
 import pl.lk.toyotacompanion.core.data.TripRecord
 import pl.lk.toyotacompanion.core.sync.NoCredentialsException
 import pl.lk.toyotacompanion.core.sync.SyncEngine
+import pl.lk.toyotacompanion.core.sync.SyncOutcome
 import pl.lk.toyotacompanion.core.sync.ToyotaGateway
 import pl.lk.toyotacompanion.core.sync.ToyotaGatewayFactory
+import pl.lk.toyotacompanion.notify.RefuelNotifier
+import pl.lk.toyotacompanion.notify.notificationPermissionGranted
+import pl.lk.toyotacompanion.notify.shouldAskNotificationPermission
 import pl.lk.toyotacompanion.data.db.AppDatabase
 import pl.lk.toyotacompanion.data.db.RoomCostRepository
 import pl.lk.toyotacompanion.data.db.RoomFuelReadingRepository
@@ -33,6 +40,7 @@ import pl.lk.toyotacompanion.settings.SettingsStore
 import pl.lk.toyotacompanion.sync.SyncRunner
 import pl.lk.toyotacompanion.ui.DefaultPriceController
 import pl.lk.toyotacompanion.ui.RefuelController
+import pl.lk.toyotacompanion.ui.RefuelPromptController
 import pl.lk.toyotacompanion.ui.SessionController
 
 /** Hand-wired dependencies (no DI framework). Everything is lazy: nothing touches Keystore or disk at app start. */
@@ -92,7 +100,36 @@ class AppContainer(
         )
     }
 
-    val syncRunner: SyncRunner by lazy { SyncRunner { syncEngine.fullSync() } }
+    /**
+     * Tells the user about a refuel as soon as any synchronization found one
+     * (docs/SPEC.md §13.1). The notified ids live in `settings` — an id of a local
+     * row is not a secret — so a repeated synchronization stays quiet.
+     */
+    val refuelNotifier: RefuelNotifier by lazy {
+        RefuelNotifier(
+            context = context,
+            pending = { syncEngine.pendingRefuels() },
+            notifiedIds = { settingsStore.notifiedRefuelIds() },
+            markNotified = { id -> settingsStore.markRefuelNotified(id) },
+            forgetNotified = { id -> settingsStore.forgetNotifiedRefuel(id) },
+            io = Dispatchers.IO,
+        )
+    }
+
+    /**
+     * One hook for both ways of synchronizing: `SyncWorker` and "Synchronizuj teraz"
+     * call this runner, so the notification and the in-app prompt cannot miss a run
+     * (docs/SPEC.md §13.1, §13.3). Neither may break the synchronization, hence the
+     * guards inside [RefuelNotifier] and the ignored failures here.
+     */
+    val syncRunner: SyncRunner by lazy {
+        SyncRunner {
+            val outcome = syncEngine.fullSync()
+            refuelNotifier.onSyncOutcome(outcome)
+            if (outcome is SyncOutcome.Ok && outcome.refuelsDetected > 0) refuelPromptController.refresh()
+            outcome
+        }
+    }
 
     /**
      * Reads the trip list for the trips screen (docs/SPEC.md §10.1). A stable
@@ -134,6 +171,10 @@ class AppContainer(
                 syncEngine.confirmRefuel(id, price, liters, total, filledToFull)
             },
             dismissRefuel = { id -> syncEngine.dismissRefuel(id) },
+            onResolved = { id ->
+                uiScope.launch { refuelNotifier.cancel(id) }
+                refuelPromptController.resolvedElsewhere(id)
+            },
             scope = uiScope,
             io = Dispatchers.IO,
         )
@@ -154,6 +195,39 @@ class AppContainer(
             scope = uiScope,
             io = Dispatchers.IO,
         )
+    }
+
+    /**
+     * The "price right after a refuel" question (docs/SPEC.md §13.3). It shares the
+     * UI scope with [session]: the write it starts is the ordinary
+     * `SyncEngine.confirmRefuel`, and cancelling the notification belongs to the
+     * same scope as the write that ended the wait.
+     */
+    val refuelPromptController: RefuelPromptController by lazy {
+        RefuelPromptController(
+            pending = { syncEngine.pendingRefuels() },
+            confirmRefuel = { id, price -> syncEngine.confirmRefuel(id, price, null, null, null) },
+            onResolved = { id -> uiScope.launch { refuelNotifier.cancel(id) } },
+            onSaved = { session.reload() },
+            scope = uiScope,
+            io = Dispatchers.IO,
+        )
+    }
+
+    /**
+     * The one-shot decision of the status screen (docs/SPEC.md §13.2): the rule is
+     * pure, the "already asked" flag comes from the settings file on the IO
+     * dispatcher, and a refusal is never asked about again.
+     */
+    val askNotificationPermission: suspend () -> Boolean = {
+        val asked = withContext(Dispatchers.IO) { settingsStore.notificationsAsked() }
+        val decision = shouldAskNotificationPermission(
+            sdkInt = Build.VERSION.SDK_INT,
+            granted = notificationPermissionGranted(context),
+            askedBefore = asked,
+        )
+        if (decision) withContext(Dispatchers.IO) { settingsStore.markNotificationsAsked() }
+        decision
     }
 
     private companion object {

@@ -84,10 +84,14 @@ private class FakeWrites {
  * it with the scheduler only.
  */
 class RefuelControllerTest {
+    /** Entries the controller reported as no longer waiting: their notifications are cancelled. */
+    private val resolved = mutableListOf<String>()
+
     private fun controller(writes: FakeWrites, io: CoroutineDispatcher) = RefuelController(
         pending = { writes.pending() },
         confirmRefuel = { id, price, liters, total, filled -> writes.confirm(id, price, liters, total, filled) },
         dismissRefuel = { id -> writes.dismiss(id) },
+        onResolved = { id -> resolved.add(id) },
         scope = CoroutineScope(SupervisorJob() + io),
         io = io,
     )
@@ -286,6 +290,52 @@ class RefuelControllerTest {
         assertTrue("closed" !in requireNotNull(state.formError), "tresc wyjatku nie trafia do UI")
         assertNull(state.savedId)
         assertEquals(0, writes.listCalls, "bez udanego zapisu lista zostaje jak byla")
+    }
+
+
+    @Test
+    fun `an entry that stopped waiting is reported so its notification can go`() = runTest {
+        val writes = FakeWrites()
+        val controller = controller(writes, StandardTestDispatcher(testScheduler))
+        controller.reload()
+        advanceUntilIdle()
+
+        controller.confirm("r1", "6,19", "", "", null)
+        advanceUntilIdle()
+        controller.dismiss("r2")
+        advanceUntilIdle()
+
+        assertEquals(listOf("r1", "r2"), resolved, "docs/SPEC.md §13.1")
+    }
+
+    @Test
+    fun `a write refused by a missing vehicle reloads the list and keeps the notification`() = runTest {
+        val writes = FakeWrites().apply { answer = RefuelChange.NoVehicle }
+        val controller = controller(writes, StandardTestDispatcher(testScheduler))
+        controller.reload()
+        advanceUntilIdle()
+
+        controller.confirm("r1", "6,19", "", "", null)
+        advanceUntilIdle()
+
+        val state = controller.state.value
+        assertEquals(Texts.REFUEL_STALE_ENTRY, state.formError)
+        assertNull(state.savedId, "nothing was written")
+        assertEquals(2, writes.listCalls, "the list is read again (SPEC 11.3)")
+        assertEquals(emptyList<String>(), resolved, "the entry still waits, so its notification stays (SPEC 13.1)")
+    }
+
+    @Test
+    fun `a write that never happened reports nothing`() = runTest {
+        val writes = FakeWrites()
+        val controller = controller(writes, StandardTestDispatcher(testScheduler))
+        controller.reload()
+        advanceUntilIdle()
+
+        controller.confirm("r1", "", "", "", null)
+        advanceUntilIdle()
+
+        assertEquals(emptyList<String>(), resolved)
     }
 
 }
