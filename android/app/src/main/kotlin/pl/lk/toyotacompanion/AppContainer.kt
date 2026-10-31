@@ -46,6 +46,7 @@ import pl.lk.toyotacompanion.sync.SyncRunner
 import pl.lk.toyotacompanion.ui.ARCHIVE_IMPORT_LIMIT_BYTES
 import pl.lk.toyotacompanion.ui.BackupController
 import pl.lk.toyotacompanion.ui.DefaultPriceController
+import pl.lk.toyotacompanion.ui.DrivingStyleController
 import pl.lk.toyotacompanion.ui.ParkingController
 import pl.lk.toyotacompanion.ui.RefuelController
 import pl.lk.toyotacompanion.ui.RefuelLogController
@@ -267,6 +268,16 @@ class AppContainer(
     /** Electric share, years and seasons of the selected vehicle (PRD F10, F11, docs/SPEC.md §16-§17). */
     val statsController: StatsController by lazy {
         StatsController(read = tripsLoader, zone = { ZoneId.systemDefault() }, scope = uiScope, io = Dispatchers.IO)
+    }
+
+    /** Eco score, repeated routes and fuel anomalies of the selected vehicle (PRD F12, F13, docs/SPEC.md §19). */
+    val drivingStyleController: DrivingStyleController by lazy {
+        DrivingStyleController(
+            read = tripsLoader,
+            zone = { ZoneId.systemDefault() },
+            scope = uiScope,
+            io = Dispatchers.IO,
+        )
     }
 
     /** Places and stops from the archived trips, never from a Toyota position request (PRD F17, §18). */

@@ -43,6 +43,7 @@ fun AppRoot(
     refuelLog: RefuelLogController,
     stats: StatsController,
     parking: ParkingController,
+    drivingStyle: DrivingStyleController,
     askNotificationPermission: suspend () -> Boolean,
     deepLinkRefuelId: String? = null,
     onDeepLinkShown: () -> Unit = {},
@@ -76,6 +77,7 @@ fun AppRoot(
             refuelLog.reset()
             stats.reset()
             parking.reset()
+            drivingStyle.reset()
         } else {
             // The status button shows the stored price. This effect also restarts when the
             // Activity is recreated, so the read is guarded: the file is touched only while
@@ -156,6 +158,10 @@ fun AppRoot(
                             parking.load()
                             screen = Screen.Parking
                         },
+                        onShowDrivingStyle = {
+                            drivingStyle.load()
+                            screen = Screen.DrivingStyle
+                        },
                         defaultPrice = priceState.price,
                         onShowDefaultPrice = { screen = Screen.DefaultPrice },
                         // Until the date is read there is no reminder: an unknown date is not "never".
@@ -170,6 +176,11 @@ fun AppRoot(
                         onShowBackup = { screen = Screen.Backup },
                         onLogout = session::logout,
                         askNotificationPermission = askNotificationPermission,
+                    )
+
+                    Screen.DrivingStyle -> DrivingStyleScreen(
+                        controller = drivingStyle,
+                        onBack = { screen = Screen.Status },
                     )
 
                     Screen.Parking -> ParkingScreen(
