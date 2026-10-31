@@ -178,7 +178,7 @@ fun AppRoot(
                             ?.let { Texts.lastBackup(backupDate(it, ZoneId.systemDefault())) }
                             ?: Texts.BACKUP_NONE_YET,
                         onShowBackup = { screen = Screen.Backup },
-                        forecastLine = forecastLine(forecastState, Instant.now(), ZoneId.systemDefault()),
+                        forecastLine = forecastLine(forecastState, ZoneId.systemDefault()),
                         onLogout = session::logout,
                         askNotificationPermission = askNotificationPermission,
                     )

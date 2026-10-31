@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -60,7 +61,12 @@ def refuel_forecast(
     """
     if reading is None:
         return None
-    trip_list = list(trips)
+    # A trip whose distance was not stored as a finite, non-negative number is left out.
+    trip_list = [
+        trip for trip in trips if math.isfinite(trip.distance_km) and trip.distance_km >= 0
+    ]
+    if not trip_list:
+        return None
     window_start = now - timedelta(days=window_days)
     in_window = [trip for trip in trip_list if window_start <= trip.start <= now]
     distance = sum((as_decimal(trip.distance_km) for trip in in_window), _ZERO)

@@ -32,6 +32,9 @@ fun refuelForecast(
     windowDays: Int = WINDOW_DAYS,
 ): RefuelForecast? {
     if (reading == null) return null
+    // A trip whose distance was not stored as a finite, non-negative number is left out.
+    val trips = trips.filter { it.distanceKm.isFinite() && it.distanceKm >= 0.0 }
+    if (trips.isEmpty()) return null
     val windowStart = now.minus(Duration.ofDays(windowDays.toLong()))
     val inWindow = trips.filter { !it.start.isBefore(windowStart) && !it.start.isAfter(now) }
     val distance = inWindow.fold(ZERO) { acc, trip -> acc.add(toBigDecimal(trip.distanceKm)) }

@@ -56,7 +56,7 @@ fun ParkingScreen(
         },
     ) { innerPadding ->
         val log = state.log
-        val known = remember(log) { log?.let { knownPlaces(it, zone) } }
+        val known = remember(log, zone) { log?.let { knownPlaces(it, zone) } }
         when {
             state.loading -> Message(innerPadding) { CircularProgressIndicator() }
             state.loadFailed -> Message(innerPadding) { Text(Texts.PARKING_READ_ERROR) }
@@ -76,11 +76,7 @@ fun ParkingScreen(
                     item { Text(Texts.PARKING_PLACES, style = MaterialTheme.typography.titleMedium) }
                     items(log.places, key = { "p-" + it.lat + "," + it.lon }) { place ->
                         Column(modifier = Modifier.fillMaxWidth()) {
-                            val label = when (place) {
-                            known?.home -> Texts.PLACE_HOME + Texts.SEPARATOR
-                            known?.work -> Texts.PLACE_WORK + Texts.SEPARATOR
-                            else -> ""
-                        }
+                            val label = placeLabel(place, known)
                         Text(label + ParkingFormatting.place(place.lat, place.lon), style = MaterialTheme.typography.titleSmall)
                             Text(ParkingFormatting.placeLine(place, zone), style = MaterialTheme.typography.bodyMedium)
                         }
@@ -106,4 +102,14 @@ private fun Message(innerPadding: PaddingValues, content: @Composable () -> Unit
         modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
         contentAlignment = Alignment.Center,
     ) { content() }
+}
+
+/** `Dom · ` / `Praca · ` before a recognised place (docs/SPEC.md §21), by position, not by object identity. */
+private fun placeLabel(place: ParkingPlace, known: KnownPlaces?): String {
+    fun same(other: ParkingPlace?) = other != null && other.lat == place.lat && other.lon == place.lon
+    return when {
+        same(known?.home) -> Texts.PLACE_HOME + Texts.SEPARATOR
+        same(known?.work) -> Texts.PLACE_WORK + Texts.SEPARATOR
+        else -> ""
+    }
 }

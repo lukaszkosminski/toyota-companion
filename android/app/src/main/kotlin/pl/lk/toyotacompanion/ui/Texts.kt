@@ -322,6 +322,7 @@ object Texts {
 
     const val TRIP_TYPES_SECTION = "Typy tras"
     const val TRIP_TYPES_HINT = "Dom i praca rozpoznane z postojów; dojazdy to trasy między nimi."
+    const val TRIP_TYPES_NO_PLACES = "Za mało postojów, żeby rozpoznać dom i pracę – dojazdów jeszcze nie ma."
     fun tripTypeName(type: TripType): String = when (type) {
         TripType.COMMUTE -> "Dojazdy dom – praca"
         TripType.ERRAND -> "Sprawy i zakupy"
@@ -333,8 +334,12 @@ object Texts {
 
     // Prognoza tankowania (PRD F14, docs/SPEC.md §20).
 
-    fun forecastWhen(days: Long, date: String): String =
-        if (days == 0L) "Tankowanie dziś" else "Tankowanie za ok. $days dni (ok. $date)"
+    fun forecastWhen(days: Long, date: String): String = when (days) {
+        0L -> "Tankowanie dziś"
+        1L -> "Tankowanie jutro ($date)"
+        else -> "Tankowanie za ok. $days dni (ok. $date)"
+    }
+    fun forecastBeyond(days: Long): String = "Tankowanie za ponad $days dni"
     fun forecastLeft(liters: String, level: String): String = "w baku ok. $liters ($level)"
     fun forecastRange(km: String): String = "ok. $km do rezerwy"
     const val FORECAST_RESERVE = "Paliwo na rezerwie – zatankuj"
