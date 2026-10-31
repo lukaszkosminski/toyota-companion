@@ -294,6 +294,47 @@ object Texts {
 
     const val BACKUP_NONE_YET = "Archiwum nie ma jeszcze kopii"
 
+    // Statystyki (PRD F10, F11, docs/SPEC.md §16-§17).
+
+    const val STATS_TITLE = "Statystyki"
+    const val STATS_EMPTY = "Brak tras do policzenia statystyk."
+    const val STATS_READ_ERROR = "Nie udało się policzyć statystyk. Spróbuj ponownie."
+    const val STATS_EV_SECTION = "Jazda na prądzie"
+    const val STATS_NO_EV_DATA = "brak danych"
+    const val STATS_CLIPPED_MARK = "(dane Toyoty niespójne)"
+    const val STATS_RANKING = "Najwięcej jazdy na prądzie (trasy od 1 km)"
+    const val STATS_YEAR_OVER_YEAR = "Rok do roku"
+    const val STATS_YEARS = "Lata"
+    const val STATS_SEASONS = "Pory roku"
+    const val SEASON_WINTER = "zima"
+    const val SEASON_SPRING = "wiosna"
+    const val SEASON_SUMMER = "lato"
+    const val SEASON_AUTUMN = "jesień"
+
+    fun statsEvTotal(share: String): String = "$share kilometrów na prądzie"
+    fun statsShareOfTrip(share: String): String = "$share na prądzie"
+    fun statsTrips(count: Int): String = "trasy: $count"
+    fun statsLeftOut(withoutData: Int, tooShort: Int): String =
+        "Pominięte – bez danych o prądzie: $withoutData, krótsze niż 1 km: $tooShort."
+    fun statsWindow(window: String, current: Int, previous: Int): String = "$window $current vs $previous"
+
+    // Postoje (PRD F17, docs/SPEC.md §18).
+
+    const val PARKING_TITLE = "Postoje"
+    const val PARKING_EMPTY = "Brak postojów do pokazania."
+    const val PARKING_READ_ERROR = "Nie udało się odczytać postojów. Spróbuj ponownie."
+    const val PARKING_PRIVACY =
+        "Położenie tylko na tym ekranie, zaokrąglone do ok. 100 m – liczone z tras w archiwum, bez pytania auta."
+    const val PARKING_PLACES = "Miejsca"
+    const val PARKING_RECENT = "Ostatnie postoje"
+    const val PARKING_NO_POSITION = "bez położenia"
+
+    fun parkingStops(count: Int): String = "postoje: $count"
+    fun parkingTotal(duration: String): String = "razem $duration"
+    fun parkingLast(time: String): String = "ostatnio $time"
+    fun parkingSkipped(unmatched: Int, longGaps: Int): String =
+        "Pominięte – koniec i start w różnych miejscach (brak trasy w archiwum): $unmatched, przerwy dłuższe niż 21 dni: $longGaps."
+
     // Dziennik tankowań (PRD F9, docs/SPEC.md §15).
 
     /** Status button and the title of the screen. */

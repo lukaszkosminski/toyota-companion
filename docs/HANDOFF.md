@@ -14,7 +14,7 @@
   karta błędu `errorContainer`; status z `TopAppBar`, `PullToRefreshBox`, kartą liczników, chipem stanu,
   `HorizontalDivider` i `AlertDialog` potwierdzającym „Wyloguj”. `SessionController.reload()` powtarza tylko
   odczyt lokalnej bazy (bez API Toyoty i bez `refresh_status`).
-- Testy: core 283, app 277 (JUnit 4, w tym Robolectric), Python 110. CI: ruff/mypy/pytest, Android (core + app unit), gitleaks 8.30.1.
+- Testy: core 305, app 323 (JUnit 4, w tym Robolectric), Python 132. CI: ruff/mypy/pytest, Android (core + app unit), gitleaks 8.30.1.
 - Lista tras z kosztem (SPEC §10): `SyncEngine.trips()` — trasy bieżącego VIN od najnowszej, wszystkie koszty jednym odczytem `costs.all()` (bez zapytania na trasę), brak VIN = pusta lista, bez sieci i bez `mutex` synchronizacji; w `app` czyste funkcje `groupTripsByMonth` (miesiąc z `trip.start` w przekazanej strefie, sumy km/l/zł, licznik tras bez ceny, `totalCost = null` gdy żadna trasa nie ma ceny) i `TripsFormatting` (przecinek, `HALF_UP`, własna tablica 12 nazw miesięcy w mianowniku, start `29.10 14:05`, formaty niezależne od `Locale`); ekran `TripsScreen` (nazwa + sumy miesiąca, wiersze z `key = trip.id`, cena za litr · a przy „cena domyślna” także dopisek w tej samej linii, `contentPadding` z `innerPadding`, stany ładowanie/pusto/błąd bez treści wyjątku, `TextButton` „Wstecz” + `BackHandler`) i przycisk „Trasy” na ekranie statusu; `AppContainer.tripsLoader` jako jedyne wejście do bazy, `AppRoot` przełącza ekrany enumem `Screen` w `rememberSaveable` (reset do statusu po wylogowaniu przez `LaunchedEffect`). Na ekranie brak współrzędnych GPS i VIN (SECURITY.md).
 - Formularz ceny tankowania (SPEC §11): `pendingRefuels()`, `confirmRefuel(...)` i `dismissRefuel(id)` w `SyncEngine`
   zwracają `RefuelChange` (`Done`, `NotFound`, `NotPending`, `Invalid`, `NoVehicle`). Zapis i przeliczenie kosztów idą
@@ -86,6 +86,9 @@
 - Domknięcie MVP (C10): ikona aplikacji (adaptacyjna, wektorowa, `mipmap-anydpi-v26`, tło `#EB0A1E`, monochrome)
   i „Popraw litry” w dzienniku (SPEC §15.3, `SyncEngine.amendRefuel`, `RefuelChange.NotConfirmed`). Pierwszy etap w trybie
   równoległym: kod i testy app – agent 2, testy `core` i przegląd – agent 1.
+- Statystyki i postoje (C11, PRD F10, F11, F17, SPEC §16–§18, ADR-008): domena `tripstats.py` / `TripStatsOps.kt`
+  (22 testy o tych samych nazwach; wzorzec i lustro – agent 2), `StatsController`/`StatsScreen`; postoje – czyste
+  funkcje `ParkingStops.kt` i testy (agent 1), ekran „Postoje” (agent 2). Położenie tylko na ekranie „Postoje”.
 
 ## Następny krok
 Sprawdzone na emulatorze (API 36) 2026-10-29: logowanie prawdziwym kontem, pierwsza synchronizacja (562 trasy, 1 odczyt),
@@ -109,7 +112,10 @@ Sprawdzone na emulatorze 2026-10-31, build C9: przycisk „Dziennik tankowań”
 „Do pełna” + paragon; brak awarii. Karty spalania pokrywają testy (domena Python/Kotlin, formatowanie, kontroler).
 Sprawdzone na emulatorze 2026-10-31, build C10: ikona w szufladzie aplikacji (czerwony kwadrat z białą kroplą). Okna
 „Popraw litry” nie da się sprawdzić bez potwierdzonego tankowania – pokrywają go testy.
-- Następny krok: C11 (F11 + F10 + F17), plan /home/lk/projekty/briefs/toyota-companion/C11-plan-draft.md.
+Sprawdzone na emulatorze 2026-10-31, build C11: „Statystyki” na 562 trasach (56,4 % km na prądzie, ranking 10 tras,
+85 krótszych niż 1 km pominiętych, rok 2026 i pory roku), „Postoje” (miejsca od 173 postojów, położenie do 0,001°);
+brak awarii. Rok do roku pojawi się, gdy archiwum obejmie dwa lata.
+- Następny krok: do decyzji właściciela – F12, F13, F16, F14, F15 (F15 wysyła współrzędne – zgoda), przycisk mapy w „Postojach”.
 
 Test klienta na prawdziwym koncie MyToyota (uruchamia właściciel; hasło nie trafia do repo ani rozmowy):
 ```bash

@@ -19,6 +19,9 @@ Jeden właściciel pojazdu (właściciel projektu). Brak użytkowników zewnętr
 |---|---|---|
 | F1 | Wykrycie tankowania | Skok `fuel_level` o ≥ 8 pp między odczytami tworzy wpis `pending` (docs/SPEC.md §1) |
 | F2 | Podanie ceny | Użytkownik podaje cenę/l albo litry+kwotę; brakująca wartość jest wyliczana (SPEC §2) |
+| F10 | Statystyki wieloletnie | Ekran „Statystyki”: lata i pory roku (meteorologiczne) z km, l/100 km, kosztem i zł/100 km, udziałem EV; rok do roku na tym samym zakresie dni (SPEC §17) |
+| F11 | Jazda na prądzie | Udział km na prądzie łącznie i na trasę (brak danych ≠ 0 %), ranking 10 tras od 1 km (SPEC §16) |
+| F17 | Dziennik parkowania | Ekran „Postoje”: miejsca, do których auto wraca (liczba postojów, łączny czas, ostatni), i ostatnie postoje z czasem; postój = koniec trasy i start następnej ≤ 150 m, przerwa 30 min – 21 dni; położenie zaokrąglone do ok. 100 m, tylko na ekranie (SPEC §18) |
 | F9 | Dziennik tankowań i spalanie „komputer vs faktyczne” | Ekran „Dziennik tankowań”: potwierdzone tankowania od najnowszego; pod tankowaniem kończącym odcinek „do pełna – do pełna” spalanie faktyczne (litry z paragonu) i z komputera auta (trasy z tego odcinka) w l/100 km z różnicą w %, albo powód braku porównania; odcinek < 100 km nie jest porównywany; litry i „do pełna” potwierdzonego tankowania można poprawić z paragonu (SPEC §15) |
 | F2a | Szacunek litrów z czujnika | Formularz ceny pokazuje „Szacunek z czujnika: ok. N l” (skok poziomu × 43 l); „Użyj szacunku” wpisuje litry i zapisuje `liters_source="estimate"`, ręczna zmiana albo „Z paragonu” daje `"receipt"`; szacunek bez ceny nie wylicza ceny (SPEC §2a, §11) |
 | F2b | Cena domyślna paliwa | Użytkownik ustawia cenę za litr w aplikacji; trasy bez potwierdzonego tankowania przed startem dostają koszt z tej ceny (`source="default"`, SPEC §4, §12), a usunięcie ceny przywraca „brak ceny” |

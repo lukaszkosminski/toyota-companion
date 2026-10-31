@@ -29,12 +29,15 @@
 - Arkusz tras w CSV dla polskiego arkusza, ekran „Kopia i eksport” (SPEC §14.4, F6)
 - Dziennik tankowań i spalanie „komputer vs faktyczne” od tankowania do pełna do tankowania do pełna (SPEC §15, F9)
 - Ikona aplikacji (adaptacyjna, wektorowa) i poprawka litrów potwierdzonego tankowania z paragonu (SPEC §15.3)
+- Statystyki: jazda na prądzie i ranking tras, lata, pory roku, rok do roku (SPEC §16–§17, F10, F11); „Postoje” (SPEC §18, F17)
 
 ## NOW
 - Test klienta Toyoty na prawdziwym koncie: `./gradlew -q :core:liveCheck` (uruchamia właściciel, docs/HANDOFF.md)
 
 ## NEXT
-- C11: F11 udział jazdy elektrycznej i ranking tras, F10 statystyki wieloletnie, F17 dziennik parkowania (jeden etap)
+- Do decyzji właściciela: F12 styl jazdy, F13 anomalie spalania, F16 typy tras, F14 prognoza tankowania,
+  F15 pogoda (wysyła przybliżone współrzędne do Open-Meteo – wymaga zgody); otwarte pytanie: przycisk „Otwórz w mapie”
+  w „Postojach” (przekazanie współrzędnych innej aplikacji)
 
 ## LATER (kolejność wg wartości / kosztu)
 - F12 styl jazdy i ten sam odcinek, F13 anomalie spalania, F16 typy tras

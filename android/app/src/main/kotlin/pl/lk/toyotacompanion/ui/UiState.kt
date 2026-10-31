@@ -74,4 +74,10 @@ enum class Screen {
 
     /** Confirmed refuels and the "computer vs actual" fuel economy (docs/SPEC.md §15). */
     RefuelLog,
+
+    /** Electric share, years and seasons (docs/SPEC.md §16-§17). */
+    Stats,
+
+    /** Places and recent stops of the car (docs/SPEC.md §18). */
+    Parking,
 }

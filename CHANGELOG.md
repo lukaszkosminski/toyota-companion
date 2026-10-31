@@ -135,3 +135,8 @@
   startuje puste), opcjonalna kwota z paragonu (wtedy cena liczy się z paragonu), „Do pełna”; `SyncEngine.amendRefuel`
   tylko dla potwierdzonych (`RefuelChange.NotConfirmed`), przynależność do pojazdu przez `refuels.all(vin)`, koszty
   przeliczane. Testy: core +13, app +7 (app: 277 testów, core: 283, Python: 110)
+- Statystyki i postoje (PRD F10, F11, F17, SPEC §16–§18, ADR-008): domena `tripstats.py` / `TripStatsOps.kt` (udział km
+  na prądzie – brak danych ≠ 0 %, ranking tras od 1 km, lata i pory roku meteorologiczne, rok do roku na tym samym
+  zakresie dni; te same 22 testy w Pythonie i Kotlinie), ekran „Statystyki”; ekran „Postoje” – miejsca, do których
+  auto wraca, i ostatnie postoje z tras w archiwum (≤ 150 m, 30 min – 21 dni), położenie zaokrąglone do ok. 100 m tylko
+  na ekranie. Testy: Python +22, core +22, app +46 (app: 323 testy, core: 305, Python: 132)

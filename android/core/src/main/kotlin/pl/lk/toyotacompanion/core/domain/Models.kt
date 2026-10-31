@@ -79,3 +79,35 @@ data class EconomyInterval(
     val actualLPer100Km: BigDecimal?,
     val differencePct: BigDecimal?,
 )
+
+/** Electric share of one trip (PRD F11); [sharePct] is `null` without Toyota's `hdc` data. Mirrors Python `TripShare`. */
+data class TripShare(
+    val tripId: String,
+    val distanceKm: BigDecimal,
+    val evDistanceKm: BigDecimal?,
+    val sharePct: BigDecimal?,
+    val inconsistent: Boolean,
+)
+
+/** The electric ranking and what it left out (PRD F11). Mirrors Python `ElectricRanking`. */
+data class ElectricRanking(val rows: List<TripShare>, val withoutData: Int, val tooShort: Int)
+
+enum class PeriodKind { YEAR, SEASON }
+
+/** Meteorological season; December counts to the winter of the next year. */
+enum class Season { WINTER, SPRING, SUMMER, AUTUMN }
+
+/** Sums of one year or one season (PRD F10, docs/SPEC.md §17). Mirrors Python `PeriodStats`. */
+data class PeriodStats(
+    val year: Int,
+    val season: Season?,
+    val trips: Int,
+    val distanceKm: BigDecimal,
+    val fuelL: BigDecimal,
+    val lPer100Km: BigDecimal?,
+    val costPln: BigDecimal?,
+    val tripsWithoutCost: Int,
+    val costPer100Km: BigDecimal?,
+    val evSharePct: BigDecimal?,
+    val averageTripKm: BigDecimal?,
+)

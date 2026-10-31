@@ -45,3 +45,10 @@ użytkownika, więc login i hasło są zapisane zaszyfrowane kluczem AES-256-GCM
 Odrzucone: tylko token odświeżania – czas jego ważności zależy od Toyoty, a wygaśnięcie zatrzymuje archiwum.
 Ryzyko zaakceptowane: osoba z pełnym dostępem do odblokowanego lub zrootowanego telefonu może odczytać hasło.
 Hasło nie trafia do logów, stanu synchronizacji ani pliku eksportu (SECURITY.md); `allowBackup=false`.
+
+## ADR-008 Statystyki tras: sezon meteorologiczny, porównywalne okno, próg rankingu (2026-10-31)
+Sezon meteorologiczny (XII–II, III–V, VI–VIII, IX–XI), grudzień liczony do zimy roku stycznia. Rok do roku tylko na
+tym samym zakresie dni obu lat. Ranking jazdy na prądzie od 1 km (krótsze trasy dają szum), brak danych `hdc` to
+„brak danych”, nie 0 %. Udział czasowy EV odłożony – archiwum nie ma czasu jazdy (wymagałby migracji Room).
+Postój (F17) = koniec trasy i start następnej w promieniu 150 m, przerwa od 30 min do 21 dni; miejsca tylko na
+ekranie, zaokrąglone do 0,001°, bez przekazywania współrzędnych innym aplikacjom (decyzja właściciela otwarta).
