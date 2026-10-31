@@ -844,6 +844,53 @@ class SyncEngineTest {
     }
 
     @Test
+    fun `confirm_accepted_estimate_saves_the_source_and_the_computed_total`() = runTest {
+        val stores = InMemoryStores()
+        stores.refuels.addIfAbsent(pendingRefuel("r1", DAY_1), VIN)
+        stores.state.save(SyncState(vin = VIN))
+
+        val change = assertIs<RefuelChange.Done>(
+            ctx(FakeToyotaGateway(), stores).engine.confirmRefuel(
+                "r1",
+                pricePerLiter = BigDecimal("6.50"),
+                liters = BigDecimal("14.190"),
+                litersSource = LitersSource.ESTIMATE,
+            ),
+        )
+
+        val stored = requireNotNull(stores.refuels.byId("r1"))
+        assertEquals(RefuelStatus.CONFIRMED, stored.status)
+        assertEquals(0, BigDecimal("14.190").compareTo(requireNotNull(stored.liters)))
+        assertEquals(LitersSource.ESTIMATE, stored.litersSource, "the user accepted the sensor estimate (F2a)")
+        assertEquals(0, BigDecimal("92.24").compareTo(requireNotNull(stored.totalCost)))
+        assertEquals(0, change.tripsCosted, "no trips are archived yet")
+    }
+
+    @Test
+    fun `confirm_estimate_source_without_liters_is_invalid_and_saves_nothing`() = runTest {
+        val stores = InMemoryStores()
+        stores.trips.upsertAll(listOf(tripRecord("t1", DAY_1)))
+        stores.refuels.addIfAbsent(pendingRefuel("r1", DAY_1), VIN)
+        stores.state.save(SyncState(vin = VIN))
+
+        // The domain rejects a source without liters; the engine only forwards it (SPEC §11.1).
+        assertIs<RefuelChange.Invalid>(
+            ctx(FakeToyotaGateway(), stores).engine.confirmRefuel(
+                "r1",
+                pricePerLiter = BigDecimal("6.50"),
+                litersSource = LitersSource.ESTIMATE,
+            ),
+        )
+
+        val stored = requireNotNull(stores.refuels.byId("r1"))
+        assertEquals(RefuelStatus.PENDING, stored.status)
+        assertNull(stored.pricePerLiter)
+        assertNull(stored.liters)
+        assertNull(stored.litersSource, "a rejected write may not record a source")
+        assertNull(stores.costs.forTrip("t1"), "a rejected price must not recount costs")
+    }
+
+    @Test
     fun `confirm_with_bad_combination_is_invalid_and_saves_nothing`() = runTest {
         val stores = InMemoryStores()
         stores.trips.upsertAll(listOf(tripRecord("t1", DAY_1)))

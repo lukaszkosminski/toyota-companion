@@ -6,6 +6,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.Test
+import pl.lk.toyotacompanion.core.domain.LitersSource
 
 /**
  * Amount parsing and the combination check of the price form (docs/SPEC.md §11.2).
@@ -82,6 +83,57 @@ class RefuelFormTest {
 
         assertEquals(Texts.REFUEL_NUMBER_ERROR, check.message)
         assertEquals(listOf(RefuelField.Price), check.errors.map { it.field })
+    }
+
+    @Test
+    fun `an accepted estimate next to a price is written as ESTIMATE`() {
+        val valid = assertIs<RefuelFormCheck.Valid>(checkRefuelForm("6,50", "14,19", "", litersFromEstimate = true))
+
+        assertEquals(LitersSource.ESTIMATE, valid.litersSource, "docs/SPEC.md §11.2, PRD F2a")
+        assertEquals(0, BigDecimal("14.19").compareTo(requireNotNull(valid.liters)))
+    }
+
+    @Test
+    fun `liters typed by hand carry no source`() {
+        val valid = assertIs<RefuelFormCheck.Valid>(checkRefuelForm("6,50", "14,19", ""))
+
+        assertNull(valid.litersSource, "the domain records RECEIPT (docs/SPEC.md §2)")
+    }
+
+    @Test
+    fun `an estimate with a total and no price is an error of the price field`() {
+        val invalid = assertIs<RefuelFormCheck.Invalid>(
+            checkRefuelForm("", "14,19", "92,24", litersFromEstimate = true),
+        )
+
+        assertEquals(Texts.REFUEL_ESTIMATE_NEEDS_PRICE, invalid.message)
+        assertEquals(listOf(RefuelField.Price), invalid.errors.map { it.field }, "the note sits under the price")
+        assertEquals(Texts.REFUEL_ESTIMATE_NEEDS_PRICE, invalid.errors.first().message)
+    }
+
+    @Test
+    fun `the estimate flag may not mark liters the domain derives`() {
+        // Price and total: the domain would count the liters itself, so ESTIMATE would
+        // describe its own arithmetic instead of the sensor (docs/SPEC.md §2).
+        val valid = assertIs<RefuelFormCheck.Valid>(checkRefuelForm("6,50", "", "92,24", litersFromEstimate = true))
+
+        assertNull(valid.litersSource, "the domain records DERIVED")
+    }
+
+    @Test
+    fun `a price alone is still a price alone with the flag on`() {
+        val valid = assertIs<RefuelFormCheck.Valid>(checkRefuelForm("6,50", "", "", litersFromEstimate = true))
+
+        assertNull(valid.liters, "§6 counts the estimate on its own; nothing is stored here")
+        assertNull(valid.litersSource)
+    }
+
+    @Test
+    fun `liters and total without the flag are still the second combination`() {
+        val valid = assertIs<RefuelFormCheck.Valid>(checkRefuelForm("", "25,8", "159,67"))
+
+        assertNull(valid.litersSource, "D3 guards an accepted estimate only")
+        assertEquals(0, BigDecimal("25.8").compareTo(requireNotNull(valid.liters)))
     }
 
     private fun assertAmount(input: String, expected: String) {

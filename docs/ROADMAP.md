@@ -22,16 +22,17 @@
 
 - UI: pytanie o cenę zaraz po tankowaniu (`RefuelNotifier`, `RefuelPromptController`, SPEC §13):
   powiadomienie z deep linkiem do formularza ceny i okno w aplikacji (F2c)
+- Szacunek litrów z czujnika i wybór źródła litrów (`estimate_refuel_liters`, SPEC §2a, §11): „Użyj szacunku”
+  / „Z paragonu” w formularzu ceny, `liters_source` zapisywane przez `SyncEngine.confirmRefuel` (F2a)
 
 ## NOW
 - Test klienta Toyoty na prawdziwym koncie: `./gradlew -q :core:liveCheck` (uruchamia właściciel, docs/HANDOFF.md)
 
 ## NEXT
-- UI: szacunek litrów z czujnika i wybór źródła litrów (F2a)
 - Eksport CSV, ręczny eksport/import archiwum, przypomnienie o backupie (F6–F8)
 
 ## LATER (kolejność wg wartości / kosztu)
-- F9 dziennik tankowań + „komputer vs faktyczne”, F2a szacunek litrów w UI
+- F9 dziennik tankowań + „komputer vs faktyczne” (tylko litry z paragonu, SPEC §2)
 - F11 udział EV, F12 styl jazdy i ten sam odcinek, F10 statystyki wieloletnie
 - F16 typy tras, F17 dziennik parkowania, F13 anomalie spalania
 - F15 pogoda (Open-Meteo), F14 prognoza tankowania

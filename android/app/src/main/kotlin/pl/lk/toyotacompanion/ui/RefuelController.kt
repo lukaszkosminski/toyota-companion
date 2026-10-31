@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import pl.lk.toyotacompanion.core.domain.LitersSource
 import pl.lk.toyotacompanion.core.domain.Refuel
 import pl.lk.toyotacompanion.core.sync.RefuelChange
 
@@ -63,6 +64,7 @@ class RefuelController(
         liters: BigDecimal?,
         totalCost: BigDecimal?,
         filledToFull: Boolean?,
+        litersSource: LitersSource?,
     ) -> RefuelChange,
     private val dismissRefuel: suspend (id: String) -> RefuelChange,
     private val onResolved: (String) -> Unit = {},
@@ -115,7 +117,8 @@ class RefuelController(
      * Confirms one entry with what the keyboard holds (docs/SPEC.md §11.3). The
      * values are parsed and checked before anything is written, so a bad form
      * never reaches the database; a second click while a write is in flight is
-     * ignored.
+     * ignored. [litersFromEstimate] marks liters taken from the sensor estimate
+     * (docs/SPEC.md §2a, §11.3).
      */
     fun confirm(
         id: String,
@@ -123,17 +126,25 @@ class RefuelController(
         litersText: String,
         totalText: String,
         filledToFull: Boolean?,
+        litersFromEstimate: Boolean = false,
     ) {
         val shown = ui.value
         if (shown.busyId != null) return
-        when (val check = checkRefuelForm(priceText, litersText, totalText)) {
+        when (val check = checkRefuelForm(priceText, litersText, totalText, litersFromEstimate)) {
             is RefuelFormCheck.Invalid -> ui.value = shown.copy(
                 formError = check.message,
                 formFieldErrors = check.errors,
             )
             is RefuelFormCheck.Valid -> write(id) {
                 // "Do pełna" without liters is what the domain rejects (docs/SPEC.md §2).
-                confirmRefuel(id, check.price, check.liters, check.total, check.liters?.let { filledToFull })
+                confirmRefuel(
+                    id,
+                    check.price,
+                    check.liters,
+                    check.total,
+                    check.liters?.let { filledToFull },
+                    check.litersSource,
+                )
             }
         }
     }

@@ -384,6 +384,74 @@ class RefuelOpsTest {
     }
 
     @Nested
+    inner class Estimate {
+        @Test
+        fun `estimate_from_level_jump`() {
+            assertBd("25.800", estimateRefuelLiters(pendingRefuel(levelBefore = 20, levelAfter = 80)), "liters")
+            assertBd("14.190", estimateRefuelLiters(pendingRefuel(levelBefore = 30, levelAfter = 63)), "liters")
+        }
+
+        @Test
+        fun `estimate_none_without_jump`() {
+            assertNull(estimateRefuelLiters(pendingRefuel(levelBefore = 80, levelAfter = 80)))
+            assertNull(estimateRefuelLiters(pendingRefuel(levelBefore = 80, levelAfter = 70)))
+        }
+
+        @Test
+        fun `estimate_none_for_levels_out_of_range`() {
+            assertNull(estimateRefuelLiters(pendingRefuel(levelBefore = -1, levelAfter = 90)))
+            assertNull(estimateRefuelLiters(pendingRefuel(levelBefore = 10, levelAfter = 0)))
+            assertNull(estimateRefuelLiters(pendingRefuel(levelBefore = 10, levelAfter = 101)))
+        }
+
+        @Test
+        fun `estimate_uses_capacity`() {
+            val refuel = pendingRefuel(levelBefore = 20, levelAfter = 80)
+            assertBd("30.000", estimateRefuelLiters(refuel, capacityL = bd("50")), "liters")
+        }
+
+        @Test
+        fun `estimate_none_when_rounding_to_zero`() {
+            // 1% of a 0.01 l tank is 0.0001 l: nothing to offer the user.
+            val refuel = pendingRefuel(levelBefore = 50, levelAfter = 51)
+            assertNull(estimateRefuelLiters(refuel, capacityL = bd("0.01")))
+        }
+
+        @Test
+        fun `estimate_rounds_half_up`() {
+            val refuel = pendingRefuel(levelBefore = 0, levelAfter = 1)
+            assertBd("0.003", estimateRefuelLiters(refuel, capacityL = bd("0.25")), "liters")
+        }
+
+        @Test
+        fun `estimate_rejects_non_positive_capacity`() {
+            val refuel = pendingRefuel(levelBefore = 20, levelAfter = 80)
+            assertFailsWith<IllegalArgumentException> { estimateRefuelLiters(refuel, capacityL = bd("0")) }
+            assertFailsWith<IllegalArgumentException> { estimateRefuelLiters(refuel, capacityL = bd("-1")) }
+        }
+
+        @Test
+        fun `accepted_estimate_matches_implicit_tank_price`() {
+            // Accepting the estimate may not move the tank price (ADR-005).
+            val refuel = pendingRefuel(levelBefore = 30, levelAfter = 63)
+            val priceOnly = confirmRefuel(refuel, pricePerLiter = bd("6.50"))
+            val accepted = confirmRefuel(
+                refuel,
+                pricePerLiter = bd("6.50"),
+                liters = estimateRefuelLiters(refuel),
+                litersSource = LitersSource.ESTIMATE,
+            )
+            val implicit = requireNotNull(tankPriceAfterRefuel(priceOnly, bd("6.00"))) { "implicit price is null" }
+            val afterAccepting = requireNotNull(tankPriceAfterRefuel(accepted, bd("6.00"))) {
+                "price after accepting the estimate is null"
+            }
+            assertTrue(implicit.compareTo(afterAccepting) == 0) { "tank price moved: $implicit vs $afterAccepting" }
+            assertEquals(LitersSource.ESTIMATE, accepted.litersSource)
+            assertBd("92.24", accepted.totalCost, "total_cost")
+        }
+    }
+
+    @Nested
     inner class TankPriceAfterRefuel {
         private fun confirmed(
             ts: Instant = TS_CUR,

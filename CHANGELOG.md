@@ -88,3 +88,15 @@
   `core` bez zmian; testy: app +41 (`RefuelNotifierTest` z Robolectric, `NotificationPermissionTest`,
   `RefuelPromptTest`, `RefuelPromptControllerTest`, `SettingsStoreTest`, `TextsTest`, `RefuelControllerTest`)
   (app: 181 testów, core: 198)
+- Domena: szacunek litrów z czujnika (PRD F2a, SPEC §2a) — `estimate_refuel_liters` / `estimateRefuelLiters`
+  (`(poziom po − poziom przed) % × 43 l`, 0,001 l `HALF_UP`, `None` bez skoku, przy poziomach poza zakresem albo
+  wyniku zaokrąglonym do 0); §6 liczy szacunek tą samą funkcją, więc przyjęty szacunek daje tę samą cenę w baku co
+  sama cena. `SyncEngine.confirmRefuel` przyjmuje opcjonalne `litersSource` (UI poda `ESTIMATE` tylko po jawnym
+  przyjęciu szacunku); walidacja nadal wyłącznie w domenie. SPEC §2: kwota przy `ESTIMATE` jest szacunkowa, a F9
+  bierze tylko `RECEIPT`. Testy: Python +8, core +10 (8 w `RefuelOpsTest` o nazwach jak w Pythonie, 2 w
+  `SyncEngineTest`) (Python: 84, core: 208)
+- UI: szacunek litrów w formularzu ceny (PRD F2a, SPEC §11.2, §11.3): wiersz „Szacunek z czujnika: ok. N l” z „Użyj
+  szacunku”, po przyjęciu „Litry z szacunku czujnika” i „Z paragonu”; litry w pełnej precyzji domeny
+  (`RefuelFormatting.litersInput`); `checkRefuelForm(..., litersFromEstimate)` daje `ESTIMATE` tylko dla pary cena +
+  litry, a szacunek z kwotą bez ceny to błąd pola „Cena”. Okno „Wykryto tankowanie” bez zmian. Testy: app +12
+  (`RefuelFormTest`, `RefuelFormattingTest`, `TextsTest`, `RefuelControllerTest`) (app: 193 testy, core: 208, Python: 84)

@@ -19,6 +19,7 @@ Jeden właściciel pojazdu (właściciel projektu). Brak użytkowników zewnętr
 |---|---|---|
 | F1 | Wykrycie tankowania | Skok `fuel_level` o ≥ 8 pp między odczytami tworzy wpis `pending` (docs/SPEC.md §1) |
 | F2 | Podanie ceny | Użytkownik podaje cenę/l albo litry+kwotę; brakująca wartość jest wyliczana (SPEC §2) |
+| F2a | Szacunek litrów z czujnika | Formularz ceny pokazuje „Szacunek z czujnika: ok. N l” (skok poziomu × 43 l); „Użyj szacunku” wpisuje litry i zapisuje `liters_source="estimate"`, ręczna zmiana albo „Z paragonu” daje `"receipt"`; szacunek bez ceny nie wylicza ceny (SPEC §2a, §11) |
 | F2b | Cena domyślna paliwa | Użytkownik ustawia cenę za litr w aplikacji; trasy bez potwierdzonego tankowania przed startem dostają koszt z tej ceny (`source="default"`, SPEC §4, §12), a usunięcie ceny przywraca „brak ceny” |
 | F2c | Pytanie o cenę zaraz po tankowaniu | Wykryte tankowanie pyta od razu: w tle powiadomieniem, które otwiera formularz ceny tego tankowania; w aplikacji oknem z polem „Cena za litr” (§13) |
 | F3 | Koszt trasy | Koszt = `fuel_l` × średnia ważona cena paliwa w baku (ADR-005) po potwierdzonych tankowaniach przed startem trasy; przykład 0,60 l × 6,140 = 3,68 zł (SPEC §4, §6) |
@@ -71,6 +72,9 @@ Jeden właściciel pojazdu (właściciel projektu). Brak użytkowników zewnętr
 - Pytanie o cenę zaraz po wykryciu tankowania (decyzja właściciela 2026-10-30, F2c):
   w tle powiadomienie, w aplikacji okno; „Później” odkłada tylko to jedno tankowanie
   do końca procesu aplikacji, a nowe tankowanie pyta ponownie.
+- Szacunek litrów z czujnika (plan C6 zaakceptowany 2026-10-31, F2a): sama cena nie zapisuje litrów; szacunek
+  zapisuje się tylko po „Użyj szacunku” i tylko razem z ceną, w pełnej precyzji domeny (cena w baku się nie zmienia);
+  kwota wyliczona z szacunku jest szacunkowa; okno „Wykryto tankowanie” zostaje bez szacunku; pojemność baku stała 43 l.
 
 ## 8. Otwarte pytania
 Brak.

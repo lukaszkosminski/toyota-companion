@@ -135,11 +135,38 @@ fun confirmRefuel(
 fun dismissRefuel(refuel: Refuel): Refuel = refuel.copy(status = RefuelStatus.DISMISSED)
 
 /**
+ * Sensor estimate of the liters taken at [refuel] (PRD F2a, docs/SPEC.md §2a).
+ *
+ * `(levelAfter - levelBefore)% * capacityL` rounded to 0.001 l, HALF_UP — the
+ * arithmetic §6 has always used internally when only the price was given. The
+ * app offers this number to the user, who confirms it (`litersSource = ESTIMATE`)
+ * or replaces it with the receipt.
+ *
+ * Returns null when the readings cannot support an estimate: a level outside its
+ * range (`levelBefore` 0..100, `levelAfter` 1..100), no jump at all, or a jump so
+ * small that it rounds to 0 l. Throws [IllegalArgumentException] for a
+ * non-positive [capacityL], like [tankPriceAfterRefuel].
+ *
+ * Mirrors Python `estimate_refuel_liters`.
+ */
+fun estimateRefuelLiters(
+    refuel: Refuel,
+    capacityL: BigDecimal = DEFAULT_TANK_CAPACITY_L,
+): BigDecimal? {
+    require(capacityL > BigDecimal.ZERO) { "capacityL must be > 0 (got $capacityL)" }
+    if (refuel.levelBefore !in 0..100 || refuel.levelAfter !in 1..100) return null
+    val jump = refuel.levelAfter - refuel.levelBefore
+    if (jump <= 0) return null
+    val estimate = roundLiters(levelToLiters(jump, capacityL))
+    return estimate.takeIf { it > BigDecimal.ZERO }
+}
+
+/**
  * Average price of fuel in the tank after a confirmed refuel (ADR-005).
  *
  * `litersBefore = levelBefore% * capacity`; `added` = [Refuel.liters]
  * (receipt, derived or sensor estimate) or, when only the price was given,
- * the sensor estimate `(levelAfter - levelBefore)% * capacity`:
+ * [estimateRefuelLiters]:
  *
  *     tankPrice = (litersBefore * previousTankPrice + added * price)
  *                 / (litersBefore + added)
@@ -166,11 +193,7 @@ fun tankPriceAfterRefuel(
         return null
     }
 
-    val added = refuel.liters ?: run {
-        val jump = refuel.levelAfter - refuel.levelBefore
-        if (jump <= 0) return null
-        roundLiters(levelToLiters(jump, capacityL))
-    }
+    val added = refuel.liters ?: estimateRefuelLiters(refuel, capacityL) ?: return null
     if (added <= BigDecimal.ZERO) return null
 
     val litersBefore = levelToLiters(refuel.levelBefore, capacityL)

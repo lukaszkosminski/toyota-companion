@@ -192,6 +192,34 @@ def _level_to_liters(level_pct: int, capacity_l: Decimal) -> Decimal:
     return Decimal(level_pct) / Decimal(100) * capacity_l
 
 
+def estimate_refuel_liters(
+    refuel: Refuel,
+    capacity_l: PositiveDecimalLike = DEFAULT_TANK_CAPACITY_L,
+) -> Decimal | None:
+    """Sensor estimate of the liters taken at ``refuel`` (PRD F2a, SPEC §2a).
+
+    ``(level_after - level_before)% * capacity_l`` rounded to 0.001 l with
+    ROUND_HALF_UP — the arithmetic §6 has always used internally when only the
+    price was given. The app offers this number to the user, who confirms it
+    (``liters_source="estimate"``) or replaces it with the receipt.
+
+    Returns ``None`` when the readings cannot support an estimate: a level
+    outside its range (``level_before`` 0..100, ``level_after`` 1..100), no jump
+    at all, or a jump so small that it rounds to 0 l. Raises ``ValueError`` for
+    a non-positive ``capacity_l``, like :func:`tank_price_after_refuel`.
+    """
+    capacity = as_decimal(capacity_l)
+    if capacity <= 0:
+        raise ValueError(f"capacity_l must be > 0 (got {capacity_l!r})")
+    if not 0 <= refuel.level_before <= 100 or not 0 < refuel.level_after <= 100:
+        return None
+    jump = refuel.level_after - refuel.level_before
+    if jump <= 0:
+        return None
+    estimate = round_liters(_level_to_liters(jump, capacity))
+    return estimate if estimate > 0 else None
+
+
 def tank_price_after_refuel(
     refuel: Refuel,
     previous_tank_price: PositiveDecimalLike | None = None,
@@ -201,7 +229,7 @@ def tank_price_after_refuel(
 
     ``liters_before = level_before% * capacity``; ``added`` = ``refuel.liters``
     (receipt, derived or sensor estimate) or, when only the price was given,
-    the sensor estimate ``(level_after - level_before)% * capacity``::
+    :func:`estimate_refuel_liters`::
 
         tank_price = (liters_before * previous_tank_price + added * price)
                      / (liters_before + added)
@@ -225,14 +253,8 @@ def tank_price_after_refuel(
     ):
         return None
 
-    if refuel.liters is not None:
-        added = refuel.liters
-    else:
-        jump = refuel.level_after - refuel.level_before
-        if jump <= 0:
-            return None
-        added = round_liters(_level_to_liters(jump, capacity))
-    if added <= 0:
+    added = refuel.liters if refuel.liters is not None else estimate_refuel_liters(refuel, capacity)
+    if added is None or added <= 0:
         return None
 
     liters_before = _level_to_liters(refuel.level_before, capacity)

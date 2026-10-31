@@ -13,6 +13,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import pl.lk.toyotacompanion.core.domain.LitersSource
 import pl.lk.toyotacompanion.core.domain.Refuel
 import pl.lk.toyotacompanion.core.domain.RefuelStatus
 import pl.lk.toyotacompanion.core.sync.RefuelChange
@@ -41,6 +42,7 @@ private class FakeWrites {
     var dismissCalls = 0
     var lastPrice: BigDecimal? = null
     var lastFilledToFull: Boolean? = null
+    var lastLitersSource: LitersSource? = null
 
     /** Holds a write open, like a synchronization that still holds the mutex. */
     var gate: CompletableDeferred<Unit>? = null
@@ -60,10 +62,12 @@ private class FakeWrites {
         liters: BigDecimal?,
         totalCost: BigDecimal?,
         filledToFull: Boolean?,
+        litersSource: LitersSource?,
     ): RefuelChange {
         confirmCalls++
         lastPrice = pricePerLiter
         lastFilledToFull = filledToFull
+        lastLitersSource = litersSource
         gate?.await()
         writeError?.let { throw it }
         list = emptyList()
@@ -89,7 +93,9 @@ class RefuelControllerTest {
 
     private fun controller(writes: FakeWrites, io: CoroutineDispatcher) = RefuelController(
         pending = { writes.pending() },
-        confirmRefuel = { id, price, liters, total, filled -> writes.confirm(id, price, liters, total, filled) },
+        confirmRefuel = { id, price, liters, total, filled, source ->
+            writes.confirm(id, price, liters, total, filled, source)
+        },
         dismissRefuel = { id -> writes.dismiss(id) },
         onResolved = { id -> resolved.add(id) },
         scope = CoroutineScope(SupervisorJob() + io),
@@ -323,6 +329,44 @@ class RefuelControllerTest {
         assertNull(state.savedId, "nothing was written")
         assertEquals(2, writes.listCalls, "the list is read again (SPEC 11.3)")
         assertEquals(emptyList<String>(), resolved, "the entry still waits, so its notification stays (SPEC 13.1)")
+    }
+
+    @Test
+    fun `an accepted estimate is written with the estimate source`() = runTest {
+        val writes = FakeWrites()
+        val controller = controller(writes, StandardTestDispatcher(testScheduler))
+
+        controller.confirm("r1", "6,50", "14,19", "", null, litersFromEstimate = true)
+        advanceUntilIdle()
+
+        assertEquals(1, writes.confirmCalls)
+        assertEquals(LitersSource.ESTIMATE, writes.lastLitersSource, "docs/SPEC.md §11.2, PRD F2a")
+    }
+
+    @Test
+    fun `liters typed by hand are written without a source`() = runTest {
+        val writes = FakeWrites()
+        val controller = controller(writes, StandardTestDispatcher(testScheduler))
+
+        controller.confirm("r1", "6,50", "14,19", "", null)
+        advanceUntilIdle()
+
+        assertEquals(1, writes.confirmCalls)
+        assertNull(writes.lastLitersSource, "the domain records RECEIPT (docs/SPEC.md §2)")
+    }
+
+    @Test
+    fun `an estimate with a total and no price never reaches the archive`() = runTest {
+        val writes = FakeWrites()
+        val controller = controller(writes, StandardTestDispatcher(testScheduler))
+
+        controller.confirm("r1", "", "14,19", "92,24", null, litersFromEstimate = true)
+        advanceUntilIdle()
+
+        assertEquals(0, writes.confirmCalls, "D3 stops the write before the domain (docs/SPEC.md §11.2)")
+        assertEquals(Texts.REFUEL_ESTIMATE_NEEDS_PRICE, controller.state.value.formError)
+        val fields = controller.state.value.formFieldErrors.map { it.field }
+        assertTrue(RefuelField.Price in fields, "the note belongs under the price: $fields")
     }
 
     @Test
