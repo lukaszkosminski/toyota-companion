@@ -25,7 +25,7 @@ Jeden właściciel pojazdu (właściciel projektu). Brak użytkowników zewnętr
 | F3 | Koszt trasy | Koszt = `fuel_l` × średnia ważona cena paliwa w baku (ADR-005) po potwierdzonych tankowaniach przed startem trasy; przykład 0,60 l × 6,140 = 3,68 zł (SPEC §4, §6) |
 | F4 | Przeliczenie wstecz | Po potwierdzeniu ceny koszty tras są przeliczane (SPEC §5) |
 | F5 | Archiwum tras | Trasy z API Toyoty zapisywane lokalnie, deduplikacja po `trip.id`; zachowywane są też współrzędne start/koniec, `scores` i `hdc` (F11–F13) |
-| F6 | Eksport CSV | Eksport wszystkich tras z kosztem |
+| F6 | Eksport CSV | Eksport tras wybranego pojazdu z kosztem do pliku CSV dla polskiego arkusza (`;`, przecinek, UTF-8 z BOM), od najstarszej; bez GPS i VIN; koszt jak na liście tras (SPEC §14.4) |
 | F7 | Ręczny backup archiwum | Użytkownik eksportuje pełne archiwum (pojazdy, trasy, tankowania, odczyty) do wybranego pliku JSON (systemowy wybór pliku, ostrzeżenie o GPS i VIN) i może je zaimportować na nowym telefonie bez duplikatów (trasy i tankowania po `id`, odczyty po `(vin, ts)`, pojazdy po VIN); tankowanie odrzucone w telefonie, a wycenione w pliku, zostaje odrzucone i jest pokazane jako pominięte (SPEC §14) |
 | F8 | Przypomnienie o backupie | Aplikacja pokazuje datę ostatniego eksportu i przypomina, gdy minęło > 30 dni albo kopii nie było, a archiwum ma trasy; przypomnienie w aplikacji, bez powiadomienia (SPEC §14.3) |
 

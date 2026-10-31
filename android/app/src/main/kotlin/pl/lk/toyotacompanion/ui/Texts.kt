@@ -250,7 +250,7 @@ object Texts {
     // Kopia archiwum (PRD F7, F8, docs/SPEC.md §14).
 
     /** Status button and the title of the backup screen. */
-    const val BACKUP_TITLE = "Kopia archiwum"
+    const val BACKUP_TITLE = "Kopia i eksport"
 
     const val BACKUP_EXPORT = "Eksportuj archiwum"
     const val BACKUP_IMPORT = "Importuj archiwum"
@@ -292,6 +292,34 @@ object Texts {
     fun lastBackup(date: String): String = "Ostatnia kopia archiwum: $date"
 
     const val BACKUP_NONE_YET = "Archiwum nie ma jeszcze kopii"
+
+    // Arkusz tras (PRD F6, docs/SPEC.md §14.4).
+
+    const val CSV_SECTION = "Arkusz kalkulacyjny"
+    const val CSV_EXPLANATION =
+        "Trasy wybranego pojazdu z kosztem w pliku CSV dla Excela i Arkuszy Google – bez położenia GPS i numeru VIN."
+    const val CSV_EXPORT = "Eksportuj trasy do CSV"
+    const val CSV_NO_TRIPS = "Brak tras do eksportu."
+
+    fun csvExported(trips: Int): String = "Zapisano arkusz tras (trasy: $trips)."
+
+    /** Header cells; the unit lives here, so the cells below stay plain numbers. */
+    val CSV_HEADER: List<String> = listOf(
+        "Start",
+        "Koniec",
+        "Dystans [km]",
+        "Paliwo [l]",
+        "Dystans EV [km]",
+        "Cena [zł/l]",
+        "Koszt [zł]",
+        "Źródło ceny",
+    )
+
+    /** "Źródło ceny" of a trip priced by a confirmed refuel. */
+    const val CSV_SOURCE_REFUEL = "tankowanie"
+
+    /** "Źródło ceny" of a trip priced with the default price of the phone. */
+    const val CSV_SOURCE_DEFAULT = "cena domyślna"
 
     /** F8 reminder card on the status screen. */
     const val BACKUP_REMINDER_NEVER =

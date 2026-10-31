@@ -14,7 +14,7 @@
   karta błędu `errorContainer`; status z `TopAppBar`, `PullToRefreshBox`, kartą liczników, chipem stanu,
   `HorizontalDivider` i `AlertDialog` potwierdzającym „Wyloguj”. `SessionController.reload()` powtarza tylko
   odczyt lokalnej bazy (bez API Toyoty i bez `refresh_status`).
-- Testy: core 239, app 226 (JUnit 4, w tym Robolectric), Python 84. CI: ruff/mypy/pytest, Android (core + app unit), gitleaks 8.30.1.
+- Testy: core 239, app 250 (JUnit 4, w tym Robolectric), Python 84. CI: ruff/mypy/pytest, Android (core + app unit), gitleaks 8.30.1.
 - Lista tras z kosztem (SPEC §10): `SyncEngine.trips()` — trasy bieżącego VIN od najnowszej, wszystkie koszty jednym odczytem `costs.all()` (bez zapytania na trasę), brak VIN = pusta lista, bez sieci i bez `mutex` synchronizacji; w `app` czyste funkcje `groupTripsByMonth` (miesiąc z `trip.start` w przekazanej strefie, sumy km/l/zł, licznik tras bez ceny, `totalCost = null` gdy żadna trasa nie ma ceny) i `TripsFormatting` (przecinek, `HALF_UP`, własna tablica 12 nazw miesięcy w mianowniku, start `29.10 14:05`, formaty niezależne od `Locale`); ekran `TripsScreen` (nazwa + sumy miesiąca, wiersze z `key = trip.id`, cena za litr · a przy „cena domyślna” także dopisek w tej samej linii, `contentPadding` z `innerPadding`, stany ładowanie/pusto/błąd bez treści wyjątku, `TextButton` „Wstecz” + `BackHandler`) i przycisk „Trasy” na ekranie statusu; `AppContainer.tripsLoader` jako jedyne wejście do bazy, `AppRoot` przełącza ekrany enumem `Screen` w `rememberSaveable` (reset do statusu po wylogowaniu przez `LaunchedEffect`). Na ekranie brak współrzędnych GPS i VIN (SECURITY.md).
 - Formularz ceny tankowania (SPEC §11): `pendingRefuels()`, `confirmRefuel(...)` i `dismissRefuel(id)` w `SyncEngine`
   zwracają `RefuelChange` (`Done`, `NotFound`, `NotPending`, `Invalid`, `NoVehicle`). Zapis i przeliczenie kosztów idą
@@ -75,7 +75,9 @@
   `BackupController` (pliki jako tekst `Uri`, I/O w `AppContainer` przez `ContentResolver`, limit 20 MB), ekran „Kopia
   archiwum” z ostrzeżeniem o GPS/VIN, przypomnienie F8 na statusie. Format pliku i testy napisał agent 1, reszta i
   przegląd – agent 2; agent 1 znalazł 3 usterki w kodzie agenta 2 (odczyt daty z obcą wartością, podwójny odczyt
-  daty, „trasy innego pojazdu” bez wybranego pojazdu) – poprawione z testami. Eksport CSV (F6) to następny etap.
+  daty, „trasy innego pojazdu” bez wybranego pojazdu) – poprawione z testami.
+- Arkusz tras w CSV (PRD F6, SPEC §14.4): `app/ui/TripsCsv.kt` (`tripsCsv`, `csvCell`, `csvDateTime`), BOM doklejany w
+  `BackupController.exportTripsCsv`; ekran „Kopia i eksport”. Testy napisał agent 1, kod i docs – agent 2.
 
 ## Następny krok
 Sprawdzone na emulatorze (API 36) 2026-10-29: logowanie prawdziwym kontem, pierwsza synchronizacja (562 trasy, 1 odczyt),
@@ -92,7 +94,10 @@ sekretów), import tego samego pliku – „trasy: 0, tankowania: 0, odczyty pal
 format → „nie jest kopią…”, po eksporcie karta znika i jest „Ostatnia kopia archiwum: 31.10.2026”; brak awarii. Plik
 kopii został w Downloads emulatora. Nie sprawdzone: import do czystej instalacji (wymagałby skasowania danych
 właściciela; pokrywa go test `a file written here restores the same rows on an empty phone`).
-- Następny krok: eksport CSV tras z kosztem (F6, ROADMAP „NEXT”).
+Sprawdzone na emulatorze 2026-10-31, build C8: „Eksportuj trasy do CSV” zapisał `toyota-companion-trasy-2026-10-31.csv`
+(42 kB, BOM, 563 linie CRLF, po 8 komórek, chronologicznie, cena 6,190 „cena domyślna”, bez VIN), data kopii archiwum
+bez zmian; brak awarii. Plik CSV i kopia JSON zostały w Downloads emulatora.
+- Następny krok: do decyzji właściciela – MVP F1–F8 zrobione; kandydat F9 (dziennik tankowań, „komputer vs faktyczne”).
 
 Test klienta na prawdziwym koncie MyToyota (uruchamia właściciel; hasło nie trafia do repo ani rozmowy):
 ```bash

@@ -78,8 +78,15 @@ object TripsFormatting {
     /** All month names — the test checks that there are twelve and that they differ. */
     fun monthNames(): List<String> = MONTHS_NOMINATIVE
 
-    private fun fixed(value: BigDecimal, places: Int): String =
+    /**
+     * A number without its unit, e.g. `12,3` (docs/SPEC.md §10.2, §14.4): HALF_UP to
+     * [places], a comma, no `Locale`. Shared by the list and the CSV export, so both
+     * round the same way.
+     */
+    internal fun plain(value: BigDecimal, places: Int): String =
         value.setScale(places, RoundingMode.HALF_UP).toPlainString().replace('.', ',')
+
+    private fun fixed(value: BigDecimal, places: Int): String = plain(value, places)
 
     private fun two(value: Int): String = if (value < 10) "0$value" else value.toString()
 }

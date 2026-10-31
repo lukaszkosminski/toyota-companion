@@ -116,6 +116,18 @@ class TripsFormattingTest {
     }
 
     @Test
+    fun `plain writes the same number without its unit`() {
+        assertEquals("3,68", TripsFormatting.plain(BigDecimal("3.675"), 2))
+        assertEquals("12,3", TripsFormatting.plain(BigDecimal("12.34"), 1))
+        assertEquals("0,60", TripsFormatting.plain(BigDecimal("0.6"), 2))
+        assertEquals("6,190", TripsFormatting.plain(BigDecimal("6.19"), 3))
+
+        // The CSV and the list must round identically, so they share this one function.
+        assertEquals(TripsFormatting.money(BigDecimal("3.675")).removeSuffix(" zł"), TripsFormatting.plain(BigDecimal("3.675"), 2))
+        assertEquals(TripsFormatting.kilometers(BigDecimal("12.34")).removeSuffix(" km"), TripsFormatting.plain(BigDecimal("12.34"), 1))
+    }
+
+    @Test
     fun `formatting does not depend on the default locale`() {
         val previous = Locale.getDefault()
         try {

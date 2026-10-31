@@ -496,11 +496,11 @@ aplikacji (§13.3). Obie prowadzą do tej samej ścieżki ceny z §11 — bez no
 - Okno nie pojawia się, gdy aktywny ekran to `Screen.Refuels`, `Screen.RefuelForm` albo `Screen.DefaultPrice`
   (każdy formularz), gdy brak zalogowanej sesji i gdy trwa zapis.
 
-## §14 Kopia archiwum (PRD F7, F8)
+## §14 Kopia archiwum i eksport (PRD F6, F7, F8)
 
 Toyota usuwa trasy starsze niż ok. 12 miesięcy, a `allowBackup=false` (SECURITY.md), więc ręczna kopia jest jedyną
 ochroną archiwum (ADR-006). Kopia to jeden plik JSON; import dodaje tylko to, czego w telefonie jeszcze nie ma.
-Eksport CSV (F6) to osobny etap.
+Arkusz tras w CSV (F6) – §14.4.
 
 ### §14.1 Plik i reguły w `core`
 - `core/data/ArchiveFile.kt`: koperta `{"format":"toyota-companion-archive","version":1,"exportedAt":…,"vehicles":[…],
@@ -524,8 +524,8 @@ Eksport CSV (F6) to osobny etap.
 - Import nie jest jedną transakcją: plik jest w całości dekodowany i sprawdzany **przed** pierwszym zapisem, a zapisy
   są idempotentne, więc import przerwany w połowie naprawia ponowny import tego samego pliku.
 
-### §14.2 Ekran „Kopia archiwum” (kryteria akceptacji)
-- Wejście: przycisk „Kopia archiwum” na ekranie statusu (`Screen.Backup`); wyjście „Wstecz”/`BackHandler`, powrót
+### §14.2 Ekran „Kopia i eksport” (kryteria akceptacji)
+- Wejście: przycisk „Kopia i eksport” na ekranie statusu (`Screen.Backup`); wyjście „Wstecz”/`BackHandler`, powrót
   odświeża liczniki statusu (`session.reload()` w callbacku nawigacji).
 - „Eksportuj archiwum” → `AlertDialog` „Plik z danymi osobowymi” (GPS, VIN – SECURITY.md) → systemowy wybór pliku
   `CreateDocument("application/json")` z nazwą `toyota-companion-RRRR-MM-DD.json` (bez VIN) → zapis. Data ostatniej kopii
@@ -545,6 +545,27 @@ Eksport CSV (F6) to osobny etap.
   „Zrób kopię archiwum – trasy starsze niż rok są już tylko w tym telefonie.”; ostatnia kopia starsza niż 30 pełnych
   dni → „Od ostatniej kopii archiwum minęło N dni – zrób nową.”. Data w przyszłości (cofnięty zegar) liczy się jako
   świeża. Dopóki data nie jest odczytana, przypomnienia nie ma.
-- Na ekranie statusu karta przypomnienia (kolory `tertiaryContainer` – to nie błąd), przycisk „Kopia archiwum” i linia
+- Na ekranie statusu karta przypomnienia (kolory `tertiaryContainer` – to nie błąd), przycisk „Kopia i eksport” i linia
   „Ostatnia kopia archiwum: 31.10.2026” albo „Archiwum nie ma jeszcze kopii”; data bez `Locale` (`backupDate`).
 - Bez powiadomień systemowych – przypomnienie żyje tylko w aplikacji.
+
+### §14.4 Arkusz tras w CSV (F6)
+- Trasy wybranego pojazdu – te same co na liście tras (`SyncEngine.trips()`, §10.1), z tymi samymi zapisanymi
+  kosztami. Czysta funkcja `tripsCsv(trips, zone)` w `app/ui/TripsCsv.kt` (formatowanie to warstwa `app`).
+- Format pod polski arkusz: separator `;`, przecinek dziesiętny, UTF-8 z BOM (doklejany przy zamianie na bajty – bez
+  niego Excel na Windows psuje ogonki), końce linii CRLF, komórka w cudzysłowie, gdy zawiera `;`, `"`, CR lub LF
+  (cudzysłów podwojony, RFC 4180).
+- Kolumny (`Texts.CSV_HEADER`): `Start`, `Koniec` (`RRRR-MM-DD GG:MM`, strefa listy tras), `Dystans [km]` (1 miejsce),
+  `Paliwo [l]` (2), `Dystans EV [km]` (1, pusta przy braku), `Cena [zł/l]` (3 – pełna precyzja domeny), `Koszt [zł]` (2),
+  `Źródło ceny` (`tankowanie` / `cena domyślna`). Liczby bez jednostek, zaokrąglenie HALF_UP wspólne z listą tras
+  (`TripsFormatting.plain`), bez `Locale`. Wiersze od najstarszej trasy (remis – po id).
+- Cena, koszt i źródło są puste dokładnie wtedy, gdy lista tras pisze „brak ceny” (`hasNoCost`). Koszt jest wartością
+  autorytatywną: „paliwo × cena” w arkuszu może się od niego różnić o 0,01 zł (lista tras pokazuje cenę z 2 miejscami).
+- Bez GPS, VIN, id trasy, ocen jazdy i wiersza „Razem” – sumy liczy arkusz; do pełnej kopii służy §14.1.
+- Komórka tekstowa (nie liczba) zaczynająca się od `=`, `+`, `-` albo `@` dostaje na początku `'` – arkusz nie
+  wykona jej jako formuły (CSV injection); dziś tekstami są tylko stałe aplikacji, wymóg dotyczy przyszłych kolumn.
+- UI: sekcja „Arkusz kalkulacyjny” na ekranie „Kopia i eksport”, przycisk „Eksportuj trasy do CSV” →
+  `CreateDocument("text/csv")`, nazwa `toyota-companion-trasy-RRRR-MM-DD.csv` (nazwa nie rozróżnia pojazdów;
+  bez VIN). Przycisk nieaktywny bez tras – systemowy wybór pliku tworzy plik, zanim aplikacja cokolwiek sprawdzi;
+  lista pusta w chwili zapisu daje „Brak tras do eksportu.” bez zapisu. Bez ostrzeżenia o danych osobowych (brak GPS
+  i VIN). Eksport CSV nie zmienia daty ostatniej kopii archiwum (F8 dotyczy tylko kopii).

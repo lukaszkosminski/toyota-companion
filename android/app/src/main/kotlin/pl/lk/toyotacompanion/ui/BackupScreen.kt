@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -46,6 +47,7 @@ private val ARCHIVE_MIME_TYPES = arrayOf("application/json", "application/octet-
 @Composable
 fun BackupScreen(
     controller: BackupController,
+    hasTrips: Boolean,
     onBack: () -> Unit,
     zone: ZoneId = ZoneId.systemDefault(),
 ) {
@@ -58,6 +60,9 @@ fun BackupScreen(
     }
     val openFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {
         uri -> if (uri != null) controller.importFrom(uri.toString())
+    }
+    val createCsv = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) {
+        uri -> if (uri != null) controller.exportTripsCsv(uri.toString())
     }
 
     LaunchedEffect(Unit) { controller.open() }
@@ -100,6 +105,19 @@ fun BackupScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(Texts.BACKUP_IMPORT)
+            }
+
+            // The spreadsheet (PRD F6): no GPS and no VIN, so no warning; without trips the
+            // picker would create an empty file before anything is known, hence disabled.
+            HorizontalDivider()
+            Text(Texts.CSV_SECTION, style = MaterialTheme.typography.titleMedium)
+            Text(Texts.CSV_EXPLANATION, style = MaterialTheme.typography.bodyMedium)
+            OutlinedButton(
+                onClick = { createCsv.launch(tripsCsvFileName(LocalDate.now(zone))) },
+                enabled = hasTrips && !state.busy,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(Texts.CSV_EXPORT)
             }
         }
     }

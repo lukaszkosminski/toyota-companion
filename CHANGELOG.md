@@ -116,3 +116,10 @@
   albo minęło > 30 dni (`backupReminder`, `SettingsStore.lastArchiveExport`). Testy: core +23 (`ArchiveFileTest`,
   `SyncEngineArchiveTest`), app +30 (`BackupControllerTest` bez Robolectric, `BackupRulesTest`, `SettingsStoreTest`,
   `TextsTest`) (app: 226 testów, core: 239, Python: 84)
+- Arkusz tras w CSV (PRD F6, SPEC §14.4): trasy wybranego pojazdu z kosztem dla polskiego arkusza – `;`, przecinek,
+  UTF-8 z BOM, CRLF, od najstarszej; kolumny bez jednostek (Start, Koniec, Dystans, Paliwo, Dystans EV, Cena z 3
+  miejscami, Koszt, Źródło ceny), puste komórki ceny dokładnie przy „brak ceny” na liście tras, zaokrąglenie wspólne
+  z listą (`TripsFormatting.plain`), cytowanie RFC 4180 i ochrona przed CSV injection; bez GPS, VIN i sum. Ekran
+  i przycisk na statusie nazywają się „Kopia i eksport”; przycisk CSV nieaktywny bez tras; eksport CSV nie zmienia
+  daty kopii archiwum. Testy: app +24 (`TripsCsvTest`, `BackupControllerTest`, `TripsFormattingTest`, `TextsTest`)
+  (app: 250 testów, core: 239, Python: 84)
