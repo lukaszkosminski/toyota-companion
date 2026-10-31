@@ -46,10 +46,12 @@ import pl.lk.toyotacompanion.sync.SyncRunner
 import pl.lk.toyotacompanion.ui.ARCHIVE_IMPORT_LIMIT_BYTES
 import pl.lk.toyotacompanion.ui.BackupController
 import pl.lk.toyotacompanion.ui.DefaultPriceController
+import pl.lk.toyotacompanion.ui.ParkingController
 import pl.lk.toyotacompanion.ui.RefuelController
 import pl.lk.toyotacompanion.ui.RefuelLogController
 import pl.lk.toyotacompanion.ui.RefuelPromptController
 import pl.lk.toyotacompanion.ui.SessionController
+import pl.lk.toyotacompanion.ui.StatsController
 import pl.lk.toyotacompanion.ui.readArchiveBytes
 
 /** Hand-wired dependencies (no DI framework). Everything is lazy: nothing touches Keystore or disk at app start. */
@@ -260,6 +262,16 @@ class AppContainer(
             scope = uiScope,
             io = Dispatchers.IO,
         )
+    }
+
+    /** Electric share, years and seasons of the selected vehicle (PRD F10, F11, docs/SPEC.md §16-§17). */
+    val statsController: StatsController by lazy {
+        StatsController(read = tripsLoader, zone = { ZoneId.systemDefault() }, scope = uiScope, io = Dispatchers.IO)
+    }
+
+    /** Places and stops from the archived trips, never from a Toyota position request (PRD F17, §18). */
+    val parkingController: ParkingController by lazy {
+        ParkingController(read = tripsLoader, scope = uiScope, io = Dispatchers.IO)
     }
 
     /** The refuel log and its fuel economy check (PRD F9, docs/SPEC.md §15). */

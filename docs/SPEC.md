@@ -612,3 +612,38 @@ Arkusz tras w CSV (F6) – §14.4.
   opcjonalna „Kwota z paragonu”, przełącznik „Do pełna” aktywny dopiero z litrami. Litry ≤ 0 albo puste → „Podaj litry
   z paragonu.”; zła kwota → „To nie jest liczba”. Po zapisie dziennik czyta się ponownie, karta odcinka może się zmienić.
   `busy` nie przeżywa wylogowania (licznik generacji).
+
+## §16 Jazda na prądzie (PRD F11)
+Domena: Python `app/domain/tripstats.py`, Kotlin `core/domain/TripStatsOps.kt` – te same nazwy testów.
+- `electric_share(trip)`: `ev_distance_km / distance_km` × 100, do 0,1 % (HALF_UP). Brak `hdc` (`ev_distance_km = None`)
+  albo dystans 0 → `None` („brak danych”, **nie** 0 %). `ev > distance` (Toyota zaokrągla metry) → 100 % i
+  `inconsistent = true`, pokazane jako „(dane Toyoty niespójne)”, nie ukryte.
+- `aggregate_electric_share(trips)`: `sum(ev) / sum(distance)` tylko po trasach z danymi `hdc`, licznik przycięty do
+  mianownika; `None`, gdy żadna trasa nie ma danych.
+- `electric_trip_ranking(trips, limit=10, min_distance_km=1)`: od największego udziału, remis – dłuższa trasa, potem id;
+  trasy bez danych i krótsze niż 1 km tylko liczone (`without_data`, `too_short`) i pokazane pod listą.
+- Udział czasowy (`hdc.evTime`) poza zakresem: mianownikiem byłby czas jazdy, którego archiwum nie zapisuje.
+
+## §17 Statystyki wieloletnie (PRD F10)
+- `period_stats(trips, costs, zone, kind)`: okres `year` albo `season` (meteorologiczny: zima XII–II, wiosna III–V,
+  lato VI–VIII, jesień IX–XI; grudzień należy do zimy nazwanej rokiem stycznia, np. „zima 2025/26”). Trasa należy do
+  okresu swojego startu w strefie listy tras. Okresy od najstarszego.
+- Na okres: liczba tras, km (0,1), paliwo z komputera, l/100 km (0,01), koszt (0,01) tylko z tras z ceną
+  (`source != none` i kwota; cena domyślna się liczy) – bez cen `None`, nigdy 0 zł; trasy bez ceny; zł/100 km liczone
+  na dystansie tras z ceną; udział EV (§16); średnia trasa (0,1).
+- `year_over_year`: rok ostatniej trasy od 1 stycznia do dnia ostatniej trasy kontra **ten sam zakres dni** rok
+  wcześniej; `None` bez tras w tamtym oknie – bez tego styczeń nowego roku wyglądałby na spadek o ponad 90 %.
+- `SyncEngine.trips()` (§10.1) jest jedynym odczytem: statystyki liczą się w pamięci z tras wybranego pojazdu.
+
+## §18 Ekrany „Statystyki” i „Postoje” (PRD F10, F11, F17)
+- „Statystyki” ze statusu: udział EV łączny, ranking (data trasy, udział, km), pominięte, rok do roku („1.01–31.10
+  2026 vs 2025”), lata i pory roku od najnowszych. Bez GPS i VIN. Odczyt w callbacku nawigacji
+  (`StatsController.load`), `ensureLoaded` tylko po śmierci procesu, `reset()` przy wylogowaniu.
+- „Postoje” ze statusu (`app/ui/ParkingStops.kt`, czyste funkcje na `TripRecord` jednego pojazdu, bez lustra w
+  Pythonie – warstwa danych z GPS, nie domena): kolejne trasy po `(start, id)`; przerwa > 21 dni → `longGaps`; < 30 min
+  → pominięta; koniec i start dalej niż 150 m (haversine) → `unmatched` (brak trasy w archiwum); brak współrzędnych →
+  postój bez położenia; inaczej postój w średnim punkcie obu końców. Miejsca: postoje z położeniem łączone zachłannie
+  od najstarszego z pierwszym miejscem, którego środek (pierwszy postój) jest ≤ 150 m; sortowane po łącznym czasie.
+  Ekran: miejsca (`54.372, 18.638` – 0,001°, ok. 100 m), 50 ostatnich postojów, liczniki pominiętych. Położenie tylko
+  na tym ekranie – nie w logach, CSV, nazwach plików ani innych aplikacjach (bez intentu `geo:` – decyzja właściciela
+  otwarta). Nic nie pyta auta o pozycję (`refresh_status()` zakazany).

@@ -65,6 +65,8 @@ fun StatusScreen(
     onShowTrips: () -> Unit,
     onShowRefuels: () -> Unit,
     onShowRefuelLog: () -> Unit,
+    onShowStats: () -> Unit,
+    onShowParking: () -> Unit,
     defaultPrice: BigDecimal?,
     onShowDefaultPrice: () -> Unit,
     backupReminder: BackupReminder,
@@ -169,6 +171,20 @@ fun StatusScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(Texts.LOG_TITLE)
+                }
+                // Electric share, years and seasons (PRD F10, F11, docs/SPEC.md §16-§17).
+                OutlinedButton(
+                    onClick = onShowStats,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(Texts.STATS_TITLE)
+                }
+                // Places and stops, the only screen with positions (PRD F17, docs/SPEC.md §18).
+                OutlinedButton(
+                    onClick = onShowParking,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(Texts.PARKING_TITLE)
                 }
                 // The archive lives only on this phone (ADR-006); F8 asks for a copy (docs/SPEC.md §14.3).
                 when (backupReminder) {

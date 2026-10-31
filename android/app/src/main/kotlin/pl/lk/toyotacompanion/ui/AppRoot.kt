@@ -41,6 +41,8 @@ fun AppRoot(
     prompt: RefuelPromptController,
     backup: BackupController,
     refuelLog: RefuelLogController,
+    stats: StatsController,
+    parking: ParkingController,
     askNotificationPermission: suspend () -> Boolean,
     deepLinkRefuelId: String? = null,
     onDeepLinkShown: () -> Unit = {},
@@ -72,6 +74,8 @@ fun AppRoot(
             prompt.reset()
             backup.reset()
             refuelLog.reset()
+            stats.reset()
+            parking.reset()
         } else {
             // The status button shows the stored price. This effect also restarts when the
             // Activity is recreated, so the read is guarded: the file is touched only while
@@ -144,6 +148,14 @@ fun AppRoot(
                             refuelLog.load()
                             screen = Screen.RefuelLog
                         },
+                        onShowStats = {
+                            stats.load()
+                            screen = Screen.Stats
+                        },
+                        onShowParking = {
+                            parking.load()
+                            screen = Screen.Parking
+                        },
                         defaultPrice = priceState.price,
                         onShowDefaultPrice = { screen = Screen.DefaultPrice },
                         // Until the date is read there is no reminder: an unknown date is not "never".
@@ -158,6 +170,16 @@ fun AppRoot(
                         onShowBackup = { screen = Screen.Backup },
                         onLogout = session::logout,
                         askNotificationPermission = askNotificationPermission,
+                    )
+
+                    Screen.Parking -> ParkingScreen(
+                        controller = parking,
+                        onBack = { screen = Screen.Status },
+                    )
+
+                    Screen.Stats -> StatsScreen(
+                        controller = stats,
+                        onBack = { screen = Screen.Status },
                     )
 
                     Screen.RefuelLog -> RefuelLogScreen(
