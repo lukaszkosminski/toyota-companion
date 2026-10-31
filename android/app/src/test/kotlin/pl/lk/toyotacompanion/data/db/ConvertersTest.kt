@@ -8,6 +8,7 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.Test
+import pl.lk.toyotacompanion.core.data.SyncErrorKind
 import pl.lk.toyotacompanion.core.domain.RefuelStatus
 
 class ConvertersTest {
@@ -58,6 +59,17 @@ class ConvertersTest {
     fun `enums are stored by name`() {
         assertEquals("CONFIRMED", converters.refuelStatusToString(RefuelStatus.CONFIRMED))
         assertEquals(RefuelStatus.PENDING, converters.stringToRefuelStatus("PENDING"))
+    }
+
+    @Test
+    fun `sync error kind is stored by name and an unknown name reads as null`() {
+        assertEquals("STORAGE", converters.syncErrorKindToString(SyncErrorKind.STORAGE))
+        assertEquals(SyncErrorKind.STORAGE, converters.stringToSyncErrorKind("STORAGE"))
+        assertEquals(SyncErrorKind.LOGIN, converters.stringToSyncErrorKind("LOGIN"))
+
+        // A database written by a newer app must not crash the older one on read.
+        assertNull(converters.stringToSyncErrorKind("SOMETHING_NEWER"))
+        assertNull(converters.stringToSyncErrorKind(null))
     }
 
     @Test

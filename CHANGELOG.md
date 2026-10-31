@@ -100,3 +100,10 @@
   (`RefuelFormatting.litersInput`); `checkRefuelForm(..., litersFromEstimate)` daje `ESTIMATE` tylko dla pary cena +
   litry, a szacunek z kwotą bez ceny to błąd pola „Cena”. Okno „Wykryto tankowanie” bez zmian. Testy: app +12
   (`RefuelFormTest`, `RefuelFormattingTest`, `TextsTest`, `RefuelControllerTest`) (app: 193 testy, core: 208, Python: 84)
+- Odporność na błędy lokalnego archiwum (SPEC §8.4, §8.5, §9.3): nowy rodzaj błędu `STORAGE` (ponawiany);
+  `SyncEngine.fullSync`/`recomputeCosts` zamieniają każdy wyjątek bazy na `Failed(STORAGE)` z samą nazwą klasy
+  w komunikacie, zapis błędu w stanie jest odporny na zepsutą bazę, a błąd zapisu odczytu albo wykrytego tankowania
+  nie udaje już „telemetria niedostępna” (tankowanie nie przepada za wynikiem `Ok`). „Synchronizuj teraz” nie
+  zostaje w stanie „synchronizuję”, „Wyloguj” zawsze kończy na logowaniu, `uiScope` ma `CoroutineExceptionHandler`
+  (log tylko z nazwą klasy), nieznany rodzaj błędu w bazie czyta się jako brak. Testy: core +8, app +3
+  (app: 196 testów, core: 216, Python: 84)

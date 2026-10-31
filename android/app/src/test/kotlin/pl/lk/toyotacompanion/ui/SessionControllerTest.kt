@@ -11,6 +11,7 @@ import java.security.ProviderException
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -35,6 +36,7 @@ import pl.lk.toyotacompanion.core.sync.LoginCheck
 import pl.lk.toyotacompanion.core.sync.SyncError
 import pl.lk.toyotacompanion.core.sync.LoginFailure
 import pl.lk.toyotacompanion.core.sync.SyncOutcome
+import pl.lk.toyotacompanion.core.toyota.TokenStore
 import pl.lk.toyotacompanion.core.toyota.TokenInfo
 import pl.lk.toyotacompanion.security.CredentialStore
 import pl.lk.toyotacompanion.security.Credentials
@@ -89,6 +91,30 @@ private class WaitingRunner(private val gate: CompletableDeferred<Unit>) : SyncR
     }
 }
 
+/** A synchronization that throws instead of returning an outcome (a broken archive). */
+private class ThrowingRunner : SyncRunner {
+    var calls = 0
+
+    override suspend fun fullSync(): SyncOutcome {
+        calls++
+        throw IllegalStateException("archive is unreadable")
+    }
+}
+
+/** A token store that throws on every clear, like a Keystore that died mid-logout. */
+private class ThrowingTokenStore : TokenStore {
+    var clearCalls = 0
+
+    override fun load(username: String): TokenInfo? = null
+
+    override fun save(username: String, token: TokenInfo) = Unit
+
+    override fun clear(username: String) {
+        clearCalls++
+        throw ProviderException("Keystore unavailable")
+    }
+}
+
 /** A Keystore that stopped working: every write fails, exactly like a broken provider. */
 private class FailingCipher : SecretCipher {
     override fun encrypt(plain: ByteArray, aad: ByteArray): ByteArray =
@@ -128,9 +154,10 @@ class SessionControllerTest {
         verifier: CredentialVerifier = FakeVerifier(LoginCheck.Ok(TOKEN)),
         runner: SyncRunner = FakeRunner(),
         status: suspend () -> SyncStatus = { STATUS },
+        tokenStore: TokenStore = tokens,
     ) = SessionController(
         credentials = credentials,
-        tokens = tokens,
+        tokens = tokenStore,
         verifier = verifier,
         runner = runner,
         status = status,
@@ -272,6 +299,42 @@ class SessionControllerTest {
         assertEquals(SyncErrorKind.NETWORK, state.lastSyncFailed)
         assertFalse(state.syncing)
         assertEquals(2, reads)
+    }
+
+    @Test
+    fun `sync now with a runner that throws clears syncing`() = runTest {
+        credentials.save(Credentials(LOGIN, PASSWORD))
+        val runner = ThrowingRunner()
+        val controller = session(StandardTestDispatcher(testScheduler), runner = runner)
+
+        controller.start()
+        advanceUntilIdle()
+
+        controller.syncNow()
+        advanceUntilIdle()
+
+        val state = controller.state.value as UiState.LoggedIn
+        assertEquals(1, runner.calls)
+        assertFalse(state.syncing, "the button must never stay stuck on syncing")
+        assertEquals(SyncErrorKind.STORAGE, state.lastSyncFailed, "a throw is shown like a storage failure")
+    }
+
+    @Test
+    fun `logout still logs out when the token store throws`() = runTest {
+        credentials.save(Credentials(LOGIN, PASSWORD))
+        val broken = ThrowingTokenStore()
+        val controller = session(StandardTestDispatcher(testScheduler), tokenStore = broken)
+
+        controller.start()
+        advanceUntilIdle()
+        assertIs<UiState.LoggedIn>(controller.state.value)
+
+        controller.logout()
+        advanceUntilIdle()
+
+        assertEquals(1, broken.clearCalls)
+        assertEquals(UiState.LoggedOut(), controller.state.value, "every step is best effort")
+        assertNull(credentials.load(), "the credentials are cleared even after the token store failed")
     }
 
     @Test

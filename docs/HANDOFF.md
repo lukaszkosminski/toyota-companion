@@ -14,7 +14,7 @@
   karta błędu `errorContainer`; status z `TopAppBar`, `PullToRefreshBox`, kartą liczników, chipem stanu,
   `HorizontalDivider` i `AlertDialog` potwierdzającym „Wyloguj”. `SessionController.reload()` powtarza tylko
   odczyt lokalnej bazy (bez API Toyoty i bez `refresh_status`).
-- Testy: core 208, app 193 (JUnit 4, w tym Robolectric), Python 84. CI: ruff/mypy/pytest, Android (core + app unit), gitleaks 8.30.1.
+- Testy: core 216, app 196 (JUnit 4, w tym Robolectric), Python 84. CI: ruff/mypy/pytest, Android (core + app unit), gitleaks 8.30.1.
 - Lista tras z kosztem (SPEC §10): `SyncEngine.trips()` — trasy bieżącego VIN od najnowszej, wszystkie koszty jednym odczytem `costs.all()` (bez zapytania na trasę), brak VIN = pusta lista, bez sieci i bez `mutex` synchronizacji; w `app` czyste funkcje `groupTripsByMonth` (miesiąc z `trip.start` w przekazanej strefie, sumy km/l/zł, licznik tras bez ceny, `totalCost = null` gdy żadna trasa nie ma ceny) i `TripsFormatting` (przecinek, `HALF_UP`, własna tablica 12 nazw miesięcy w mianowniku, start `29.10 14:05`, formaty niezależne od `Locale`); ekran `TripsScreen` (nazwa + sumy miesiąca, wiersze z `key = trip.id`, cena za litr · a przy „cena domyślna” także dopisek w tej samej linii, `contentPadding` z `innerPadding`, stany ładowanie/pusto/błąd bez treści wyjątku, `TextButton` „Wstecz” + `BackHandler`) i przycisk „Trasy” na ekranie statusu; `AppContainer.tripsLoader` jako jedyne wejście do bazy, `AppRoot` przełącza ekrany enumem `Screen` w `rememberSaveable` (reset do statusu po wylogowaniu przez `LaunchedEffect`). Na ekranie brak współrzędnych GPS i VIN (SECURITY.md).
 - Formularz ceny tankowania (SPEC §11): `pendingRefuels()`, `confirmRefuel(...)` i `dismissRefuel(id)` w `SyncEngine`
   zwracają `RefuelChange` (`Done`, `NotFound`, `NotPending`, `Invalid`, `NoVehicle`). Zapis i przeliczenie kosztów idą
@@ -108,6 +108,12 @@ czyli pierwszy etap logowania działa z prawdziwym API.
 ## Proces z agentami
 Kontekst → plan bez kodu → review i akceptacja → implementacja → niezależne review (uruchomienie testów,
 porównanie z pytoyoda/Pythonem, odczyt plików z dysku) → commit. Zasady: `AGENTS.md`.
-Agent 1 = pi w panelu `w8:p1` (od 2026-10-29 model claude-sonnet-5-5).
+Agent 1 = pi w panelu `w8:p1` (od 2026-10-29 model claude-sonnet-5-5; 2026-10-31 stopka panelu pokazuje
+`llama-swap/qwen3.8-flash-next-nvfp4` – sprawdzać jego wyniki w kodzie, a listę plików brać z `git diff --stat`).
 Uwaga: lokalny model qwen potrafił zapisać `***` zamiast `${{` w plikach – sprawdzać zapisane pliki.
+Znany szum testów: `:app:testDebugUnitTest` czasem wypisuje na stderr ślad stosu `CloseGuard` (ramki
+`ThreadPoolExecutor`, `SandboxTestRunner`) przy EXIT=0 i 0 porażkach – to niezamknięta baza WorkManagera z
+`WorkManagerTestInitHelper.initializeTestWorkManager` w `@Before` (`SessionControllerTest`, `SyncWorkerTest`), a nie
+błąd. Nie dodawać `CloseGuardRule` (zamieniłby szum w porażki). Odtworzenie: `--tests '*SyncWorkerTest' --tests
+'*SessionControllerTest' --rerun-tasks -i`.
 Niezacommitowane zmiany nieznanego autora: najpierw review i testy, dopiero potem praca na nich.

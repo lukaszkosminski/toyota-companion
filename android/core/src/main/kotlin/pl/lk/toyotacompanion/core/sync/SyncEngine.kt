@@ -13,6 +13,7 @@ import pl.lk.toyotacompanion.core.data.RefuelRepository
 import pl.lk.toyotacompanion.core.data.StoredTrip
 import pl.lk.toyotacompanion.core.data.SyncConfig
 import pl.lk.toyotacompanion.core.data.SyncErrorKind
+import pl.lk.toyotacompanion.core.data.SyncState
 import pl.lk.toyotacompanion.core.data.SyncStateRepository
 import pl.lk.toyotacompanion.core.data.SyncStatus
 import pl.lk.toyotacompanion.core.data.TripRecord
@@ -225,28 +226,31 @@ class SyncEngine(
         var readingsAdded = 0
         var refuelsDetected = 0
         var telemetryFailed = false
-        try {
-            val reading = gateway.telemetry(vin)
-            if (reading == null) {
-                telemetryFailed = true
-            } else {
-                val previous = readings.latest(vin)
-                if (previous == null) {
-                    // First reading ever: nothing to compare against (docs/SPEC.md §8.3).
-                    if (readings.addIfAbsent(reading, vin)) readingsAdded = 1
-                } else if (reading.ts.isAfter(previous.ts)) {
-                    if (readings.addIfAbsent(reading, vin)) readingsAdded = 1
-                    val detected: Refuel? = detectRefuel(previous, reading, config.minRefuelJumpPct)
-                    if (detected != null && refuels.addIfAbsent(detected, vin)) refuelsDetected = 1
-                }
-                // Not newer than the stored reading (Toyota caches telemetry while the
-                // car sleeps): no new row and no detection, otherwise every 30 minutes
-                // would add a row for the same moment.
-            }
+        // Only the request may fail softly. The writes below are not caught here: a
+        // broken archive is a STORAGE failure, never "telemetry unavailable", or a
+        // detected refuel could be lost behind an Ok (docs/SPEC.md §8.4).
+        val reading = try {
+            gateway.telemetry(vin)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
+            null
+        }
+        if (reading == null) {
             telemetryFailed = true
+        } else {
+            val previous = readings.latest(vin)
+            if (previous == null) {
+                // First reading ever: nothing to compare against (docs/SPEC.md §8.3).
+                if (readings.addIfAbsent(reading, vin)) readingsAdded = 1
+            } else if (reading.ts.isAfter(previous.ts)) {
+                if (readings.addIfAbsent(reading, vin)) readingsAdded = 1
+                val detected: Refuel? = detectRefuel(previous, reading, config.minRefuelJumpPct)
+                if (detected != null && refuels.addIfAbsent(detected, vin)) refuelsDetected = 1
+            }
+            // Not newer than the stored reading (Toyota caches telemetry while the
+            // car sleeps): no new row and no detection, otherwise every 30 minutes
+            // would add a row for the same moment.
         }
 
         // 3. Trips since the watermark, with an overlap for late-arriving trips.
@@ -268,7 +272,9 @@ class SyncEngine(
             recomputeAndSave(vin)
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: IllegalArgumentException) {
+            // The domain refused the data (docs/SPEC.md §4); anything else here is the
+            // archive and is left to [guarded] as STORAGE.
             return failAt(startedAt, classify(e))
         }
 
@@ -305,23 +311,54 @@ class SyncEngine(
 
     // ---------------- helpers ----------------
 
+    /**
+     * Single flight plus the promise of docs/SPEC.md §8.5: outcomes, never exceptions.
+     * Gateway errors are classified where they happen; whatever still escapes the
+     * steps comes from the local archive (Room, a full disk) and becomes
+     * [SyncErrorKind.STORAGE]. The message names only the exception class, never its
+     * text (docs/SECURITY.md).
+     */
     private suspend fun guarded(block: suspend () -> SyncOutcome): SyncOutcome {
         if (!mutex.tryLock()) return SyncOutcome.Skipped
         try {
-            return block()
+            return try {
+                block()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                failAt(clock(), SyncError(SyncErrorKind.STORAGE, "Local storage failed: ${e.javaClass.simpleName}"))
+            }
         } finally {
             mutex.unlock()
         }
     }
 
+    /**
+     * Records [error] in [SyncState] and returns it. Tolerant of the archive it writes
+     * to: when the state itself cannot be read or saved (the STORAGE case), the
+     * outcome still reports the failure instead of throwing a second time.
+     */
     private suspend fun failAt(startedAt: Instant, error: SyncError): SyncOutcome.Failed {
-        val updated = state.get().copy(
+        val previous = try {
+            state.get()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            SyncState()
+        }
+        val updated = previous.copy(
             lastAttemptAt = startedAt,
             lastErrorAt = clock(),
             lastErrorKind = error.kind,
             lastErrorMessage = error.message,
         )
-        state.save(updated)
+        try {
+            state.save(updated)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Nothing more to do: the returned outcome carries the failure.
+        }
         return SyncOutcome.Failed(error, updated)
     }
 

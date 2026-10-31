@@ -91,6 +91,13 @@ enum class SyncErrorKind(val retryable: Boolean) {
 
     /** No vehicle on the account, or several and none selected. */
     NO_VEHICLE(retryable = false),
+
+    /**
+     * The local archive could not be read or written (e.g. a full disk). Retryable:
+     * free space or a restart can help, and nothing was lost on the Toyota side
+     * (docs/SPEC.md §8.4).
+     */
+    STORAGE(retryable = true),
 }
 
 /**

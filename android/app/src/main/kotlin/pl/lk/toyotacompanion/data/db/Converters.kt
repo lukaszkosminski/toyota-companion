@@ -50,5 +50,7 @@ class Converters {
     fun syncErrorKindToString(value: SyncErrorKind?): String? = value?.name
 
     @ColumnTypeConverter
-    fun stringToSyncErrorKind(value: String?): SyncErrorKind? = value?.let(SyncErrorKind::valueOf)
+    fun stringToSyncErrorKind(value: String?): SyncErrorKind? =
+        // An unknown name (a newer app wrote it, then a downgrade) reads as "no kind", not a crash.
+        value?.let { name -> SyncErrorKind.entries.firstOrNull { it.name == name } }
 }

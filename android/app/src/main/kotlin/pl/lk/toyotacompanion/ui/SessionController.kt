@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import pl.lk.toyotacompanion.core.data.SyncErrorKind
 import pl.lk.toyotacompanion.core.data.SyncStatus
 import pl.lk.toyotacompanion.core.sync.LoginCheck
 import pl.lk.toyotacompanion.core.sync.SyncOutcome
@@ -56,7 +57,14 @@ class SessionController(
     fun start() {
         if (ui.value !is UiState.Loading) return
         scope.launch {
-            val stored = withContext(io) { credentials.load() }
+            // A store that cannot be read means "not logged in", never a crash at start.
+            val stored = try {
+                withContext(io) { credentials.load() }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                null
+            }
             if (ui.value !is UiState.Loading) return@launch
             ui.value = if (stored == null) UiState.LoggedOut() else UiState.LoggedIn(status = readStatus())
         }
@@ -128,13 +136,21 @@ class SessionController(
         if (current.syncing) return
         ui.value = current.copy(syncing = true)
         scope.launch {
-            val outcome = withContext(io) { runner.fullSync() }
+            // `SyncEngine` returns outcomes, but the runner around it may still throw; the
+            // button must never stay stuck on "syncing" (docs/SPEC.md §9.3).
+            val failedKind: SyncErrorKind? = try {
+                (withContext(io) { runner.fullSync() } as? SyncOutcome.Failed)?.error?.kind
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                SyncErrorKind.STORAGE
+            }
             // Logged out while synchronizing: the late result must not resurrect the status screen.
             val waiting = ui.value as? UiState.LoggedIn ?: return@launch
             ui.value = waiting.copy(
                 status = readStatus(),
                 syncing = false,
-                lastSyncFailed = (outcome as? SyncOutcome.Failed)?.error?.kind,
+                lastSyncFailed = failedKind,
             )
         }
     }
@@ -157,18 +173,29 @@ class SessionController(
     /** Tokens first, then the login, then the scheduled work; the archive is never touched. */
     fun logout() {
         scope.launch {
-            val stored = withContext(io) { credentials.load() }
+            // Every step is best effort: whatever fails, the user ends up logged out.
             withContext(io) {
-                if (stored != null) tokens.clear(stored.username)
-                credentials.clear()
+                val stored = bestEffort { credentials.load() }
+                if (stored != null) bestEffort { tokens.clear(stored.username) }
+                bestEffort { credentials.clear() }
             }
-            workManager.cancelUniqueWork(SyncScheduler.PERIODIC_WORK_NAME)
-            workManager.cancelUniqueWork(SyncScheduler.ONE_TIME_WORK_NAME)
+            bestEffort { workManager.cancelUniqueWork(SyncScheduler.PERIODIC_WORK_NAME) }
+            bestEffort { workManager.cancelUniqueWork(SyncScheduler.ONE_TIME_WORK_NAME) }
             ui.value = UiState.LoggedOut(null)
         }
     }
 
     /** A failing status read leaves "brak danych" on screen instead of crashing the app. */
+    /** Runs [step] and swallows its failure; never used for cancellation. */
+    private inline fun <T> bestEffort(step: () -> T): T? =
+        try {
+            step()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            null
+        }
+
     private suspend fun readStatus(): SyncStatus? =
         try {
             withContext(io) { status() }
