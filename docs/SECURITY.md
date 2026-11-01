@@ -17,7 +17,7 @@
 - Arkusz CSV (F6, SPEC §14.4) nie zawiera GPS ani VIN, ale czasy i dystanse tras to też dane osobowe – plik trafia
   tylko tam, gdzie wskaże użytkownik; bez ostrzeżenia jak przy kopii. Komórki tekstowe chronione przed CSV injection.
 - Ekran „Postoje” (F17, SPEC §18) jako jedyny pokazuje położenie: zaokrąglone do 0,001° (ok. 100 m), liczone z tras w
-  archiwum; współrzędne nie trafiają do logów, CSV ani nazw plików; jedyne wyjście to przycisk „Otwórz w mapie” (intent `geo:` z tą samą zaokrągloną wartością, tylko po dotknięciu).
+  archiwum; współrzędne nie trafiają do logów, CSV ani nazw plików; jedyne wyjście to „Otwórz w mapie” w „Postojach” i dotknięcie trasy na liście tras (intent `geo:` z tą samą zaokrągloną wartością, tylko po dotknięciu).
 - CI skanuje sekrety (gitleaks).
 - Zapytania do usług zewnętrznych (np. Open-Meteo, F15) wysyłają tylko zaokrąglone współrzędne (~1 km) i czas; nigdy VIN ani identyfikator konta.
 

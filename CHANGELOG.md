@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Dotknięcie trasy na liście otwiera jej start lub koniec w aplikacji z mapą (SPEC §10.3)
 - Tempo jazdy a spalanie (F19): pasma średniej prędkości w „Statystykach” z dopłatą za wolną jazdę; przycisk „Otwórz w mapie” w „Postojach”
 - Szkielet repozytorium i specyfikacja domeny (docs/SPEC.md)
 - Logika domeny: wykrywanie tankowań, potwierdzanie ceny, koszt tras (76 testów)

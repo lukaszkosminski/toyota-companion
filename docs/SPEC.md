@@ -273,6 +273,9 @@ Formularz ceny tankowania (PRD F2, F4): użytkownik podaje cenę albo litry i kw
 brakującą wielkość wylicza domena (§2), a koszty tras są przeliczane wstecz (§5). Wymaganie właściciela
 produktu (ROADMAP NOW). Operacje nie wołają żadnego API Toyoty, w tym `refresh_status()` (§9 wstęp, AGENTS.md).
 Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – §13. Poprawka litrów potwierdzonego tankowania – §15.3.
+- Dotknięcie wiersza trasy z położeniem (start i/lub koniec) otwiera okno „Start w mapie” / „Koniec w mapie” (tylko te końce,
+  które mają współrzędne); wybór wysyła intent `geo:` z położeniem zaokrąglonym jak w §18 (ok. 100 m), wyłącznie po dotknięciu.
+  Trasa bez żadnego położenia nie reaguje na dotknięcie. Archiwum nie ma przebiegu trasy, więc mapa pokazuje jeden koniec naraz.
 
 ### §11.1 Operacje w `core`
 - `pendingRefuels(): List<Refuel>` — oczekujące tankowania wybranego VIN (`state.get().vin`), najnowsze pierwsze

@@ -1,9 +1,5 @@
 package pl.lk.toyotacompanion.ui
 
-import android.content.ActivityNotFoundException
-import android.content.Intent
-import android.net.Uri
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -86,13 +82,7 @@ fun ParkingScreen(
                         Text(label + ParkingFormatting.place(place.lat, place.lon), style = MaterialTheme.typography.titleSmall)
                             Text(ParkingFormatting.placeLine(place, zone), style = MaterialTheme.typography.bodyMedium)
                             ParkingFormatting.mapUri(place.lat, place.lon)?.let { uri ->
-                                TextButton(onClick = {
-                                    try {
-                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)))
-                                    } catch (_: ActivityNotFoundException) {
-                                        Toast.makeText(context, Texts.PARKING_NO_MAP_APP, Toast.LENGTH_SHORT).show()
-                                    }
-                                }) { Text(Texts.PARKING_OPEN_MAP) }
+                                TextButton(onClick = { openInMap(context, uri) }) { Text(Texts.PARKING_OPEN_MAP) }
                             }
                         }
                     }
