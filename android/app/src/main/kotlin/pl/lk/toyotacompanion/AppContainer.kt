@@ -51,6 +51,7 @@ import pl.lk.toyotacompanion.ui.ConsumptionController
 import pl.lk.toyotacompanion.ui.DeclaredConsumptionController
 import pl.lk.toyotacompanion.ui.StationPriceController
 import pl.lk.toyotacompanion.ui.RouteBackfillController
+import pl.lk.toyotacompanion.ui.RouteHeatController
 import pl.lk.toyotacompanion.ui.TripRouteController
 import pl.lk.toyotacompanion.ui.YearSummaryController
 import pl.lk.toyotacompanion.data.db.RoomTripRouteRepository
@@ -361,6 +362,16 @@ class AppContainer(
             readTrips = tripsLoader,
             repository = RoomTripRouteRepository(database.tripRouteDao()),
             gateway = routeGateway,
+            scope = uiScope,
+            io = Dispatchers.IO,
+        )
+    }
+
+    /** The consumption heat map of one repeated route, from the routes stored on the phone (PRD F33, docs/SPEC.md §34). */
+    val routeHeatController: RouteHeatController by lazy {
+        RouteHeatController(
+            readTrips = tripsLoader,
+            repository = RoomTripRouteRepository(database.tripRouteDao()),
             scope = uiScope,
             io = Dispatchers.IO,
         )

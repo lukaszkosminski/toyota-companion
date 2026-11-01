@@ -876,3 +876,12 @@ ekranie „Pogoda i spalanie” (§23).
   i w tle; „Zatrzymaj” przerywa, a to, co zapisano, zostaje. Trasa, której Toyota już nie ma (HTTP 404), zapisuje się jako brak przebiegu i nie jest pytana ponownie. Każdy inny błąd (brak sieci,
   logowanie, błąd usługi) kończy przebieg stałym komunikatem z liczbą zapisanych. Wylogowanie zeruje stan.
 - Przebiegi nie wchodzą do kopii archiwum ani CSV (§27).
+
+## 34. Mapa ciepła ulubionych tras (PRD F33)
+`app/ui/RouteHeatController.kt`, przycisk „Pokaż przebiegi na mapie” przy każdym odcinku na ekranie „Styl jazdy” (§19), strona mapy z §26.
+- Wszystkie przejazdy jednego odcinka (te same dwa miejsca w tym samym kierunku, §19), które mają zapisany przebieg (§27, §33) i spalanie (§19: od 2 km, paliwo > 0), rysowane na jednej mapie;
+  kolor linii = spalanie przejazdu między najlepszym (zielony) a najgorszym (czerwony) z narysowanych (`share` = (wartość − min) / (max − min); równe = środek skali). Dotknięcie linii
+  pokazuje spalanie przejazdu („4,3 l/100 km”). Pod mapą: zakres kolorów i „Przejazdy z przebiegiem: N z M”.
+- Tylko odczyt z telefonu: żadne zapytanie do Toyoty; przejazd bez zapisanego przebiegu jest policzony, nie pobierany. Bez żadnego przebiegu: „Żaden z M przejazdów tej trasy nie ma
+  zapisanego przebiegu. Zapisz je przyciskiem na ekranie „Trasy”.” Początek i koniec pierwszego przejazdu jako znaczniki (zaokrąglone do 0,001°, jak każdy punkt mapy).
+- Strona dostaje wyłącznie liczby (punkty przebiegu, udział 0–1) i tekst spalania z cyfr i stałych słów. Wylogowanie i wyjście z mapy zerują stan.

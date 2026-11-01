@@ -87,6 +87,9 @@ enum class Screen {
     /** Trips by temperature and rain of their day (docs/SPEC.md §23). */
     Weather,
 
+    /** The consumption heat map of one repeated route (docs/SPEC.md §34). */
+    Heat,
+
     /** One year of driving on one page (docs/SPEC.md §29). */
     Year,
 

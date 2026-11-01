@@ -52,6 +52,7 @@ fun AppRoot(
     yearSummary: YearSummaryController,
     declared: DeclaredConsumptionController,
     backfill: RouteBackfillController,
+    heat: RouteHeatController,
     askNotificationPermission: suspend () -> Boolean,
     deepLinkRefuelId: String? = null,
     onDeepLinkShown: () -> Unit = {},
@@ -65,6 +66,7 @@ fun AppRoot(
     val routeState by tripRoute.state.collectAsState()
     val widgetContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
     val declaredState by declared.state.collectAsState()
+    val heatState by heat.state.collectAsState()
     var screen by rememberSaveable { mutableStateOf(Screen.Status) }
     // The map in the app (docs/SPEC.md §26): [origin ordinal, then per point: label index, lat, lon] with the positions
     // already rounded, so no raw coordinate lands in the saved state.
@@ -107,6 +109,7 @@ fun AppRoot(
             tripRoute.close()
             yearSummary.reset()
             backfill.reset()
+            heat.close()
             // The widget must not keep an account's numbers after logout (docs/SPEC.md §32).
             pl.lk.toyotacompanion.widget.WidgetSnapshotStore(widgetContext).clear()
             pl.lk.toyotacompanion.widget.ConsumptionWidgetProvider.refresh(widgetContext)
@@ -227,9 +230,23 @@ fun AppRoot(
 
                     Screen.Year -> YearSummaryScreen(controller = yearSummary, onBack = { screen = Screen.Status })
                     Screen.Weather -> WeatherScreen(controller = weather, onBack = { screen = Screen.Status })
+                    Screen.Heat -> MapScreen(
+                        title = Texts.HEAT_TITLE,
+                        points = (heatState as? HeatState.Ready)?.points.orEmpty(),
+                        route = RouteState.None,
+                        heat = heatState,
+                        onBack = {
+                            heat.close()
+                            screen = Screen.DrivingStyle
+                        },
+                    )
                     Screen.DrivingStyle -> DrivingStyleScreen(
                         controller = drivingStyle,
                         onBack = { screen = Screen.Status },
+                        onShowHeat = { ids ->
+                            heat.open(ids)
+                            screen = Screen.Heat
+                        },
                     )
 
                     Screen.Parking -> ParkingScreen(

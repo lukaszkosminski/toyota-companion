@@ -62,11 +62,15 @@ fun mapRequestAllowed(uri: Uri): Boolean =
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun MapScreen(title: String, points: List<MapPoint>, route: RouteState, onBack: () -> Unit) {
+fun MapScreen(title: String, points: List<MapPoint>, route: RouteState, onBack: () -> Unit, heat: HeatState = HeatState.None) {
     BackHandler(onBack = onBack)
     val context = LocalContext.current
     var page by remember { mutableStateOf<WebView?>(null) }
     var loaded by remember { mutableStateOf(false) }
+    LaunchedEffect(heat, loaded, page) {
+        val view = page
+        if (loaded && view != null && heat is HeatState.Ready) view.evaluateJavascript("showHeat(" + heatJson(heat.lines) + ")", null)
+    }
     // The route goes to the page once it is ready and the page is loaded; numbers only, so nothing but digits is injected.
     LaunchedEffect(route, loaded, page) {
         val view = page
@@ -116,7 +120,7 @@ fun MapScreen(title: String, points: List<MapPoint>, route: RouteState, onBack: 
                 },
             )
             Text(
-                Texts.mapRouteNote(route),
+                if (heat != HeatState.None) Texts.heatNote(heat) else Texts.mapRouteNote(route),
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )

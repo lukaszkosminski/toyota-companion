@@ -404,6 +404,21 @@ object Texts {
     fun consumptionFalling(change: String): String = "Trend: ↘ malejące ($change %)"
     fun consumptionSteady(change: String): String = "Trend: → stabilne ($change %)"
 
+    // Mapa ciepła ulubionych tras (docs/SPEC.md §34).
+
+    const val HEAT_BUTTON = "Pokaż przebiegi na mapie"
+    const val HEAT_TITLE = "Mapa ciepła trasy"
+    fun heatTooltip(litres: String): String = "$litres l/100 km"
+    fun heatNote(heat: HeatState): String = when (heat) {
+        HeatState.None -> ""
+        HeatState.Loading -> "Wczytuję zapisane przebiegi…"
+        HeatState.Failed -> "Nie udało się odczytać przebiegów. Spróbuj ponownie."
+        is HeatState.Empty -> "Żaden z ${heat.total} przejazdów tej trasy nie ma zapisanego przebiegu. Zapisz je przyciskiem na ekranie „Trasy”."
+        is HeatState.Ready ->
+            "Zielony – najmniejsze spalanie na tej trasie (${TripsFormatting.plain(heat.minLPer100, 1)} l/100 km), czerwony – największe " +
+                "(${TripsFormatting.plain(heat.maxLPer100, 1)}). Przejazdy z przebiegiem: ${heat.lines.size} z ${heat.total}."
+    }
+
     // Zapis przebiegów (docs/SPEC.md §33).
 
     const val BACKFILL_BUTTON = "Zapisz przebiegi starszych tras"

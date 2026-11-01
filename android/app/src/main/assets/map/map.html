@@ -44,6 +44,25 @@ if (latlngs.length > 1) {
 } else {
   map.setView([54.37, 18.63], 10);
 }
+// The app calls this with the drives of one repeated route: [{p: [[lat, lon], ...], f: 0..1, t: "4,3 l/100 km"}], f = share of the
+// route's best (0, green) to worst (1, red) consumption (docs/SPEC.md §34).
+function heatColor(f) {
+  var a = f < 0.5 ? [46, 158, 91] : [240, 200, 60];
+  var b = f < 0.5 ? [240, 200, 60] : [214, 60, 60];
+  var k = f < 0.5 ? f * 2 : (f - 0.5) * 2;
+  return 'rgb(' + [0, 1, 2].map(function (i) { return Math.round(a[i] + (b[i] - a[i]) * k); }).join(',') + ')';
+}
+function showHeat(lines) {
+  var all = [];
+  if (straight) { map.removeLayer(straight); straight = null; }
+  lines.forEach(function (line) {
+    var pts = line.p.filter(function (p) { return isFinite(p[0]) && isFinite(p[1]); });
+    if (pts.length < 2) return;
+    all = all.concat(pts);
+    L.polyline(pts, { color: heatColor(line.f), weight: 4, opacity: 0.65 }).addTo(map).bindTooltip(String(line.t).replace(/[<>&"]/g, ''), { sticky: true });
+  });
+  if (all.length) map.fitBounds(all, { padding: [48, 48], maxZoom: 17 });
+}
 // The app calls this with the GPS route: [[lat, lon, ev], ...], ev 1 = battery, 0 = engine, -1 = unknown (docs/SPEC.md §27).
 function showRoute(route) {
   var pts = route.filter(function (p) { return isFinite(p[0]) && isFinite(p[1]); });

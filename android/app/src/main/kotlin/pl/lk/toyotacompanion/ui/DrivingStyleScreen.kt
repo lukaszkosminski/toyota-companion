@@ -37,6 +37,7 @@ import java.time.ZoneId
 fun DrivingStyleScreen(
     controller: DrivingStyleController,
     onBack: () -> Unit,
+    onShowHeat: (List<String>) -> Unit,
     zone: ZoneId = ZoneId.systemDefault(),
 ) {
     BackHandler(onBack = onBack)
@@ -92,6 +93,7 @@ fun DrivingStyleScreen(
                             route.usualLPer100Km?.let { RefuelLogFormatting.consumption(it) },
                         )
                         if (facts.isNotEmpty()) Text(facts, style = MaterialTheme.typography.bodySmall)
+                        TextButton(onClick = { onShowHeat(route.tripIds) }) { Text(Texts.HEAT_BUTTON) }
                     }
                 }
 

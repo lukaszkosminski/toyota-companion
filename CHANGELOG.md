@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Mapa ciepła powtarzanych odcinków: przejazdy pokolorowane spalaniem (F33, SPEC §34)
 - Zapis przebiegów starszych tras przyciskiem na ekranie „Trasy” (F32, SPEC §33)
 - Widżet na ekran główny: spalanie, trend, cena i prognoza (F31, SPEC §32)
 - Alert o rosnącym spalaniu trzy miesiące z rzędu poza zimą (F30, SPEC §31)

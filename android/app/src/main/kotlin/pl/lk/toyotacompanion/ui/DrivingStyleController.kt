@@ -23,6 +23,8 @@ data class RouteSummary(
     val usualHour: String?,
     val eco: BigDecimal?,
     val usualLPer100Km: BigDecimal?,
+    /** Ids of the trips of the route, for its heat map (§34); an id is not a position. */
+    val tripIds: List<String> = emptyList(),
 )
 
 /** Everything "Styl jazdy" shows (docs/SPEC.md §19). Route numbers are the order of [routes], 1-based. */
@@ -49,6 +51,7 @@ fun computeDrivingStyle(trips: List<StoredTrip>, zone: ZoneId): DrivingStyleView
                 usualHour = DrivingStyleFormatting.usualHour(group, zone),
                 eco = DrivingStyleFormatting.routeEco(group),
                 usualLPer100Km = medianConsumption(group),
+                tripIds = group.trips.map { it.record.id },
             )
         },
         // routeIndex is the index in `groups`, so route number = routeIndex + 1 on screen.
