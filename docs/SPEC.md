@@ -830,3 +830,14 @@ ekranie „Pogoda i spalanie” (§23).
   kosztu `NONE` liczy się jak bez ceny), km (0,1), zł/100 km = Σ koszt / Σ km tras z ceną i liczba tras bez ceny; miesiące z trasami, także krótkie
   i niepełny bieżący, najwyżej 12 ostatnich od najstarszego. Słupki od zera (kwoty), podpis nad słupkiem – pełne złotówki; pod słupkami lista
   miesięcy od najnowszego z dokładną kwotą i km. Nad słupkami „Razem z całego okresu” (suma kosztów tras z ceną całego archiwum i liczba tras bez ceny).
+
+## 29. Podsumowanie roku (PRD F28)
+`app/ui/YearSummary.kt`, `YearSummaryController.kt`, `YearSummaryScreen.kt` (prezentacja na `StoredTrip`, bez GPS, bez lustra w Pythonie). Wejście: przycisk
+„Podsumowanie roku” na ekranie statusu.
+- Lata z trasami (dystans dodatni, paliwo nieujemne) od najnowszego jako przyciski; domyślnie najnowszy. Rok wg daty startu w strefie telefonu.
+- Rok: liczba tras, km i litry (wyświetlane bez miejsc po przecinku), średnie spalanie Σ paliwo / Σ km (0,01), koszt paliwa (suma tras z ceną; `null` i „Koszt: brak
+  ceny”, nigdy 0 zł; zł/100 km z km tras z ceną; liczba tras bez ceny), udział jazdy na prądzie (każda trasa przycięta do własnego dystansu, całe %), liczba dni
+  z jazdą, najdłuższa trasa z datą, najlepszy i najwyższy miesiąc spalania (miesiące od 50 km, jak w §24; gdy to ten sam miesiąc – tylko najlepszy), najdroższy
+  miesiąc, oraz zmiana wobec poprzedniego roku (km i koszt w %, spalanie w l/100 km ze znakiem), jeśli poprzedni rok ma trasy.
+- „Udostępnij podsumowanie” wysyła te same linie jako zwykły tekst do systemowego okna udostępniania (`ACTION_SEND`, `text/plain`) tylko po dotknięciu; w tekście nie
+  ma położenia, VIN ani danych konta.

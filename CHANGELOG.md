@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Podsumowanie roku (F28) z udostępnieniem tekstu (SPEC §29)
 - Rodzaj jazdy (wolna jazda, miasto, płynnie, trasa) przy każdej trasie na liście (F27)
 - Pogoda dla tras z dzisiaj z usługi prognoz Open-Meteo (archiwum kończy się na wczoraj)
 - Koszty miesięczne i suma całego okresu na ekranie statusu (F26, SPEC §24)

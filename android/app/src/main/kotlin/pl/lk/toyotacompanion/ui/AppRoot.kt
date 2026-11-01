@@ -49,6 +49,7 @@ fun AppRoot(
     consumption: ConsumptionController,
     stationPrices: StationPriceController,
     tripRoute: TripRouteController,
+    yearSummary: YearSummaryController,
     askNotificationPermission: suspend () -> Boolean,
     deepLinkRefuelId: String? = null,
     onDeepLinkShown: () -> Unit = {},
@@ -100,6 +101,7 @@ fun AppRoot(
             consumption.reset()
             stationPrices.reset()
             tripRoute.close()
+            yearSummary.reset()
         } else {
             // The status button shows the stored price. This effect also restarts when the
             // Activity is recreated, so the read is guarded: the file is touched only while
@@ -186,6 +188,10 @@ fun AppRoot(
                             drivingStyle.load()
                             screen = Screen.DrivingStyle
                         },
+                        onShowYear = {
+                            yearSummary.load()
+                            screen = Screen.Year
+                        },
                         onShowWeather = {
                             weather.load()
                             screen = Screen.Weather
@@ -208,6 +214,7 @@ fun AppRoot(
                         askNotificationPermission = askNotificationPermission,
                     )
 
+                    Screen.Year -> YearSummaryScreen(controller = yearSummary, onBack = { screen = Screen.Status })
                     Screen.Weather -> WeatherScreen(controller = weather, onBack = { screen = Screen.Status })
                     Screen.DrivingStyle -> DrivingStyleScreen(
                         controller = drivingStyle,

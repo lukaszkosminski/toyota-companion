@@ -404,6 +404,29 @@ object Texts {
     fun consumptionFalling(change: String): String = "Trend: ↘ malejące ($change %)"
     fun consumptionSteady(change: String): String = "Trend: → stabilne ($change %)"
 
+    // Podsumowanie roku (docs/SPEC.md §29).
+
+    const val YEAR_TITLE = "Podsumowanie roku"
+    const val YEAR_EMPTY = "Brak tras do podsumowania."
+    const val YEAR_READ_ERROR = "Nie udało się odczytać tras. Spróbuj ponownie."
+    const val YEAR_SHARE = "Udostępnij podsumowanie"
+    const val YEAR_NOTE = "Udostępniany jest tylko tekst z tej strony: bez położenia, VIN i danych konta."
+    val yearNoCost = "Koszt: brak ceny"
+    fun yearHeading(year: Int): String = "Rok $year"
+    fun yearShareTitle(year: Int): String = "Toyota Companion – podsumowanie roku $year"
+    fun yearTotals(trips: Int, km: String, litres: String): String = "Trasy: $trips · $km km · $litres l paliwa"
+    fun yearAverage(litres: String): String = "Średnie spalanie: $litres l/100 km"
+    fun yearCost(total: String, per100: String?): String = "Koszt paliwa: $total" + (per100?.let { " ($it/100 km)" } ?: "")
+    fun yearEv(percent: String): String = "Jazda na prądzie: $percent % km"
+    fun yearDays(days: Int): String = "Dni z jazdą: $days"
+    fun yearLongest(km: String, start: String): String = "Najdłuższa trasa: $km km ($start)"
+    fun yearBest(month: String, litres: String): String = "Najlepsze spalanie: $month, $litres l/100 km"
+    fun yearWorst(month: String, litres: String): String = "Najwyższe spalanie: $month, $litres l/100 km"
+    fun yearDearest(month: String, money: String): String = "Najdroższy miesiąc: $month, $money"
+    fun yearVersus(year: Int, km: String?, cost: String?, litres: String?): String =
+        "Wobec $year: " + listOfNotNull(km?.let { "km $it" }, cost?.let { "koszt $it" }, litres?.let { "spalanie $it l/100 km" })
+            .ifEmpty { listOf("brak porównania") }.joinToString(SEPARATOR)
+
     // Prędkość × temperatura (docs/SPEC.md §28).
 
     const val MATRIX_TITLE = "Prędkość i temperatura"

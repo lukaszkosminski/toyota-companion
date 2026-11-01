@@ -69,6 +69,7 @@ fun StatusScreen(
     onShowParking: () -> Unit,
     onShowDrivingStyle: () -> Unit,
     onShowWeather: () -> Unit,
+    onShowYear: () -> Unit,
     defaultPrice: BigDecimal?,
     onShowDefaultPrice: () -> Unit,
     backupReminder: BackupReminder,
@@ -193,6 +194,13 @@ fun StatusScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(Texts.STYLE_TITLE)
+                }
+                // One year of driving on one page, shareable as text (PRD F28, docs/SPEC.md §29).
+                OutlinedButton(
+                    onClick = onShowYear,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(Texts.YEAR_TITLE)
                 }
                 // Trips by temperature and rain, weather fetched only on a tap (PRD F15, docs/SPEC.md §23).
                 OutlinedButton(
