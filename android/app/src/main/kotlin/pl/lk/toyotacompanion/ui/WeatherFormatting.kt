@@ -21,7 +21,7 @@ object WeatherFormatting {
      */
     fun bucketNote(bucket: WeatherBucketStats): String? {
         val parts = ArrayList<String>(3)
-        bucket.deltaLPer100Km?.let { parts += Texts.weatherDelta(signed(it)) }
+        bucket.deltaLPer100Km?.let { parts += Texts.weatherDelta(TripsFormatting.signed(it, 2)) }
         val ev = evShare(bucket)
         if (ev != null) parts += Texts.weatherEv(ev)
         bucket.windMaxKmh?.let { parts += Texts.weatherWind(TripsFormatting.plain(it, 0)) }
@@ -36,11 +36,5 @@ object WeatherFormatting {
         val electric = bucket.evKm.min(bucket.distanceKm)
         val percent = electric.multiply(BigDecimal(100)).divide(bucket.distanceKm, 0, RoundingMode.HALF_UP)
         return percent.toPlainString() + " %"
-    }
-
-    /** `+0,61` / `-0,20` / `0,00`: two decimals, a comma, an explicit plus. */
-    fun signed(value: BigDecimal): String {
-        val text = TripsFormatting.plain(value, 2)
-        return if (value.signum() > 0) "+$text" else text
     }
 }

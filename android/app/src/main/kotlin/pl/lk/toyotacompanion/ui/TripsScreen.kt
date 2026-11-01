@@ -171,8 +171,7 @@ private fun TripRow(stored: StoredTrip, zone: ZoneId) {
     val trip = stored.record.trip
     val cost = stored.cost
     val record = stored.record
-    val startLink = ParkingFormatting.mapUri(record.startLat, record.startLon)
-    val endLink = ParkingFormatting.mapUri(record.endLat, record.endLon)
+    val links = tripMapLinks(record)
     var choosing by remember { mutableStateOf(false) }
     val context = LocalContext.current
     if (choosing) {
@@ -183,11 +182,10 @@ private fun TripRow(stored: StoredTrip, zone: ZoneId) {
             text = { Text(Texts.TRIP_MAP_HINT) },
             confirmButton = {
                 Row {
-                    startLink?.let {
-                        TextButton(onClick = { choosing = false; openInMap(context, it) }) { Text(Texts.TRIP_MAP_START) }
-                    }
-                    endLink?.let {
-                        TextButton(onClick = { choosing = false; openInMap(context, it) }) { Text(Texts.TRIP_MAP_END) }
+                    for (link in links) {
+                        TextButton(onClick = { choosing = false; openInMap(context, link.uri) }) {
+                            Text(if (link.end == TripMapEnd.START) Texts.TRIP_MAP_START else Texts.TRIP_MAP_END)
+                        }
                     }
                 }
             },
@@ -197,7 +195,7 @@ private fun TripRow(stored: StoredTrip, zone: ZoneId) {
     Card(
         // A trip without any position is not clickable: there is nothing to show.
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 3.dp).let {
-            if (startLink != null || endLink != null) it.clickable { choosing = true } else it
+            if (links.isNotEmpty()) it.clickable { choosing = true } else it
         },
         shape = MaterialTheme.shapes.small,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),

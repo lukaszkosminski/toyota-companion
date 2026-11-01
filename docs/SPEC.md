@@ -714,8 +714,8 @@ Funkcje czyste w `app/ui/TrafficIndex.kt` na `StoredTrip` – bez lustra w Pytho
 - Na pasmo: liczba tras, km (0,1), l/100 km = Σ paliwo / Σ km (0,01), zł/100 km = Σ koszt / Σ km tras z ceną (bez ceny: „brak ceny”).
   Pasmo bez tras pomijane.
 - Dopłata za wolną jazdę = wolno − płynnie (l/100 km i, gdy oba pasma mają cenę, zł/100 km); tylko gdy oba pasma mają ≥ 10 tras.
-- Ekran: sekcja „Tempo jazdy a spalanie” w „Statystykach”, z uwagą, że to wskaźnik pośredni. Archiwum 408 tras ≥ 2 km:
-  wolno 4,94, miasto 4,16, płynnie 3,81, trasa 4,12 l/100 km (udział EV 63/64/60/36 %).
+- Ekran: sekcja „Tempo jazdy a spalanie” w „Statystykach”: przy paśmie liczba tras, km, l/100 km, zł/100 km i udział jazdy na prądzie, pod nagłówkiem licznik tras pominiętych (poniżej 2 km albo bez prędkości); dopłata ze znakiem (+/-) liczona w `computeStats`; uwaga, że to wskaźnik pośredni i że litry liczone są do wszystkich km, także na prądzie. Archiwum 408 tras ≥ 2 km:
+  wolno 4,94, miasto 4,16, płynnie 3,81, trasa 4,12 l/100 km (udział EV 62/64/60/36 %, liczony jako Σ km na prądzie / Σ km pasma, każda trasa przycięta do własnego dystansu).
 
 ## 23. Pogoda i spalanie (PRD F15, ADR-009)
 Domena: Python `backend/app/domain/weather.py`, Kotlin `core/domain/WeatherOps.kt` (te same nazwy testów). Klient: `core/weather`.

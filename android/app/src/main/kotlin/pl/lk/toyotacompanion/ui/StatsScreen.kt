@@ -128,26 +128,32 @@ fun StatsScreen(
                     item { HorizontalDivider() }
                     item { Header(Texts.TRAFFIC_SECTION) }
                     item { Text(Texts.TRAFFIC_HINT, style = MaterialTheme.typography.bodySmall) }
+                    if (view.trafficLeftOut > 0) {
+                        item {
+                            Text(Texts.statsLeftOutTrips(view.trafficLeftOut, view.tripTotal), style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
                     items(view.traffic, key = { "tr-" + it.trafficClass }) { row ->
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Text(Texts.trafficClassName(row.trafficClass), style = MaterialTheme.typography.titleSmall)
                             Text(
-                                listOf(
+                                listOfNotNull(
                                     Texts.statsTrips(row.trips),
                                     TripsFormatting.plain(row.distanceKm, 1) + " km",
                                     Texts.trafficConsumption(TripsFormatting.plain(row.litresPer100, 2)),
                                     row.costPer100?.let { Texts.trafficCost(TripsFormatting.money(it)) } ?: Texts.NO_PRICE,
+                                    row.evSharePct?.let { Texts.weatherEv(TripsFormatting.plain(it, 0) + " %") },
                                 ).joinToString(Texts.SEPARATOR),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                         }
                     }
-                    slowSurcharge(view.traffic)?.let { extra ->
+                    view.trafficSurcharge?.let { extra ->
                         item {
                             Text(
                                 Texts.trafficSurcharge(
-                                    TripsFormatting.plain(extra.litresPer100, 2),
-                                    extra.costPer100?.let { TripsFormatting.money(it) },
+                                    TripsFormatting.signed(extra.litresPer100, 2),
+                                    extra.costPer100?.let { TripsFormatting.signedMoney(it) },
                                 ),
                                 style = MaterialTheme.typography.bodyMedium,
                             )

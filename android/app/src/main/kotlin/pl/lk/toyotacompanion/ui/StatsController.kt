@@ -39,6 +39,9 @@ data class StatsView(
     val tripTypes: List<TripTypeSummary>,
     val placesKnown: Boolean,
     val traffic: List<TrafficSummary>,
+    val trafficSurcharge: SlowSurcharge?,
+    val trafficLeftOut: Int,
+    val tripTotal: Int,
 )
 
 /**
@@ -102,6 +105,7 @@ fun computeStats(stored: List<StoredTrip>, zone: ZoneId): StatsView {
     val costs = stored.mapNotNull { it.cost }
     val yoy = yearOverYear(trips, costs, zone)
     val places = knownPlaces(parkingLogOf(stored), zone)
+    val traffic = trafficSummaries(stored)
     return StatsView(
         evShare = aggregateElectricShare(trips),
         ranking = electricTripRanking(trips),
@@ -113,6 +117,9 @@ fun computeStats(stored: List<StoredTrip>, zone: ZoneId): StatsView {
         // Home and work come from the parking diary; positions stay inside (docs/SPEC.md §21).
         tripTypes = tripTypeSummaries(stored, classifyTrips(stored, places, zone)),
         placesKnown = places.home != null && places.work != null,
-        traffic = trafficSummaries(stored),
+        traffic = traffic,
+        trafficSurcharge = slowSurcharge(traffic),
+        trafficLeftOut = trafficLeftOut(stored),
+        tripTotal = stored.size,
     )
 }

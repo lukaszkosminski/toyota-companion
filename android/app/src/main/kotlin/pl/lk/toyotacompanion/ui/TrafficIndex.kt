@@ -28,13 +28,20 @@ data class TrafficSummary(
     val litresPer100: BigDecimal,
     /** Σ cost / Σ km of the priced trips × 100, `null` when no trip of the class has a price. */
     val costPer100: BigDecimal?,
+    /** Σ electric km (each trip cut to its own distance) / Σ km of the class, whole percent; `null` without any. */
+    val evSharePct: BigDecimal?,
 )
 
 /** The surcharge of slow driving over flowing driving, only when both bands are large enough. */
 data class SlowSurcharge(val litresPer100: BigDecimal, val costPer100: BigDecimal?)
 
 /** The band of an average speed in km/h; the lower bound of each band belongs to it. */
-fun trafficClassOf(speedKmh: Double): TrafficClass = when {
+fun trafficClassOf(speedKmh: Double): TrafficClass {
+    require(speedKmh.isFinite() && speedKmh > 0.0) { "A speed band needs a positive, finite speed" }
+    return bandOf(speedKmh)
+}
+
+private fun bandOf(speedKmh: Double): TrafficClass = when {
     speedKmh < TRAFFIC_SLOW_BELOW -> TrafficClass.SLOW
     speedKmh < TRAFFIC_CITY_BELOW -> TrafficClass.CITY
     speedKmh < TRAFFIC_FLOWING_BELOW -> TrafficClass.FLOWING
@@ -56,7 +63,7 @@ private fun usable(stored: StoredTrip): Double? {
  * least [TRAFFIC_MIN_KM] or with a negative fuel reading are left out; a band without trips is not listed.
  */
 fun trafficSummaries(trips: List<StoredTrip>): List<TrafficSummary> {
-    val byClass = trips.mapNotNull { stored -> usable(stored)?.let { trafficClassOf(it) to stored } }
+    val byClass = trips.mapNotNull { stored -> usable(stored)?.let { bandOf(it) to stored } }
         .groupBy({ it.first }, { it.second })
     val rows = ArrayList<TrafficSummary>(TrafficClass.entries.size)
     for (cls in TrafficClass.entries) {
@@ -66,6 +73,11 @@ fun trafficSummaries(trips: List<StoredTrip>): List<TrafficSummary> {
         for (stored in group) {
             km = km.add(toBigDecimal(stored.record.trip.distanceKm))
             fuel = fuel.add(stored.record.trip.fuelL)
+        }
+        var electricKm = BigDecimal.ZERO
+        for (stored in group) {
+            val ev = stored.record.trip.evDistanceKm ?: continue
+            if (ev.isFinite() && ev > 0.0) electricKm = electricKm.add(toBigDecimal(minOf(ev, stored.record.trip.distanceKm)))
         }
         var pricedKm = BigDecimal.ZERO
         var cost: BigDecimal? = null
@@ -81,10 +93,14 @@ fun trafficSummaries(trips: List<StoredTrip>): List<TrafficSummary> {
             distanceKm = km.setScale(1, RoundingMode.HALF_UP),
             litresPer100 = fuel.multiply(HUNDRED).divide(km, 2, RoundingMode.HALF_UP),
             costPer100 = cost?.multiply(HUNDRED)?.divide(pricedKm, 2, RoundingMode.HALF_UP),
+            evSharePct = if (km.signum() > 0) electricKm.multiply(HUNDRED).divide(km, 0, RoundingMode.HALF_UP) else null,
         )
     }
     return rows
 }
+
+/** Trips the bands do not count: no speed, under [TRAFFIC_MIN_KM] or a broken reading (docs/SPEC.md §22). */
+fun trafficLeftOut(trips: List<StoredTrip>): Int = trips.count { usable(it) == null }
 
 /** [TrafficClass.SLOW] minus [TrafficClass.FLOWING], `null` unless both have [TRAFFIC_MIN_COMPARE_TRIPS] trips. */
 fun slowSurcharge(rows: List<TrafficSummary>): SlowSurcharge? {

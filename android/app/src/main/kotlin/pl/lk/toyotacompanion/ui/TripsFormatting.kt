@@ -86,6 +86,16 @@ object TripsFormatting {
     internal fun plain(value: BigDecimal, places: Int): String =
         value.setScale(places, RoundingMode.HALF_UP).toPlainString().replace('.', ',')
 
+    /** `+0,61` / `-0,20` / `0,00`: a comma, an explicit plus for a positive value (docs/SPEC.md §22-§23). */
+    internal fun signed(value: BigDecimal, places: Int): String {
+        val text = plain(value, places)
+        return if (value.setScale(places, RoundingMode.HALF_UP).signum() > 0) "+$text" else text
+    }
+
+    /** `+7,02 zł` / `-7,02 zł` / `0,00 zł`. */
+    internal fun signedMoney(value: BigDecimal): String =
+        (if (value.setScale(2, RoundingMode.HALF_UP).signum() > 0) "+" else "") + money(value)
+
     private fun fixed(value: BigDecimal, places: Int): String = plain(value, places)
 
     private fun two(value: Int): String = if (value < 10) "0$value" else value.toString()

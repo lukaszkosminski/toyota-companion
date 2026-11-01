@@ -322,7 +322,7 @@ object Texts {
 
     const val TRAFFIC_SECTION = "Tempo jazdy a spalanie"
     const val TRAFFIC_HINT =
-        "Średnia prędkość trasy (od 2 km) jako miara ruchu – wolna jazda to też sygnalizacja i krótkie odcinki, nie tylko korki."
+        "Średnia prędkość trasy (od 2 km) jako miara ruchu – wolna jazda to też sygnalizacja i krótkie odcinki, nie tylko korki. Litry liczone do wszystkich km, także tych na prądzie – patrz udział prądu."
     fun trafficClassName(cls: TrafficClass): String = when (cls) {
         TrafficClass.SLOW -> "Wolno (poniżej 15 km/h)"
         TrafficClass.CITY -> "Miasto (15–25 km/h)"
@@ -331,8 +331,9 @@ object Texts {
     }
     fun trafficConsumption(litres: String): String = "$litres l/100 km"
     fun trafficCost(money: String): String = "$money/100 km"
+    fun statsLeftOutTrips(left: Int, total: Int): String = "Poza zestawieniem: $left z $total tras (poniżej 2 km albo bez prędkości)."
     fun trafficSurcharge(litres: String, money: String?): String =
-        "Wolna jazda zamiast płynnej: +$litres l/100 km" + (money?.let { " (+$it/100 km)" } ?: "")
+        "Wolna jazda wobec płynnej: $litres l/100 km" + (money?.let { " ($it/100 km)" } ?: "")
     const val TRIP_TYPES_SECTION = "Typy tras"
     const val TRIP_TYPES_HINT = "Dom i praca rozpoznane z postojów; dojazdy to trasy między nimi."
     const val TRIP_TYPES_NO_PLACES = "Za mało postojów, żeby rozpoznać dom i pracę – dojazdów jeszcze nie ma."
@@ -443,7 +444,7 @@ object Texts {
     const val PARKING_EMPTY = "Brak postojów do pokazania."
     const val PARKING_READ_ERROR = "Nie udało się odczytać postojów. Spróbuj ponownie."
     const val PARKING_PRIVACY =
-        "Położenie zaokrąglone do ok. 100 m – liczone z tras w archiwum, bez pytania auta. Poza ten ekran trafia tylko po dotknięciu „Otwórz w mapie”."
+        "Położenie zaokrąglone do ok. 100 m – liczone z tras w archiwum, bez pytania auta. Poza aplikację trafia tylko po dotknięciu „Otwórz w mapie” albo wiersza trasy na liście tras."
     const val PARKING_PLACES = "Miejsca"
     const val PARKING_RECENT = "Ostatnie postoje"
     const val TRIP_MAP_HINT = "Trasa zapisuje tylko początek i koniec. Otworzy się aplikacja z mapą, położenie zaokrąglone do ok. 100 m."

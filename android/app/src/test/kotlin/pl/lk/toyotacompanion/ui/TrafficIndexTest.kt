@@ -78,3 +78,40 @@ class TrafficIndexTest {
         assertNull(slowSurcharge(thin))
     }
 }
+
+/** The review of F19: signs, electric share, left-out trips and the guarded band function. */
+class TrafficIndexReviewTest {
+    @Test
+    fun `a band function refuses a speed that is not a speed`() {
+        kotlin.test.assertFailsWith<IllegalArgumentException> { trafficClassOf(Double.NaN) }
+        kotlin.test.assertFailsWith<IllegalArgumentException> { trafficClassOf(0.0) }
+    }
+
+    @Test
+    fun `the electric share is the electric kilometres over all kilometres of the band`() {
+        val begin = BEGIN
+        fun rideWith(id: String, ev: Double?): StoredTrip = StoredTrip(
+            TripRecord(Trip(id, begin, begin.plusSeconds(3_600), 10.0, BigDecimal("0.5"), ev), "VINAAA111", averageSpeed = 20.0),
+            null,
+        )
+        // 4 + 20 (cut to the trip's 10) over 20 km = 70 %.
+        val rows = trafficSummaries(listOf(rideWith("a", 4.0), rideWith("b", 20.0)))
+        assertEquals(BigDecimal("70"), rows.single().evSharePct)
+        assertNull(trafficSummaries(listOf(rideWith("c", null))).single().evSharePct?.takeIf { it.signum() > 0 })
+    }
+
+    @Test
+    fun `the left-out count is the trips the bands do not count`() {
+        assertEquals(2, trafficLeftOut(listOf(ride("a", null), ride("b", 20.0, km = 1.0), ride("c", 20.0))))
+    }
+
+    @Test
+    fun `a negative surcharge keeps its minus and a positive one its plus`() {
+        assertEquals("-1,13", TripsFormatting.signed(BigDecimal("-1.126"), 2))
+        assertEquals("+0,61", TripsFormatting.signed(BigDecimal("0.612"), 2))
+        assertEquals("0,00", TripsFormatting.signed(BigDecimal("0.001"), 2))
+        assertEquals("-7,02 zł", TripsFormatting.signedMoney(BigDecimal("-7.02")))
+        assertEquals("+7,02 zł", TripsFormatting.signedMoney(BigDecimal("7.02")))
+        assertEquals("Wolna jazda wobec płynnej: -1,13 l/100 km (-7,02 zł/100 km)", Texts.trafficSurcharge("-1,13", "-7,02 zł"))
+    }
+}
