@@ -1,5 +1,6 @@
 package pl.lk.toyotacompanion.data.db
 
+import androidx.room3.AutoMigration
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
 import androidx.room3.ColumnTypeConverters
@@ -17,8 +18,11 @@ import androidx.room3.ColumnTypeConverters
         TripCostEntity::class,
         VehicleEntity::class,
         SyncStateEntity::class,
+        WeatherEntity::class,
     ],
-    version = 1,
+    version = 2,
+    // 1 -> 2 only adds the `weather` table (docs/SPEC.md §23); the archive tables are untouched.
+    autoMigrations = [AutoMigration(from = 1, to = 2)],
     exportSchema = true,
 )
 @ColumnTypeConverters(Converters::class)
@@ -34,4 +38,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun vehicleDao(): VehicleDao
 
     abstract fun syncStateDao(): SyncStateDao
+
+    abstract fun weatherDao(): WeatherDao
 }

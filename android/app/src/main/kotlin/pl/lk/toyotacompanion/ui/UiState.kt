@@ -83,4 +83,7 @@ enum class Screen {
 
     /** Eco score, repeated routes and fuel anomalies (docs/SPEC.md §19). */
     DrivingStyle,
+
+    /** Trips by temperature and rain of their day (docs/SPEC.md §23). */
+    Weather,
 }

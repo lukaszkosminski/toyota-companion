@@ -68,6 +68,7 @@ fun StatusScreen(
     onShowStats: () -> Unit,
     onShowParking: () -> Unit,
     onShowDrivingStyle: () -> Unit,
+    onShowWeather: () -> Unit,
     defaultPrice: BigDecimal?,
     onShowDefaultPrice: () -> Unit,
     backupReminder: BackupReminder,
@@ -189,6 +190,13 @@ fun StatusScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(Texts.STYLE_TITLE)
+                }
+                // Trips by temperature and rain, weather fetched only on a tap (PRD F15, docs/SPEC.md §23).
+                OutlinedButton(
+                    onClick = onShowWeather,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(Texts.WEATHER_TITLE)
                 }
                 // Places and stops, the only screen with positions (PRD F17, docs/SPEC.md §18).
                 OutlinedButton(

@@ -47,6 +47,9 @@ import pl.lk.toyotacompanion.ui.ARCHIVE_IMPORT_LIMIT_BYTES
 import pl.lk.toyotacompanion.ui.BackupController
 import pl.lk.toyotacompanion.ui.DefaultPriceController
 import pl.lk.toyotacompanion.ui.DrivingStyleController
+import pl.lk.toyotacompanion.ui.WeatherController
+import pl.lk.toyotacompanion.core.weather.WeatherGatewayFactory
+import pl.lk.toyotacompanion.data.db.RoomWeatherRepository
 import pl.lk.toyotacompanion.ui.ForecastController
 import pl.lk.toyotacompanion.ui.ParkingController
 import pl.lk.toyotacompanion.ui.RefuelController
@@ -282,6 +285,18 @@ class AppContainer(
     val drivingStyleController: DrivingStyleController by lazy {
         DrivingStyleController(
             read = tripsLoader,
+            zone = { ZoneId.systemDefault() },
+            scope = uiScope,
+            io = Dispatchers.IO,
+        )
+    }
+
+    /** Weather cache and the one explicit fetch of missing days (PRD F15, docs/SPEC.md §23). */
+    val weatherController: WeatherController by lazy {
+        WeatherController(
+            readTrips = tripsLoader,
+            cache = RoomWeatherRepository(database.weatherDao()),
+            gateway = WeatherGatewayFactory.create(),
             zone = { ZoneId.systemDefault() },
             scope = uiScope,
             io = Dispatchers.IO,

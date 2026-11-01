@@ -716,3 +716,31 @@ Funkcje czyste w `app/ui/TrafficIndex.kt` na `StoredTrip` – bez lustra w Pytho
 - Dopłata za wolną jazdę = wolno − płynnie (l/100 km i, gdy oba pasma mają cenę, zł/100 km); tylko gdy oba pasma mają ≥ 10 tras.
 - Ekran: sekcja „Tempo jazdy a spalanie” w „Statystykach”, z uwagą, że to wskaźnik pośredni. Archiwum 408 tras ≥ 2 km:
   wolno 4,94, miasto 4,16, płynnie 3,81, trasa 4,12 l/100 km (udział EV 63/64/60/36 %).
+
+## 23. Pogoda i spalanie (PRD F15, ADR-009)
+Domena: Python `backend/app/domain/weather.py`, Kotlin `core/domain/WeatherOps.kt` (te same nazwy testów). Klient: `core/weather`.
+Złączenie trasy z pogodą, pobieranie i ekran: `app/ui` (GPS, więc bez lustra w Pythonie, jak §18, §21, §22).
+- Źródło: Open-Meteo `GET https://archive-api.open-meteo.com/v1/archive`, bez klucza, jedno miejsce na żądanie. Parametry:
+  `latitude`, `longitude`, `start_date`, `end_date`, `daily=temperature_2m_mean,temperature_2m_min,temperature_2m_max,
+  precipitation_sum,precipitation_hours,wind_speed_10m_max`, `timezone=auto`, `timeformat=iso8601`. Żadnych innych parametrów,
+  nagłówków uwierzytelniających ani identyfikatorów; `User-Agent: toyota-companion`.
+- Prywatność: współrzędne startu trasy zaokrąglone do 0,01° (HALF_UP, ok. 1 km) – i w kluczu cache, i w żądaniu (klient
+  zaokrągla jeszcze raz). Nigdy surowy GPS, VIN, konto, token ani id trasy. Ekran nie pokazuje położenia.
+- Przypisanie: trasa dostaje pogodę dnia (lokalna data startu w strefie telefonu) w punkcie startu. Brak współrzędnych (albo
+  poza zakresem/NaN) lub brak wartości dla dnia → trasa „bez pogody”, liczona osobno, nie wpada do żadnego koszyka.
+- Koszyki (granice półotwarte): temperatura dnia (`temperature_2m_mean`) – mróz < 0, chłodno 0–10, łagodnie 10–20, ciepło ≥ 20 °C;
+  opad (`precipitation_sum`) – sucho < 0,5 mm, mokro ≥ 0,5 mm. Odniesienie: łagodnie / sucho.
+- Miary na koszyk: liczba tras, km (0,1), paliwo, l/100 km = Σ paliwo / Σ km (0,01), zł/100 km = Σ koszt / Σ km tras z ceną
+  (`null` bez ceny, nigdy 0 zł), km na prądzie, różnica l/100 km wobec odniesienia (tylko gdy odniesienie ma ≥ 5 tras),
+  `tooFewTrips` poniżej 5 tras. Wiatr tylko zgłaszany, bez wniosków.
+- Cache: tabela `weather` (klucz `lat_r`, `lon_r`, `date`; wartości, `fetched_at`), Room v2 przez migrację automatyczną
+  (schemat `2.json`), bez VIN i id trasy; nie wchodzi do kopii archiwum (§14) ani CSV. Przeżywa wylogowanie (to nie sekret).
+  Dzień bez wartości z usługi zapisany z `null`.
+- Pobieranie: wyłącznie po dotknięciu „Pobierz pogodę” (nigdy w synchronizacji ani w tle), po jednym miejscu naraz.
+  Jedno dotknięcie – najwyżej 10 miejsc (najliczniejsze pierwsze), reszta po kolejnym dotknięciu. Zakres miejsca = od najstarszego
+  do najnowszego brakującego dnia; koniec przycinany do wczoraj (archiwum nie zna dziś i odrzuca przyszłość). Puste dni z ostatnich
+  10 dni (opóźnienie reanaliz) są pytane ponownie; starsze puste nie.
+- Błędy: 429 (z `Retry-After`) → „usługa prosi o przerwę”, bez pętli; inne HTTP → błąd usługi; brak sieci; nieczytelna odpowiedź
+  (także tablica JSON zamiast obiektu). Komunikaty bez treści odpowiedzi, adresu i współrzędnych. Ekran zostaje na cache'u.
+- Atrybucja (CC BY 4.0) stale na ekranie: „Weather data by Open-Meteo.com”. Uwaga na ekranie: to korelacja, nie pomiar przyczyny
+  (reanaliza to model; zimą inne trasy; mróz skraca jazdę na prądzie, dlatego pokazujemy udział prądu).

@@ -175,3 +175,24 @@ class InMemoryStores(
     override val vehicles: InMemoryVehicleRepository = InMemoryVehicleRepository(),
     override val state: InMemorySyncStateRepository = InMemorySyncStateRepository(),
 ) : RepositoryStores
+
+class InMemoryWeatherRepository : WeatherRepository {
+    private val rows = LinkedHashMap<Triple<String, String, java.time.LocalDate>, WeatherRow>()
+
+    override suspend fun save(rows: List<WeatherRow>) {
+        for (row in rows) this.rows[Triple(row.latitude, row.longitude, row.day.date)] = row
+    }
+
+    override suspend fun all(): List<WeatherRow> =
+        rows.values.sortedWith(compareBy({ it.day.date }, { it.latitude }, { it.longitude }))
+
+    override suspend fun pruneBefore(date: java.time.LocalDate): Int {
+        val old = rows.keys.filter { it.third.isBefore(date) }
+        old.forEach { rows.remove(it) }
+        return old.size
+    }
+
+    override suspend fun count(): Int = rows.size
+
+    override suspend fun deleteAll() = rows.clear()
+}

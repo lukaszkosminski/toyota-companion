@@ -37,8 +37,7 @@
 - Test klienta Toyoty na prawdziwym koncie: `./gradlew -q :core:liveCheck` (uruchamia właściciel, docs/HANDOFF.md)
 
 ## NEXT
-- F15 pogoda (Open-Meteo): zgoda właściciela 2026-11-01 na współrzędne zaokrąglone do ok. 1 km, plan C14 w przygotowaniu
-- Gotowe 2026-11-01: F14 prognoza tankowania, F16 typy tras, F19 tempo jazdy a spalanie, przycisk „Otwórz w mapie”
+- Gotowe 2026-11-01: F14 prognoza tankowania, F15 pogoda, F16 typy tras, F19 tempo jazdy a spalanie, „Otwórz w mapie” (Postoje, trasy)
 
 ## LATER (kolejność wg wartości / kosztu)
 - F18 Android Auto (PRD odradza)

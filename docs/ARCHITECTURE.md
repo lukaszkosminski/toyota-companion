@@ -33,11 +33,12 @@ Telefon z Androidem
 - `core` nie zależy od Androida — testy jednostkowe uruchamiane na JVM.
 - Każda zmiana logiki domeny: najpierw SPEC i test w Pythonie, potem Kotlin z tym samym testem (te same nazwy).
 - Pieniądze i litry: `BigDecimal` (Kotlin) / `Decimal` (Python), `HALF_UP`. Czas: `Instant` (UTC).
-- Klient Toyoty to jedyne miejsce kontaktu z API; zmiany Toyoty śledzimy w pytoyoda i przenosimy.
+- Klient Toyoty to jedyne miejsce kontaktu z API Toyoty (jedyna druga usługa to Open-Meteo w `core/weather`, F15); zmiany Toyoty śledzimy w pytoyoda i przenosimy.
 
 ## Zależności zewnętrzne i ich awaria
 | Zależność | Awaria | Zachowanie |
 |---|---|---|
 | API Toyoty | 429 / 403 / zmiana API | Aplikacja pokazuje dane z lokalnej bazy jako nieaktualne; bez wybudzania auta |
 | Retencja tras 12 mies. | Utrata starszych tras | Archiwum lokalne od uruchomienia + backup |
+| Open-Meteo (F15) | Brak sieci / 429 / 503 / zmiana formatu | Ekran pogody pokazuje cache i komunikat; archiwum i synchronizacja Toyoty nietknięte |
 | Android (oszczędzanie baterii) | Opóźnione odczyty w tle | Tankowanie wykryte przy następnym odczycie |

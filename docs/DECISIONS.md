@@ -51,4 +51,14 @@ Sezon meteorologiczny (XII–II, III–V, VI–VIII, IX–XI), grudzień liczony
 tym samym zakresie dni obu lat. Ranking jazdy na prądzie od 1 km (krótsze trasy dają szum), brak danych `hdc` to
 „brak danych”, nie 0 %. Udział czasowy EV odłożony – archiwum nie ma czasu jazdy (wymagałby migracji Room).
 Postój (F17) = koniec trasy i start następnej w promieniu 150 m, przerwa od 30 min do 21 dni; miejsca tylko na
-ekranie, zaokrąglone do 0,001°, bez przekazywania współrzędnych innym aplikacjom (decyzja właściciela otwarta).
+ekranie, zaokrąglone do 0,001°, współrzędne wychodzą do innej aplikacji tylko przez „Otwórz w mapie” po dotknięciu (decyzja właściciela 2026-11-01, SPEC §18, §10.3).
+
+## ADR-009 Pogoda z Open-Meteo: reanaliza dzienna, ~1 km, tylko po dotknięciu (2026-11-01)
+Druga usługa zewnętrzna obok Toyoty, ale dane, nie konto: archiwum reanaliz Open-Meteo (`/v1/archive`, bez klucza, CC BY 4.0).
+Wybrane: tylko `daily`, jedno miejsce na żądanie, współrzędne startu trasy zaokrąglone do 0,01° (zgoda właściciela 2026-11-01;
+pomiar: 0,37/0,38/0,372 dają te same wartości dzienne), pobieranie wyłącznie po dotknięciu (nie w tle i nie w synchronizacji),
+cache w Room (v2, migracja automatyczna) poza kopią archiwum. Odrzucone: godzinowe dane, `forecast` z `past_days` (to model
+prognostyczny, nie obserwacja), geokodowanie, automatyczne odświeżanie, „koszt mrozu” w złotówkach (fałszywa precyzja – zostają
+l/100 km i zł/100 km na koszyk z udziałem jazdy na prądzie). Ryzyko: reanaliza to model (siatka kilku–kilkunastu km, opóźnienie
+kilku dni) i korelacja, nie przyczyna – ekran tak to nazywa.
+

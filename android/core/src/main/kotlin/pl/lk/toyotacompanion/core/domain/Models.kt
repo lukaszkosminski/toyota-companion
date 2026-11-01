@@ -121,3 +121,68 @@ data class RefuelForecast(
     val kmToReserve: BigDecimal,
     val daysToReserve: BigDecimal,
 )
+
+/** Bucket of a day by its mean temperature (PRD F15). `label` is the string the domain reports. */
+enum class TemperatureBucket(val label: String) {
+    FROST("frost"),
+    COLD("cold"),
+    MILD("mild"),
+    WARM("warm"),
+}
+
+/** Bucket of a day by its precipitation (PRD F15). */
+enum class PrecipitationBucket(val label: String) {
+    DRY("dry"),
+    WET("wet"),
+}
+
+/**
+ * Reanalysis of one day at one place (PRD F15, docs/SPEC.md §23). Every value is `null` when
+ * the model had none. A day without values is NOT a zero: a missing temperature must not turn
+ * a frosty day into a mild one, so such a trip is left out of the buckets and only counted.
+ * Mirrors Python `DayWeather`.
+ */
+data class DayWeather(
+    val tempMean: BigDecimal? = null,
+    val tempMin: BigDecimal? = null,
+    val tempMax: BigDecimal? = null,
+    val precipMm: BigDecimal? = null,
+    val precipHours: BigDecimal? = null,
+    val windMaxKmh: BigDecimal? = null,
+)
+
+/**
+ * One weather bucket: sums of its trips, l/100 km, zł/100 km and the gap to the reference
+ * (PRD F15). `costPer100Km` is `null` when no trip in the bucket has a price, and is then
+ * always counted over the kilometres of the priced trips only. `deltaLPer100Km` is `null`
+ * without a usable reference bucket. `windMaxKmh` is reported and never used for a verdict.
+ * Mirrors Python `WeatherBucketStats`.
+ */
+data class WeatherBucketStats(
+    val bucket: String,
+    val trips: Int,
+    val distanceKm: BigDecimal,
+    val fuelL: BigDecimal,
+    val lPer100Km: BigDecimal?,
+    val costPln: BigDecimal?,
+    val tripsWithoutCost: Int,
+    val costPer100Km: BigDecimal?,
+    val evKm: BigDecimal,
+    val deltaLPer100Km: BigDecimal?,
+    val tooFewTrips: Boolean,
+    val windMaxKmh: BigDecimal?,
+)
+
+/**
+ * Buckets in their natural order (frost first, dry first) plus the trips that got no weather
+ * at all (PRD F15). `referenceBucket` and `referenceLPer100Km` are `null` when the reference
+ * bucket is missing or too small - then no bucket carries a difference either. Mirrors Python
+ * `WeatherImpact`.
+ */
+data class WeatherImpact(
+    val buckets: List<WeatherBucketStats>,
+    val totalTrips: Int,
+    val tripsWithoutWeather: Int,
+    val referenceBucket: String?,
+    val referenceLPer100Km: BigDecimal?,
+)

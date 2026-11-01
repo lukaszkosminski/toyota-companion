@@ -380,6 +380,51 @@ object Texts {
     fun styleAnomaly(route: Int, actual: String, usual: String, excess: String): String =
         "Odcinek $route: $actual zamiast zwykle $usual ($excess)"
 
+    // Pogoda i spalanie (PRD F15, docs/SPEC.md §23).
+
+    const val WEATHER_TITLE = "Pogoda i spalanie"
+    const val WEATHER_READ_ERROR = "Nie udało się odczytać pogody. Spróbuj ponownie."
+    const val WEATHER_HINT =
+        "Trasy podzielone wg pogody dnia i miejsca startu (dane z archiwum reanaliz Open-Meteo, to model, nie termometr). " +
+            "Pobranie wysyła do usługi tylko punkt startu zaokrąglony do ok. 1 km i daty – nigdy VIN ani dokładne położenie."
+    const val WEATHER_FETCH = "Pobierz pogodę"
+    const val WEATHER_FETCHING = "Pobieranie…"
+    const val WEATHER_BY_TEMPERATURE = "Wg temperatury"
+    const val WEATHER_BY_RAIN = "Wg opadów"
+    const val WEATHER_NO_DATA = "Brak tras z pogodą. Pobierz pogodę."
+    const val WEATHER_TOO_FEW = "za mało tras na wniosek"
+    const val WEATHER_CAVEAT =
+        "To korelacja na Twoich trasach, nie pomiar przyczyny: zimą trasy są inne, a mróz skraca też jazdę na prądzie " +
+            "(patrz udział jazdy elektrycznej)."
+    const val WEATHER_ATTRIBUTION = "Weather data by Open-Meteo.com (CC BY 4.0), https://open-meteo.com/"
+    fun weatherBucketName(bucket: String): String = when (bucket) {
+        "frost" -> "Mróz (poniżej 0 °C)"
+        "cold" -> "Chłodno (0–10 °C)"
+        "mild" -> "Łagodnie (10–20 °C)"
+        "warm" -> "Ciepło (od 20 °C)"
+        "dry" -> "Sucho (poniżej 0,5 mm)"
+        "wet" -> "Mokro (od 0,5 mm)"
+        else -> bucket
+    }
+    fun weatherDelta(signed: String): String = "$signed l/100 km wobec odniesienia"
+    fun weatherEv(share: String): String = "na prądzie $share"
+    fun weatherWithout(count: Int, total: Int): String = "Bez pogody: $count z $total tras (brak położenia lub danych dla dnia)."
+    fun weatherPending(places: Int, left: Int, cachedDays: Int): String = when {
+        places == 0 -> "Nic do pobrania. Dni w pamięci: $cachedDays."
+        left > 0 -> "Do pobrania: miejsca $places (jedno dotknięcie obejmuje ${places - left}). Dni w pamięci: $cachedDays."
+        else -> "Do pobrania: miejsca $places. Dni w pamięci: $cachedDays."
+    }
+    fun weatherFetchResult(result: WeatherFetchResult): String = when (result) {
+        WeatherFetchResult.DONE -> "Pobrano pogodę."
+        WeatherFetchResult.PARTIAL -> "Pobrano część. Dotknij ponownie, żeby pobrać resztę."
+        WeatherFetchResult.NOTHING_TO_FETCH -> "Nie ma czego pobierać."
+        WeatherFetchResult.NETWORK -> "Brak połączenia z usługą pogody. Spróbuj później."
+        WeatherFetchResult.RATE_LIMIT -> "Usługa pogody prosi o chwilę przerwy. Spróbuj za minutę."
+        WeatherFetchResult.API -> "Usługa pogody odrzuciła zapytanie. Spróbuj później."
+        WeatherFetchResult.DATA -> "Usługa pogody zwróciła nieczytelną odpowiedź."
+        WeatherFetchResult.STORAGE -> "Nie udało się zapisać pogody w telefonie."
+    }
+
     // Postoje (PRD F17, docs/SPEC.md §18).
 
     const val PARKING_TITLE = "Postoje"

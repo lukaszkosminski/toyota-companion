@@ -10,6 +10,8 @@ import pl.lk.toyotacompanion.core.data.TripRecord
 import pl.lk.toyotacompanion.core.data.TripRepository
 import pl.lk.toyotacompanion.core.data.VehicleRecord
 import pl.lk.toyotacompanion.core.data.VehicleRepository
+import pl.lk.toyotacompanion.core.data.WeatherRepository
+import pl.lk.toyotacompanion.core.data.WeatherRow
 import pl.lk.toyotacompanion.core.domain.FuelReading
 import pl.lk.toyotacompanion.core.domain.Refuel
 import pl.lk.toyotacompanion.core.domain.RefuelStatus
@@ -101,6 +103,18 @@ class RoomSyncStateRepository(private val dao: SyncStateDao) : SyncStateReposito
     override suspend fun get(): SyncState = dao.get()?.toDomain() ?: SyncState()
 
     override suspend fun save(state: SyncState) = dao.save(state.toEntity())
+
+    override suspend fun deleteAll() = dao.deleteAll()
+}
+
+class RoomWeatherRepository(private val dao: WeatherDao) : WeatherRepository {
+    override suspend fun save(rows: List<WeatherRow>) = dao.replaceAll(rows.map { it.toEntity() })
+
+    override suspend fun all(): List<WeatherRow> = dao.all().map { it.toRow() }
+
+    override suspend fun pruneBefore(date: java.time.LocalDate): Int = dao.pruneBefore(date.toString())
+
+    override suspend fun count(): Int = dao.count()
 
     override suspend fun deleteAll() = dao.deleteAll()
 }

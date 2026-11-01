@@ -19,7 +19,10 @@
 - Ekran „Postoje” (F17, SPEC §18) jako jedyny pokazuje położenie: zaokrąglone do 0,001° (ok. 100 m), liczone z tras w
   archiwum; współrzędne nie trafiają do logów, CSV ani nazw plików; jedyne wyjście to „Otwórz w mapie” w „Postojach” i dotknięcie trasy na liście tras (intent `geo:` z tą samą zaokrągloną wartością, tylko po dotknięciu).
 - CI skanuje sekrety (gitleaks).
-- Zapytania do usług zewnętrznych (np. Open-Meteo, F15) wysyłają tylko zaokrąglone współrzędne (~1 km) i czas; nigdy VIN ani identyfikator konta.
+- Zapytania do usług zewnętrznych (Open-Meteo, F15, SPEC §23) wysyłają tylko współrzędne startu trasy zaokrąglone do 0,01° (~1 km),
+  daty i listę zmiennych; nigdy VIN, konto, token, surowy GPS ani id trasy. Tylko po dotknięciu „Pobierz pogodę”, tylko HTTPS,
+  nigdy w tle. Treść odpowiedzi, adres ani współrzędne nie trafiają do logów ani komunikatów błędu. Cache pogody (zaokrąglone
+  miejsca i daty) zostaje na telefonie, poza kopią archiwum i CSV. Ekran pogody nie pokazuje położenia.
 
 ### Treść powiadomienia (F2c)
 

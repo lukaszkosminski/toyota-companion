@@ -44,6 +44,7 @@ fun AppRoot(
     stats: StatsController,
     parking: ParkingController,
     drivingStyle: DrivingStyleController,
+    weather: WeatherController,
     forecast: ForecastController,
     askNotificationPermission: suspend () -> Boolean,
     deepLinkRefuelId: String? = null,
@@ -80,6 +81,7 @@ fun AppRoot(
             stats.reset()
             parking.reset()
             drivingStyle.reset()
+            weather.reset()
             forecast.reset()
         } else {
             // The status button shows the stored price. This effect also restarts when the
@@ -166,6 +168,10 @@ fun AppRoot(
                             drivingStyle.load()
                             screen = Screen.DrivingStyle
                         },
+                        onShowWeather = {
+                            weather.load()
+                            screen = Screen.Weather
+                        },
                         defaultPrice = priceState.price,
                         onShowDefaultPrice = { screen = Screen.DefaultPrice },
                         // Until the date is read there is no reminder: an unknown date is not "never".
@@ -183,6 +189,7 @@ fun AppRoot(
                         askNotificationPermission = askNotificationPermission,
                     )
 
+                    Screen.Weather -> WeatherScreen(controller = weather, onBack = { screen = Screen.Status })
                     Screen.DrivingStyle -> DrivingStyleScreen(
                         controller = drivingStyle,
                         onBack = { screen = Screen.Status },

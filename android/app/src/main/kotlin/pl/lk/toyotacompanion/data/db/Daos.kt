@@ -162,3 +162,22 @@ interface SyncStateDao {
     @Query("DELETE FROM sync_state")
     suspend fun deleteAll()
 }
+
+@Dao
+interface WeatherDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun replaceAll(entities: List<WeatherEntity>)
+
+    @Query("SELECT * FROM weather ORDER BY date, lat_r, lon_r")
+    suspend fun all(): List<WeatherEntity>
+
+    /** `date` is ISO text, so the string order is the date order. */
+    @Query("DELETE FROM weather WHERE date < :date")
+    suspend fun pruneBefore(date: String): Int
+
+    @Query("SELECT COUNT(*) FROM weather")
+    suspend fun count(): Int
+
+    @Query("DELETE FROM weather")
+    suspend fun deleteAll()
+}

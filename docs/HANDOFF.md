@@ -124,7 +124,7 @@ Sprawdzone na emulatorze 2026-10-31, build C12: „Styl jazdy” na 562 trasach 
 odcinek 7,9 km (46 przejazdów), anomalie m.in. 26–28.10 (+39–56 %); brak awarii.
 Sprawdzone na emulatorze 2026-10-31, build C13: „Tankowanie za ok. 30 dni (ok. 30.11) · w baku ok. 40,4 l (94 %) ·
 ok. 797 km do rezerwy”; typy tras: dojazdy 71, sprawy 118, weekend 177, inne 196; Dom i Praca w „Postojach”.
-- Następny krok: F15 pogoda (zgoda właściciela 2026-11-01; plan C14 pisze agent 2); F18 Android Auto (PRD odradza).
+- Następny krok: F15 pogoda gotowa (SPEC §23); do sprawdzenia przez właściciela na telefonie: ekran „Pogoda i spalanie” po „Pobierz pogodę” (pierwsze prawdziwe żądanie do Open-Meteo), okno przy dotknięciu trasy. F18 Android Auto (PRD odradza).
   F19 tempo jazdy a spalanie i przycisk „Otwórz w mapie” gotowe (SPEC §22, §18).
 
 Test klienta na prawdziwym koncie MyToyota (uruchamia właściciel; hasło nie trafia do repo ani rozmowy):

@@ -10,6 +10,8 @@ import pl.lk.toyotacompanion.core.data.SyncErrorKind
 import pl.lk.toyotacompanion.core.data.SyncState
 import pl.lk.toyotacompanion.core.data.TripRecord
 import pl.lk.toyotacompanion.core.data.VehicleRecord
+import pl.lk.toyotacompanion.core.data.WeatherRow
+import pl.lk.toyotacompanion.core.weather.WeatherDay
 import pl.lk.toyotacompanion.core.domain.CostSource
 import pl.lk.toyotacompanion.core.domain.FuelReading
 import pl.lk.toyotacompanion.core.domain.LitersSource
@@ -206,4 +208,47 @@ fun SyncState.toEntity(): SyncStateEntity = SyncStateEntity(
     lastErrorAt = lastErrorAt,
     lastErrorKind = lastErrorKind,
     lastErrorMessage = lastErrorMessage,
+)
+
+/** Cached daily weather of one rounded place (docs/SPEC.md §23); `date` is `YYYY-MM-DD`, values may be null. */
+@Entity(tableName = "weather", primaryKeys = ["lat_r", "lon_r", "date"])
+data class WeatherEntity(
+    @ColumnInfo(name = "lat_r") val latitude: String,
+    @ColumnInfo(name = "lon_r") val longitude: String,
+    val date: String,
+    @ColumnInfo(name = "temp_mean") val tempMeanC: Double?,
+    @ColumnInfo(name = "temp_min") val tempMinC: Double?,
+    @ColumnInfo(name = "temp_max") val tempMaxC: Double?,
+    @ColumnInfo(name = "precip_mm") val precipitationMm: Double?,
+    @ColumnInfo(name = "precip_h") val precipitationHours: Double?,
+    @ColumnInfo(name = "wind_max") val windMaxKmh: Double?,
+    @ColumnInfo(name = "fetched_at") val fetchedAt: Instant,
+) {
+    fun toRow(): WeatherRow = WeatherRow(
+        latitude,
+        longitude,
+        WeatherDay(
+            java.time.LocalDate.parse(date),
+            tempMeanC,
+            tempMinC,
+            tempMaxC,
+            precipitationMm,
+            precipitationHours,
+            windMaxKmh,
+        ),
+        fetchedAt,
+    )
+}
+
+fun WeatherRow.toEntity(): WeatherEntity = WeatherEntity(
+    latitude,
+    longitude,
+    day.date.toString(),
+    day.tempMeanC,
+    day.tempMinC,
+    day.tempMaxC,
+    day.precipitationMm,
+    day.precipitationHours,
+    day.windMaxKmh,
+    fetchedAt,
 )
