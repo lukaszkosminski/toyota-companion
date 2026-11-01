@@ -273,9 +273,9 @@ Formularz ceny tankowania (PRD F2, F4): użytkownik podaje cenę albo litry i kw
 brakującą wielkość wylicza domena (§2), a koszty tras są przeliczane wstecz (§5). Wymaganie właściciela
 produktu (ROADMAP NOW). Operacje nie wołają żadnego API Toyoty, w tym `refresh_status()` (§9 wstęp, AGENTS.md).
 Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – §13. Poprawka litrów potwierdzonego tankowania – §15.3.
-- Dotknięcie wiersza trasy z położeniem (start i/lub koniec) otwiera okno „Start w mapie” / „Koniec w mapie” (tylko te końce,
-  które mają współrzędne); wybór wysyła intent `geo:` z położeniem zaokrąglonym jak w §18 (ok. 100 m), wyłącznie po dotknięciu.
-  Trasa bez żadnego położenia nie reaguje na dotknięcie. Archiwum nie ma przebiegu trasy, więc mapa pokazuje jeden koniec naraz.
+- Dotknięcie wiersza trasy z położeniem (start i/lub koniec) od razu otwiera mapę w aplikacji (§26) z tymi końcami, które mają
+  współrzędne, zaokrąglonymi jak w §18 (ok. 100 m). Trasa bez żadnego położenia nie reaguje na dotknięcie. Archiwum nie ma przebiegu
+  trasy, więc mapa łączy początek z końcem prostą przerywaną linią.
 
 ### §11.1 Operacje w `core`
 - `pendingRefuels(): List<Refuel>` — oczekujące tankowania wybranego VIN (`state.get().vin`), najnowsze pierwsze
@@ -763,3 +763,18 @@ błąd odczytu chowa kartę; `reset()` przy wylogowaniu.
   się jak czas); zmiana = nachylenie × rozpiętość / średnia słupków. |zmiana| ≤ 5 % → stabilne (→), > 0 rosnące (↗), < 0 malejące
   (↘); poniżej 3 słupków brak trendu. Regresja tylko klasyfikuje obraz, więc liczona na liczbach zmiennoprzecinkowych; wszystkie
   pokazane liczby to zaokrąglone `BigDecimal`. Ekran przypomina, że zimą spalanie zwykle rośnie (sezonowość, nie usterka).
+
+## 26. Mapa w aplikacji (PRD F21, ADR-010)
+`app/ui/MapScreen.kt`, `MapLink.kt`, strona `app/src/main/assets/map/map.html` z dołączonym Leaflet 1.9.4 (BSD-2-Clause) w WebView.
+Bez nowych zależności Gradle.
+- Wejścia: dotknięcie trasy na liście (§10.3: start i koniec, tylko te z położeniem) i „Otwórz w mapie” przy miejscu w „Postojach”
+  (§18: jeden punkt). Mapa otwiera się od razu; przycisk „Otwórz w innej aplikacji z mapą” wysyła intent `geo:` jak dotąd.
+- Punkty trafiają do strony we fragmencie adresu, zaokrąglone do 0,001° (ok. 100 m); w zapisanym stanie ekranu też tylko
+  zaokrąglone. Etykiety to stałe teksty aplikacji („Start”, „Koniec”, „Miejsce”), nigdy dane użytkownika. Początek i koniec
+  łączy prosta przerywana linia (archiwum nie ma przebiegu); ekran o tym mówi.
+- Podkład: kafelki OpenStreetMap `https://tile.openstreetmap.org/{z}/{x}/{y}.png`. Serwer kafelków widzi więc okolicę punktów
+  (kafelek ~100–1000 m zależnie od przybliżenia), nie dokładne położenie; ekran o tym informuje. `User-Agent` aplikacji, atrybucja
+  „© OpenStreetMap contributors” w mapie (ODbL), użycie niekomercyjne i lekkie zgodnie z polityką kafelków OSM.
+- WebView zamknięty: JavaScript tylko dla dołączonej strony, `allowFileAccess` i `allowContentAccess` wyłączone, brak mostu JS,
+  nawigacja zablokowana, a każde żądanie poza `file:///android_asset/map/` i `https://tile.openstreetmap.org` kończy się 403
+  (`mapRequestAllowed`). Strona dopasowuje wysokość do okna (`fit`), bo WebView w Compose bywa najpierw zmierzony na zerową wysokość.

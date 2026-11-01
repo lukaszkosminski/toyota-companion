@@ -86,4 +86,7 @@ enum class Screen {
 
     /** Trips by temperature and rain of their day (docs/SPEC.md §23). */
     Weather,
+
+    /** The map of a trip or a parking place, shown in the app (docs/SPEC.md §26). */
+    Map,
 }

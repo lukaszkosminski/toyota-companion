@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Mapa w aplikacji (F21): dotknięcie trasy lub miejsca od razu pokazuje mapę OpenStreetMap (SPEC §26, ADR-010)
 - Spalanie na ekranie statusu (F20): średnia z całego okresu, słupki miesięczne i trend (SPEC §24)
 - Pogoda i spalanie (F15): trasy wg temperatury i opadów dnia, Open-Meteo pobierane po dotknięciu, cache w Room v2 (SPEC §23, ADR-009)
 - Dotknięcie trasy na liście otwiera jej start lub koniec w aplikacji z mapą (SPEC §10.3)

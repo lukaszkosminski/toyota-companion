@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+<link rel="stylesheet" href="leaflet.css">
+<style>html,body{margin:0;padding:0;width:100%;height:100%;background:#1b1b1f}#map{width:100%;height:100%}</style>
+</head>
+<body>
+<div id="map"></div>
+<script src="leaflet.js"></script>
+<script>
+// The points arrive in the URL fragment: lat,lon,label;lat,lon,label (docs/SPEC.md §26). Already rounded by the app.
+var mapEl = document.getElementById('map');
+// A WebView inside a Compose layout may be laid out at zero height first; the pixel height follows the real window.
+function fit() {
+  mapEl.style.height = window.innerHeight + 'px';
+  if (typeof map !== 'undefined') map.invalidateSize();
+}
+fit();
+window.addEventListener('resize', fit);
+[200, 800, 2000].forEach(function (ms) { setTimeout(fit, ms); });
+var map = L.map(mapEl);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+var points = decodeURIComponent(location.hash.slice(1)).split(';').map(function (p) {
+  var a = p.split(',');
+  return { lat: parseFloat(a[0]), lon: parseFloat(a[1]), label: (a[2] || '').replace(/[<>&"]/g, '') };
+}).filter(function (p) { return isFinite(p.lat) && isFinite(p.lon); });
+var latlngs = points.map(function (p) { return [p.lat, p.lon]; });
+points.forEach(function (p) {
+  L.circleMarker([p.lat, p.lon], { radius: 9, color: '#ffffff', weight: 2, fillColor: '#3b6fd4', fillOpacity: 1 })
+    .addTo(map).bindTooltip(p.label, { permanent: true, direction: 'top', offset: [0, -8] });
+});
+if (latlngs.length > 1) {
+  // Straight line between the two ends: the archive keeps no route (docs/SPEC.md §10.3).
+  L.polyline(latlngs, { color: '#3b6fd4', weight: 3, dashArray: '6 8', opacity: 0.8 }).addTo(map);
+  map.fitBounds(latlngs, { padding: [48, 48], maxZoom: 16 });
+} else if (latlngs.length === 1) {
+  map.setView(latlngs[0], 16);
+} else {
+  map.setView([54.37, 18.63], 10);
+}
+</script>
+</body>
+</html>

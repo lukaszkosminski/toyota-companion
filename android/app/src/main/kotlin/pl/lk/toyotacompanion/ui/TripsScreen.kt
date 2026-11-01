@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -24,13 +23,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
@@ -72,6 +67,7 @@ private sealed interface TripsLoad {
 @Composable
 fun TripsScreen(
     onBack: () -> Unit,
+    onShowMap: (List<MapPoint>) -> Unit,
     loadTrips: suspend () -> List<StoredTrip>,
     zone: ZoneId = ZoneId.systemDefault(),
     io: CoroutineDispatcher = Dispatchers.IO,
@@ -131,7 +127,7 @@ fun TripsScreen(
                         MonthHeader(group)
                     }
                     items(group.trips, key = { it.record.id }) { stored ->
-                        TripRow(stored, zone)
+                        TripRow(stored, zone, onShowMap)
                     }
                 }
             }
@@ -167,35 +163,15 @@ private fun MonthHeader(group: MonthGroup) {
 
 /** One row: when the car drove, how far, how much fuel and what it cost. */
 @Composable
-private fun TripRow(stored: StoredTrip, zone: ZoneId) {
+private fun TripRow(stored: StoredTrip, zone: ZoneId, onShowMap: (List<MapPoint>) -> Unit) {
     val trip = stored.record.trip
     val cost = stored.cost
     val record = stored.record
-    val links = tripMapLinks(record)
-    var choosing by remember { mutableStateOf(false) }
-    val context = LocalContext.current
-    if (choosing) {
-        // The trip stores only its two ends, so the map shows one of them at a time (docs/SPEC.md §10.3).
-        AlertDialog(
-            onDismissRequest = { choosing = false },
-            title = { Text(TripsFormatting.startDateTime(trip.start, zone)) },
-            text = { Text(Texts.TRIP_MAP_HINT) },
-            confirmButton = {
-                Row {
-                    for (link in links) {
-                        TextButton(onClick = { choosing = false; openInMap(context, link.uri) }) {
-                            Text(if (link.end == TripMapEnd.START) Texts.TRIP_MAP_START else Texts.TRIP_MAP_END)
-                        }
-                    }
-                }
-            },
-            dismissButton = { TextButton(onClick = { choosing = false }) { Text(Texts.TRIP_MAP_CANCEL) } },
-        )
-    }
+    val points = tripMapPoints(record)
     Card(
         // A trip without any position is not clickable: there is nothing to show.
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 3.dp).let {
-            if (links.isNotEmpty()) it.clickable { choosing = true } else it
+            if (points.isNotEmpty()) it.clickable { onShowMap(points) } else it
         },
         shape = MaterialTheme.shapes.small,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),

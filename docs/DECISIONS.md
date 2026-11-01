@@ -62,3 +62,11 @@ prognostyczny, nie obserwacja), geokodowanie, automatyczne odświeżanie, „kos
 l/100 km i zł/100 km na koszyk z udziałem jazdy na prądzie). Ryzyko: reanaliza to model (siatka kilku–kilkunastu km, opóźnienie
 kilku dni) i korelacja, nie przyczyna – ekran tak to nazywa.
 
+## ADR-010 Mapa w aplikacji: Leaflet w zamkniętym WebView, kafelki OpenStreetMap (2026-11-01)
+Właściciel chce mapy od razu po dotknięciu trasy (intent `geo:` nie działa bez aplikacji z mapą). Wybrane: dołączony Leaflet 1.9.4 w
+WebView (bez zależności Gradle i bez klucza API) i kafelki `tile.openstreetmap.org`; trzecia usługa zewnętrzna obok Toyoty i Open-Meteo.
+Cena: serwer kafelków widzi okolicę punktów (zaokrąglonych do ok. 100 m), nie dokładne położenie – zgoda właściciela, ekran o tym
+mówi. Zamknięcie WebView: lista dozwolonych adresów, brak mostu JS, brak dostępu do plików. Odrzucone: osmdroid/MapLibre (nowa
+zależność Gradle, wymaga akceptacji), Google Maps SDK (klucz, śledzenie), mapa z przebiegiem trasy (archiwum go nie ma).
+Ryzyko: polityka kafelków OSM dopuszcza tylko lekkie użycie – przy większym ruchu zmienić dostawcę lub dodać pamięć podręczną.
+

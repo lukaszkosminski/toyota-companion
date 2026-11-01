@@ -31,16 +31,23 @@ fun openInMap(context: Context, uri: String) {
     }
 }
 
-enum class TripMapEnd { START, END }
+/** The labels a map point can carry, in the order the saved state indexes them. */
+val MAP_LABELS: List<String> get() = listOf(Texts.MAP_START, Texts.MAP_END, Texts.MAP_PLACE)
 
-/** One button of the trip window: which end and the rounded `geo:` link. */
-data class TripMapLink(val end: TripMapEnd, val uri: String)
+/** A position as the map gets it: rounded to 0.001° (about 100 m), or `null` without a usable one. */
+private fun roundedPoint(label: String, lat: Double?, lon: Double?): MapPoint? {
+    if (ParkingFormatting.mapUri(lat, lon) == null) return null
+    return MapPoint(label, roundedCoordinate(requireNotNull(lat)).toDouble(), roundedCoordinate(requireNotNull(lon)).toDouble())
+}
 
 /**
- * What the window of a tapped trip offers (docs/SPEC.md §10.3): only the ends that have a usable position, start first.
- * An empty list means the row is not clickable.
+ * The points of a tapped trip's map (docs/SPEC.md §10.3, §26): start and end, only those with a usable position,
+ * already rounded. An empty list means the row is not clickable.
  */
-fun tripMapLinks(record: TripRecord): List<TripMapLink> = listOfNotNull(
-    ParkingFormatting.mapUri(record.startLat, record.startLon)?.let { TripMapLink(TripMapEnd.START, it) },
-    ParkingFormatting.mapUri(record.endLat, record.endLon)?.let { TripMapLink(TripMapEnd.END, it) },
+fun tripMapPoints(record: TripRecord): List<MapPoint> = listOfNotNull(
+    roundedPoint(Texts.MAP_START, record.startLat, record.startLon),
+    roundedPoint(Texts.MAP_END, record.endLat, record.endLon),
 )
+
+/** The point of a parking place's map, rounded, or an empty list without a position. */
+fun placeMapPoints(lat: Double?, lon: Double?): List<MapPoint> = listOfNotNull(roundedPoint(Texts.MAP_PLACE, lat, lon))

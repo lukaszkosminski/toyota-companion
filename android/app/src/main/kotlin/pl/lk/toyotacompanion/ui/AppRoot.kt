@@ -58,6 +58,14 @@ fun AppRoot(
     val forecastState by forecast.state.collectAsState()
     val consumptionState by consumption.state.collectAsState()
     var screen by rememberSaveable { mutableStateOf(Screen.Status) }
+    // The map in the app (docs/SPEC.md §26): [origin ordinal, then per point: label index, lat, lon] with the positions
+    // already rounded, so no raw coordinate lands in the saved state.
+    var mapData by rememberSaveable { mutableStateOf<DoubleArray?>(null) }
+    fun showMap(origin: Screen, points: List<MapPoint>) {
+        mapData = doubleArrayOf(origin.ordinal.toDouble()) +
+            points.flatMap { listOf(MAP_LABELS.indexOf(it.label).toDouble(), it.lat, it.lon) }
+        screen = Screen.Map
+    }
     // Which entry the price form edits; an id is not a secret (docs/SECURITY.md).
     var editedRefuelId by rememberSaveable { mutableStateOf<String?>(null) }
     // Whether the price form was reached from a notification: the keyboard opens there
@@ -201,6 +209,7 @@ fun AppRoot(
                     )
 
                     Screen.Parking -> ParkingScreen(
+                        onShowMap = { showMap(Screen.Parking, it) },
                         controller = parking,
                         onBack = { screen = Screen.Status },
                     )
@@ -225,7 +234,28 @@ fun AppRoot(
                         },
                     )
 
-                    Screen.Trips -> TripsScreen(onBack = { screen = Screen.Status }, loadTrips = loadTrips)
+                    Screen.Trips -> TripsScreen(
+                        onBack = { screen = Screen.Status },
+                        onShowMap = { showMap(Screen.Trips, it) },
+                        loadTrips = loadTrips,
+                    )
+
+                    Screen.Map -> {
+                        val data = mapData
+                        if (data == null || data.size < 4) {
+                            LaunchedEffect(Unit) { screen = Screen.Status }
+                        } else {
+                            val points = (1 until data.size step 3).mapNotNull { i ->
+                                val label = MAP_LABELS.getOrNull(data[i].toInt()) ?: return@mapNotNull null
+                                if (i + 2 < data.size) MapPoint(label, data[i + 1], data[i + 2]) else null
+                            }
+                            MapScreen(
+                                title = if (points.size == 1) Texts.MAP_TITLE_PLACE else Texts.MAP_TITLE_TRIP,
+                                points = points,
+                                onBack = { screen = Screen.entries[data[0].toInt()] },
+                            )
+                        }
+                    }
 
                     // Leaving for the status screen refreshes its counters — in the navigation
                     // callback, so a rotation does not read the database for nothing (§11.3).

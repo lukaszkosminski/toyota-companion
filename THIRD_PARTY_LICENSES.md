@@ -19,7 +19,10 @@
 | androidx.test:core, androidx.test.ext:junit (test) | 1.7.0, 1.3.0 | Apache-2.0 |
 | junit:junit (test) | 4.13.2 | EPL-1.0 |
 
+| Leaflet (dołączony: `app/src/main/assets/map/`) | 1.9.4 | BSD-2-Clause — tekst w `app/src/main/assets/map/LEAFLET-LICENSE.txt` |
+
 ## Dane
 | Dane | Licencja | Wymóg |
 |---|---|---|
 | Open-Meteo Historical Weather API (reanalizy ERA5/ECMWF, F15) | CC BY 4.0 | Atrybucja przy wyświetlaniu: „Weather data by Open-Meteo.com”, https://open-meteo.com/ (stale na ekranie „Pogoda i spalanie”). Tylko niekomercyjne użycie; kod Open-Meteo (AGPLv3) nie jest używany. |
+| Kafelki mapy OpenStreetMap (F21) | ODbL 1.0 (dane), CC BY-SA 2.0 (kafelki) | Atrybucja „© OpenStreetMap contributors” w mapie; polityka kafelków: https://operations.osmfoundation.org/policies/tiles/ (lekkie, niekomercyjne użycie, identyfikujący `User-Agent`). |

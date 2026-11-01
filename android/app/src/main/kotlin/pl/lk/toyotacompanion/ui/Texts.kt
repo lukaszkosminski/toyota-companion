@@ -392,6 +392,18 @@ object Texts {
     fun consumptionFalling(change: String): String = "Trend: ↘ malejące ($change %)"
     fun consumptionSteady(change: String): String = "Trend: → stabilne ($change %)"
 
+    // Mapa w aplikacji (docs/SPEC.md §26).
+
+    const val MAP_TITLE_TRIP = "Mapa trasy"
+    const val MAP_TITLE_PLACE = "Mapa miejsca"
+    const val MAP_START = "Start"
+    const val MAP_END = "Koniec"
+    const val MAP_PLACE = "Miejsce"
+    const val MAP_NOTE =
+        "Mapa OpenStreetMap. Archiwum zna tylko początek i koniec trasy, więc linia jest prosta, nie przebieg. " +
+            "Serwer map widzi okolicę punktów (ok. 100 m), nie dokładne położenie."
+    const val MAP_OPEN_EXTERNAL = "Otwórz w innej aplikacji z mapą"
+
     // Pogoda i spalanie (PRD F15, docs/SPEC.md §23).
 
     const val WEATHER_TITLE = "Pogoda i spalanie"

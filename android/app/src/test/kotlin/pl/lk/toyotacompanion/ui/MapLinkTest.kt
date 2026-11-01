@@ -28,20 +28,39 @@ private fun record(sLat: Double?, sLon: Double?, eLat: Double?, eLon: Double?) =
 @RunWith(RobolectricTestRunner::class)
 class MapLinkTest {
     @Test
-    fun `a trip with both ends offers start then end, rounded to three decimals`() {
-        val links = tripMapLinks(record(54.37249, 18.63849, 54.40051, 18.60049))
-        assertEquals(listOf(TripMapEnd.START, TripMapEnd.END), links.map { it.end })
-        assertEquals("geo:54.372,18.638?q=54.372,18.638", links[0].uri)
-        assertEquals("geo:54.401,18.600?q=54.401,18.600", links[1].uri)
-        for (link in links) assertTrue(Regex("\\.\\d{4,}").find(link.uri) == null, link.uri)
+    fun `a trip with both ends gets start then end, rounded to three decimals`() {
+        val points = tripMapPoints(record(54.37249, 18.63849, 54.40051, 18.60049))
+        assertEquals(listOf(Texts.MAP_START, Texts.MAP_END), points.map { it.label })
+        assertEquals(listOf(54.372 to 18.638, 54.401 to 18.6), points.map { it.lat to it.lon })
     }
 
     @Test
-    fun `only the ends with a position are offered and none means no window`() {
-        assertEquals(listOf(TripMapEnd.START), tripMapLinks(record(54.3, 18.6, null, null)).map { it.end })
-        assertEquals(listOf(TripMapEnd.END), tripMapLinks(record(null, null, 54.3, 18.6)).map { it.end })
-        assertEquals(emptyList(), tripMapLinks(record(null, null, null, null)))
-        assertEquals(emptyList(), tripMapLinks(record(Double.NaN, 18.6, 54.3, Double.POSITIVE_INFINITY)))
+    fun `only the ends with a position are on the map and none means no map`() {
+        assertEquals(listOf(Texts.MAP_START), tripMapPoints(record(54.3, 18.6, null, null)).map { it.label })
+        assertEquals(listOf(Texts.MAP_END), tripMapPoints(record(null, null, 54.3, 18.6)).map { it.label })
+        assertEquals(emptyList(), tripMapPoints(record(null, null, null, null)))
+        assertEquals(emptyList(), tripMapPoints(record(Double.NaN, 18.6, 54.3, Double.POSITIVE_INFINITY)))
+        assertEquals(listOf(Texts.MAP_PLACE), placeMapPoints(54.3721, 18.6381).map { it.label })
+        assertEquals(emptyList(), placeMapPoints(null, 18.6))
+    }
+
+    @Test
+    fun `the map page gets only rounded points in its fragment`() {
+        val url = mapPageUrl(listOf(MapPoint("Start", 54.372, 18.638), MapPoint("Koniec", 54.401, 18.6)))
+        assertTrue(url.startsWith("file:///android_asset/map/map.html#"))
+        assertEquals("54.372,18.638,Start;54.401,18.600,Koniec", android.net.Uri.decode(url.substringAfter('#')))
+    }
+
+    @Test
+    fun `the map page may load its own assets and OpenStreetMap tiles, nothing else`() {
+        fun ok(url: String) = mapRequestAllowed(android.net.Uri.parse(url))
+        assertTrue(ok("file:///android_asset/map/leaflet.js"))
+        assertTrue(ok("https://tile.openstreetmap.org/16/36000/21000.png"))
+        assertTrue(!ok("http://tile.openstreetmap.org/16/1/1.png"))
+        assertTrue(!ok("https://evil.example/tile.png"))
+        assertTrue(!ok("https://tile.openstreetmap.org.evil.example/1.png"))
+        assertTrue(!ok("file:///data/data/pl.lk.toyotacompanion/databases/toyota-companion.db"))
+        assertTrue(!ok("file:///android_asset/other/x.html"))
     }
 
     @Test

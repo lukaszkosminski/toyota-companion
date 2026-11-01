@@ -25,7 +25,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
 
@@ -42,12 +41,12 @@ private const val RECENT_STOPS = 50
 fun ParkingScreen(
     controller: ParkingController,
     onBack: () -> Unit,
+    onShowMap: (List<MapPoint>) -> Unit,
     zone: ZoneId = ZoneId.systemDefault(),
 ) {
     BackHandler(onBack = onBack)
     val state by controller.state.collectAsState()
     LaunchedEffect(Unit) { controller.ensureLoaded() }
-    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -81,8 +80,8 @@ fun ParkingScreen(
                             val label = placeLabel(place, known)
                         Text(label + ParkingFormatting.place(place.lat, place.lon), style = MaterialTheme.typography.titleSmall)
                             Text(ParkingFormatting.placeLine(place, zone), style = MaterialTheme.typography.bodyMedium)
-                            ParkingFormatting.mapUri(place.lat, place.lon)?.let { uri ->
-                                TextButton(onClick = { openInMap(context, uri) }) { Text(Texts.PARKING_OPEN_MAP) }
+                            if (placeMapPoints(place.lat, place.lon).isNotEmpty()) {
+                                TextButton(onClick = { onShowMap(placeMapPoints(place.lat, place.lon)) }) { Text(Texts.PARKING_OPEN_MAP) }
                             }
                         }
                     }
