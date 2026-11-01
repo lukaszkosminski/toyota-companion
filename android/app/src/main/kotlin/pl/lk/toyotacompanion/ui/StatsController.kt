@@ -38,6 +38,7 @@ data class StatsView(
     val windowEnd: LocalDate?,
     val tripTypes: List<TripTypeSummary>,
     val placesKnown: Boolean,
+    val traffic: List<TrafficSummary>,
 )
 
 /**
@@ -112,5 +113,6 @@ fun computeStats(stored: List<StoredTrip>, zone: ZoneId): StatsView {
         // Home and work come from the parking diary; positions stay inside (docs/SPEC.md §21).
         tripTypes = tripTypeSummaries(stored, classifyTrips(stored, places, zone)),
         placesKnown = places.home != null && places.work != null,
+        traffic = trafficSummaries(stored),
     )
 }

@@ -701,3 +701,15 @@ Funkcje czyste w `app/ui/TripTypes.kt` na dzienniku postojów (§18) – GPS, wi
   następna trasa startuje < 2 h później; **inne** – reszta (także ostatnia trasa archiwum).
 - Ekran: sekcja „Typy tras” w „Statystykach” – liczba tras, km, koszt (bez cen: „brak ceny”), bez położenia; etykiety
   „Dom” i „Praca” przy miejscach w „Postojach” (jedynym ekranie z położeniem).
+
+## 22. Tempo jazdy a spalanie (PRD F19)
+Funkcje czyste w `app/ui/TrafficIndex.kt` na `StoredTrip` – bez lustra w Pythonie (nie używają GPS, ale są tylko prezentacją).
+- Źródło: `TripRecord.averageSpeed` (średnia Toyoty; na archiwum zgodna z dystansem/czasem). `durationIdle` jest puste we
+  wszystkich trasach, a hybryda na postoju nie pracuje silnikiem – dlatego bieg jałowy nie jest miarą korka.
+- Trasa liczy się od 2 km, z dodatnią średnią prędkością i nieujemnym paliwem. Pasma (dolna granica włącznie): wolno < 15,
+  miasto 15–25, płynnie 25–40, trasa ≥ 40 km/h.
+- Na pasmo: liczba tras, km (0,1), l/100 km = Σ paliwo / Σ km (0,01), zł/100 km = Σ koszt / Σ km tras z ceną (bez ceny: „brak ceny”).
+  Pasmo bez tras pomijane.
+- Dopłata za wolną jazdę = wolno − płynnie (l/100 km i, gdy oba pasma mają cenę, zł/100 km); tylko gdy oba pasma mają ≥ 10 tras.
+- Ekran: sekcja „Tempo jazdy a spalanie” w „Statystykach”, z uwagą, że to wskaźnik pośredni. Archiwum 408 tras ≥ 2 km:
+  wolno 4,94, miasto 4,16, płynnie 3,81, trasa 4,12 l/100 km (udział EV 63/64/60/36 %).

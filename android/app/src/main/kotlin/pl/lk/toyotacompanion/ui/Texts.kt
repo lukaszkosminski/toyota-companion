@@ -320,6 +320,19 @@ object Texts {
 
     // Typy tras (PRD F16, docs/SPEC.md §21).
 
+    const val TRAFFIC_SECTION = "Tempo jazdy a spalanie"
+    const val TRAFFIC_HINT =
+        "Średnia prędkość trasy (od 2 km) jako miara ruchu – wolna jazda to też sygnalizacja i krótkie odcinki, nie tylko korki."
+    fun trafficClassName(cls: TrafficClass): String = when (cls) {
+        TrafficClass.SLOW -> "Wolno (poniżej 15 km/h)"
+        TrafficClass.CITY -> "Miasto (15–25 km/h)"
+        TrafficClass.FLOWING -> "Płynnie (25–40 km/h)"
+        TrafficClass.HIGHWAY -> "Trasa (od 40 km/h)"
+    }
+    fun trafficConsumption(litres: String): String = "$litres l/100 km"
+    fun trafficCost(money: String): String = "$money/100 km"
+    fun trafficSurcharge(litres: String, money: String?): String =
+        "Wolna jazda zamiast płynnej: +$litres l/100 km" + (money?.let { " (+$it/100 km)" } ?: "")
     const val TRIP_TYPES_SECTION = "Typy tras"
     const val TRIP_TYPES_HINT = "Dom i praca rozpoznane z postojów; dojazdy to trasy między nimi."
     const val TRIP_TYPES_NO_PLACES = "Za mało postojów, żeby rozpoznać dom i pracę – dojazdów jeszcze nie ma."
@@ -376,6 +389,8 @@ object Texts {
         "Położenie zaokrąglone do ok. 100 m – liczone z tras w archiwum, bez pytania auta. Poza ten ekran trafia tylko po dotknięciu „Otwórz w mapie”."
     const val PARKING_PLACES = "Miejsca"
     const val PARKING_RECENT = "Ostatnie postoje"
+    const val PARKING_OPEN_MAP = "Otwórz w mapie"
+    const val PARKING_NO_MAP_APP = "Brak aplikacji z mapą."
     const val PARKING_NO_POSITION = "bez położenia"
 
     fun parkingStops(count: Int): String = "postoje: $count"
@@ -389,8 +404,6 @@ object Texts {
     /** Status button and the title of the screen. */
     const val LOG_TITLE = "Dziennik tankowań"
 
-    const val PARKING_OPEN_MAP = "Otwórz w mapie"
-    const val PARKING_NO_MAP_APP = "Brak aplikacji z mapą."
     const val LOG_EMPTY = "Brak potwierdzonych tankowań."
     const val LOG_HINT =
         "Żeby porównać spalanie z komputerem auta, przy tankowaniu zaznacz „Do pełna” i podaj litry z paragonu."
