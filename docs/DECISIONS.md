@@ -78,3 +78,10 @@ pobieranie w tle, wybór najtańszej stacji (dane od użytkowników bywają bł�
 „nieczytelna odpowiedź”, ręczne wpisanie działa dalej); regulamin portalu nie został przeczytany w całości; cena WATIS bywa
 kwestionowana w komentarzach, dlatego ekran pokazuje wiek ceny i źródło.
 
+## ADR-012 Przebieg trasy dociągany z Toyoty przy otwarciu mapy (2026-11-01)
+Właściciel chciał widzieć konkretną trasę, a archiwum miało tylko początek i koniec. API Toyoty oddaje punkty GPS (z oznaczeniem jazdy na
+prądzie) wyłącznie w szczególe trasy. Wybrane: pobranie przy otwarciu mapy jednej trasy, kopia w Room (v3, migracja automatyczna),
+przebieg poza eksportem. Odrzucone: pobieranie przebiegów dla wszystkich tras w synchronizacji (setki żądań do Toyoty, ryzyko 429),
+zapis surowych punktów w eksporcie (rozmiar pliku). Ryzyka: Toyota usuwa trasy po ok. 12 miesiącach (starszych tras nie da się już
+dociągnąć – mapa wraca do prostej linii); przebiegi, które właściciel nie otworzył, przepadną razem z trasami po stronie Toyoty.
+

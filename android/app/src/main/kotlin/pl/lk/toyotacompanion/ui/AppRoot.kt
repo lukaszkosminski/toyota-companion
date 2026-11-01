@@ -48,6 +48,7 @@ fun AppRoot(
     forecast: ForecastController,
     consumption: ConsumptionController,
     stationPrices: StationPriceController,
+    tripRoute: TripRouteController,
     askNotificationPermission: suspend () -> Boolean,
     deepLinkRefuelId: String? = null,
     onDeepLinkShown: () -> Unit = {},
@@ -58,11 +59,13 @@ fun AppRoot(
     val backupState by backup.state.collectAsState()
     val forecastState by forecast.state.collectAsState()
     val consumptionState by consumption.state.collectAsState()
+    val routeState by tripRoute.state.collectAsState()
     var screen by rememberSaveable { mutableStateOf(Screen.Status) }
     // The map in the app (docs/SPEC.md §26): [origin ordinal, then per point: label index, lat, lon] with the positions
     // already rounded, so no raw coordinate lands in the saved state.
     var mapData by rememberSaveable { mutableStateOf<DoubleArray?>(null) }
-    fun showMap(origin: Screen, points: List<MapPoint>) {
+    fun showMap(origin: Screen, points: List<MapPoint>, tripId: String?) {
+        tripRoute.open(tripId)
         mapData = doubleArrayOf(origin.ordinal.toDouble()) +
             points.flatMap { listOf(MAP_LABELS.indexOf(it.label).toDouble(), it.lat, it.lon) }
         screen = Screen.Map
@@ -96,6 +99,7 @@ fun AppRoot(
             forecast.reset()
             consumption.reset()
             stationPrices.reset()
+            tripRoute.close()
         } else {
             // The status button shows the stored price. This effect also restarts when the
             // Activity is recreated, so the read is guarded: the file is touched only while
@@ -211,7 +215,7 @@ fun AppRoot(
                     )
 
                     Screen.Parking -> ParkingScreen(
-                        onShowMap = { showMap(Screen.Parking, it) },
+                        onShowMap = { points, id -> showMap(Screen.Parking, points, id) },
                         controller = parking,
                         onBack = { screen = Screen.Status },
                     )
@@ -238,7 +242,7 @@ fun AppRoot(
 
                     Screen.Trips -> TripsScreen(
                         onBack = { screen = Screen.Status },
-                        onShowMap = { showMap(Screen.Trips, it) },
+                        onShowMap = { points, id -> showMap(Screen.Trips, points, id) },
                         loadTrips = loadTrips,
                     )
 
@@ -254,7 +258,11 @@ fun AppRoot(
                             MapScreen(
                                 title = if (points.size == 1) Texts.MAP_TITLE_PLACE else Texts.MAP_TITLE_TRIP,
                                 points = points,
-                                onBack = { screen = Screen.entries[data[0].toInt()] },
+                                route = routeState,
+                                onBack = {
+                                    tripRoute.close()
+                                    screen = Screen.entries[data[0].toInt()]
+                                },
                             )
                         }
                     }

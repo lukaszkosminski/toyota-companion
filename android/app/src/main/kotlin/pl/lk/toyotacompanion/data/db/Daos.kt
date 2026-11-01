@@ -181,3 +181,18 @@ interface WeatherDao {
     @Query("DELETE FROM weather")
     suspend fun deleteAll()
 }
+
+@Dao
+interface TripRouteDao {
+    @Query("SELECT * FROM trip_routes WHERE trip_id = :tripId")
+    suspend fun byTrip(tripId: String): TripRouteEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun save(entity: TripRouteEntity)
+
+    @Query("SELECT COUNT(*) FROM trip_routes")
+    suspend fun count(): Int
+
+    @Query("DELETE FROM trip_routes")
+    suspend fun deleteAll()
+}

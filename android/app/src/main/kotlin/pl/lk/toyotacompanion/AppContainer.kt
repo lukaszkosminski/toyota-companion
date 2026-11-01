@@ -49,6 +49,8 @@ import pl.lk.toyotacompanion.ui.DefaultPriceController
 import pl.lk.toyotacompanion.core.prices.FuelPriceGatewayFactory
 import pl.lk.toyotacompanion.ui.ConsumptionController
 import pl.lk.toyotacompanion.ui.StationPriceController
+import pl.lk.toyotacompanion.ui.TripRouteController
+import pl.lk.toyotacompanion.data.db.RoomTripRouteRepository
 import pl.lk.toyotacompanion.ui.DrivingStyleController
 import pl.lk.toyotacompanion.ui.WeatherController
 import pl.lk.toyotacompanion.core.weather.WeatherGatewayFactory
@@ -285,6 +287,23 @@ class AppContainer(
     /** The refuel forecast of the status screen (PRD F14, docs/SPEC.md §20). */
     val forecastController: ForecastController by lazy {
         ForecastController(read = { syncEngine.refuelForecast() }, scope = uiScope, io = Dispatchers.IO)
+    }
+
+    /** Reads the stored login at call time, like [gateway]; one trip's route per request (docs/SPEC.md §27). */
+    private val routeGateway = pl.lk.toyotacompanion.core.routes.TripRouteGateway { vin, tripId ->
+        val credentials = credentialStore.load() ?: throw NoCredentialsException()
+        ToyotaGatewayFactory.createRoutes(credentials.username, credentials.password, tokenStore).route(vin, tripId)
+    }
+
+    /** The GPS route of the trip whose map is open, from the phone or one read-only Toyota GET (docs/SPEC.md §27). */
+    val tripRouteController: TripRouteController by lazy {
+        TripRouteController(
+            readTrips = tripsLoader,
+            repository = RoomTripRouteRepository(database.tripRouteDao()),
+            gateway = routeGateway,
+            scope = uiScope,
+            io = Dispatchers.IO,
+        )
     }
 
     /** Station prices for the price fields, fetched only on a tap (docs/SPEC.md §25). */

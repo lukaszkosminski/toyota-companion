@@ -118,3 +118,18 @@ class RoomWeatherRepository(private val dao: WeatherDao) : WeatherRepository {
 
     override suspend fun deleteAll() = dao.deleteAll()
 }
+
+class RoomTripRouteRepository(
+    private val dao: TripRouteDao,
+    private val now: () -> Instant = { Instant.now() },
+) : pl.lk.toyotacompanion.core.routes.TripRouteRepository {
+    override suspend fun get(tripId: String) =
+        dao.byTrip(tripId)?.let { pl.lk.toyotacompanion.core.routes.decodeRoute(it.points) }
+
+    override suspend fun save(tripId: String, points: List<pl.lk.toyotacompanion.core.routes.TripRoutePoint>) =
+        dao.save(TripRouteEntity(tripId, pl.lk.toyotacompanion.core.routes.encodeRoute(points), now()))
+
+    override suspend fun count(): Int = dao.count()
+
+    override suspend fun deleteAll() = dao.deleteAll()
+}

@@ -18,6 +18,12 @@ object ToyotaGatewayFactory {
     fun create(username: String, password: String, tokenStore: TokenStore): ToyotaGateway =
         ToyotaApiGateway(ToyotaApi(ToyotaController(username, password, client, tokenStore = tokenStore)))
 
+    /** The route of a single trip (docs/SPEC.md §27); the same client, account and token store as [create]. */
+    fun createRoutes(username: String, password: String, tokenStore: TokenStore): pl.lk.toyotacompanion.core.routes.TripRouteGateway =
+        pl.lk.toyotacompanion.core.routes.ToyotaTripRouteGateway(
+            ToyotaApi(ToyotaController(username, password, client, tokenStore = tokenStore)),
+        )
+
     /**
      * Checks typed credentials against the real account before anything is
      * stored (docs/SPEC.md §9). Authentication only: no `refresh_status`, no

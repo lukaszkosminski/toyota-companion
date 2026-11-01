@@ -34,14 +34,35 @@ points.forEach(function (p) {
   L.circleMarker([p.lat, p.lon], { radius: 9, color: '#ffffff', weight: 2, fillColor: '#3b6fd4', fillOpacity: 1 })
     .addTo(map).bindTooltip(p.label, { permanent: true, direction: 'top', offset: [0, -8] });
 });
+var straight = null;
 if (latlngs.length > 1) {
   // Straight line between the two ends: the archive keeps no route (docs/SPEC.md §10.3).
-  L.polyline(latlngs, { color: '#3b6fd4', weight: 3, dashArray: '6 8', opacity: 0.8 }).addTo(map);
+  straight = L.polyline(latlngs, { color: '#3b6fd4', weight: 3, dashArray: '6 8', opacity: 0.8 }).addTo(map);
   map.fitBounds(latlngs, { padding: [48, 48], maxZoom: 16 });
 } else if (latlngs.length === 1) {
   map.setView(latlngs[0], 16);
 } else {
   map.setView([54.37, 18.63], 10);
+}
+// The app calls this with the GPS route: [[lat, lon, ev], ...], ev 1 = battery, 0 = engine, -1 = unknown (docs/SPEC.md §27).
+function showRoute(route) {
+  var pts = route.filter(function (p) { return isFinite(p[0]) && isFinite(p[1]); });
+  if (pts.length < 2) return;
+  if (straight) { map.removeLayer(straight); straight = null; }
+  var all = [];
+  var runStart = 0;
+  function flush(end) {
+    var seg = pts.slice(runStart, end + 1).map(function (p) { return [p[0], p[1]]; });
+    all = all.concat(seg);
+    if (seg.length > 1) {
+      L.polyline(seg, { color: pts[runStart][2] === 1 ? '#2e9e5b' : '#3b6fd4', weight: 5, opacity: 0.9 }).addTo(map);
+    }
+  }
+  for (var i = 1; i < pts.length; i++) {
+    if (pts[i][2] !== pts[runStart][2]) { flush(i); runStart = i; }
+  }
+  flush(pts.length - 1);
+  map.fitBounds(all, { padding: [48, 48], maxZoom: 17 });
 }
 </script>
 </body>

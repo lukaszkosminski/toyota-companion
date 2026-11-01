@@ -785,7 +785,7 @@ błąd odczytu chowa kartę; `reset()` przy wylogowaniu.
 Bez nowych zależności Gradle.
 - Wejścia: dotknięcie trasy na liście (§10.3: start i koniec, tylko te z położeniem) i „Otwórz w mapie” przy miejscu w „Postojach”
   (§18: jeden punkt). Mapa otwiera się od razu; przycisk „Otwórz w innej aplikacji z mapą” wysyła intent `geo:` jak dotąd.
-- Punkty trafiają do strony we fragmencie adresu, zaokrąglone do 0,001° (ok. 100 m); w zapisanym stanie ekranu też tylko
+- Punkty początku i końca (oraz miejsca w „Postojach”) trafiają do strony we fragmencie adresu, zaokrąglone do 0,001° (ok. 100 m); przebieg trasy dochodzi osobno (§27); w zapisanym stanie ekranu też tylko
   zaokrąglone. Etykiety to stałe teksty aplikacji („Start”, „Koniec”, „Miejsce”), nigdy dane użytkownika. Początek i koniec
   łączy prosta przerywana linia (archiwum nie ma przebiegu); ekran o tym mówi.
 - Podkład: kafelki OpenStreetMap `https://tile.openstreetmap.org/{z}/{x}/{y}.png`. Serwer kafelków widzi więc okolicę punktów
@@ -794,3 +794,18 @@ Bez nowych zależności Gradle.
 - WebView zamknięty: JavaScript tylko dla dołączonej strony, `allowFileAccess` i `allowContentAccess` wyłączone, brak mostu JS,
   nawigacja zablokowana, a każde żądanie poza `file:///android_asset/map/` i `https://tile.openstreetmap.org` kończy się 403
   (`mapRequestAllowed`). Strona dopasowuje wysokość do okna (`fit`), bo WebView w Compose bywa najpierw zmierzony na zerową wysokość.
+
+## 27. Przebieg trasy na mapie (PRD F23, ADR-012)
+`core/routes/TripRoutes.kt`, `app/ui/TripRouteController.kt`, `MapScreen.kt`, tabela `trip_routes` (Room v3, migracja automatyczna 2→3).
+- Źródło: `GET /v1/trips/{id}` (szczegół jednej trasy, z nagłówkiem VIN – ten sam klient, konto i token co synchronizacja). Lista tras nie
+  niesie przebiegu od 2026-09-30. Z odpowiedzi brane są punkty `lat`, `lon`, `isEv`; punkty z `null`, nieskończone lub spoza zakresu
+  odrzucane (nigdy przycinane). Tylko odczyt: nigdy `refresh_status()`.
+- Kiedy: tylko przy otwarciu mapy trasy (dotknięcie trasy), nigdy w synchronizacji ani w tle – jedno zapytanie na trasę, potem kopia na
+  telefonie (tabela `trip_routes`: `trip_id`, punkty jako tekst `lat,lon,e;…` z pięcioma miejscami po przecinku ≈ 1 m, `fetched_at`).
+  Toyota trzyma trasy ok. 12 miesięcy, więc po tym czasie kopia na telefonie jest jedyną.
+- Wyniki: `Ready` (rysujemy przebieg: zielony – jazda na prądzie `isEv`, niebieski – silnik spalinowy lub brak informacji), `Missing`
+  (pusty przebieg albo HTTP 404; zapamiętane jako pusta kopia, więc nie pytamy ponownie; mapa zostaje z początkiem, końcem i prostą linią),
+  `Failed` (brak sieci, logowanie, błąd usługi: stały komunikat bez treści odpowiedzi; nic nie zapisujemy, kolejne otwarcie pyta ponownie).
+- Mapa dostaje punkty przebiegu wyłącznie jako liczby (`showRoute([[lat,lon,e],…])`), strona nie ma dostępu do niczego poza kafelkami
+  OpenStreetMap (§26). Serwer kafelków widzi okolicę, którą oglądasz (kafelki), więc obejmuje to cały obrys trasy, nie dokładne punkty.
+- Poza kopią archiwum (§14) i CSV: przebiegi nie wchodzą do pliku eksportu (rozmiar), ale zostają w bazie na telefonie.

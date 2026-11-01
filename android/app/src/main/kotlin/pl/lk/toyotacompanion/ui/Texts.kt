@@ -419,8 +419,18 @@ object Texts {
     const val MAP_END = "Koniec"
     const val MAP_PLACE = "Miejsce"
     const val MAP_NOTE =
-        "Mapa OpenStreetMap. Archiwum zna tylko początek i koniec trasy, więc linia jest prosta, nie przebieg. " +
-            "Serwer map widzi okolicę punktów (ok. 100 m), nie dokładne położenie."
+        "Mapa OpenStreetMap. Serwer map widzi okolicę, którą oglądasz (kafelki), nie dokładne punkty."
+    fun mapRouteNote(route: RouteState): String = when (route) {
+        RouteState.None -> "Miejsce zaokrąglone do ok. 100 m."
+        RouteState.Loading -> "Pobieram przebieg trasy z Toyoty…"
+        is RouteState.Ready -> "Przebieg trasy z GPS Toyoty: zielony – jazda na prądzie, niebieski – silnik spalinowy."
+        RouteState.Missing -> "Toyota nie ma przebiegu tej trasy (przechowuje ok. 12 miesięcy). Pokazuję początek i koniec, prosta linia."
+        is RouteState.Failed -> when (route.reason) {
+            RouteFailure.NETWORK -> "Brak połączenia z Toyotą – pokazuję początek i koniec (prosta linia). Otwórz mapę ponownie później."
+            RouteFailure.LOGIN -> "Toyota prosi o ponowne logowanie – pokazuję początek i koniec (prosta linia)."
+            RouteFailure.API -> "Toyota nie podała przebiegu tej trasy – pokazuję początek i koniec (prosta linia)."
+        }
+    }
     const val MAP_OPEN_EXTERNAL = "Otwórz w innej aplikacji z mapą"
 
     // Pogoda i spalanie (PRD F15, docs/SPEC.md §23).

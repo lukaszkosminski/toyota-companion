@@ -67,7 +67,7 @@ private sealed interface TripsLoad {
 @Composable
 fun TripsScreen(
     onBack: () -> Unit,
-    onShowMap: (List<MapPoint>) -> Unit,
+    onShowMap: (List<MapPoint>, String?) -> Unit,
     loadTrips: suspend () -> List<StoredTrip>,
     zone: ZoneId = ZoneId.systemDefault(),
     io: CoroutineDispatcher = Dispatchers.IO,
@@ -163,7 +163,7 @@ private fun MonthHeader(group: MonthGroup) {
 
 /** One row: when the car drove, how far, how much fuel and what it cost. */
 @Composable
-private fun TripRow(stored: StoredTrip, zone: ZoneId, onShowMap: (List<MapPoint>) -> Unit) {
+private fun TripRow(stored: StoredTrip, zone: ZoneId, onShowMap: (List<MapPoint>, String?) -> Unit) {
     val trip = stored.record.trip
     val cost = stored.cost
     val record = stored.record
@@ -171,7 +171,7 @@ private fun TripRow(stored: StoredTrip, zone: ZoneId, onShowMap: (List<MapPoint>
     Card(
         // A trip without any position is not clickable: there is nothing to show.
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 3.dp).let {
-            if (points.isNotEmpty()) it.clickable { onShowMap(points) } else it
+            if (points.isNotEmpty()) it.clickable { onShowMap(points, record.id) } else it
         },
         shape = MaterialTheme.shapes.small,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),

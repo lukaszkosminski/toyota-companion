@@ -41,7 +41,7 @@ private const val RECENT_STOPS = 50
 fun ParkingScreen(
     controller: ParkingController,
     onBack: () -> Unit,
-    onShowMap: (List<MapPoint>) -> Unit,
+    onShowMap: (List<MapPoint>, String?) -> Unit,
     zone: ZoneId = ZoneId.systemDefault(),
 ) {
     BackHandler(onBack = onBack)
@@ -81,7 +81,7 @@ fun ParkingScreen(
                         Text(label + ParkingFormatting.place(place.lat, place.lon), style = MaterialTheme.typography.titleSmall)
                             Text(ParkingFormatting.placeLine(place, zone), style = MaterialTheme.typography.bodyMedium)
                             if (placeMapPoints(place.lat, place.lon).isNotEmpty()) {
-                                TextButton(onClick = { onShowMap(placeMapPoints(place.lat, place.lon)) }) { Text(Texts.PARKING_OPEN_MAP) }
+                                TextButton(onClick = { onShowMap(placeMapPoints(place.lat, place.lon), null) }) { Text(Texts.PARKING_OPEN_MAP) }
                             }
                         }
                     }

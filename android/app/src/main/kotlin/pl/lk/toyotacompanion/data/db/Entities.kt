@@ -252,3 +252,11 @@ fun WeatherRow.toEntity(): WeatherEntity = WeatherEntity(
     day.windMaxKmh,
     fetchedAt,
 )
+
+/** The GPS route of one trip as the compact text of `encodeRoute` (docs/SPEC.md §27); empty text = Toyota has none. */
+@Entity(tableName = "trip_routes")
+data class TripRouteEntity(
+    @PrimaryKey @ColumnInfo(name = "trip_id") val tripId: String,
+    val points: String,
+    @ColumnInfo(name = "fetched_at") val fetchedAt: Instant,
+)

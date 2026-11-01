@@ -91,6 +91,16 @@ data class TripDto(
     val summary: TripSummaryDto? = null,
     val scores: ScoresDto? = null,
     val hdc: HdcDto? = null,
+    /** Only the detail endpoint (`/v1/trips/{id}`) carries it; the list does not since 2026-09-30. */
+    val route: List<RoutePointDto>? = null,
+)
+
+/** pytoyoda trips.py:141-148 (_RouteModel); the fields the map needs. */
+@Serializable
+data class RoutePointDto(
+    val lat: Double? = null,
+    val lon: Double? = null,
+    @SerialName("isEv") val isEv: Boolean? = null,
 )
 
 /** pytoyoda trips.py:21-37 (_SummaryBaseModel) + 88-99 (_SummaryModel ts fields) */

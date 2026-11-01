@@ -118,3 +118,45 @@ class RoomWeatherRepositoryTest {
         }
     }
 }
+
+/** docs/SPEC.md §27: the stored routes of trips on an in-memory Room database. */
+@RunWith(RobolectricTestRunner::class)
+class RoomTripRouteRepositoryTest {
+    private lateinit var db: AppDatabase
+    private lateinit var repository: RoomTripRouteRepository
+
+    @Before
+    fun open() {
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<Context>()
+        db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).setDriver(AndroidSQLiteDriver()).build()
+        repository = RoomTripRouteRepository(db.tripRouteDao())
+    }
+
+    @After
+    fun close() {
+        db.close()
+    }
+
+    @Test
+    fun `a saved route reads back in order with its battery marks`() = runTest {
+        val points = listOf(
+            pl.lk.toyotacompanion.core.routes.TripRoutePoint(54.37201, 18.63801, true),
+            pl.lk.toyotacompanion.core.routes.TripRoutePoint(54.37301, 18.63901, false),
+            pl.lk.toyotacompanion.core.routes.TripRoutePoint(54.37401, 18.64001, null),
+        )
+        repository.save("t1", points)
+        assertEquals(points, repository.get("t1"))
+        assertNull(repository.get("other"))
+    }
+
+    @Test
+    fun `an empty route is stored as empty, not as unknown, and a save replaces`() = runTest {
+        repository.save("t1", emptyList())
+        assertEquals(emptyList(), repository.get("t1"))
+        repository.save("t1", listOf(pl.lk.toyotacompanion.core.routes.TripRoutePoint(1.0, 2.0, true)))
+        assertEquals(1, repository.get("t1")?.size)
+        assertEquals(1, repository.count())
+        repository.deleteAll()
+        assertEquals(0, repository.count())
+    }
+}

@@ -19,10 +19,11 @@ import androidx.room3.ColumnTypeConverters
         VehicleEntity::class,
         SyncStateEntity::class,
         WeatherEntity::class,
+        TripRouteEntity::class,
     ],
-    version = 2,
-    // 1 -> 2 only adds the `weather` table (docs/SPEC.md §23); the archive tables are untouched.
-    autoMigrations = [AutoMigration(from = 1, to = 2)],
+    version = 3,
+    // 1 -> 2 adds the `weather` table (§23), 2 -> 3 the `trip_routes` table (§27); the archive tables are untouched.
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3)],
     exportSchema = true,
 )
 @ColumnTypeConverters(Converters::class)
@@ -40,4 +41,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun syncStateDao(): SyncStateDao
 
     abstract fun weatherDao(): WeatherDao
+
+    abstract fun tripRouteDao(): TripRouteDao
 }

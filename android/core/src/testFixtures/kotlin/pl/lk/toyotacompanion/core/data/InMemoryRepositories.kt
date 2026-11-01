@@ -196,3 +196,17 @@ class InMemoryWeatherRepository : WeatherRepository {
 
     override suspend fun deleteAll() = rows.clear()
 }
+
+class InMemoryTripRouteRepository : pl.lk.toyotacompanion.core.routes.TripRouteRepository {
+    private val rows = LinkedHashMap<String, List<pl.lk.toyotacompanion.core.routes.TripRoutePoint>>()
+
+    override suspend fun get(tripId: String) = rows[tripId]
+
+    override suspend fun save(tripId: String, points: List<pl.lk.toyotacompanion.core.routes.TripRoutePoint>) {
+        rows[tripId] = points
+    }
+
+    override suspend fun count(): Int = rows.size
+
+    override suspend fun deleteAll() = rows.clear()
+}

@@ -19,6 +19,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -39,6 +44,11 @@ fun mapPageUrl(points: List<MapPoint>): String {
     return "file:///android_asset/map/map.html#" + Uri.encode(fragment)
 }
 
+/** `[[lat,lon,e],...]` with `e` 1, 0 or -1 (unknown): numbers only, five decimals, the argument of the page's `showRoute`. */
+fun routeJson(points: List<pl.lk.toyotacompanion.core.routes.TripRoutePoint>): String = points.joinToString(",", "[", "]") {
+    "[%.5f,%.5f,%d]".format(java.util.Locale.ROOT, it.lat, it.lon, when (it.isEv) { true -> 1; false -> 0; null -> -1 })
+}
+
 /** Whether the map page may fetch [uri]: its own assets or an HTTPS tile of OpenStreetMap (docs/SPEC.md §26). */
 fun mapRequestAllowed(uri: Uri): Boolean =
     (uri.scheme == "file" && uri.path.orEmpty().startsWith("/android_asset/map/")) ||
@@ -52,9 +62,16 @@ fun mapRequestAllowed(uri: Uri): Boolean =
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun MapScreen(title: String, points: List<MapPoint>, onBack: () -> Unit) {
+fun MapScreen(title: String, points: List<MapPoint>, route: RouteState, onBack: () -> Unit) {
     BackHandler(onBack = onBack)
     val context = LocalContext.current
+    var page by remember { mutableStateOf<WebView?>(null) }
+    var loaded by remember { mutableStateOf(false) }
+    // The route goes to the page once it is ready and the page is loaded; numbers only, so nothing but digits is injected.
+    LaunchedEffect(route, loaded, page) {
+        val view = page
+        if (loaded && view != null && route is RouteState.Ready) view.evaluateJavascript("showRoute(" + routeJson(route.points) + ")", null)
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -73,7 +90,12 @@ fun MapScreen(title: String, points: List<MapPoint>, onBack: () -> Unit) {
                         settings.allowContentAccess = false
                         settings.cacheMode = WebSettings.LOAD_DEFAULT
                         settings.userAgentString = "toyota-companion (Android WebView)"
+                        page = this
                         webViewClient = object : WebViewClient() {
+                            override fun onPageFinished(view: WebView, url: String) {
+                                loaded = true
+                            }
+
                             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean = true
 
                             override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
@@ -87,7 +109,16 @@ fun MapScreen(title: String, points: List<MapPoint>, onBack: () -> Unit) {
                         loadUrl(mapPageUrl(points))
                     }
                 },
-                onRelease = { it.destroy() },
+                onRelease = {
+                    loaded = false
+                    page = null
+                    it.destroy()
+                },
+            )
+            Text(
+                Texts.mapRouteNote(route),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
             Text(
                 Texts.MAP_NOTE,
