@@ -46,7 +46,9 @@ import pl.lk.toyotacompanion.sync.SyncRunner
 import pl.lk.toyotacompanion.ui.ARCHIVE_IMPORT_LIMIT_BYTES
 import pl.lk.toyotacompanion.ui.BackupController
 import pl.lk.toyotacompanion.ui.DefaultPriceController
+import pl.lk.toyotacompanion.core.prices.FuelPriceGatewayFactory
 import pl.lk.toyotacompanion.ui.ConsumptionController
+import pl.lk.toyotacompanion.ui.StationPriceController
 import pl.lk.toyotacompanion.ui.DrivingStyleController
 import pl.lk.toyotacompanion.ui.WeatherController
 import pl.lk.toyotacompanion.core.weather.WeatherGatewayFactory
@@ -283,6 +285,11 @@ class AppContainer(
     /** The refuel forecast of the status screen (PRD F14, docs/SPEC.md §20). */
     val forecastController: ForecastController by lazy {
         ForecastController(read = { syncEngine.refuelForecast() }, scope = uiScope, io = Dispatchers.IO)
+    }
+
+    /** Station prices for the price fields, fetched only on a tap (docs/SPEC.md §25). */
+    val stationPriceController: StationPriceController by lazy {
+        StationPriceController(gateway = FuelPriceGatewayFactory.create(), scope = uiScope, io = Dispatchers.IO)
     }
 
     /** Average consumption and monthly bars of the status screen (docs/SPEC.md §24). */

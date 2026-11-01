@@ -47,6 +47,7 @@ fun AppRoot(
     weather: WeatherController,
     forecast: ForecastController,
     consumption: ConsumptionController,
+    stationPrices: StationPriceController,
     askNotificationPermission: suspend () -> Boolean,
     deepLinkRefuelId: String? = null,
     onDeepLinkShown: () -> Unit = {},
@@ -94,6 +95,7 @@ fun AppRoot(
             weather.reset()
             forecast.reset()
             consumption.reset()
+            stationPrices.reset()
         } else {
             // The status button shows the stored price. This effect also restarts when the
             // Activity is recreated, so the read is guarded: the file is touched only while
@@ -273,6 +275,7 @@ fun AppRoot(
 
                     Screen.DefaultPrice -> DefaultPriceScreen(
                         controller = defaultPrice,
+                        prices = stationPrices,
                         onBackToStatus = {
                             screen = Screen.Status
                             session.reload()
@@ -287,6 +290,7 @@ fun AppRoot(
                         } else {
                             RefuelFormScreen(
                                 controller = refuel,
+                                prices = stationPrices,
                                 id = id,
                                 focusPriceOnOpen = formFromNotification,
                                 onBackToList = {

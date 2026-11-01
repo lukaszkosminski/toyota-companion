@@ -70,3 +70,11 @@ mówi. Zamknięcie WebView: lista dozwolonych adresów, brak mostu JS, brak dost
 zależność Gradle, wymaga akceptacji), Google Maps SDK (klucz, śledzenie), mapa z przebiegiem trasy (archiwum go nie ma).
 Ryzyko: polityka kafelków OSM dopuszcza tylko lekkie użycie – przy większym ruchu zmienić dostawcę lub dodać pamięć podręczną.
 
+## ADR-011 Cena paliwa ze stacji właściciela z trojmiasto.pl, wybór źródła (2026-11-01)
+Właściciel wskazał stronę trojmiasto.pl/moto/paliwa jako źródło cen i dwie stacje (Auchan Szczęśliwa, WATIS), z możliwością wpisania ręcznie.
+Wybrane: jedno `GET` strony po dotknięciu stacji, parsowanie wiersza tabeli po id stacji, cena trafia tylko do pola formularza.
+Czwarta usługa zewnętrzna, ale bez żadnych danych o właścicielu w zapytaniu. Odrzucone: automatyczne ustawianie ceny domyślnej,
+pobieranie w tle, wybór najtańszej stacji (dane od użytkowników bywają błędne). Ryzyka: układ strony może się zmienić (wtedy błąd
+„nieczytelna odpowiedź”, ręczne wpisanie działa dalej); regulamin portalu nie został przeczytany w całości; cena WATIS bywa
+kwestionowana w komentarzach, dlatego ekran pokazuje wiek ceny i źródło.
+

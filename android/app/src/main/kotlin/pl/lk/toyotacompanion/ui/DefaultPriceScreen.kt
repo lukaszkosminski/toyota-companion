@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun DefaultPriceScreen(
     controller: DefaultPriceController,
+    prices: StationPriceController,
     onBackToStatus: () -> Unit,
 ) {
     BackHandler(onBack = onBackToStatus)
@@ -79,6 +80,12 @@ fun DefaultPriceScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             state.error?.let { ErrorCard(it) }
+
+            StationPricePicker(
+                controller = prices,
+                onPrice = { priceText = it },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            )
 
             OutlinedTextField(
                 value = priceText,

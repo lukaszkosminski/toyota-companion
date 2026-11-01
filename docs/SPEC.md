@@ -764,6 +764,22 @@ błąd odczytu chowa kartę; `reset()` przy wylogowaniu.
   (↘); poniżej 3 słupków brak trendu. Regresja tylko klasyfikuje obraz, więc liczona na liczbach zmiennoprzecinkowych; wszystkie
   pokazane liczby to zaokrąglone `BigDecimal`. Ekran przypomina, że zimą spalanie zwykle rośnie (sezonowość, nie usterka).
 
+## 25. Cena ze stacji (PRD F22, ADR-011)
+`core/prices/StationPrices.kt` (klient), `app/ui/StationPriceController.kt`, `StationPricePicker.kt`.
+- Źródło: publiczna strona https://www.trojmiasto.pl/moto/paliwa/ (`robots.txt` nie blokuje tej ścieżki; w regulaminie portalu nie
+  znaleziono zakazu automatycznego pobierania – regulaminu nie przeczytano w całości). Jedno zwykłe `GET` bez parametrów, cookie,
+  konta i położenia; `User-Agent: toyota-companion`; bez przekierowań. Dane pochodzą od użytkowników portalu i stacji: mogą być
+  nieaktualne lub błędne (w komentarzach pod stroną pojawiają się zarzuty o nieprawdziwą cenę jednej ze stacji).
+- Stacje właściciela (na stałe w kodzie): Auchan Gdańsk, Szczęśliwa 3 (id 33831) i WATIS Gdańsk, Trakt Świętego Wojciecha 1 (id 97185).
+  Cena 95 i wiek ceny („dziś”, „wczoraj”, starsza) czytane z wiersza tabeli `tr#id` (`td[title=95]`); brak liczby = brak ceny;
+  strona bez żadnego wiersza stacji = błąd „nieczytelna odpowiedź” (nigdy zgadywana cena).
+- Wybór źródła ceny na ekranach „Cena domyślna” i formularza tankowania: „Ręcznie” (domyślnie, pole jak dotąd), „Auchan Szczęśliwa”
+  albo „WATIS”. Dotknięcie stacji pobiera stronę (tylko na dotknięcie, ponownie najwcześniej po 10 minutach) i wstawia cenę do pola
+  jednorazowo na wybór; pole zostaje edytowalne, nic nie jest zapisywane przed „Zapisz” (SPEC §12.3: pole nie jest wypełniane
+  samo). Pod przyciskami: stacja, cena, wiek ceny, uwaga o źródle, a dla ceny starszej niż dzisiejsza ostrzeżenie.
+- Błędy (brak sieci, odpowiedź inna niż 2xx, zmiana układu strony): stały komunikat bez treści strony i adresu, „Wpisz cenę ręcznie”.
+- Czego nie robi: nie wybiera najtańszej stacji, nie pobiera w tle, nie zapisuje historii cen, nie wysyła niczego o właścicielu.
+
 ## 26. Mapa w aplikacji (PRD F21, ADR-010)
 `app/ui/MapScreen.kt`, `MapLink.kt`, strona `app/src/main/assets/map/map.html` z dołączonym Leaflet 1.9.4 (BSD-2-Clause) w WebView.
 Bez nowych zależności Gradle.

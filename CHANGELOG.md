@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Cena ze stacji (F22): wybór źródła ceny – ręcznie, Auchan Szczęśliwa albo WATIS z trojmiasto.pl (SPEC §25, ADR-011)
 - Mapa w aplikacji (F21): dotknięcie trasy lub miejsca od razu pokazuje mapę OpenStreetMap (SPEC §26, ADR-010)
 - Spalanie na ekranie statusu (F20): średnia z całego okresu, słupki miesięczne i trend (SPEC §24)
 - Pogoda i spalanie (F15): trasy wg temperatury i opadów dnia, Open-Meteo pobierane po dotknięciu, cache w Room v2 (SPEC §23, ADR-009)

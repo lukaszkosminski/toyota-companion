@@ -392,6 +392,25 @@ object Texts {
     fun consumptionFalling(change: String): String = "Trend: ↘ malejące ($change %)"
     fun consumptionSteady(change: String): String = "Trend: → stabilne ($change %)"
 
+    // Cena ze stacji (docs/SPEC.md §25).
+
+    const val PRICE_SOURCE = "Źródło ceny"
+    const val PRICE_MANUAL = "Ręcznie"
+    const val PRICE_FETCHING = "Sprawdzam cenę na trojmiasto.pl…"
+    const val PRICE_AGE_TODAY = "wpisana dziś"
+    const val PRICE_AGE_YESTERDAY = "wpisana wczoraj"
+    const val PRICE_AGE_OLDER = "wpisana dawniej niż wczoraj"
+    fun priceFound(station: String, price: String, age: String, stale: Boolean): String =
+        "$station: $price zł/l, $age (ceny wpisują użytkownicy portalu i stacje)." +
+            (if (stale) " Cena może być nieaktualna – sprawdź." else "")
+    fun priceStationMissing(station: String): String = "$station: nie ma jej teraz na liście cen. Wpisz cenę ręcznie."
+    fun priceNone(station: String): String = "$station: nikt nie wpisał ceny 95. Wpisz cenę ręcznie."
+    fun priceFetchError(error: PriceFetchResult): String = when (error) {
+        PriceFetchResult.NETWORK -> "Brak połączenia z trojmiasto.pl. Wpisz cenę ręcznie."
+        PriceFetchResult.API -> "trojmiasto.pl nie odpowiada poprawnie. Wpisz cenę ręcznie."
+        PriceFetchResult.DATA -> "Nie udało się odczytać cen z trojmiasto.pl (strona mogła się zmienić). Wpisz cenę ręcznie."
+    }
+
     // Mapa w aplikacji (docs/SPEC.md §26).
 
     const val MAP_TITLE_TRIP = "Mapa trasy"

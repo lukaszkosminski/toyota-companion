@@ -61,6 +61,7 @@ import pl.lk.toyotacompanion.core.domain.estimateRefuelLiters
 @Composable
 fun RefuelFormScreen(
     controller: RefuelController,
+    prices: StationPriceController,
     id: String,
     onBackToList: () -> Unit,
     focusPriceOnOpen: Boolean = false,
@@ -132,6 +133,11 @@ fun RefuelFormScreen(
 
                 state.formError?.let { Box(Modifier.padding(horizontal = 16.dp)) { ErrorCard(it) } }
 
+                StationPricePicker(
+                    controller = prices,
+                    onPrice = { priceText = it },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                )
                 OutlinedTextField(
                     value = priceText,
                     onValueChange = { priceText = it },

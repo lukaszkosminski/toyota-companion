@@ -41,4 +41,5 @@ Telefon z Androidem
 | API Toyoty | 429 / 403 / zmiana API | Aplikacja pokazuje dane z lokalnej bazy jako nieaktualne; bez wybudzania auta |
 | Retencja tras 12 mies. | Utrata starszych tras | Archiwum lokalne od uruchomienia + backup |
 | Open-Meteo (F15) | Brak sieci / 429 / 503 / zmiana formatu | Ekran pogody pokazuje cache i komunikat; archiwum i synchronizacja Toyoty nietknięte |
+| trojmiasto.pl ceny (F22) | Brak sieci / zmiana układu strony | Komunikat „Wpisz cenę ręcznie”; ręczne wpisanie działa zawsze |
 | Android (oszczędzanie baterii) | Opóźnione odczyty w tle | Tankowanie wykryte przy następnym odczycie |
