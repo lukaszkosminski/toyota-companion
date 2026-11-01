@@ -57,6 +57,7 @@ class MainActivity : ComponentActivity() {
                 container.stationPriceController,
                 container.tripRouteController,
                 container.yearSummaryController,
+                container.declaredConsumptionController,
                 askNotificationPermission = container.askNotificationPermission,
                 deepLinkRefuelId = refuelDeepLinkId,
                 onDeepLinkShown = { refuelDeepLinkId = null },

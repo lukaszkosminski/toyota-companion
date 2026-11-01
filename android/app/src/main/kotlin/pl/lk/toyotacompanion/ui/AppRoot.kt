@@ -50,6 +50,7 @@ fun AppRoot(
     stationPrices: StationPriceController,
     tripRoute: TripRouteController,
     yearSummary: YearSummaryController,
+    declared: DeclaredConsumptionController,
     askNotificationPermission: suspend () -> Boolean,
     deepLinkRefuelId: String? = null,
     onDeepLinkShown: () -> Unit = {},
@@ -61,6 +62,7 @@ fun AppRoot(
     val forecastState by forecast.state.collectAsState()
     val consumptionState by consumption.state.collectAsState()
     val routeState by tripRoute.state.collectAsState()
+    val declaredState by declared.state.collectAsState()
     var screen by rememberSaveable { mutableStateOf(Screen.Status) }
     // The map in the app (docs/SPEC.md §26): [origin ordinal, then per point: label index, lat, lon] with the positions
     // already rounded, so no raw coordinate lands in the saved state.
@@ -111,6 +113,7 @@ fun AppRoot(
             backup.ensureLoaded()
             forecast.ensureLoaded()
             consumption.ensureLoaded()
+            declared.ensureLoaded()
         }
     }
 
@@ -210,6 +213,8 @@ fun AppRoot(
                         onShowBackup = { screen = Screen.Backup },
                         forecastLine = forecastLine(forecastState, ZoneId.systemDefault()),
                         consumption = consumptionState,
+                        declaredConsumption = declaredState,
+                        onSetDeclared = declared::set,
                         onLogout = session::logout,
                         askNotificationPermission = askNotificationPermission,
                     )

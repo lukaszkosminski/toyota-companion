@@ -41,6 +41,22 @@ class SettingsStore(private val prefs: SharedPreferences) {
         prefs.edit().putString(KEY_DEFAULT_PRICE, price.toPlainString()).apply()
     }
 
+    /** The consumption the maker declares, l/100 km, typed by the owner (docs/SPEC.md §30); `null` when never set or garbage. */
+    fun declaredConsumption(): BigDecimal? {
+        val text = prefs.getString(KEY_DECLARED, null)?.trim()
+        if (text.isNullOrEmpty()) return null
+        val parsed = try {
+            BigDecimal(text)
+        } catch (e: NumberFormatException) {
+            return null
+        }
+        return if (parsed.signum() <= 0) null else parsed
+    }
+
+    fun saveDeclaredConsumption(value: BigDecimal?) {
+        prefs.edit().apply { if (value == null) remove(KEY_DECLARED) else putString(KEY_DECLARED, value.toPlainString()) }.apply()
+    }
+
     /** Whether the weather of new trips is fetched on its own (docs/SPEC.md §23); on by default, the owner asked for it. */
     fun weatherAuto(): Boolean = prefs.getBoolean(KEY_WEATHER_AUTO, true)
 
@@ -113,6 +129,7 @@ class SettingsStore(private val prefs: SharedPreferences) {
     private companion object {
         const val KEY_DEFAULT_PRICE = "default_price"
         const val KEY_WEATHER_AUTO = "weather_auto"
+        const val KEY_DECLARED = "declared_consumption"
         const val KEY_NOTIFIED_REFUELS = "refuel_notified_ids"
         const val KEY_NOTIFICATIONS_ASKED = "notifications_asked"
         const val KEY_LAST_ARCHIVE_EXPORT = "last_archive_export"

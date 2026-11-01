@@ -841,3 +841,11 @@ ekranie „Pogoda i spalanie” (§23).
   miesiąc, oraz zmiana wobec poprzedniego roku (km i koszt w %, spalanie w l/100 km ze znakiem), jeśli poprzedni rok ma trasy.
 - „Udostępnij podsumowanie” wysyła te same linie jako zwykły tekst do systemowego okna udostępniania (`ACTION_SEND`, `text/plain`) tylko po dotknięciu; w tekście nie
   ma położenia, VIN ani danych konta.
+
+## 30. Spalanie deklarowane (PRD F29)
+`app/ui/DeclaredConsumption.kt`, ustawienie w `SettingsStore` (`declared_consumption`), karta „Spalanie” na ekranie statusu (§24).
+- Właściciel sam wpisuje spalanie mieszane swojego modelu (z danych producenta albo dowodu rejestracyjnego); aplikacja go nie zna i niczego nie zakłada.
+  Pole: przecinek lub kropka, liczba > 0 i ≤ 20 l/100 km, zaokrąglona do 0,01 (HALF_UP); puste pole usuwa ustawienie; wartość spoza zakresu jest błędna (nigdy przycinana).
+- Karta po wpisaniu pokazuje: „Deklarowane: 4,50 l/100 km · Twoje średnie: -8 % (taniej niż deklarowane)” – różnica średniej z całego okresu (§24) względem
+  deklarowanego w % (zaokrąglone, ze znakiem). Bez ustawienia przycisk „Ustaw spalanie deklarowane”, po ustawieniu „Zmień deklarowane”.
+- Wartość zostaje na telefonie, nie wchodzi do kopii archiwum ani CSV.

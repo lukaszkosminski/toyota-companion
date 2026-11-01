@@ -404,6 +404,22 @@ object Texts {
     fun consumptionFalling(change: String): String = "Trend: ↘ malejące ($change %)"
     fun consumptionSteady(change: String): String = "Trend: → stabilne ($change %)"
 
+    // Spalanie deklarowane (docs/SPEC.md §30).
+
+    const val DECLARED_SET = "Ustaw spalanie deklarowane"
+    const val DECLARED_EDIT = "Zmień deklarowane"
+    const val DECLARED_TITLE = "Spalanie deklarowane"
+    const val DECLARED_FIELD = "l/100 km (puste usuwa)"
+    const val DECLARED_BODY = "Wpisz spalanie mieszane z danych producenta albo z dowodu rejestracyjnego Twojego modelu. Aplikacja go nie zna."
+    const val DECLARED_INVALID = "Wpisz liczbę większą od 0 i nie większą niż 20, np. 4,5."
+    const val DECLARED_SAVE = "Zapisz"
+    const val DECLARED_CANCEL = "Anuluj"
+    const val DECLARED_LESS = "taniej"
+    const val DECLARED_MORE = "drożej"
+    const val DECLARED_SAME = "tak samo"
+    fun declaredVersus(declared: String, change: String, word: String): String =
+        "Deklarowane: $declared l/100 km · Twoje średnie: $change ($word niż deklarowane)"
+
     // Podsumowanie roku (docs/SPEC.md §29).
 
     const val YEAR_TITLE = "Podsumowanie roku"

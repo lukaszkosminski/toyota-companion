@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Spalanie deklarowane wpisywane przez właściciela i porównanie ze średnią (F29, SPEC §30)
 - Podsumowanie roku (F28) z udostępnieniem tekstu (SPEC §29)
 - Rodzaj jazdy (wolna jazda, miasto, płynnie, trasa) przy każdej trasie na liście (F27)
 - Pogoda dla tras z dzisiaj z usługi prognoz Open-Meteo (archiwum kończy się na wczoraj)

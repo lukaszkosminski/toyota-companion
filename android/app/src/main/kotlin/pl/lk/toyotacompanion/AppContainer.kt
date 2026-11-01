@@ -48,6 +48,7 @@ import pl.lk.toyotacompanion.ui.BackupController
 import pl.lk.toyotacompanion.ui.DefaultPriceController
 import pl.lk.toyotacompanion.core.prices.FuelPriceGatewayFactory
 import pl.lk.toyotacompanion.ui.ConsumptionController
+import pl.lk.toyotacompanion.ui.DeclaredConsumptionController
 import pl.lk.toyotacompanion.ui.StationPriceController
 import pl.lk.toyotacompanion.ui.TripRouteController
 import pl.lk.toyotacompanion.ui.YearSummaryController
@@ -307,6 +308,11 @@ class AppContainer(
             scope = uiScope,
             io = Dispatchers.IO,
         )
+    }
+
+    /** The consumption the maker declares, typed by the owner (docs/SPEC.md §30). */
+    val declaredConsumptionController: DeclaredConsumptionController by lazy {
+        DeclaredConsumptionController(read = { settingsStore.declaredConsumption() }, save = { settingsStore.saveDeclaredConsumption(it) })
     }
 
     /** One year of driving on one page (PRD F28, docs/SPEC.md §29). */
