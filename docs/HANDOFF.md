@@ -125,7 +125,7 @@ odcinek 7,9 km (46 przejazdów), anomalie m.in. 26–28.10 (+39–56 %); brak aw
 Sprawdzone na emulatorze 2026-10-31, build C13: „Tankowanie za ok. 30 dni (ok. 30.11) · w baku ok. 40,4 l (94 %) ·
 ok. 797 km do rezerwy”; typy tras: dojazdy 71, sprawy 118, weekend 177, inne 196; Dom i Praca w „Postojach”.
 - Następny krok: F15 pogoda gotowa (SPEC §23); do sprawdzenia przez właściciela na telefonie: ekran „Pogoda i spalanie” po „Pobierz pogodę” (pierwsze prawdziwe żądanie do Open-Meteo), okno przy dotknięciu trasy. F18 Android Auto (PRD odradza).
-  F19 tempo jazdy a spalanie i przycisk „Otwórz w mapie” gotowe (SPEC §22, §18).
+  F19 tempo jazdy, F20 spalanie na ekranie statusu (średnia, słupki, trend – SPEC §24) i „Otwórz w mapie” gotowe (SPEC §22, §24, §18). Review agenta 2: briefs/toyota-companion/C14-review.md, C15-review.md (poprawki wdrożone, niskie pozycje świadomie odłożone).
 
 F15: migracja Room 1→2 jest automatyczna (ADR-009), a nie jawna jak w planie C14 (D5); review agenta 2: briefs/toyota-companion/C14-review.md (poprawki wysokie i średnie wdrożone).
 
