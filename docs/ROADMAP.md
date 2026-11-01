@@ -38,8 +38,7 @@
 
 ## NEXT
 - Do decyzji właściciela:
-  F15 pogoda (wysyła przybliżone współrzędne do Open-Meteo – wymaga zgody); otwarte pytanie: przycisk „Otwórz w mapie”
-  w „Postojach” (przekazanie współrzędnych innej aplikacji)
+  F15 pogoda (zgoda właściciela 2026-11-01, plan C14); przycisk „Otwórz w mapie” w „Postojach” zrobiony
 
 ## LATER (kolejność wg wartości / kosztu)
 - F15 pogoda (Open-Meteo), F14 prognoza tankowania

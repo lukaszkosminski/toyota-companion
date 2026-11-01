@@ -373,7 +373,7 @@ object Texts {
     const val PARKING_EMPTY = "Brak postojów do pokazania."
     const val PARKING_READ_ERROR = "Nie udało się odczytać postojów. Spróbuj ponownie."
     const val PARKING_PRIVACY =
-        "Położenie tylko na tym ekranie, zaokrąglone do ok. 100 m – liczone z tras w archiwum, bez pytania auta."
+        "Położenie zaokrąglone do ok. 100 m – liczone z tras w archiwum, bez pytania auta. Poza ten ekran trafia tylko po dotknięciu „Otwórz w mapie”."
     const val PARKING_PLACES = "Miejsca"
     const val PARKING_RECENT = "Ostatnie postoje"
     const val PARKING_NO_POSITION = "bez położenia"
@@ -389,6 +389,8 @@ object Texts {
     /** Status button and the title of the screen. */
     const val LOG_TITLE = "Dziennik tankowań"
 
+    const val PARKING_OPEN_MAP = "Otwórz w mapie"
+    const val PARKING_NO_MAP_APP = "Brak aplikacji z mapą."
     const val LOG_EMPTY = "Brak potwierdzonych tankowań."
     const val LOG_HINT =
         "Żeby porównać spalanie z komputerem auta, przy tankowaniu zaznacz „Do pełna” i podaj litry z paragonu."

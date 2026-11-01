@@ -645,8 +645,9 @@ Domena: Python `app/domain/tripstats.py`, Kotlin `core/domain/TripStatsOps.kt` �
   postój bez położenia; inaczej postój w średnim punkcie obu końców. Miejsca: postoje z położeniem łączone zachłannie
   od najstarszego z pierwszym miejscem, którego środek (pierwszy postój) jest ≤ 150 m; sortowane po łącznym czasie.
   Ekran: miejsca (`54.372, 18.638` – 0,001°, ok. 100 m), 50 ostatnich postojów, liczniki pominiętych. Położenie tylko
-  na tym ekranie – nie w logach, CSV, nazwach plików ani innych aplikacjach (bez intentu `geo:` – decyzja właściciela
-  otwarta). Nic nie pyta auta o pozycję (`refresh_status()` zakazany).
+  na tym ekranie – nie w logach, CSV ani nazwach plików. Jedyny wyjątek (decyzja właściciela 2026-11-01): przycisk
+  „Otwórz w mapie” przy miejscu wysyła intent `geo:` z położeniem zaokrąglonym tak jak na ekranie, wyłącznie po
+  dotknięciu; bez aplikacji z mapą – komunikat. Nic nie pyta auta o pozycję (`refresh_status()` zakazany).
 
 ## §19 Styl jazdy i anomalie spalania (PRD F12, F13)
 Funkcje czyste w `app` na `StoredTrip` (wynik eco i GPS są w `TripRecord`, nie w domenie – jak §18, ADR-008), bez lustra

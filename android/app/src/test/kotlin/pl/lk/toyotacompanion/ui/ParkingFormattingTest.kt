@@ -149,3 +149,17 @@ class ParkingFormattingTest {
         assertEquals(ParkingFormatting.place(PARK_LAT, PARK_LON), shown)
     }
 }
+
+class ParkingMapUriTest {
+    @Test
+    fun `map link carries only the rounded position`() {
+        assertEquals("geo:54.372,18.638?q=54.372,18.638", ParkingFormatting.mapUri(54.37249, 18.63849))
+    }
+
+    @Test
+    fun `no position or a broken one gives no link`() {
+        assertEquals(null, ParkingFormatting.mapUri(null, 18.6))
+        assertEquals(null, ParkingFormatting.mapUri(54.3, null))
+        assertEquals(null, ParkingFormatting.mapUri(Double.NaN, 18.6))
+    }
+}

@@ -1,5 +1,9 @@
 package pl.lk.toyotacompanion.ui
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
 
@@ -46,6 +51,7 @@ fun ParkingScreen(
     BackHandler(onBack = onBack)
     val state by controller.state.collectAsState()
     LaunchedEffect(Unit) { controller.ensureLoaded() }
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -79,6 +85,15 @@ fun ParkingScreen(
                             val label = placeLabel(place, known)
                         Text(label + ParkingFormatting.place(place.lat, place.lon), style = MaterialTheme.typography.titleSmall)
                             Text(ParkingFormatting.placeLine(place, zone), style = MaterialTheme.typography.bodyMedium)
+                            ParkingFormatting.mapUri(place.lat, place.lon)?.let { uri ->
+                                TextButton(onClick = {
+                                    try {
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)))
+                                    } catch (_: ActivityNotFoundException) {
+                                        Toast.makeText(context, Texts.PARKING_NO_MAP_APP, Toast.LENGTH_SHORT).show()
+                                    }
+                                }) { Text(Texts.PARKING_OPEN_MAP) }
+                            }
                         }
                     }
                     item { HorizontalDivider() }

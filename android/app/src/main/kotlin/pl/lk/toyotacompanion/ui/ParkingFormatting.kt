@@ -7,7 +7,7 @@ import pl.lk.toyotacompanion.core.data.StoredTrip
 /**
  * Polish text of the parking diary (PRD F17, docs/SPEC.md §18). Pure and independent of
  * `Locale`. Positions are only ever shown here, rounded to 0.001° (about 100 m) by
- * [roundedCoordinate] — never logged, exported or handed to another app (docs/SECURITY.md).
+ * [roundedCoordinate] — never logged or exported; handed to a map app only by the explicit "open in map" tap (docs/SECURITY.md).
  */
 object ParkingFormatting {
 
@@ -28,6 +28,16 @@ object ParkingFormatting {
     fun place(lat: Double?, lon: Double?): String =
         // A non-finite value (a broken row) is no position, never a crash of the screen.
         if (lat == null || lon == null || !lat.isFinite() || !lon.isFinite()) Texts.PARKING_NO_POSITION else roundedCoordinate(lat) + ", " + roundedCoordinate(lon)
+
+    /**
+     * `geo:54.372,18.638?q=54.372,18.638` for the "open in map" button, or null without a usable position.
+     * Only the rounded (about 100 m) values leave the app, and only on an explicit tap (docs/SPEC.md §18).
+     */
+    fun mapUri(lat: Double?, lon: Double?): String? {
+        if (lat == null || lon == null || !lat.isFinite() || !lon.isFinite()) return null
+        val point = roundedCoordinate(lat) + "," + roundedCoordinate(lon)
+        return "geo:$point?q=$point"
+    }
 
     /** One stop: `29.10 14:05 – 30.10 07:40 · 17 h 35 min`. */
     fun stopLine(stop: ParkingStop, zone: ZoneId): String =
