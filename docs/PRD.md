@@ -42,6 +42,7 @@ Jeden właściciel pojazdu (właściciel projektu). Brak użytkowników zewnętr
 | F31 | Widżet na ekran główny | Widżet: średnie spalanie z całego okresu, trend, cena domyślna i prognoza tankowania; odświeżany po synchronizacji, czyszczony przy wylogowaniu (SPEC §32) |
 | F32 | Zapis przebiegów starszych tras | Na ekranie „Trasy” karta z liczbą zapisanych przebiegów i przyciskiem, który po dotknięciu pobiera z Toyoty do 100 przebiegów (od najstarszych), zanim Toyota usunie trasy (SPEC §33) |
 | F33 | Mapa ciepła ulubionych tras | Przy każdym powtarzanym odcinku („Styl jazdy”) mapa ze wszystkimi przejazdami, które mają zapisany przebieg, pokolorowanymi spalaniem od zielonego (najmniej) do czerwonego (najwięcej) (SPEC §34) |
+| F34 | Android Auto | Ekran tylko do odczytu w Android Auto: średnie spalanie, trend i cena, prognoza tankowania; kategoria IoT, do użytku własnego po włączeniu „Nieznane źródła” w ustawieniach programisty Android Auto (SPEC §35, ADR-014) |
 | F9 | Dziennik tankowań i spalanie „komputer vs faktyczne” | Ekran „Dziennik tankowań”: potwierdzone tankowania od najnowszego; pod tankowaniem kończącym odcinek „do pełna – do pełna” spalanie faktyczne (litry z paragonu) i z komputera auta (trasy z tego odcinka) w l/100 km z różnicą w %, albo powód braku porównania; odcinek < 100 km nie jest porównywany; litry i „do pełna” potwierdzonego tankowania można poprawić z paragonu (SPEC §15) |
 | F2a | Szacunek litrów z czujnika | Formularz ceny pokazuje „Szacunek z czujnika: ok. N l” (skok poziomu × 43 l); „Użyj szacunku” wpisuje litry i zapisuje `liters_source="estimate"`, ręczna zmiana albo „Z paragonu” daje `"receipt"`; szacunek bez ceny nie wylicza ceny (SPEC §2a, §11) |
 | F2b | Cena domyślna paliwa | Użytkownik ustawia cenę za litr w aplikacji; trasy bez potwierdzonego tankowania przed startem dostają koszt z tej ceny (`source="default"`, SPEC §4, §12), a usunięcie ceny przywraca „brak ceny” |
@@ -71,7 +72,7 @@ Jeden właściciel pojazdu (właściciel projektu). Brak użytkowników zewnętr
 | F15 | Wpływ pogody (mróz, deszcz) na koszt | Open-Meteo (historyczne dane, bez klucza) | Wykonalne. Wysyła współrzędne do zewnętrznej usługi – zaokrąglać do ~1 km (SECURITY.md) |
 | F16 | Automatyczne typy tras (dojazd do pracy, zakupy, weekend) | start/end lat/lon, godziny | Wykonalne (klasteryzacja miejsc + reguły czasu) |
 | F17 | Dziennik parkowania (gdzie i jak długo) | koniec trasy → start następnej | Wykonalne. Strefy płatnego parkowania – brak źródła danych; tylko czas i miejsce postoju |
-| F18 | Android Auto | – | Ryzykowne: Android Auto dopuszcza tylko wybrane kategorie aplikacji (np. nawigacja, parkingi, IoT); ekran statystyk nie pasuje. Do zbadania |
+| F18 | Android Auto | – | Ryzykowne (wykonane w wersji ograniczonej jako F34): Android Auto dopuszcza tylko wybrane kategorie aplikacji (np. nawigacja, parkingi, IoT); ekran statystyk nie pasuje. Do zbadania |
 
 ## 5. Poza zakresem MVP (non-goals)
 - zdalne sterowanie autem (zamki, klimatyzacja),

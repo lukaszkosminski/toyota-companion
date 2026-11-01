@@ -27,6 +27,22 @@
             </intent-filter>
         </activity>
 
+        <!-- Android Auto (docs/SPEC.md §35, ADR-014): tylko do odczytu ekran szablonowy z liczbami ekranu statusu. -->
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
+        <meta-data
+            android:name="androidx.car.app.minCarApiLevel"
+            android:value="1" />
+        <service
+            android:name=".car.ConsumptionCarAppService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.car.app.CarAppService" />
+                <category android:name="androidx.car.app.category.IOT" />
+            </intent-filter>
+        </service>
+
         <!-- Widżet na ekran główny (docs/SPEC.md §32): pokazuje zapisany stan, nie pyta Toyoty ani sieci. -->
         <receiver
             android:name=".widget.ConsumptionWidgetProvider"

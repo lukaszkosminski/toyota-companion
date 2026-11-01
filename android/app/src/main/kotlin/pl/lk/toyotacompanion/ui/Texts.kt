@@ -404,6 +404,15 @@ object Texts {
     fun consumptionFalling(change: String): String = "Trend: ↘ malejące ($change %)"
     fun consumptionSteady(change: String): String = "Trend: → stabilne ($change %)"
 
+    // Android Auto (docs/SPEC.md §35).
+
+    const val CAR_TITLE = "Toyota Companion"
+    const val CAR_CONSUMPTION = "Średnie spalanie"
+    const val CAR_TREND = "Trend i cena"
+    const val CAR_FORECAST = "Tankowanie"
+    const val CAR_EMPTY_TITLE = "Brak danych"
+    const val CAR_EMPTY_TEXT = "Otwórz aplikację na telefonie i zsynchronizuj."
+
     // Mapa ciepła ulubionych tras (docs/SPEC.md §34).
 
     const val HEAT_BUTTON = "Pokaż przebiegi na mapie"

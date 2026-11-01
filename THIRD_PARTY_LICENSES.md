@@ -19,6 +19,7 @@
 | androidx.test:core, androidx.test.ext:junit (test) | 1.7.0, 1.3.0 | Apache-2.0 |
 | junit:junit (test) | 4.13.2 | EPL-1.0 |
 
+| androidx.car.app:app (Android for Cars App Library) | 1.7.0 | Apache-2.0 |
 | Leaflet (dołączony: `app/src/main/assets/map/`) | 1.9.4 | BSD-2-Clause — tekst w `app/src/main/assets/map/LEAFLET-LICENSE.txt` |
 
 ## Dane

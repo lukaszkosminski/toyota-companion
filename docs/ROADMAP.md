@@ -37,10 +37,9 @@
 - Test klienta Toyoty na prawdziwym koncie: `./gradlew -q :core:liveCheck` (uruchamia właściciel, docs/HANDOFF.md)
 
 ## NEXT
-- Gotowe 2026-11-01: F14 prognoza tankowania, F15 pogoda, F16 typy tras, F19 tempo jazdy a spalanie, „Otwórz w mapie” (Postoje, trasy)
+- Gotowe 2026-11-01 (także F28–F34: podsumowanie roku, spalanie deklarowane, alert, widżet, zapis przebiegów, mapa ciepła, Android Auto): F14 prognoza tankowania, F15 pogoda, F16 typy tras, F19 tempo jazdy a spalanie, „Otwórz w mapie” (Postoje, trasy)
 
 ## LATER (kolejność wg wartości / kosztu)
-- F18 Android Auto (PRD odradza)
 
 ## DO ZBADANIA
 - F14 źródło cen paliw na stacjach (API/licencja)

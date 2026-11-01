@@ -885,3 +885,13 @@ ekranie „Pogoda i spalanie” (§23).
 - Tylko odczyt z telefonu: żadne zapytanie do Toyoty; przejazd bez zapisanego przebiegu jest policzony, nie pobierany. Bez żadnego przebiegu: „Żaden z M przejazdów tej trasy nie ma
   zapisanego przebiegu. Zapisz je przyciskiem na ekranie „Trasy”.” Początek i koniec pierwszego przejazdu jako znaczniki (zaokrąglone do 0,001°, jak każdy punkt mapy).
 - Strona dostaje wyłącznie liczby (punkty przebiegu, udział 0–1) i tekst spalania z cyfr i stałych słów. Wylogowanie i wyjście z mapy zerują stan.
+
+## 35. Android Auto (PRD F34, ADR-014)
+`app/car/ConsumptionCarAppService.kt` (`CarAppService`, kategoria `androidx.car.app.category.IOT`), zależność `androidx.car.app:app` 1.7.0.
+- Ekran szablonowy tylko do odczytu (`PaneTemplate`): wiersze „Średnie spalanie”, „Trend i cena” i „Tankowanie” z migawki zapisanej dla widżetu (§32); bez migawki jeden wiersz „Brak danych – otwórz aplikację na
+  telefonie i zsynchronizuj”. Nic do dotknięcia, więc kierowca niczego nie obsługuje. Ekran niczego nie liczy i nie pyta sieci, archiwum ani położenia.
+- Walidacja hosta: wersja debugowalna przyjmuje każdego hosta (instalacja z boku i Desktop Head Unit), wersja wydana tylko hosty z listy biblioteki (`hosts_allowlist_sample`, hosty Google).
+- Ograniczenie platformy: Android Auto uruchamia z Google Play tylko aplikacje z kategorii dopuszczonych przez Google (nawigacja, POI, IoT, pogoda…), a aplikacja ze statystykami do żadnej
+  nie pasuje, więc w Google Play nie przeszłaby weryfikacji. Do użytku własnego działa po włączeniu w Android Auto (telefon: Ustawienia Android Auto → kilkukrotne dotknięcie „Wersja” →
+  Ustawienia programisty → „Nieznane źródła”); aplikacja pojawia się wtedy w ekranie głównym Android Auto. Na prawdziwym zestawie samochodu i w Desktop Head Unit nie była tu uruchamiana.
+- Przy zmianie tej funkcji zmienia się też `*.gradle.kts` / `libs.versions.toml` – za zgodą właściciela (AGENTS.md).

@@ -45,6 +45,8 @@ dependencies {
     implementation(libs.room3.runtime)
     implementation(libs.sqlite.framework)
     implementation(libs.work.runtime)
+    // Android Auto: templated screen of the car app (docs/SPEC.md §35, ADR-014).
+    implementation(libs.car.app)
     implementation(libs.coroutines.core)
     ksp(libs.room3.compiler)
     implementation(project(":core"))

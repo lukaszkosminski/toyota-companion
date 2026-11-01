@@ -96,3 +96,9 @@ Uzupełnienie ADR-009 (2026-11-01): trasy z dzisiaj dostają pogodę z usługi p
 wcześniej pierwsze, najnowsze wiersze listy tras były bez pogody. Wartość jest modelowa i odświeżana co najmniej co 3 godziny, a po zmianie doby
 zastępuje ją archiwum. Do usługi wychodzi ten sam zaokrąglony punkt, bez dat.
 
+## ADR-014 Android Auto: ekran szablonowy w kategorii IoT, do użytku własnego (2026-11-01)
+Właściciel poprosił o Android Auto (F18, które PRD odradzał). Wybrane: Car App Library 1.7.0 (nowa zależność Gradle – za zgodą właściciela), jeden ekran `PaneTemplate`
+tylko do odczytu z migawką z widżetu, kategoria `IOT`, bez pytań do sieci i archiwum. Odrzucone: ekran z mapą (kategoria nawigacji wymaga własnego silnika nawigacji),
+interaktywne ekrany (rozpraszają kierowcę). Ryzyko: to nie jest kategoria, do której aplikacja pasuje według zasad Google Play, więc nie do publikacji w sklepie; do użytku własnego
+potrzebne jest „Nieznane źródła” w ustawieniach programisty Android Auto. Ekran nie był sprawdzony na prawdziwym zestawie ani w Desktop Head Unit.
+

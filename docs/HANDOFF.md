@@ -129,6 +129,8 @@ ok. 797 km do rezerwy”; typy tras: dojazdy 71, sprawy 118, weekend 177, inne 1
 
 F15: migracja Room 1→2 jest automatyczna (ADR-009), a nie jawna jak w planie C14 (D5); review agenta 2: briefs/toyota-companion/C14-review.md (poprawki wysokie i średnie wdrożone).
 
+Android Auto (F34): włącz w Android Auto → Ustawienia programisty → „Nieznane źródła”; ekran nie był sprawdzony na prawdziwym zestawie ani w Desktop Head Unit (SPEC §35).
+
 Test klienta na prawdziwym koncie MyToyota (uruchamia właściciel; hasło nie trafia do repo ani rozmowy):
 ```bash
 source ~/Android/env.sh && cd android
