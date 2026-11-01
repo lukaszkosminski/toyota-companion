@@ -34,7 +34,10 @@ open class ConsumptionAlertNotifier(
     private val io: CoroutineDispatcher = Dispatchers.IO,
     private val zone: () -> ZoneId = { ZoneId.systemDefault() },
     private val today: () -> LocalDate = { LocalDate.now() },
-    private val canPost: () -> Boolean = { notificationPermissionGranted(context) },
+    // The permission AND the app's notifications switched on: muted notifications must not use up the month's alert.
+    private val canPost: () -> Boolean = {
+        notificationPermissionGranted(context) && NotificationManagerCompat.from(context).areNotificationsEnabled()
+    },
 ) {
     suspend fun onSyncOutcome(outcome: SyncOutcome) {
         if (outcome !is SyncOutcome.Ok) return
@@ -58,6 +61,8 @@ open class ConsumptionAlertNotifier(
         manager.createNotificationChannel(
             NotificationChannel(CHANNEL_ID, Texts.ALERT_CHANNEL, NotificationManager.IMPORTANCE_DEFAULT),
         )
+        // A channel the owner muted counts as "cannot post": the alert of the month is not marked as told.
+        if (manager.getNotificationChannel(CHANNEL_ID)?.importance == NotificationManager.IMPORTANCE_NONE) return false
         val text = risingAlertText(alert)
         manager.notify(
             NOTIFICATION_ID,

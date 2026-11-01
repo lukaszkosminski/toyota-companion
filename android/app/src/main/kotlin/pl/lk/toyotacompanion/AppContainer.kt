@@ -266,7 +266,8 @@ class AppContainer(
             persist = { price ->
                 if (price == null) settingsStore.clearDefaultPrice() else settingsStore.saveDefaultPrice(price)
             },
-            recompute = { syncEngine.recomputeCostsNow() },
+            // The widget shows the default price, so it is repainted once the costs are recounted.
+            recompute = { syncEngine.recomputeCostsNow().also { refreshWidget() } },
             scope = uiScope,
             io = Dispatchers.IO,
         )

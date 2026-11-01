@@ -93,6 +93,14 @@ class ConsumptionAlertTest {
     }
 
     @Test
+    fun `a step of 2,96 percent is no alert even though it rounds to three`() {
+        // 6.77 -> 6.97 is +2.954 %, which the old one-decimal rounding turned into 3.0; the second step is large.
+        assertNull(alertFor((2026 to 5) to 6.77, (2026 to 6) to 6.97, (2026 to 7) to 7.6, today = LocalDate.parse("2026-08-05")))
+        // 6.77 -> 6.98 is +3.10 %: the gate passes.
+        assertNotNull(alertFor((2026 to 5) to 6.77, (2026 to 6) to 6.98, (2026 to 7) to 7.6, today = LocalDate.parse("2026-08-05")))
+    }
+
+    @Test
     fun `the month in progress is left out and winter gives no alert`() {
         // Today is in July: July is not finished, so only May and June remain - too few.
         assertNull(alertFor((2026 to 5) to 4.0, (2026 to 6) to 4.3, (2026 to 7) to 4.7, today = LocalDate.parse("2026-07-20")))
@@ -132,6 +140,36 @@ class ConsumptionAlertTest {
         assertEquals(0, posted().size)
         notifier().onSyncOutcome(ok())
         assertEquals(1, posted().size)
+    }
+
+    @Test
+    fun `muted notifications of the app do not use up the alert of the month`() = runTest {
+        shadowOf(context as android.app.Application).grantPermissions(android.Manifest.permission.POST_NOTIFICATIONS)
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        shadowOf(manager).setNotificationsEnabled(false)
+        val muted = ConsumptionAlertNotifier(
+            context = context,
+            readTrips = { trips },
+            lastAlertKey = { last },
+            markAlerted = { last = it },
+            io = Dispatchers.Unconfined,
+            zone = { WARSAW },
+            today = { today },
+        )
+        muted.onSyncOutcome(ok())
+        assertNull(last)
+        shadowOf(manager).setNotificationsEnabled(true)
+        muted.onSyncOutcome(ok())
+        assertEquals("2026-07", last)
+    }
+
+    @Test
+    fun `a muted channel is not marked as told`() = runTest {
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.createNotificationChannel(android.app.NotificationChannel("consumption", "Spalanie", NotificationManager.IMPORTANCE_NONE))
+        notifier().onSyncOutcome(ok())
+        assertEquals(0, posted().size)
+        assertNull(last)
     }
 
     @Test

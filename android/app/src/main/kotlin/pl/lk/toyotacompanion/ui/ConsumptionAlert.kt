@@ -32,12 +32,13 @@ fun risingConsumptionAlert(view: ConsumptionView, today: LocalDate): RisingAlert
     if (ordinals[1] != ordinals[0] + 1 || ordinals[2] != ordinals[1] + 1) return null
     if (last.last().month.month !in ALERT_MONTHS) return null
     fun rise(from: BigDecimal, to: BigDecimal): BigDecimal =
-        if (from.signum() <= 0) BigDecimal.ZERO else to.subtract(from).multiply(BigDecimal(100)).divide(from, 1, RoundingMode.HALF_UP)
+        if (from.signum() <= 0) BigDecimal.ZERO else to.subtract(from).multiply(BigDecimal(100)).divide(from, 6, RoundingMode.HALF_UP)
     if (rise(last[0].lPer100, last[1].lPer100) < ALERT_MIN_STEP_PCT) return null
     if (rise(last[1].lPer100, last[2].lPer100) < ALERT_MIN_STEP_PCT) return null
     val total = rise(last[0].lPer100, last[2].lPer100)
     if (total < ALERT_MIN_TOTAL_PCT) return null
-    return RisingAlert(last, total)
+    // Only the shown figure is rounded; the gates above compared the exact rise (docs/SPEC.md §31).
+    return RisingAlert(last, total.setScale(1, RoundingMode.HALF_UP))
 }
 
 /** The notification text: the three values and the rise, plus the hint. */

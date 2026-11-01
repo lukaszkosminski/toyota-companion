@@ -867,6 +867,7 @@ ekranie „Pogoda i spalanie” (§23).
   powtórzyłby sezon). Inaczej brak alertu.
 - Powiadomienie: „Spalanie rośnie trzeci miesiąc z rzędu” z trzema wartościami i wzrostem, np. „l/100 km: 4,0 → 4,3 → 4,7 (+18 %). Poza zimą warto sprawdzić np.
   ciśnienie w oponach. To tylko podpowiedź, aplikacja nie diagnozuje.” Jedno miejsce powiadomienia (nowy alert zastępuje stary), kanał „Spalanie”.
+- Bramki liczą dokładny wzrost (nie zaokrąglony do 0,1 pp), zaokrąglona jest tylko pokazywana liczba. „Można wysłać” znaczy: uprawnienie do powiadomień, powiadomienia aplikacji włączone i kanał „Spalanie” nie wyciszony; inaczej nic nie jest zapisywane, więc alert nie przepada.
 - Raz na ostatni miesiąc: klucz `RRRR-MM` zapisany w ustawieniach. Bez uprawnienia do powiadomień nic nie jest wysyłane ani zapisywane, więc późniejsze nadanie
   go dostarczy alert bieżącego miesiąca. Błąd odczytu lub powiadomień nie przerywa synchronizacji.
 
@@ -875,7 +876,7 @@ ekranie „Pogoda i spalanie” (§23).
 - Trzy linie: średnie spalanie z całego okresu (§24, np. „4,60 l/100 km”), trend (↗/↘/→) i cena domyślna („↗ rosnące (+8,2 %) · cena 6,30 zł/l”) oraz prognoza tankowania
   (§20). Brak spalania = „Otwórz aplikację”; pusta linia jest ukryta. Dotknięcie otwiera aplikację.
 - Widżet niczego nie liczy i nie pyta sieci: aplikacja zapisuje migawkę (trzy teksty) w prywatnym pliku ustawień po każdej udanej synchronizacji i odmalowuje widżet.
-  Bez synchronizacji (`updatePeriodMillis = 0`) nie ma odświeżania w tle. Wylogowanie czyści migawkę i odmalowuje widżet, więc nie zostają na nim liczby konta.
+  Poza synchronizacją migawka jest też odświeżana po zmianie ceny domyślnej i przeliczeniu kosztów; bez tego (`updatePeriodMillis = 0`) nie ma odświeżania w tle. Wylogowanie czyści migawkę i odmalowuje widżet, więc nie zostają na nim liczby konta.
 - W migawce nie ma położenia ani VIN. Użytkownik dodaje widżet z listy widżetów launchera („Toyota Companion”).
 
 ## 33. Zapis przebiegów starszych tras (PRD F32)
@@ -899,7 +900,7 @@ ekranie „Pogoda i spalanie” (§23).
 ## 35. Android Auto (PRD F34, ADR-014)
 `app/car/ConsumptionCarAppService.kt` (`CarAppService`, kategoria `androidx.car.app.category.IOT`), zależność `androidx.car.app:app` 1.7.0.
 - Ekran szablonowy tylko do odczytu (`PaneTemplate`): wiersze „Średnie spalanie”, „Trend i cena” i „Tankowanie” z migawki zapisanej dla widżetu (§32); bez migawki jeden wiersz „Brak danych – otwórz aplikację na
-  telefonie i zsynchronizuj”. Nic do dotknięcia, więc kierowca niczego nie obsługuje. Ekran niczego nie liczy i nie pyta sieci, archiwum ani położenia.
+  telefonie i zsynchronizuj”. Liczby to migawka z ostatniej synchronizacji – ekran odświeża je dopiero po ponownym otwarciu. Nic do dotknięcia, więc kierowca niczego nie obsługuje. Ekran niczego nie liczy i nie pyta sieci, archiwum ani położenia.
 - Walidacja hosta: wersja debugowalna przyjmuje każdego hosta (instalacja z boku i Desktop Head Unit), wersja wydana tylko hosty z listy biblioteki (`hosts_allowlist_sample`, hosty Google).
 - Ograniczenie platformy: Android Auto uruchamia z Google Play tylko aplikacje z kategorii dopuszczonych przez Google (nawigacja, POI, IoT, pogoda…), a aplikacja ze statystykami do żadnej
   nie pasuje, więc w Google Play nie przeszłaby weryfikacji. Do użytku własnego działa po włączeniu w Android Auto (telefon: Ustawienia Android Auto → kilkukrotne dotknięcie „Wersja” →
