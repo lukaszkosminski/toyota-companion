@@ -211,6 +211,8 @@ private fun TripRow(stored: StoredTrip, zone: ZoneId, day: pl.lk.toyotacompanion
                 )
                 // Weather of the day and the place the trip started at; nothing until it has been fetched.
                 WeatherSymbols.line(day)?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                // Kind of drive by average speed (§22): slow, city, flowing, route.
+                drivingTypeLine(stored)?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(

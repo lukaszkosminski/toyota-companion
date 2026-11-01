@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Rodzaj jazdy (wolna jazda, miasto, płynnie, trasa) przy każdej trasie na liście (F27)
 - Pogoda dla tras z dzisiaj z usługi prognoz Open-Meteo (archiwum kończy się na wczoraj)
 - Koszty miesięczne i suma całego okresu na ekranie statusu (F26, SPEC §24)
 - Pogoda na liście tras (F25): symbol, słowo i temperatura dnia przy każdej trasie; kod pogody w pamięci (Room v4)

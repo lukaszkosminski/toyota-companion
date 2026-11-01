@@ -320,6 +320,14 @@ object Texts {
 
     // Typy tras (PRD F16, docs/SPEC.md §21).
 
+    const val DRIVING_SHORT = "📏 krótki odcinek"
+    fun drivingType(cls: TrafficClass, kmh: String): String = when (cls) {
+        TrafficClass.SLOW -> "🚦 wolna jazda"
+        TrafficClass.CITY -> "🏙️ miasto"
+        TrafficClass.FLOWING -> "🚗 płynnie"
+        TrafficClass.HIGHWAY -> "🛣️ trasa"
+    } + SEPARATOR + "$kmh km/h"
+
     const val TRAFFIC_SECTION = "Tempo jazdy a spalanie"
     const val TRAFFIC_HINT =
         "Średnia prędkość trasy (od 2 km) jako miara ruchu – wolna jazda to też sygnalizacja i krótkie odcinki, nie tylko korki. Litry liczone do wszystkich km, także tych na prądzie – patrz udział prądu."

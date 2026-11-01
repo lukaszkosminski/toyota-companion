@@ -115,3 +115,36 @@ class TrafficIndexReviewTest {
         assertEquals("Wolna jazda wobec płynnej: -1,13 l/100 km (-7,02 zł/100 km)", Texts.trafficSurcharge("-1,13", "-7,02 zł"))
     }
 }
+
+
+/** docs/SPEC.md §10.3: the kind of drive on a trip row. */
+class DrivingTypeLineTest {
+    private fun at(speed: Double?, km: Double = 10.0) = ride("x", speed, km = km)
+
+    @Test
+    fun `each speed band has its own label with the whole km per hour`() {
+        assertEquals("🚦 wolna jazda · 12 km/h", drivingTypeLine(at(12.4)))
+        assertEquals("🏙️ miasto · 20 km/h", drivingTypeLine(at(19.5)))
+        assertEquals("🚗 płynnie · 31 km/h", drivingTypeLine(at(30.6)))
+        assertEquals("🛣️ trasa · 52 km/h", drivingTypeLine(at(52.0)))
+    }
+
+    @Test
+    fun `the band edges follow the speed bands`() {
+        assertEquals("🚦 wolna jazda · 15 km/h", drivingTypeLine(at(14.9)))
+        assertEquals("🏙️ miasto · 15 km/h", drivingTypeLine(at(15.0)))
+        assertEquals("🏙️ miasto · 25 km/h", drivingTypeLine(at(24.9)))
+        assertEquals("🚗 płynnie · 25 km/h", drivingTypeLine(at(25.0)))
+        assertEquals("🛣️ trasa · 40 km/h", drivingTypeLine(at(40.0)))
+    }
+
+    @Test
+    fun `a trip under two kilometres is a short stretch and a trip without a speed has no line`() {
+        assertEquals("📏 krótki odcinek", drivingTypeLine(at(30.0, km = 1.99)))
+        assertEquals("🚗 płynnie · 30 km/h", drivingTypeLine(at(30.0, km = 2.0)))
+        assertNull(drivingTypeLine(at(null)))
+        assertNull(drivingTypeLine(at(0.0)))
+        assertNull(drivingTypeLine(at(Double.NaN)))
+        assertNull(drivingTypeLine(at(30.0, km = 0.0)))
+    }
+}

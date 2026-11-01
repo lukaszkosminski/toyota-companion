@@ -277,6 +277,7 @@ Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – �
   współrzędne, zaokrąglonymi jak w §18 (ok. 100 m). Trasa bez żadnego położenia nie reaguje na dotknięcie. Archiwum nie ma przebiegu
   trasy, więc mapa łączy początek z końcem prostą przerywaną linią.
 - Wiersz trasy pokazuje pogodę dnia i miejsca startu (§23), gdy jest w pamięci: symbol, słowo i średnią temperaturę w pełnych stopniach, np. „🌧️ deszcz · 8 °C”, „☀️ słonecznie · 12 °C”, „❄️ śnieg · -2 °C”. Symbol i słowo z kodu pogody WMO dnia (`weather_code`: bezchmurnie, zachmurzenie, mgła, mżawka, deszcz, śnieg, burza); bez kodu tylko temperatura, bez pogody nic. Otwarcie listy uruchamia pobieranie brakujących dni (§23), a lista dociąga je w miarę ich pojawiania się. Dni zapisane przed dodaniem kodu są pobierane jeszcze raz (raz).
+- Wiersz trasy pokazuje też rodzaj jazdy wg średniej prędkości trasy (pasma z §22): „🚦 wolna jazda · 12 km/h” (< 15), „🏙️ miasto · 19 km/h” (15–25), „🚗 płynnie · 32 km/h” (25–40), „🛣️ trasa · 52 km/h” (≥ 40); trasa poniżej 2 km to „📏 krótki odcinek”, bez prędkości – brak linii. To miara pośrednia (wolna jazda to też sygnalizacja i krótkie odcinki, nie tylko korek), więc etykieta mówi „wolna jazda”, a nie „korek”.
 
 ### §11.1 Operacje w `core`
 - `pendingRefuels(): List<Refuel>` — oczekujące tankowania wybranego VIN (`state.get().vin`), najnowsze pierwsze
