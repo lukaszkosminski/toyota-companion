@@ -206,6 +206,8 @@ class InMemoryTripRouteRepository : pl.lk.toyotacompanion.core.routes.TripRouteR
         rows[tripId] = points
     }
 
+    override suspend fun storedIds(): Set<String> = rows.keys.toSet()
+
     override suspend fun count(): Int = rows.size
 
     override suspend fun deleteAll() = rows.clear()

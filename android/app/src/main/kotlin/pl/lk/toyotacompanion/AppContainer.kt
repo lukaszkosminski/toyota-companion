@@ -50,6 +50,7 @@ import pl.lk.toyotacompanion.core.prices.FuelPriceGatewayFactory
 import pl.lk.toyotacompanion.ui.ConsumptionController
 import pl.lk.toyotacompanion.ui.DeclaredConsumptionController
 import pl.lk.toyotacompanion.ui.StationPriceController
+import pl.lk.toyotacompanion.ui.RouteBackfillController
 import pl.lk.toyotacompanion.ui.TripRouteController
 import pl.lk.toyotacompanion.ui.YearSummaryController
 import pl.lk.toyotacompanion.data.db.RoomTripRouteRepository
@@ -352,6 +353,17 @@ class AppContainer(
     /** One year of driving on one page (PRD F28, docs/SPEC.md §29). */
     val yearSummaryController: YearSummaryController by lazy {
         YearSummaryController(read = tripsLoader, zone = { ZoneId.systemDefault() }, scope = uiScope, io = Dispatchers.IO)
+    }
+
+    /** Saves the routes of older trips before Toyota removes them (PRD F32, docs/SPEC.md §33). */
+    val routeBackfillController: RouteBackfillController by lazy {
+        RouteBackfillController(
+            readTrips = tripsLoader,
+            repository = RoomTripRouteRepository(database.tripRouteDao()),
+            gateway = routeGateway,
+            scope = uiScope,
+            io = Dispatchers.IO,
+        )
     }
 
     /** Station prices for the price fields, fetched only on a tap (docs/SPEC.md §25). */

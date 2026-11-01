@@ -51,6 +51,7 @@ fun AppRoot(
     tripRoute: TripRouteController,
     yearSummary: YearSummaryController,
     declared: DeclaredConsumptionController,
+    backfill: RouteBackfillController,
     askNotificationPermission: suspend () -> Boolean,
     deepLinkRefuelId: String? = null,
     onDeepLinkShown: () -> Unit = {},
@@ -105,6 +106,7 @@ fun AppRoot(
             stationPrices.reset()
             tripRoute.close()
             yearSummary.reset()
+            backfill.reset()
             // The widget must not keep an account's numbers after logout (docs/SPEC.md §32).
             pl.lk.toyotacompanion.widget.WidgetSnapshotStore(widgetContext).clear()
             pl.lk.toyotacompanion.widget.ConsumptionWidgetProvider.refresh(widgetContext)
@@ -260,6 +262,7 @@ fun AppRoot(
                         onBack = { screen = Screen.Status },
                         onShowMap = { points, id -> showMap(Screen.Trips, points, id) },
                         weather = weather,
+                        backfill = backfill,
                         loadTrips = loadTrips,
                     )
 

@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Zapis przebiegów starszych tras przyciskiem na ekranie „Trasy” (F32, SPEC §33)
 - Widżet na ekran główny: spalanie, trend, cena i prognoza (F31, SPEC §32)
 - Alert o rosnącym spalaniu trzy miesiące z rzędu poza zimą (F30, SPEC §31)
 - Spalanie deklarowane wpisywane przez właściciela i porównanie ze średnią (F29, SPEC §30)

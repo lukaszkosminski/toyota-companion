@@ -166,4 +166,11 @@ class RoomTripRouteRepositoryTest {
         repository.deleteAll()
         assertEquals(0, repository.count())
     }
+
+    @Test
+    fun `the stored ids list every trip with a route, empty ones too`() = runTest {
+        repository.save("t1", listOf(pl.lk.toyotacompanion.core.routes.TripRoutePoint(1.0, 2.0, true)))
+        repository.save("t2", emptyList())
+        assertEquals(setOf("t1", "t2"), repository.storedIds())
+    }
 }

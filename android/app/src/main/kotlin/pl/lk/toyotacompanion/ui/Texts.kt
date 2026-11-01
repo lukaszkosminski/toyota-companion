@@ -404,6 +404,24 @@ object Texts {
     fun consumptionFalling(change: String): String = "Trend: ↘ malejące ($change %)"
     fun consumptionSteady(change: String): String = "Trend: → stabilne ($change %)"
 
+    // Zapis przebiegów (docs/SPEC.md §33).
+
+    const val BACKFILL_BUTTON = "Zapisz przebiegi starszych tras"
+    const val BACKFILL_STOP = "Zatrzymaj"
+    const val BACKFILL_HINT =
+        "Toyota usuwa trasy po ok. 12 miesiącach. Przebieg zapisany na telefonie zostaje. Jedno dotknięcie pobiera do 100 przebiegów, od najstarszych."
+    fun backfillCounts(stored: Int, total: Int): String = "Przebiegi zapisane na telefonie: $stored z $total tras"
+    fun backfillRunning(fetched: Int): String = "Pobieram przebiegi z Toyoty… zapisano $fetched"
+    fun backfillResult(result: BackfillResult, fetched: Int): String = when (result) {
+        BackfillResult.DONE -> "Zapisano przebiegi ($fetched). Wszystkie trasy mają już przebieg."
+        BackfillResult.PARTIAL -> "Zapisano $fetched przebiegów. Dotknij ponownie, żeby pobrać resztę."
+        BackfillResult.NOTHING -> "Wszystkie trasy mają już zapisany przebieg."
+        BackfillResult.NETWORK -> "Brak połączenia z Toyotą. Zapisano $fetched. Spróbuj później."
+        BackfillResult.LOGIN -> "Toyota prosi o ponowne logowanie. Zapisano $fetched."
+        BackfillResult.API -> "Toyota nie odpowiedziała poprawnie. Zapisano $fetched. Spróbuj później."
+        BackfillResult.STOPPED -> "Zatrzymano. Zapisano $fetched."
+    }
+
     // Widżet (docs/SPEC.md §32).
 
     const val WIDGET_TITLE = "Toyota Companion"

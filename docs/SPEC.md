@@ -867,3 +867,12 @@ ekranie „Pogoda i spalanie” (§23).
 - Widżet niczego nie liczy i nie pyta sieci: aplikacja zapisuje migawkę (trzy teksty) w prywatnym pliku ustawień po każdej udanej synchronizacji i odmalowuje widżet.
   Bez synchronizacji (`updatePeriodMillis = 0`) nie ma odświeżania w tle. Wylogowanie czyści migawkę i odmalowuje widżet, więc nie zostają na nim liczby konta.
 - W migawce nie ma położenia ani VIN. Użytkownik dodaje widżet z listy widżetów launchera („Toyota Companion”).
+
+## 33. Zapis przebiegów starszych tras (PRD F32)
+`app/ui/RouteBackfillController.kt`, karta na górze ekranu „Trasy” (§10.3); korzysta z tabeli `trip_routes` i klienta z §27.
+- Toyota usuwa trasy po ok. 12 miesiącach; przebieg zapisany na telefonie zostaje (§27). Karta pokazuje „Przebiegi zapisane na telefonie: N z M tras” (M = trasy z jakimkolwiek
+  położeniem; pusty zapis „Toyota nie ma przebiegu” też liczy się jako zapisany) i przycisk „Zapisz przebiegi starszych tras”, dopóki jakiegoś brakuje.
+- Jedno dotknięcie: najwyżej 100 zapytań `GET /v1/trips/{id}` (tylko odczyt, jak §27), od najstarszych tras, po jednym naraz z przerwą 300 ms, wyłącznie po dotknięciu – nigdy w synchronizacji
+  i w tle; „Zatrzymaj” przerywa, a to, co zapisano, zostaje. Trasa, której Toyota już nie ma (HTTP 404), zapisuje się jako brak przebiegu i nie jest pytana ponownie. Każdy inny błąd (brak sieci,
+  logowanie, błąd usługi) kończy przebieg stałym komunikatem z liczbą zapisanych. Wylogowanie zeruje stan.
+- Przebiegi nie wchodzą do kopii archiwum ani CSV (§27).

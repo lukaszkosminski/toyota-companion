@@ -35,6 +35,9 @@ interface TripRouteRepository {
 
     suspend fun save(tripId: String, points: List<TripRoutePoint>)
 
+    /** Ids of the trips that have a stored route, empty ones included. */
+    suspend fun storedIds(): Set<String>
+
     suspend fun count(): Int
 
     suspend fun deleteAll()

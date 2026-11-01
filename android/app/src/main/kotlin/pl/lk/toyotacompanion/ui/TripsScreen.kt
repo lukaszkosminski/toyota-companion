@@ -71,6 +71,7 @@ fun TripsScreen(
     onBack: () -> Unit,
     onShowMap: (List<MapPoint>, String?) -> Unit,
     weather: WeatherController,
+    backfill: RouteBackfillController,
     loadTrips: suspend () -> List<StoredTrip>,
     zone: ZoneId = ZoneId.systemDefault(),
     io: CoroutineDispatcher = Dispatchers.IO,
@@ -80,7 +81,9 @@ fun TripsScreen(
     // The weather of each trip's day (docs/SPEC.md §10.3): read from the cache, and the missing days are fetched on their own
     // (§23); the list picks them up as they arrive.
     val weatherState by weather.state.collectAsState()
+    val backfillState by backfill.state.collectAsState()
     LaunchedEffect(Unit) {
+        backfill.refresh()
         weather.ensureLoaded()
         weather.autoFetch()
     }
@@ -142,6 +145,14 @@ fun TripsScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = innerPadding,
             ) {
+                // The condition is read inside the item, so the card appears when the counts arrive.
+                item(key = "backfill") {
+                    if (backfillState.total > 0 &&
+                        (backfillState.stored < backfillState.total || backfillState.running || backfillState.result != null)
+                    ) {
+                        BackfillCard(backfillState, backfill)
+                    }
+                }
                 current.groups.forEach { group ->
                     item(key = "month-" + group.month.year + "-" + group.month.month) {
                         MonthHeader(group)
@@ -233,3 +244,26 @@ private fun TripRow(stored: StoredTrip, zone: ZoneId, day: pl.lk.toyotacompanion
     }
 }
 
+/** Counts, the button that saves the routes of older trips and the result of the last run (docs/SPEC.md §33). */
+@Composable
+private fun BackfillCard(state: BackfillState, controller: RouteBackfillController) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        shape = MaterialTheme.shapes.small,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(Texts.backfillCounts(state.stored, state.total), style = MaterialTheme.typography.bodyMedium)
+            if (state.running) {
+                Text(Texts.backfillRunning(state.fetchedNow), style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = controller::stop) { Text(Texts.BACKFILL_STOP) }
+            } else {
+                state.result?.let { Text(Texts.backfillResult(it, state.fetchedNow), style = MaterialTheme.typography.bodySmall) }
+                if (state.stored < state.total) {
+                    TextButton(onClick = controller::start) { Text(Texts.BACKFILL_BUTTON) }
+                    Text(Texts.BACKFILL_HINT, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+    }
+}

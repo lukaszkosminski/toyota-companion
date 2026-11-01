@@ -129,6 +129,8 @@ class RoomTripRouteRepository(
     override suspend fun save(tripId: String, points: List<pl.lk.toyotacompanion.core.routes.TripRoutePoint>) =
         dao.save(TripRouteEntity(tripId, pl.lk.toyotacompanion.core.routes.encodeRoute(points), now()))
 
+    override suspend fun storedIds(): Set<String> = dao.ids().toSet()
+
     override suspend fun count(): Int = dao.count()
 
     override suspend fun deleteAll() = dao.deleteAll()

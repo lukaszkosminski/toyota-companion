@@ -190,6 +190,9 @@ interface TripRouteDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun save(entity: TripRouteEntity)
 
+    @Query("SELECT trip_id FROM trip_routes")
+    suspend fun ids(): List<String>
+
     @Query("SELECT COUNT(*) FROM trip_routes")
     suspend fun count(): Int
 
