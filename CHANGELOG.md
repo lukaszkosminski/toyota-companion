@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Koszty miesięczne i suma całego okresu na ekranie statusu (F26, SPEC §24)
 - Pogoda na liście tras (F25): symbol, słowo i temperatura dnia przy każdej trasie; kod pogody w pamięci (Room v4)
 - Pogoda pobierana automatycznie po synchronizacji i przy otwarciu ekranu, z przełącznikiem (SPEC §23, ADR-013)
 - Prędkość i temperatura (F24): tabela pasm tempa × temperatura dnia z różnicą zimą (SPEC §28)

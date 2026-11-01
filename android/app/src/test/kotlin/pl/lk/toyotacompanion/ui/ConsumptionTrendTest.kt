@@ -141,3 +141,75 @@ class ConsumptionTrendTest {
         assertEquals(BigDecimal.ZERO, ConsumptionFormatting.axisBase(consumptionView(listOf(month(2026, 6, 4.0), month(2026, 7, 4.0)), WARSAW).months))
     }
 }
+
+private fun priced(id: String, start: String, km: Double, price: String?, source: pl.lk.toyotacompanion.core.domain.CostSource = pl.lk.toyotacompanion.core.domain.CostSource.REFUEL): StoredTrip {
+    val begin = Instant.parse(start)
+    val record = TripRecord(Trip(id, begin, begin.plusSeconds(1_800), km, BigDecimal("1.0"), null), "VINAAA111")
+    val cost = price?.let { pl.lk.toyotacompanion.core.domain.TripCost(id, BigDecimal(it), null, null, source) }
+    return StoredTrip(record, cost)
+}
+
+/** docs/SPEC.md §24: the money of each month and of the whole archive. */
+class MonthlyCostsTest {
+    @Test
+    fun `a month sums the costs of its priced trips and counts the unpriced ones`() {
+        val view = consumptionView(
+            listOf(
+                priced("a", "2026-10-02T08:00:00Z", 10.0, "4.00"),
+                priced("b", "2026-10-03T08:00:00Z", 30.0, "12.50"),
+                priced("c", "2026-10-04T08:00:00Z", 20.0, null),
+                priced("d", "2026-09-04T08:00:00Z", 10.0, "3.00"),
+            ),
+            WARSAW,
+        )
+        assertEquals(listOf(MonthKey(2026, 9), MonthKey(2026, 10)), view.monthCosts.map { it.month })
+        val oct = view.monthCosts.last()
+        assertEquals(BigDecimal("16.50"), oct.costPln)
+        assertEquals(1, oct.tripsWithoutCost)
+        assertEquals(3, oct.trips)
+        assertEquals(BigDecimal("60.0"), oct.distanceKm)
+        assertEquals(BigDecimal("41.25"), oct.costPer100)
+        assertEquals(BigDecimal("19.50"), view.totalCost)
+        assertEquals(1, view.totalTripsWithoutCost)
+    }
+
+    @Test
+    fun `a month without any price has no amount, never zero`() {
+        val view = consumptionView(listOf(priced("a", "2026-10-02T08:00:00Z", 10.0, null)), WARSAW)
+        assertNull(view.monthCosts.single().costPln)
+        assertNull(view.monthCosts.single().costPer100)
+        assertNull(view.totalCost)
+        assertEquals("–", ConsumptionFormatting.costLabel(view.monthCosts.single()))
+        assertNull(ConsumptionFormatting.totalCostLine(view))
+    }
+
+    @Test
+    fun `a trip whose source is none counts as unpriced even with an amount`() {
+        val view = consumptionView(
+            listOf(priced("a", "2026-10-02T08:00:00Z", 10.0, "5.00", pl.lk.toyotacompanion.core.domain.CostSource.NONE)),
+            WARSAW,
+        )
+        assertNull(view.monthCosts.single().costPln)
+        assertEquals(1, view.monthCosts.single().tripsWithoutCost)
+    }
+
+    @Test
+    fun `short months are listed too and only the newest twelve are kept`() {
+        val trips = (1..14).map { priced("m$it", "${2025 + (it - 1) / 12}-${((it - 1) % 12 + 1).toString().padStart(2, '0')}-10T10:00:00Z", 5.0, "2.00") }
+        val view = consumptionView(trips, WARSAW)
+        assertEquals(12, view.monthCosts.size)
+        assertEquals(MonthKey(2025, 3), view.monthCosts.first().month)
+    }
+
+    @Test
+    fun `the lines read in Polish`() {
+        val view = consumptionView(
+            listOf(priced("a", "2026-10-02T08:00:00Z", 10.0, "4.00"), priced("b", "2026-10-03T08:00:00Z", 10.0, null)),
+            WARSAW,
+        )
+        val month = view.monthCosts.single()
+        assertEquals("4", ConsumptionFormatting.costLabel(month))
+        assertEquals("paź: 4,00 zł · 20,0 km · 40,00 zł/100 km · bez ceny: 1", ConsumptionFormatting.costLine(month).replace("/100 km", "/100 km"))
+        assertEquals("Razem z całego okresu: 4,00 zł · bez ceny: 1", ConsumptionFormatting.totalCostLine(view))
+    }
+}

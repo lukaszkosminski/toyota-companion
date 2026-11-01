@@ -18,6 +18,19 @@ const val CONSUMPTION_MIN_TREND_MONTHS = 3
 /** A change over the span below this share of the mean is "stable". */
 val CONSUMPTION_STABLE_BELOW_PCT: BigDecimal = BigDecimal(5)
 
+/**
+ * A month's money (docs/SPEC.md §24): the sum of the costs of its priced trips, its kilometres, and how many trips have no price
+ * ([costPln] is `null` when none has one - never 0 zł). [costPer100] is Σ cost / Σ km of the priced trips.
+ */
+data class MonthCost(
+    val month: MonthKey,
+    val trips: Int,
+    val distanceKm: BigDecimal,
+    val costPln: BigDecimal?,
+    val tripsWithoutCost: Int,
+    val costPer100: BigDecimal?,
+)
+
 enum class ConsumptionTrend { RISING, FALLING, STEADY }
 
 /** One bar of the chart: a month's average consumption, l/100 km = Σ fuel / Σ km (0.01). */
@@ -33,6 +46,11 @@ data class ConsumptionView(
     val months: List<MonthConsumption>,
     val trend: ConsumptionTrend?,
     val changePct: BigDecimal?,
+    /** The newest [CONSUMPTION_CHART_MONTHS] months with trips, oldest first, whatever their length. */
+    val monthCosts: List<MonthCost>,
+    /** Σ cost of the priced trips of the whole archive, `null` without a price. */
+    val totalCost: BigDecimal?,
+    val totalTripsWithoutCost: Int,
 )
 
 private fun ordinal(month: MonthKey): Int = month.year * 12 + (month.month - 1)
@@ -72,8 +90,49 @@ fun consumptionView(trips: List<StoredTrip>, zone: ZoneId): ConsumptionView {
         MonthConsumption(month, group.size, km.setScale(1, RoundingMode.HALF_UP), fuel.multiply(HUNDRED).divide(km, 2, RoundingMode.HALF_UP))
     }.takeLast(CONSUMPTION_CHART_MONTHS)
 
+    val costs = byMonth.entries.sortedBy { it.key }.map { (month, group) ->
+        var km = BigDecimal.ZERO
+        var pricedKm = BigDecimal.ZERO
+        var cost: BigDecimal? = null
+        var without = 0
+        for (stored in group) {
+            val distance = toBigDecimal(stored.record.trip.distanceKm)
+            km = km.add(distance)
+            val value = stored.cost?.costPln
+            if (value == null || hasNoCost(stored.cost)) {
+                without++
+            } else {
+                cost = cost?.add(value) ?: value
+                pricedKm = pricedKm.add(distance)
+            }
+        }
+        MonthCost(
+            month = month,
+            trips = group.size,
+            distanceKm = km.setScale(1, RoundingMode.HALF_UP),
+            costPln = cost?.setScale(2, RoundingMode.HALF_UP),
+            tripsWithoutCost = without,
+            costPer100 = if (cost != null && pricedKm.signum() > 0) cost.multiply(HUNDRED).divide(pricedKm, 2, RoundingMode.HALF_UP) else null,
+        )
+    }
+    var total: BigDecimal? = null
+    var totalWithout = 0
+    for (stored in usable) {
+        val value = stored.cost?.costPln
+        if (value == null || hasNoCost(stored.cost)) totalWithout++ else total = total?.add(value) ?: value
+    }
+
     val (trend, change) = trendOf(bars)
-    return ConsumptionView(overall, totalKm.setScale(1, RoundingMode.HALF_UP), bars, trend, change)
+    return ConsumptionView(
+        overall,
+        totalKm.setScale(1, RoundingMode.HALF_UP),
+        bars,
+        trend,
+        change,
+        costs.takeLast(CONSUMPTION_CHART_MONTHS),
+        total?.setScale(2, RoundingMode.HALF_UP),
+        totalWithout,
+    )
 }
 
 private fun trendOf(bars: List<MonthConsumption>): Pair<ConsumptionTrend?, BigDecimal?> {

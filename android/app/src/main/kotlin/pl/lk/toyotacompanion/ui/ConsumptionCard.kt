@@ -64,5 +64,37 @@ fun ConsumptionCard(view: ConsumptionView?) {
             }
             Text(Texts.consumptionHint(TripsFormatting.plain(base, 1)), style = MaterialTheme.typography.bodySmall)
         }
+        if (view.monthCosts.isNotEmpty()) {
+            Text(Texts.CONSUMPTION_COSTS_TITLE, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
+            ConsumptionFormatting.totalCostLine(view)?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+            val topCost = view.monthCosts.maxOf { it.costPln ?: java.math.BigDecimal.ZERO }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                for (cost in view.monthCosts) {
+                    val share = if (topCost.signum() > 0) (cost.costPln ?: java.math.BigDecimal.ZERO).toFloat() / topCost.toFloat() else 0f
+                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(ConsumptionFormatting.costLabel(cost), style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
+                        Box(
+                            modifier = Modifier
+                                .width(18.dp)
+                                .height(BAR_AREA * share.coerceIn(0.03f, 1f))
+                                .background(MaterialTheme.colorScheme.tertiary),
+                        )
+                        Text(
+                            ConsumptionFormatting.monthShort(cost.month),
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
+                    }
+                }
+            }
+            for (cost in view.monthCosts.asReversed()) {
+                Text(ConsumptionFormatting.costLine(cost), style = MaterialTheme.typography.bodySmall)
+            }
+            Text(Texts.CONSUMPTION_COSTS_HINT, style = MaterialTheme.typography.bodySmall)
+        }
     }
 }

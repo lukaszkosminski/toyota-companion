@@ -824,3 +824,7 @@ ekranie „Pogoda i spalanie” (§23).
   Poniżej 5 tras (`WEATHER_MIN_TRIPS_PER_BUCKET`) komórka pokazuje tylko liczbę („N tras – za mało”), bez liczby do wniosku.
 - „Zimą przy tej prędkości” = mróz − łagodnie w tym samym paśmie, tylko gdy obie komórki mają ≥ 5 tras; inaczej brak (nie zgadujemy różnicy z kilku ttras).
 - Ekran przypomina, że to korelacja, a nie pomiar przyczyny (jak §23); pogodę trzeba pobrać (§23), bez niej tabela jest pusta.
+- Koszty miesięczne (ta sama karta, pod słupkami spalania): na miesiąc – suma kosztów tras z ceną (`null` i „–” bez ceny, nigdy 0 zł; trasa ze źródłem
+  kosztu `NONE` liczy się jak bez ceny), km (0,1), zł/100 km = Σ koszt / Σ km tras z ceną i liczba tras bez ceny; miesiące z trasami, także krótkie
+  i niepełny bieżący, najwyżej 12 ostatnich od najstarszego. Słupki od zera (kwoty), podpis nad słupkiem – pełne złotówki; pod słupkami lista
+  miesięcy od najnowszego z dokładną kwotą i km. Nad słupkami „Razem z całego okresu” (suma kosztów tras z ceną całego archiwum i liczba tras bez ceny).

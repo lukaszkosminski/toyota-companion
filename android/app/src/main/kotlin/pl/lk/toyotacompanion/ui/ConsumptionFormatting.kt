@@ -52,4 +52,21 @@ object ConsumptionFormatting {
         val text = TripsFormatting.plain(value, 1)
         return if (value.signum() > 0) "+$text" else text
     }
+
+    /** Money of a month on the bar label: whole zloty, `–` without a price. */
+    fun costLabel(cost: MonthCost): String = cost.costPln?.let { TripsFormatting.plain(it, 0) } ?: "–"
+
+    /** `października 2026`-free line of a month: `paź: 217,90 zł · 776,4 km · 28,07 zł/100 km` (+ the unpriced count). */
+    fun costLine(cost: MonthCost): String = listOfNotNull(
+        monthShort(cost.month) + ": " + (cost.costPln?.let { TripsFormatting.money(it) } ?: Texts.NO_PRICE),
+        TripsFormatting.plain(cost.distanceKm, 1) + " km",
+        cost.costPer100?.let { Texts.trafficCost(TripsFormatting.money(it)) },
+        if (cost.tripsWithoutCost > 0) Texts.tripsWithoutCost(cost.tripsWithoutCost) else null,
+    ).joinToString(Texts.SEPARATOR)
+
+    /** `Razem z całego okresu: 1 234,50 zł` (and the unpriced count); `null` without a single price. */
+    fun totalCostLine(view: ConsumptionView): String? = view.totalCost?.let {
+        Texts.consumptionTotalCost(TripsFormatting.money(it)) +
+            if (view.totalTripsWithoutCost > 0) Texts.SEPARATOR + Texts.tripsWithoutCost(view.totalTripsWithoutCost) else ""
+    }
 }

@@ -387,6 +387,10 @@ object Texts {
     fun consumptionHint(axisStart: String): String =
         "Słupki: średnie spalanie miesiąca (l/100 km), miesiące od 50 km; oś zaczyna się od $axisStart l/100 km, nie od zera. " +
             "Trend to linia przez słupki; zimą spalanie zwykle rośnie."
+    const val CONSUMPTION_COSTS_TITLE = "Koszty miesięczne"
+    const val CONSUMPTION_COSTS_HINT =
+        "Słupki: koszt paliwa miesiąca w zł (tylko trasy z ceną), od zera. Pod słupkami: miesiące od najstarszego."
+    fun consumptionTotalCost(money: String): String = "Razem z całego okresu: $money"
     fun consumptionOverall(litres: String, km: String): String = "Średnio z całego okresu: $litres l/100 km ($km km)"
     fun consumptionRising(change: String): String = "Trend: ↗ rosnące ($change %)"
     fun consumptionFalling(change: String): String = "Trend: ↘ malejące ($change %)"
