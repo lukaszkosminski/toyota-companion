@@ -129,4 +129,35 @@ class OpenMeteoClientTest {
         assertEquals("-0.01", OpenMeteoClient.rounded(-0.005))
         assertEquals("18.00", OpenMeteoClient.rounded(18.0))
     }
+
+    @Test
+    fun `a redirect is an API failure and never followed with the query`() {
+        MockWebServer().use { elsewhere ->
+            elsewhere.start()
+            MockWebServer().use { server ->
+                server.start()
+                server.enqueue(reply(302, "", "Location" to elsewhere.url("/stolen").toString()))
+                val client = OpenMeteoClient(
+                    OkHttpClient.Builder().followRedirects(false).followSslRedirects(false).build(),
+                    baseUrl = server.url("/").toString(),
+                    today = { TODAY },
+                )
+                val e = assertFailsWith<WeatherFetchException> {
+                    runBlocking { client.daily(54.37, 18.63, LocalDate.parse("2026-10-30"), LocalDate.parse("2026-10-31")) }
+                }
+                assertEquals(WeatherErrorKind.API, e.kind)
+                assertEquals(0, elsewhere.requestCount)
+            }
+        }
+    }
+
+    @Test
+    fun `the request is a GET and a 429 without Retry-After has no wait`() = withServer { server, client ->
+        server.enqueue(reply(429, "{}"))
+        val e = assertFailsWith<WeatherFetchException> {
+            client.daily(54.37, 18.63, LocalDate.parse("2026-10-30"), LocalDate.parse("2026-10-31"))
+        }
+        assertNull(e.retryAfterSeconds)
+        assertEquals("GET", server.takeRequest().method)
+    }
 }

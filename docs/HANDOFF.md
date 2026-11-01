@@ -127,6 +127,8 @@ ok. 797 km do rezerwy”; typy tras: dojazdy 71, sprawy 118, weekend 177, inne 1
 - Następny krok: F15 pogoda gotowa (SPEC §23); do sprawdzenia przez właściciela na telefonie: ekran „Pogoda i spalanie” po „Pobierz pogodę” (pierwsze prawdziwe żądanie do Open-Meteo), okno przy dotknięciu trasy. F18 Android Auto (PRD odradza).
   F19 tempo jazdy a spalanie i przycisk „Otwórz w mapie” gotowe (SPEC §22, §18).
 
+F15: migracja Room 1→2 jest automatyczna (ADR-009), a nie jawna jak w planie C14 (D5); review agenta 2: briefs/toyota-companion/C14-review.md (poprawki wysokie i średnie wdrożone).
+
 Test klienta na prawdziwym koncie MyToyota (uruchamia właściciel; hasło nie trafia do repo ani rozmowy):
 ```bash
 source ~/Android/env.sh && cd android

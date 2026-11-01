@@ -408,11 +408,12 @@ object Texts {
     }
     fun weatherDelta(signed: String): String = "$signed l/100 km wobec odniesienia"
     fun weatherEv(share: String): String = "na prądzie $share"
-    fun weatherWithout(count: Int, total: Int): String = "Bez pogody: $count z $total tras (brak położenia lub danych dla dnia)."
-    fun weatherPending(places: Int, left: Int, cachedDays: Int): String = when {
-        places == 0 -> "Nic do pobrania. Dni w pamięci: $cachedDays."
-        left > 0 -> "Do pobrania: miejsca $places (jedno dotknięcie obejmuje ${places - left}). Dni w pamięci: $cachedDays."
-        else -> "Do pobrania: miejsca $places. Dni w pamięci: $cachedDays."
+    fun weatherWind(kmh: String): String = "wiatr do $kmh km/h"
+    fun weatherWithout(count: Int, total: Int): String = "Bez pogody w tym podziale: $count z $total tras (brak położenia lub danych dla dnia)."
+    fun weatherPending(requests: Int, left: Int, cachedDays: Int): String = when {
+        requests == 0 -> "Nic do pobrania. Dni w pamięci: $cachedDays."
+        left > 0 -> "Do pobrania: zapytania $requests (jedno dotknięcie robi ${requests - left}). Dni w pamięci: $cachedDays."
+        else -> "Do pobrania: zapytania $requests. Dni w pamięci: $cachedDays."
     }
     fun weatherFetchResult(result: WeatherFetchResult): String = when (result) {
         WeatherFetchResult.DONE -> "Pobrano pogodę."

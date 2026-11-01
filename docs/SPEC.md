@@ -732,15 +732,20 @@ Złączenie trasy z pogodą, pobieranie i ekran: `app/ui` (GPS, więc bez lustra
   opad (`precipitation_sum`) – sucho < 0,5 mm, mokro ≥ 0,5 mm. Odniesienie: łagodnie / sucho.
 - Miary na koszyk: liczba tras, km (0,1), paliwo, l/100 km = Σ paliwo / Σ km (0,01), zł/100 km = Σ koszt / Σ km tras z ceną
   (`null` bez ceny, nigdy 0 zł), km na prądzie, różnica l/100 km wobec odniesienia (tylko gdy odniesienie ma ≥ 5 tras),
-  `tooFewTrips` poniżej 5 tras. Wiatr tylko zgłaszany, bez wniosków.
+  `tooFewTrips` poniżej 5 tras. Wiatr tylko zgłaszany („wiatr do N km/h” przy koszyku), bez wniosków. Udział jazdy na prądzie nie przekracza 100 %.
 - Cache: tabela `weather` (klucz `lat_r`, `lon_r`, `date`; wartości, `fetched_at`), Room v2 przez migrację automatyczną
   (schemat `2.json`), bez VIN i id trasy; nie wchodzi do kopii archiwum (§14) ani CSV. Przeżywa wylogowanie (to nie sekret).
   Dzień bez wartości z usługi zapisany z `null`.
-- Pobieranie: wyłącznie po dotknięciu „Pobierz pogodę” (nigdy w synchronizacji ani w tle), po jednym miejscu naraz.
-  Jedno dotknięcie – najwyżej 10 miejsc (najliczniejsze pierwsze), reszta po kolejnym dotknięciu. Zakres miejsca = od najstarszego
-  do najnowszego brakującego dnia; koniec przycinany do wczoraj (archiwum nie zna dziś i odrzuca przyszłość). Puste dni z ostatnich
-  10 dni (opóźnienie reanaliz) są pytane ponownie; starsze puste nie.
+- Pobieranie: wyłącznie po dotknięciu „Pobierz pogodę” (nigdy w synchronizacji ani w tle), po jednym zapytaniu naraz. Wyjście z
+  ekranu i wylogowanie przerywają trwające pobieranie. Brakujące dni miejsca dzielone są na odcinki (dni bliższe niż 14 dni
+  dzielą jedno zapytanie); jedno dotknięcie robi najwyżej 10 zapytań (obsługujących najwięcej tras pierwsze), reszta po kolejnym
+  dotknięciu. „Dziś” i „wczoraj” liczone są w strefie telefonu – tej samej, która datuje trasy; koniec odcinka przycinany do
+  wczoraj (archiwum nie zna dziś i odrzuca przyszłość; klient dodatkowo trzyma twardy sufit UTC). Dzień pominięty w odpowiedzi
+  zapisywany jest pusty, żeby nie był pytany w nieskończoność; odpowiedź bez ani jednego dnia to błąd „nieczytelna odpowiedź”.
+  Dni z ostatnich 10 dni bez temperatury lub opadu (opóźnienie reanaliz) są pytane ponownie; starsze puste nie. Po pobraniu
+  cache jest przycinany do dnia sprzed pierwszej trasy archiwum.
+- Klient nie podąża za przekierowaniami (zapytanie z punktem nie może trafić do obcej domeny); 3xx = błąd usługi.
 - Błędy: 429 (z `Retry-After`) → „usługa prosi o przerwę”, bez pętli; inne HTTP → błąd usługi; brak sieci; nieczytelna odpowiedź
   (także tablica JSON zamiast obiektu). Komunikaty bez treści odpowiedzi, adresu i współrzędnych. Ekran zostaje na cache'u.
-- Atrybucja (CC BY 4.0) stale na ekranie: „Weather data by Open-Meteo.com”. Uwaga na ekranie: to korelacja, nie pomiar przyczyny
+- Atrybucja (CC BY 4.0) w stałej stopce ekranu (nie przewija się): „Weather data by Open-Meteo.com”. Uwaga na ekranie: to korelacja, nie pomiar przyczyny
   (reanaliza to model; zimą inne trasy; mróz skraca jazdę na prądzie, dlatego pokazujemy udział prądu).

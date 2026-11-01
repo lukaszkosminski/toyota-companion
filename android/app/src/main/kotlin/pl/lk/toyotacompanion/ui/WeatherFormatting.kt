@@ -24,6 +24,7 @@ object WeatherFormatting {
         bucket.deltaLPer100Km?.let { parts += Texts.weatherDelta(signed(it)) }
         val ev = evShare(bucket)
         if (ev != null) parts += Texts.weatherEv(ev)
+        bucket.windMaxKmh?.let { parts += Texts.weatherWind(TripsFormatting.plain(it, 0)) }
         if (bucket.tooFewTrips) parts += Texts.WEATHER_TOO_FEW
         return if (parts.isEmpty()) null else parts.joinToString(Texts.SEPARATOR)
     }
@@ -31,7 +32,9 @@ object WeatherFormatting {
     /** Electric km over all km of the bucket, whole percent; `null` without distance. */
     fun evShare(bucket: WeatherBucketStats): String? {
         if (bucket.distanceKm.signum() <= 0) return null
-        val percent = bucket.evKm.multiply(BigDecimal(100)).divide(bucket.distanceKm, 0, RoundingMode.HALF_UP)
+        // Toyota rounds meters, so the electric part can exceed the whole: never over 100 % (docs/SPEC.md §16).
+        val electric = bucket.evKm.min(bucket.distanceKm)
+        val percent = electric.multiply(BigDecimal(100)).divide(bucket.distanceKm, 0, RoundingMode.HALF_UP)
         return percent.toPlainString() + " %"
     }
 

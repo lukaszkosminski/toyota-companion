@@ -3,10 +3,10 @@ package pl.lk.toyotacompanion.ui
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.ZoneOffset
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,6 +18,7 @@ import pl.lk.toyotacompanion.core.data.WeatherRow
 import pl.lk.toyotacompanion.core.domain.WeatherImpact
 import pl.lk.toyotacompanion.core.domain.weatherCostByPrecipitation
 import pl.lk.toyotacompanion.core.domain.weatherCostByTemperature
+import pl.lk.toyotacompanion.core.weather.WeatherDay
 import pl.lk.toyotacompanion.core.weather.WeatherErrorKind
 import pl.lk.toyotacompanion.core.weather.WeatherFetchException
 import pl.lk.toyotacompanion.core.weather.WeatherGateway
@@ -26,15 +27,15 @@ import pl.lk.toyotacompanion.core.weather.WeatherGateway
  * What the weather screen shows (PRD F15, docs/SPEC.md §23): the trips split by temperature and by
  * precipitation, and how much of the archive still waits for weather.
  *
- * @param plannedPlaces places (start points of about 1 km) that a tap on "Pobierz pogodę" would ask for now
- * @param placesLeft of them, how many do not fit in one tap
- * @param cachedDays days in the cache
+ * @param plannedRequests requests a tap on "Pobierz pogodę" would make now, over all taps
+ * @param requestsLeft of them, how many do not fit in one tap
+ * @param cachedDays distinct days in the cache
  */
 data class WeatherView(
     val temperature: WeatherImpact,
     val precipitation: WeatherImpact,
-    val plannedPlaces: Int,
-    val placesLeft: Int,
+    val plannedRequests: Int,
+    val requestsLeft: Int,
     val cachedDays: Int,
 )
 
@@ -72,9 +73,12 @@ class WeatherController(
 
     private var generation = 0
     private var loadStarted = false
+    private var fetchJob: Job? = null
 
     fun load() {
         loadStarted = true
+        // A result of an earlier visit must not greet the next one.
+        if (!ui.value.fetching) ui.value = ui.value.copy(lastFetch = null)
         val startedIn = generation
         scope.launch {
             val result: Result<WeatherView> = try {
@@ -100,21 +104,32 @@ class WeatherController(
     fun reset() {
         generation++
         loadStarted = false
+        fetchJob?.cancel()
+        fetchJob = null
         ui.value = WeatherUiState()
+    }
+
+    /** Stops a running fetch (leaving the screen): nothing is requested in the background (docs/SPEC.md §23). */
+    fun cancelFetch() {
+        val job = fetchJob ?: return
+        job.cancel()
+        fetchJob = null
+        ui.value = ui.value.copy(fetching = false)
     }
 
     /** Asks the service for the days the plan names, one place at a time, and recomputes the view. */
     fun fetch() {
-        if (ui.value.fetching) return
+        if (fetchJob?.isActive == true) return
         val startedIn = generation
         ui.value = ui.value.copy(fetching = true, lastFetch = null)
-        scope.launch {
+        fetchJob = scope.launch {
             val outcome: WeatherFetchResult = try {
                 withContext(io) { fetchMissing() }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                WeatherFetchResult.STORAGE
+                // Anything the steps below did not name; the text never carries the exception.
+                WeatherFetchResult.DATA
             }
             if (generation != startedIn) return@launch
             val view = try {
@@ -134,8 +149,10 @@ class WeatherController(
     }
 
     private suspend fun fetchMissing(): WeatherFetchResult {
-        val plan = planWeatherFetch(readTrips(), cache.all(), zone(), today())
+        val stored = readTrips()
+        val plan = planWeatherFetch(stored, cache.all(), zone(), today())
         if (plan.requests.isEmpty()) return WeatherFetchResult.NOTHING_TO_FETCH
+        var received = 0
         for (request in plan.requests) {
             val days = try {
                 gateway.daily(
@@ -154,10 +171,36 @@ class WeatherController(
                     WeatherErrorKind.DATA -> WeatherFetchResult.DATA
                 }
             }
+            received += days.size
             val now = clock()
-            cache.save(days.map { WeatherRow(request.place.latitude, request.place.longitude, it, now) })
+            // A day the service left out is saved empty, or it would be asked for again at every tap.
+            val answered = days.mapTo(HashSet()) { it.date }
+            val last = minOf(request.end, today().minusDays(1))
+            val absent = generateSequence(request.start) { it.plusDays(1) }
+                .takeWhile { !it.isAfter(last) }
+                .filter { it !in answered }
+                .map { WeatherDay(it, null, null, null, null, null, null) }
+                .toList()
+            try {
+                cache.save((days + absent).map { WeatherRow(request.place.latitude, request.place.longitude, it, now) })
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                return WeatherFetchResult.STORAGE
+            }
         }
-        return if (plan.placesLeft > 0) WeatherFetchResult.PARTIAL else WeatherFetchResult.DONE
+        if (received == 0) return WeatherFetchResult.DATA
+        // The cache holds no day older than the archive's first trip.
+        stored.minOfOrNull { weatherDateOf(it, zone()) }?.let { first ->
+            try {
+                cache.pruneBefore(first.minusDays(1))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Pruning is housekeeping; a failure must not hide the days just fetched.
+            }
+        }
+        return if (plan.requestsLeft > 0) WeatherFetchResult.PARTIAL else WeatherFetchResult.DONE
     }
 
     private suspend fun compute(): WeatherView {
@@ -170,11 +213,12 @@ class WeatherController(
         return WeatherView(
             temperature = weatherCostByTemperature(trips, costs, weather),
             precipitation = weatherCostByPrecipitation(trips, costs, weather),
-            plannedPlaces = plan.requests.size + plan.placesLeft,
-            placesLeft = plan.placesLeft,
-            cachedDays = rows.size,
+            plannedRequests = plan.requests.size + plan.requestsLeft,
+            requestsLeft = plan.requestsLeft,
+            cachedDays = rows.mapTo(HashSet()) { it.day.date }.size,
         )
     }
 
-    private fun today(): LocalDate = LocalDate.ofInstant(clock(), ZoneOffset.UTC)
+    /** The local date of the phone: the clock that dates the trips, so "yesterday" means the same for both. */
+    private fun today(): LocalDate = LocalDate.ofInstant(clock(), zone())
 }

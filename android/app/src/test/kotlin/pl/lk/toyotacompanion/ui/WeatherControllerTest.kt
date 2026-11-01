@@ -82,7 +82,7 @@ class WeatherControllerTest {
         c.load()
         advanceUntilIdle()
         val view = assertNotNull(c.state.value.view)
-        assertEquals(1, view.plannedPlaces)
+        assertEquals(1, view.plannedRequests)
         assertEquals(0, gateway.asked.size)
         assertEquals(1, view.temperature.tripsWithoutWeather)
     }
@@ -107,7 +107,7 @@ class WeatherControllerTest {
         val view = assertNotNull(state.view)
         assertEquals(0, view.temperature.tripsWithoutWeather)
         assertEquals(6, view.temperature.buckets.single().trips)
-        assertEquals(0, view.plannedPlaces)
+        assertEquals(0, view.plannedRequests)
     }
 
     @Test
@@ -169,7 +169,7 @@ class WeatherControllerTest {
         advanceUntilIdle()
         assertEquals(10, gateway.asked.size)
         assertEquals(WeatherFetchResult.PARTIAL, c.state.value.lastFetch)
-        assertEquals(2, c.state.value.view?.plannedPlaces)
+        assertEquals(2, c.state.value.view?.plannedRequests)
         c.fetch()
         advanceUntilIdle()
         assertEquals(12, gateway.asked.size)
@@ -191,5 +191,110 @@ class WeatherControllerTest {
         assertTrue(c.state.value.loading)
         assertNull(c.state.value.view)
         assertNull(c.state.value.lastFetch)
+    }
+
+    @Test
+    fun `reset in the middle of a fetch stops the requests and a new tap does not run beside it`() = runTest {
+        val io = StandardTestDispatcher(testScheduler)
+        val gateway = FakeGateway().apply { gate = CompletableDeferred() }
+        val trips = (1..3).map { ride("p$it", "2026-10-01", lat = 50.0 + it) }
+        val c = controller(trips, InMemoryWeatherRepository(), gateway, io)
+        c.load()
+        advanceUntilIdle()
+        c.fetch()
+        advanceUntilIdle()
+        assertEquals(1, gateway.asked.size)
+        c.reset()
+        gateway.gate!!.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(1, gateway.asked.size, "no further request after a reset")
+    }
+
+    @Test
+    fun `leaving the screen cancels the fetch`() = runTest {
+        val io = StandardTestDispatcher(testScheduler)
+        val gateway = FakeGateway().apply { gate = CompletableDeferred() }
+        val trips = (1..3).map { ride("p$it", "2026-10-01", lat = 50.0 + it) }
+        val c = controller(trips, InMemoryWeatherRepository(), gateway, io)
+        c.load()
+        advanceUntilIdle()
+        c.fetch()
+        advanceUntilIdle()
+        c.cancelFetch()
+        gateway.gate!!.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(1, gateway.asked.size)
+        assertFalse(c.state.value.fetching)
+        c.fetch()
+        advanceUntilIdle()
+        assertTrue(gateway.asked.size >= 2, "a new tap starts again")
+    }
+
+    @Test
+    fun `an evening trip is fetchable the same evening in the local zone`() = runTest {
+        val io = StandardTestDispatcher(testScheduler)
+        val gateway = FakeGateway()
+        // 23:30 UTC on 31.10 is already 1.11 in Warsaw; "today" is 1.11, so 31.10 (local) is yesterday.
+        val late = StoredTrip(
+            TripRecord(Trip("late", Instant.parse("2026-10-31T21:30:00Z"), Instant.parse("2026-10-31T21:50:00Z"), 5.0, BigDecimal("0.3"), null), "VINAAA111", startLat = 54.372, startLon = 18.638),
+            null,
+        )
+        val c = WeatherController(
+            readTrips = { listOf(late) },
+            cache = InMemoryWeatherRepository(),
+            gateway = gateway,
+            zone = { WARSAW },
+            scope = CoroutineScope(SupervisorJob() + io),
+            io = io,
+            clock = { Instant.parse("2026-10-31T23:30:00Z") },
+        )
+        c.load()
+        advanceUntilIdle()
+        // Local date of the clock is 1.11, the trip started 31.10 local: one request for it.
+        assertEquals(1, c.state.value.view?.plannedRequests)
+    }
+
+    @Test
+    fun `a service answer with no days is not a success and the days are not asked for forever`() = runTest {
+        val io = StandardTestDispatcher(testScheduler)
+        val gateway = object : WeatherGateway {
+            var calls = 0
+            override suspend fun daily(latitude: Double, longitude: Double, start: LocalDate, end: LocalDate): List<WeatherDay> {
+                calls++
+                return emptyList()
+            }
+        }
+        val cache = InMemoryWeatherRepository()
+        val c = WeatherController({ listOf(ride("a", "2026-09-01")) }, cache, gateway, { WARSAW }, CoroutineScope(SupervisorJob() + io), io) { NOW }
+        c.load()
+        advanceUntilIdle()
+        c.fetch()
+        advanceUntilIdle()
+        assertEquals(WeatherFetchResult.DATA, c.state.value.lastFetch)
+        // The empty answer is cached as a blank day, so the old day is not planned again.
+        assertEquals(1, cache.count())
+        assertEquals(0, c.state.value.view?.plannedRequests)
+    }
+
+    @Test
+    fun `a read that throws is shown as a failed read without its text`() = runTest {
+        val io = StandardTestDispatcher(testScheduler)
+        val c = WeatherController({ throw IllegalStateException("secret 54.372") }, InMemoryWeatherRepository(), FakeGateway(), { WARSAW }, CoroutineScope(SupervisorJob() + io), io) { NOW }
+        c.load()
+        advanceUntilIdle()
+        assertTrue(c.state.value.loadFailed)
+        assertFalse(Texts.WEATHER_READ_ERROR.contains("secret"))
+    }
+
+    @Test
+    fun `ensureLoaded reads only once`() = runTest {
+        val io = StandardTestDispatcher(testScheduler)
+        var reads = 0
+        val c = WeatherController({ reads++; emptyList() }, InMemoryWeatherRepository(), FakeGateway(), { WARSAW }, CoroutineScope(SupervisorJob() + io), io) { NOW }
+        c.ensureLoaded()
+        advanceUntilIdle()
+        c.ensureLoaded()
+        advanceUntilIdle()
+        assertEquals(1, reads)
     }
 }

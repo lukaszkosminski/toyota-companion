@@ -37,7 +37,9 @@ import pl.lk.toyotacompanion.core.domain.WeatherImpact
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WeatherScreen(controller: WeatherController, onBack: () -> Unit) {
-    BackHandler(onBack = onBack)
+    // Leaving the screen ends a running fetch: nothing is requested in the background (docs/SPEC.md §23).
+    val leave = { controller.cancelFetch(); onBack() }
+    BackHandler(onBack = leave)
     val state by controller.state.collectAsState()
     LaunchedEffect(Unit) { controller.ensureLoaded() }
 
@@ -45,7 +47,15 @@ fun WeatherScreen(controller: WeatherController, onBack: () -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text(Texts.WEATHER_TITLE) },
-                navigationIcon = { TextButton(onClick = onBack) { Text(Texts.BACK) } },
+                navigationIcon = { TextButton(onClick = leave) { Text(Texts.BACK) } },
+            )
+        },
+        // CC BY 4.0 asks for the credit wherever the data is shown, so it stays on screen while scrolling.
+        bottomBar = {
+            Text(
+                Texts.WEATHER_ATTRIBUTION,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             )
         },
     ) { innerPadding ->
@@ -66,13 +76,13 @@ fun WeatherScreen(controller: WeatherController, onBack: () -> Unit) {
                 item {
                     Button(
                         onClick = controller::fetch,
-                        enabled = !state.fetching && view.plannedPlaces > 0,
+                        enabled = !state.fetching && view.plannedRequests > 0,
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text(if (state.fetching) Texts.WEATHER_FETCHING else Texts.WEATHER_FETCH) }
                 }
                 item {
                     Text(
-                        Texts.weatherPending(view.plannedPlaces, view.placesLeft, view.cachedDays),
+                        Texts.weatherPending(view.plannedRequests, view.requestsLeft, view.cachedDays),
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
@@ -85,7 +95,6 @@ fun WeatherScreen(controller: WeatherController, onBack: () -> Unit) {
 
                 item { HorizontalDivider() }
                 item { Text(Texts.WEATHER_CAVEAT, style = MaterialTheme.typography.bodySmall) }
-                item { Text(Texts.WEATHER_ATTRIBUTION, style = MaterialTheme.typography.bodySmall) }
             }
         }
     }

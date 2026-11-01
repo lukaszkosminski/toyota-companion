@@ -89,7 +89,7 @@ class WeatherJoinTest {
             TODAY,
         )
         assertEquals(listOf(WeatherRequest(WeatherPlace("54.37", "18.64"), LocalDate.parse("2026-09-01"), LocalDate.parse("2026-09-05"), 2)), plan.requests)
-        assertEquals(0, plan.placesLeft)
+        assertEquals(0, plan.requestsLeft)
     }
 
     @Test
@@ -119,8 +119,51 @@ class WeatherJoinTest {
         }
         val plan = planWeatherFetch(trips, emptyList(), WARSAW, TODAY)
         assertEquals(10, plan.requests.size)
-        assertEquals(2, plan.placesLeft)
+        assertEquals(2, plan.requestsLeft)
         assertEquals(12, plan.requests.first().trips)
         assertEquals(3, plan.requests.last().trips)
+    }
+
+    @Test
+    fun `far apart runs of one place are separate requests`() {
+        val plan = planWeatherFetch(
+            listOf(trip("a", "2025-01-10T08:00:00Z"), trip("b", "2025-01-12T08:00:00Z"), trip("c", "2026-10-20T08:00:00Z")),
+            emptyList(),
+            WARSAW,
+            TODAY,
+        )
+        assertEquals(2, plan.requests.size)
+        assertEquals(LocalDate.parse("2025-01-10") to LocalDate.parse("2025-01-12"), plan.requests[0].start to plan.requests[0].end)
+        assertEquals(2, plan.requests[0].trips)
+        assertEquals(LocalDate.parse("2026-10-20"), plan.requests[1].start)
+    }
+
+    @Test
+    fun `a recent day with a temperature but no precipitation is asked for again`() {
+        val partial = WeatherRow(
+            "54.37",
+            "18.64",
+            WeatherDay(LocalDate.parse("2026-10-28"), 4.0, null, null, null, null, null),
+            Instant.parse("2026-11-01T10:00:00Z"),
+        )
+        val plan = planWeatherFetch(listOf(trip("a", "2026-10-28T08:00:00Z")), listOf(partial), WARSAW, TODAY)
+        assertEquals(1, plan.requests.size)
+    }
+
+    @Test
+    fun `the window of a stale day ends exactly ten days back`() {
+        val edge = planWeatherFetch(listOf(trip("a", "2026-10-22T08:00:00Z")), listOf(row("2026-10-22", null)), WARSAW, TODAY)
+        assertEquals(1, edge.requests.size)
+        val past = planWeatherFetch(listOf(trip("a", "2026-10-21T08:00:00Z")), listOf(row("2026-10-21", null)), WARSAW, TODAY)
+        assertEquals(emptyList(), past.requests)
+    }
+
+    @Test
+    fun `negative coordinates make one place, not two`() {
+        val a = weatherPlaceOf(trip("a", "2026-10-30T08:00:00Z", -33.8651, -70.0004).record)
+        val b = weatherPlaceOf(trip("b", "2026-10-30T08:00:00Z", -33.8649, -69.9996).record)
+        assertEquals(WeatherPlace("-33.87", "-70.00"), a)
+        assertEquals(WeatherPlace("-33.86", "-70.00"), b)
+        assertEquals(WeatherPlace("0.00", "0.00"), weatherPlaceOf(trip("c", "2026-10-30T08:00:00Z", -0.0004, -0.0004).record))
     }
 }

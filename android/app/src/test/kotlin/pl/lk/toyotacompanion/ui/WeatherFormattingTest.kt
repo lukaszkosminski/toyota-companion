@@ -83,4 +83,30 @@ class WeatherFormattingTest {
         assertTrue(Texts.WEATHER_ATTRIBUTION.contains("Open-Meteo.com"))
         assertTrue(Texts.WEATHER_ATTRIBUTION.contains("CC BY 4.0"))
     }
+
+    @Test
+    fun `an electric part above the whole is cut to 100 percent`() {
+        assertEquals("100 %", WeatherFormatting.evShare(stats(km = "10.0", ev = "10.4")))
+    }
+
+    @Test
+    fun `the wind of the bucket is shown, not judged`() {
+        val note = WeatherFormatting.bucketNote(stats().copy(windMaxKmh = BigDecimal("61.2")))
+        assertTrue(note.orEmpty().contains("wiatr do 61 km/h"))
+    }
+
+    @Test
+    fun `every text of the weather screen is free of secrets and every fetch result has one`() {
+        val texts = listOf(
+            Texts.WEATHER_TITLE, Texts.WEATHER_READ_ERROR, Texts.WEATHER_HINT, Texts.WEATHER_FETCH, Texts.WEATHER_FETCHING,
+            Texts.WEATHER_BY_TEMPERATURE, Texts.WEATHER_BY_RAIN, Texts.WEATHER_NO_DATA, Texts.WEATHER_TOO_FEW,
+            Texts.WEATHER_CAVEAT, Texts.WEATHER_ATTRIBUTION, Texts.weatherPending(0, 0, 5), Texts.weatherPending(3, 0, 5),
+            Texts.weatherPending(12, 2, 5), Texts.weatherWithout(2, 9), Texts.weatherDelta("+0,61"),
+        ) + WeatherFetchResult.entries.map { Texts.weatherFetchResult(it) }
+        for (text in texts) {
+            assertTrue(text.isNotBlank())
+            assertTrue(!text.contains("VINAAA", ignoreCase = true) && !text.contains("54.3"), text)
+        }
+        assertEquals(WeatherFetchResult.entries.size, WeatherFetchResult.entries.map { Texts.weatherFetchResult(it) }.toSet().size)
+    }
 }

@@ -10,6 +10,9 @@ import okhttp3.OkHttpClient
 object WeatherGatewayFactory {
     fun create(): WeatherGateway = OpenMeteoClient(
         OkHttpClient.Builder()
+            // The query carries the rounded position; a redirect would repeat it on another host.
+            .followRedirects(false)
+            .followSslRedirects(false)
             .connectTimeout(Duration.ofSeconds(15))
             .readTimeout(Duration.ofSeconds(30))
             .callTimeout(Duration.ofSeconds(45))

@@ -9,8 +9,11 @@ import pl.lk.toyotacompanion.core.domain.DayWeather
 import pl.lk.toyotacompanion.core.domain.toBigDecimal
 import pl.lk.toyotacompanion.core.weather.OpenMeteoClient
 
-/** Most places one tap on "Pobierz pogodę" asks for; the rest waits for the next tap (docs/SPEC.md §23). */
-const val WEATHER_MAX_PLACES_PER_FETCH = 10
+/** Most requests one tap on "Pobierz pogodę" makes; the rest waits for the next tap (docs/SPEC.md §23). */
+const val WEATHER_MAX_REQUESTS_PER_FETCH = 10
+
+/** Missing days of a place closer than this many days share one request; farther runs are asked for separately. */
+const val WEATHER_MERGE_GAP_DAYS = 14L
 
 /** The newest days still lack reanalysis values; a day this recent with no temperature is asked for again. */
 const val WEATHER_REANALYSIS_LAG_DAYS = 10L
@@ -18,11 +21,11 @@ const val WEATHER_REANALYSIS_LAG_DAYS = 10L
 /** A place as the weather cache and the request know it: the start point rounded to 0.01°, as text. */
 data class WeatherPlace(val latitude: String, val longitude: String)
 
-/** One request to the weather service: a place and the days (inclusive) its trips still need. */
+/** One request to the weather service: a place and a run of days (inclusive) its trips still need. */
 data class WeatherRequest(val place: WeatherPlace, val start: LocalDate, val end: LocalDate, val trips: Int)
 
-/** What a tap on "Pobierz pogodę" would do now: the requests of this tap and how many places wait. */
-data class WeatherPlan(val requests: List<WeatherRequest>, val placesLeft: Int)
+/** What a tap on "Pobierz pogodę" would do now: the requests of this tap and how many requests wait for the next. */
+data class WeatherPlan(val requests: List<WeatherRequest>, val requestsLeft: Int)
 
 /** The rounded start point of a trip, or `null` without a usable one (docs/SPEC.md §23, D2 and D3). */
 fun weatherPlaceOf(record: TripRecord): WeatherPlace? {
@@ -65,28 +68,49 @@ fun tripWeather(trips: List<StoredTrip>, rows: List<WeatherRow>, zone: ZoneId): 
 
 /**
  * What is still to fetch: a (place, day) that has trips and no cached row, or a row of the last
- * [WEATHER_REANALYSIS_LAG_DAYS] days that came back empty. Days from [today] on cannot be asked for (the
- * archive ends yesterday) and are left out. One request per place covers the first to the last missing day;
- * at most [WEATHER_MAX_PLACES_PER_FETCH] places per tap, the busiest first, ties by the place for a stable order.
+ * [WEATHER_REANALYSIS_LAG_DAYS] days that came back without a temperature or a precipitation. Days from [today]
+ * on cannot be asked for (the archive ends yesterday) and are left out. The missing days of a place are split
+ * into runs: days closer than [WEATHER_MERGE_GAP_DAYS] share a request, so a place visited two years ago and
+ * yesterday is not asked for the whole span. At most [WEATHER_MAX_REQUESTS_PER_FETCH] requests per tap, the ones
+ * serving the most trips first, ties by place and start for a stable order. [today] is the local date of [zone],
+ * the same clock that dates the trips.
  */
 fun planWeatherFetch(trips: List<StoredTrip>, rows: List<WeatherRow>, zone: ZoneId, today: LocalDate): WeatherPlan {
     val byKey = index(rows)
+    // One entry per trip (a trip counts once even when its day is shared), so the run size is a trip count.
     val missing = HashMap<WeatherPlace, MutableList<LocalDate>>()
     for (stored in trips) {
         val place = weatherPlaceOf(stored.record) ?: continue
         val date = weatherDateOf(stored, zone)
         if (!date.isBefore(today)) continue
         val cached = byKey[Key(place, date)]
-        val stale = cached != null && cached.day.tempMeanC == null && !date.isBefore(today.minusDays(WEATHER_REANALYSIS_LAG_DAYS))
-        if (cached == null || stale) missing.getOrPut(place) { ArrayList() } += date
+        val recent = !date.isBefore(today.minusDays(WEATHER_REANALYSIS_LAG_DAYS))
+        val gap = cached != null && (cached.day.tempMeanC == null || cached.day.precipitationMm == null)
+        if (cached == null || (gap && recent)) missing.getOrPut(place) { ArrayList() } += date
     }
-    val ordered = missing.entries.sortedWith(
-        compareByDescending<Map.Entry<WeatherPlace, MutableList<LocalDate>>> { it.value.size }
-            .thenBy { it.key.latitude }
-            .thenBy { it.key.longitude },
+    val all = ArrayList<WeatherRequest>()
+    for ((place, dates) in missing) {
+        val sorted = dates.sorted()
+        var from = sorted.first()
+        var last = from
+        var count = 0
+        for (date in sorted) {
+            if (date.isAfter(last.plusDays(WEATHER_MERGE_GAP_DAYS))) {
+                all += WeatherRequest(place, from, last, count)
+                from = date
+                count = 0
+            }
+            last = date
+            count++
+        }
+        all += WeatherRequest(place, from, last, count)
+    }
+    val ordered = all.sortedWith(
+        compareByDescending<WeatherRequest> { it.trips }
+            .thenBy { it.place.latitude }
+            .thenBy { it.place.longitude }
+            .thenBy { it.start },
     )
-    val requests = ordered.take(WEATHER_MAX_PLACES_PER_FETCH).map { (place, dates) ->
-        WeatherRequest(place, dates.min(), dates.max(), dates.size)
-    }
-    return WeatherPlan(requests, (ordered.size - requests.size).coerceAtLeast(0))
+    val requests = ordered.take(WEATHER_MAX_REQUESTS_PER_FETCH)
+    return WeatherPlan(requests, ordered.size - requests.size)
 }
