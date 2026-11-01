@@ -92,3 +92,7 @@ Nic się nie zmienia w tym, co wychodzi z telefonu (punkt startu zaokrąglony do
 pobranie po aktualizacji wyśle zaokrąglone punkty z całego archiwum bez dotknięcia. Odrzucone: pobieranie okresowe niezależne od
 synchronizacji (poza synchronizacją i otwarciem ekranu nic nie idzie do sieci).
 
+Uzupełnienie ADR-009 (2026-11-01): trasy z dzisiaj dostają pogodę z usługi prognoz Open-Meteo (`/v1/forecast`), bo archiwum kończy się na wczoraj –
+wcześniej pierwsze, najnowsze wiersze listy tras były bez pogody. Wartość jest modelowa i odświeżana co najmniej co 3 godziny, a po zmianie doby
+zastępuje ją archiwum. Do usługi wychodzi ten sam zaokrąglony punkt, bez dat.
+

@@ -32,8 +32,14 @@ data class WeatherDay(
 )
 
 /** Source of daily weather; [OpenMeteoClient] is the only implementation, tests use a fake. */
-fun interface WeatherGateway {
+interface WeatherGateway {
     suspend fun daily(latitude: Double, longitude: Double, start: LocalDate, end: LocalDate): List<WeatherDay>
+
+    /**
+     * The weather of today at the point (the archive does not know today yet): the forecast service's day for the point,
+     * a model value that is later replaced by the archive's. Empty when the service gives none.
+     */
+    suspend fun forToday(latitude: Double, longitude: Double): List<WeatherDay> = emptyList()
 }
 
 /** Why a weather request failed; the screen shows a fixed text per kind, never the server's words. */
@@ -63,6 +69,7 @@ class WeatherFetchException(
 class OpenMeteoClient(
     private val http: OkHttpClient,
     private val baseUrl: String = DEFAULT_BASE_URL,
+    private val forecastUrl: String = DEFAULT_FORECAST_URL,
     private val userAgent: String = USER_AGENT,
     private val today: () -> LocalDate = { LocalDate.now(ZoneOffset.UTC) },
 ) : WeatherGateway {
@@ -88,6 +95,26 @@ class OpenMeteoClient(
             .addQueryParameter("timezone", "auto")
             .addQueryParameter("timeformat", "iso8601")
             .build()
+        return fetch(url)
+    }
+
+    override suspend fun forToday(latitude: Double, longitude: Double): List<WeatherDay> {
+        if (!latitude.isFinite() || !longitude.isFinite()) {
+            throw WeatherFetchException(WeatherErrorKind.DATA, "Weather position is not finite")
+        }
+        val url = forecastUrl.trimEnd('/').toHttpUrl().newBuilder()
+            .addPathSegments("v1/forecast")
+            .addQueryParameter("latitude", rounded(latitude))
+            .addQueryParameter("longitude", rounded(longitude))
+            .addQueryParameter("daily", DAILY_VARIABLES)
+            .addQueryParameter("timezone", "auto")
+            .addQueryParameter("timeformat", "iso8601")
+            .addQueryParameter("forecast_days", "1")
+            .build()
+        return fetch(url)
+    }
+
+    private suspend fun fetch(url: okhttp3.HttpUrl): List<WeatherDay> {
         val request = Request.Builder().url(url).header("User-Agent", userAgent).get().build()
         val (status, retryAfter, body) = try {
             withContext(Dispatchers.IO) {
@@ -146,6 +173,7 @@ class OpenMeteoClient(
 
     companion object {
         const val DEFAULT_BASE_URL = "https://archive-api.open-meteo.com"
+        const val DEFAULT_FORECAST_URL = "https://api.open-meteo.com"
         const val USER_AGENT = "toyota-companion"
         const val COORDINATE_SCALE = 2
         const val DAILY_VARIABLES =

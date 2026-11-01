@@ -26,7 +26,7 @@ private const val TWO_DAYS = """{"latitude":54.37,"longitude":18.63,"daily":{
 class OpenMeteoClientTest {
     private fun <T> withServer(block: suspend (MockWebServer, OpenMeteoClient) -> T): T = MockWebServer().use { server ->
         server.start()
-        val client = OpenMeteoClient(OkHttpClient(), baseUrl = server.url("/").toString(), today = { TODAY })
+        val client = OpenMeteoClient(OkHttpClient(), baseUrl = server.url("/").toString(), forecastUrl = server.url("/").toString(), today = { TODAY })
         runBlocking { block(server, client) }
     }
 
@@ -173,5 +173,26 @@ class OpenMeteoClientTest {
         assertEquals(61, days[0].weatherCode)
         assertNull(days[1].weatherCode)
         assertTrue(server.takeRequest().url.queryParameter("daily").orEmpty().contains("weather_code"))
+    }
+
+    @Test
+    fun `today comes from the forecast service with rounded position and nothing else`() = withServer { server, client ->
+        server.enqueue(reply(200, """{"daily":{"time":["2026-11-01"],"temperature_2m_mean":[7.5],"weather_code":[3]}}"""))
+        val days = client.forToday(54.37249, 18.63851)
+        assertEquals(LocalDate.parse("2026-11-01"), days.single().date)
+        assertEquals(3, days.single().weatherCode)
+        val url = server.takeRequest().url
+        assertEquals("/v1/forecast", url.encodedPath)
+        assertEquals("54.37", url.queryParameter("latitude"))
+        assertEquals("18.64", url.queryParameter("longitude"))
+        assertEquals("1", url.queryParameter("forecast_days"))
+        val allowed = setOf("latitude", "longitude", "daily", "timezone", "timeformat", "forecast_days")
+        assertEquals(allowed, url.queryParameterNames)
+    }
+
+    @Test
+    fun `a position that is not finite is refused for today too`() = withServer { server, client ->
+        assertFailsWith<WeatherFetchException> { client.forToday(Double.NaN, 18.6) }
+        assertEquals(0, server.requestCount)
     }
 }

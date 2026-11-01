@@ -185,4 +185,20 @@ class WeatherJoinTest {
         assertEquals(0, days.getValue("a").weatherCode)
         assertNull(days["b"])
     }
+
+    @Test
+    fun `a trip of today goes to the forecast list and not to the archive requests`() {
+        val plan = planWeatherFetch(listOf(trip("a", "2026-11-01T08:00:00Z"), trip("b", "2026-09-01T08:00:00Z")), emptyList(), WARSAW, TODAY, now = Instant.parse("2026-11-01T12:00:00Z"))
+        assertEquals(listOf(WeatherPlace("54.37", "18.64")), plan.todayPlaces)
+        assertEquals(1, plan.requests.size)
+        assertEquals(LocalDate.parse("2026-09-01"), plan.requests.single().start)
+    }
+
+    @Test
+    fun `a row of today younger than three hours is kept and an older one is asked again`() {
+        val todayRow = row("2026-11-01", 5.0).copy(fetchedAt = Instant.parse("2026-11-01T10:00:00Z"))
+        val trips = listOf(trip("a", "2026-11-01T08:00:00Z"))
+        assertEquals(emptyList(), planWeatherFetch(trips, listOf(todayRow), WARSAW, TODAY, now = Instant.parse("2026-11-01T12:00:00Z")).todayPlaces)
+        assertEquals(1, planWeatherFetch(trips, listOf(todayRow), WARSAW, TODAY, now = Instant.parse("2026-11-01T13:30:00Z")).todayPlaces.size)
+    }
 }

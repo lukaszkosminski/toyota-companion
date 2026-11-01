@@ -181,8 +181,8 @@ class WeatherController(
 
     private suspend fun fetchMissing(maxRequests: Int): WeatherFetchResult {
         val stored = readTrips()
-        val plan = planWeatherFetch(stored, cache.all(), zone(), today(), maxRequests)
-        if (plan.requests.isEmpty()) return WeatherFetchResult.NOTHING_TO_FETCH
+        val plan = planWeatherFetch(stored, cache.all(), zone(), today(), maxRequests, clock())
+        if (plan.requests.isEmpty() && plan.todayPlaces.isEmpty()) return WeatherFetchResult.NOTHING_TO_FETCH
         var received = 0
         for (request in plan.requests) {
             val days = try {
@@ -220,7 +220,29 @@ class WeatherController(
                 return WeatherFetchResult.STORAGE
             }
         }
-        if (received == 0) return WeatherFetchResult.DATA
+        for (place in plan.todayPlaces) {
+            val days = try {
+                gateway.forToday(place.latitude.toDouble(), place.longitude.toDouble())
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: WeatherFetchException) {
+                return when (e.kind) {
+                    WeatherErrorKind.NETWORK -> WeatherFetchResult.NETWORK
+                    WeatherErrorKind.RATE_LIMIT -> WeatherFetchResult.RATE_LIMIT
+                    WeatherErrorKind.API -> WeatherFetchResult.API
+                    WeatherErrorKind.DATA -> WeatherFetchResult.DATA
+                }
+            }
+            received += days.size
+            try {
+                cache.save(days.map { WeatherRow(place.latitude, place.longitude, it, clock()) })
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                return WeatherFetchResult.STORAGE
+            }
+        }
+        if (received == 0 && plan.requests.isNotEmpty()) return WeatherFetchResult.DATA
         // The cache holds no day older than the archive's first trip.
         stored.minOfOrNull { weatherDateOf(it, zone()) }?.let { first ->
             try {
@@ -240,11 +262,11 @@ class WeatherController(
         val trips = stored.map { it.record.trip }
         val costs = stored.mapNotNull { it.cost }
         val weather = tripWeather(stored, rows, zone())
-        val plan = planWeatherFetch(stored, rows, zone(), today())
+        val plan = planWeatherFetch(stored, rows, zone(), today(), now = clock())
         return WeatherView(
             temperature = weatherCostByTemperature(trips, costs, weather),
             precipitation = weatherCostByPrecipitation(trips, costs, weather),
-            plannedRequests = plan.requests.size + plan.requestsLeft,
+            plannedRequests = plan.requests.size + plan.requestsLeft + plan.todayPlaces.size,
             requestsLeft = plan.requestsLeft,
             cachedDays = rows.mapTo(HashSet()) { it.day.date }.size,
             matrix = speedWeatherMatrix(stored, weather),

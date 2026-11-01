@@ -47,6 +47,12 @@ private class FakeGateway : WeatherGateway {
     val asked = ArrayList<List<Any>>()
     var failure: WeatherFetchException? = null
     var gate: CompletableDeferred<Unit>? = null
+    val todayAsked = ArrayList<List<Double>>()
+
+    override suspend fun forToday(latitude: Double, longitude: Double): List<WeatherDay> {
+        todayAsked += listOf(latitude, longitude)
+        return listOf(WeatherDay(LocalDate.parse("2026-11-02"), 5.0, 2.0, 8.0, 0.0, 0.0, 10.0, 3))
+    }
 
     override suspend fun daily(latitude: Double, longitude: Double, start: LocalDate, end: LocalDate): List<WeatherDay> {
         asked += listOf(latitude, longitude, start, end)
@@ -382,5 +388,25 @@ class WeatherControllerTest {
         assertEquals(true, saved)
         assertTrue(c.state.value.auto)
         assertEquals(1, gateway.asked.size)
+    }
+
+    @Test
+    fun `a trip of today gets the forecast service, once, and is not asked again within hours`() = runTest {
+        val io = StandardTestDispatcher(testScheduler)
+        val gateway = FakeGateway()
+        val cache = InMemoryWeatherRepository()
+        val c = controller(listOf(ride("today", "2026-11-02")), cache, gateway, io)
+        c.load()
+        advanceUntilIdle()
+        assertEquals(1, c.state.value.view?.plannedRequests)
+        c.autoFetch()
+        advanceUntilIdle()
+        assertEquals(listOf(listOf(54.37, 18.64)), gateway.todayAsked)
+        assertEquals(0, gateway.asked.size, "the archive is not asked for today")
+        assertEquals(3, cache.all().single().day.weatherCode)
+        assertEquals(0, c.state.value.view?.plannedRequests)
+        c.autoFetch()
+        advanceUntilIdle()
+        assertEquals(1, gateway.todayAsked.size)
     }
 }

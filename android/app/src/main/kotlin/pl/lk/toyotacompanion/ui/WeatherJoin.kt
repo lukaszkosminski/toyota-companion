@@ -32,7 +32,15 @@ data class WeatherPlace(val latitude: String, val longitude: String)
 data class WeatherRequest(val place: WeatherPlace, val start: LocalDate, val end: LocalDate, val trips: Int)
 
 /** What a tap on "Pobierz pogodę" would do now: the requests of this tap and how many requests wait for the next. */
-data class WeatherPlan(val requests: List<WeatherRequest>, val requestsLeft: Int)
+data class WeatherPlan(
+    val requests: List<WeatherRequest>,
+    val requestsLeft: Int,
+    /** Places with a trip today: the archive does not know today, so these ask the forecast service (docs/SPEC.md §23). */
+    val todayPlaces: List<WeatherPlace> = emptyList(),
+)
+
+/** A row for today is a model value that changes during the day; it is asked again when older than this. */
+val WEATHER_TODAY_REFRESH: java.time.Duration = java.time.Duration.ofHours(3)
 
 /** The rounded start point of a trip, or `null` without a usable one (docs/SPEC.md §23, D2 and D3). */
 fun weatherPlaceOf(record: TripRecord): WeatherPlace? {
@@ -91,7 +99,7 @@ fun tripWeather(trips: List<StoredTrip>, rows: List<WeatherRow>, zone: ZoneId): 
  * on cannot be asked for (the archive ends yesterday) and are left out. The missing days of a place are split
  * into runs: days closer than [WEATHER_MERGE_GAP_DAYS] share a request, so a place visited two years ago and
  * yesterday is not asked for the whole span. At most [WEATHER_MAX_REQUESTS_PER_FETCH] requests per tap, the ones
- * serving the most trips first, ties by place and start for a stable order. [today] is the local date of [zone],
+ * serving the most trips first, ties by place and start for a stable order. A place with a trip today (the local date [today]) goes to [WeatherPlan.todayPlaces] instead, unless its row was fetched less than [WEATHER_TODAY_REFRESH] before [now]. [today] is the local date of [zone],
  * the same clock that dates the trips.
  */
 fun planWeatherFetch(
@@ -100,13 +108,20 @@ fun planWeatherFetch(
     zone: ZoneId,
     today: LocalDate,
     maxRequests: Int = WEATHER_MAX_REQUESTS_PER_FETCH,
+    now: java.time.Instant = java.time.Instant.now(),
 ): WeatherPlan {
     val byKey = index(rows)
     // One entry per trip (a trip counts once even when its day is shared), so the run size is a trip count.
     val missing = HashMap<WeatherPlace, MutableList<LocalDate>>()
+    val todayPlaces = LinkedHashSet<WeatherPlace>()
     for (stored in trips) {
         val place = weatherPlaceOf(stored.record) ?: continue
         val date = weatherDateOf(stored, zone)
+        if (date == today) {
+            val row = byKey[Key(place, date)]
+            if (row == null || row.fetchedAt.isBefore(now.minus(WEATHER_TODAY_REFRESH))) todayPlaces += place
+            continue
+        }
         if (!date.isBefore(today)) continue
         val cached = byKey[Key(place, date)]
         val recent = !date.isBefore(today.minusDays(WEATHER_REANALYSIS_LAG_DAYS))
@@ -140,5 +155,5 @@ fun planWeatherFetch(
             .thenBy { it.start },
     )
     val requests = ordered.take(maxRequests)
-    return WeatherPlan(requests, ordered.size - requests.size)
+    return WeatherPlan(requests, ordered.size - requests.size, todayPlaces.take(maxRequests))
 }

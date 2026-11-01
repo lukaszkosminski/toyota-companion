@@ -748,6 +748,7 @@ Złączenie trasy z pogodą, pobieranie i ekran: `app/ui` (GPS, więc bez lustra
   dodatkowo trzyma twardy sufit UTC). Dzień pominięty w odpowiedzi zapisywany jest pusty, żeby nie był pytany w nieskończoność;
   odpowiedź bez ani jednego dnia to błąd „nieczytelna odpowiedź”. Dni z ostatnich 10 dni bez temperatury lub opadu (opóźnienie reanaliz)
   są pytane ponownie; starsze puste nie. Po pobraniu cache jest przycinany do dnia sprzed pierwszej trasy archiwum.
+- Dzisiejszy dzień: archiwum go nie zna, więc miejsce z trasą z dzisiaj (data lokalna) pyta usługę prognoz `GET https://api.open-meteo.com/v1/forecast` (te same zmienne, `forecast_days=1`, ten sam zaokrąglony punkt; poza tym żadnych parametrów). To wartość modelowa, która później zostaje zastąpiona przez archiwum (dzień staje się „wczoraj”, a wiersz z kodu `fetched_at` sprzed pobrania archiwum jest brany od nowa przez ogólną regułę); wiersz z dzisiaj starszy niż 3 godziny jest pytany ponownie.
 - Klient nie podąża za przekierowaniami (zapytanie z punktem nie może trafić do obcej domeny); 3xx = błąd usługi.
 - Błędy: 429 (z `Retry-After`) → „usługa prosi o przerwę”, bez pętli; inne HTTP → błąd usługi; brak sieci; nieczytelna odpowiedź
   (także tablica JSON zamiast obiektu). Komunikaty bez treści odpowiedzi, adresu i współrzędnych. Ekran zostaje na cache'u.
