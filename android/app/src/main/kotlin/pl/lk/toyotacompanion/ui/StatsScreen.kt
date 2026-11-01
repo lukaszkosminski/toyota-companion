@@ -2,7 +2,10 @@ package pl.lk.toyotacompanion.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -124,6 +127,16 @@ fun StatsScreen(
                     }
                 }
 
+                if (view.evWeeks.isNotEmpty()) {
+                    item { HorizontalDivider() }
+                    item { Header(Texts.EV_WEEKS_SECTION) }
+                    item { EvWeeksBars(view.evWeeks) }
+                    items(view.evWeeks.asReversed(), key = { "ev-" + it.weekStart }) { week ->
+                        Text(EvWeeksFormatting.line(week), style = MaterialTheme.typography.bodySmall)
+                    }
+                    item { Text(Texts.EV_WEEKS_HINT, style = MaterialTheme.typography.bodySmall) }
+                }
+
                 if (view.traffic.isNotEmpty()) {
                     item { HorizontalDivider() }
                     item { Header(Texts.TRAFFIC_SECTION) }
@@ -192,4 +205,27 @@ private fun Message(innerPadding: PaddingValues, content: @Composable () -> Unit
         modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
         contentAlignment = Alignment.Center,
     ) { content() }
+}
+
+/** One bar per week: the share of kilometres on the battery, 0-100 % on a fixed axis, the percent above and the Monday below. */
+@Composable
+private fun EvWeeksBars(weeks: List<EvWeek>) {
+    androidx.compose.foundation.layout.Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        for (week in weeks) {
+            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(week.evSharePct.toPlainString(), style = MaterialTheme.typography.labelSmall)
+                Box(
+                    modifier = Modifier
+                        .width(14.dp)
+                        .height(72.dp * (week.evSharePct.toFloat() / 100f).coerceIn(0.03f, 1f))
+                        .background(MaterialTheme.colorScheme.secondary),
+                )
+                Text(EvWeeksFormatting.weekLabel(week), style = MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
 }

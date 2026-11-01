@@ -404,6 +404,14 @@ object Texts {
     fun consumptionFalling(change: String): String = "Trend: ↘ malejące ($change %)"
     fun consumptionSteady(change: String): String = "Trend: → stabilne ($change %)"
 
+    // Jazda na prądzie w tygodniach (docs/SPEC.md §36).
+
+    const val EV_WEEKS_SECTION = "Jazda na prądzie w tygodniach"
+    const val EV_WEEKS_HINT =
+        "Udział km na prądzie w każdym tygodniu (od poniedziałku), 12 ostatnich. Toyota nie podaje poziomu naładowania baterii hybrydowej ani napięcia akumulatora 12 V – to jedyny obraz baterii z danych tras."
+    fun evOnBattery(percent: String): String = "$percent % na prądzie"
+    fun evMinutes(minutes: Long): String = "$minutes min na prądzie"
+
     // Android Auto (docs/SPEC.md §35).
 
     const val CAR_TITLE = "Toyota Companion"

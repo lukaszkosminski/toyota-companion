@@ -895,3 +895,12 @@ ekranie „Pogoda i spalanie” (§23).
   nie pasuje, więc w Google Play nie przeszłaby weryfikacji. Do użytku własnego działa po włączeniu w Android Auto (telefon: Ustawienia Android Auto → kilkukrotne dotknięcie „Wersja” →
   Ustawienia programisty → „Nieznane źródła”); aplikacja pojawia się wtedy w ekranie głównym Android Auto. Na prawdziwym zestawie samochodu i w Desktop Head Unit nie była tu uruchamiana.
 - Przy zmianie tej funkcji zmienia się też `*.gradle.kts` / `libs.versions.toml` – za zgodą właściciela (AGENTS.md).
+
+## 36. Jazda na prądzie w tygodniach (PRD F35)
+`app/ui/EvWeeks.kt`, sekcja „Jazda na prądzie w tygodniach” w „Statystykach” (§16–§17). Prezentacja na `StoredTrip` (bez GPS, bez lustra w Pythonie).
+- Źródło: dane z tras, które i tak przychodzą w synchronizacji (`hdc.evDistance`, `hdc.evTime`); żadnych nowych zapytań. Toyota nie podaje dla tego auta (zwykła hybryda, `fuel_type` `B`) poziomu naładowania
+  baterii hybrydowej (`batteryLevel` pusty w odczytach) ani napięcia akumulatora 12 V (pola nie ma w używanym API, a wywołania, które mogłyby je dać, budzą auto i są zakazane), więc to jedyny obraz baterii z danych.
+- Tydzień zaczyna się w poniedziałek (data lokalna startu trasy w strefie telefonu); 12 ostatnich tygodni, które mają trasy, od najstarszego; tydzień bez tras nie występuje. Do tygodnia wchodzą trasy z dodatnim,
+  skończonym dystansem.
+- Na tydzień: liczba tras, km, km na prądzie (każda trasa przycięta do własnego dystansu; trasa bez danych o prądzie dodaje tylko km), udział w całych % oraz minuty na prądzie (suma `hdc.evTime`
+  tras, które go podają; bez żadnej – brak minut). Słupki: udział 0–100 % na stałej osi, pod słupkiem poniedziałek („26.10”); pod słupkami lista tygodni od najnowszego.

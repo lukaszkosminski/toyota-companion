@@ -46,7 +46,7 @@
 - F18 Android Auto (dozwolone kategorie aplikacji)
 
 ## DEFERRED (brak danych w API)
-- Ukryta rezerwa paliwa, mapa zdarzeń hamowania, model akumulatora 12 V
+- Ukryta rezerwa paliwa, mapa zdarzeń hamowania, model akumulatora 12 V (potwierdzone 2026-11-01: napięcia 12 V i poziomu baterii hybrydowej nie ma w API dla tego auta – briefs/C16-battery.md)
 
 ## NOT PLANNED
 - Zdalne sterowanie autem, regiony poza EU

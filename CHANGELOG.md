@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Jazda na prądzie w tygodniach w „Statystykach” (F35, SPEC §36)
 - Android Auto (F34): ekran szablonowy IoT tylko do odczytu, Car App Library 1.7.0 (SPEC §35, ADR-014)
 - Mapa ciepła powtarzanych odcinków: przejazdy pokolorowane spalaniem (F33, SPEC §34)
 - Zapis przebiegów starszych tras przyciskiem na ekranie „Trasy” (F32, SPEC §33)

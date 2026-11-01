@@ -42,6 +42,7 @@ data class StatsView(
     val trafficSurcharge: SlowSurcharge?,
     val trafficLeftOut: Int,
     val tripTotal: Int,
+    val evWeeks: List<EvWeek>,
 )
 
 /**
@@ -121,5 +122,6 @@ fun computeStats(stored: List<StoredTrip>, zone: ZoneId): StatsView {
         trafficSurcharge = slowSurcharge(traffic),
         trafficLeftOut = trafficLeftOut(stored),
         tripTotal = stored.size,
+        evWeeks = evByWeek(stored, zone),
     )
 }
