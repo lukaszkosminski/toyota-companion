@@ -96,7 +96,19 @@ object TripsFormatting {
     internal fun signedMoney(value: BigDecimal): String =
         (if (value.setScale(2, RoundingMode.HALF_UP).signum() > 0) "+" else "") + money(value)
 
-    private fun fixed(value: BigDecimal, places: Int): String = plain(value, places)
+    /**
+     * The display form of a number: the comma of [plain] and a no-break space between the thousands (`1 182,89`), so a long amount
+     * reads at a glance and never wraps in the middle. The CSV export keeps [plain], without grouping.
+     */
+    private fun fixed(value: BigDecimal, places: Int): String {
+        val text = plain(value, places)
+        val sign = if (text.startsWith("-")) "-" else ""
+        val digits = text.removePrefix("-")
+        val whole = digits.substringBefore(',')
+        val rest = digits.substring(whole.length)
+        val grouped = whole.reversed().chunked(3).joinToString("\u00A0").reversed()
+        return sign + grouped + rest
+    }
 
     private fun two(value: Int): String = if (value < 10) "0$value" else value.toString()
 }

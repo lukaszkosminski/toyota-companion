@@ -25,9 +25,20 @@ private val WARSAW: ZoneId = ZoneId.of("Europe/Warsaw")
  */
 class TripsFormattingTest {
     @Test
+    fun `thousands are grouped with a no-break space in the display forms only`() {
+        assertEquals("999,00 zł", TripsFormatting.money(BigDecimal("999")))
+        assertEquals("1\u00A0000,00 zł", TripsFormatting.money(BigDecimal("1000")))
+        assertEquals("-1\u00A0182,89 zł", TripsFormatting.money(BigDecimal("-1182.89")))
+        assertEquals("1\u00A0234\u00A0567,0 km", TripsFormatting.kilometers(BigDecimal("1234567")))
+        assertEquals("0,60 l", TripsFormatting.liters(BigDecimal("0.6")))
+        // The CSV export and the plain form keep no grouping.
+        assertEquals("1234567,0", TripsFormatting.plain(BigDecimal("1234567"), 1))
+    }
+
+    @Test
     fun `money uses a comma and two places`() {
         assertEquals("3,68 zł", TripsFormatting.money(BigDecimal("3.68")))
-        assertEquals("1234,56 zł", TripsFormatting.money(BigDecimal("1234.56")))
+        assertEquals("1\u00A0234,56 zł", TripsFormatting.money(BigDecimal("1234.56")))
     }
 
     @Test

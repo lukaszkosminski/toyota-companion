@@ -1,6 +1,7 @@
 package pl.lk.toyotacompanion.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,21 +26,38 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
+/** How many months the money card lists before the rest is folded. */
+const val COST_LINES_FOLDED = 3
+
 /** Height of the tallest bar. */
 private val BAR_AREA = 96.dp
 
 /**
- * The consumption card of the status screen (docs/SPEC.md §24): the average of the whole archive, one bar per month
- * and the direction of the bars. Hidden without a single usable trip.
+ * The consumption card of the status screen (docs/SPEC.md §24, §10.4): the average of the whole archive as a headline, the
+ * comparison with the declared value, the direction of the bars as a coloured pill, and one bar per month. Hidden without
+ * a single usable trip.
  */
 @Composable
 fun ConsumptionCard(view: ConsumptionView?, declared: java.math.BigDecimal?, onSetDeclared: (String) -> Boolean) {
     if (view?.overall == null) return
     var editing by remember { mutableStateOf(false) }
     if (editing) DeclaredDialog(onSave = onSetDeclared, onDismiss = { editing = false })
-    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(Texts.CONSUMPTION_TITLE, style = MaterialTheme.typography.titleSmall)
-        Text(ConsumptionFormatting.overallLine(view), style = MaterialTheme.typography.bodyMedium)
+    DashboardCard(Texts.CONSUMPTION_TITLE, "⛽") {
+        Headline(
+            TripsFormatting.plain(view.overall, 2),
+            "l/100 km",
+            Texts.consumptionCaption(TripsFormatting.kilometers(view.overallKm)),
+        )
+        ConsumptionFormatting.trendLine(view)?.let { line ->
+            val scheme = MaterialTheme.colorScheme
+            // A rising average is the bad news of this card, a falling one the good news.
+            val (container, content) = when (view.trend) {
+                ConsumptionTrend.RISING -> scheme.errorContainer to scheme.onErrorContainer
+                ConsumptionTrend.FALLING -> scheme.primaryContainer to scheme.onPrimaryContainer
+                else -> scheme.surfaceVariant to scheme.onSurfaceVariant
+            }
+            Pill(line.removePrefix("Trend: "), container, content)
+        }
         declaredComparison(view.overall, declared)?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
         TextButton(onClick = { editing = true }) {
             Text(if (declared == null) Texts.DECLARED_SET else Texts.DECLARED_EDIT)
@@ -47,68 +65,74 @@ fun ConsumptionCard(view: ConsumptionView?, declared: java.math.BigDecimal?, onS
         if (view.months.isNotEmpty()) {
             val top = view.months.maxOf { it.lPer100 }
             val base = ConsumptionFormatting.axisBase(view.months)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.Bottom,
-            ) {
-                for (bar in view.months) {
-                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            TripsFormatting.plain(bar.lPer100, 1),
-                            style = MaterialTheme.typography.labelSmall,
-                            textAlign = TextAlign.Center,
-                        )
-                        Box(
-                            modifier = Modifier
-                                .width(18.dp)
-                                .height(BAR_AREA * ConsumptionFormatting.barShare(bar.lPer100, top, base))
-                                .background(MaterialTheme.colorScheme.primary),
-                        )
-                        Text(
-                            ConsumptionFormatting.monthShort(bar.month),
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(top = 2.dp),
-                        )
-                    }
-                }
-            }
-            ConsumptionFormatting.trendLine(view)?.let {
-                Text(it, style = MaterialTheme.typography.bodyMedium)
-            }
-            Text(Texts.consumptionHint(TripsFormatting.plain(base, 1)), style = MaterialTheme.typography.bodySmall)
+            Bars(
+                bars = view.months.map { BarData(TripsFormatting.plain(it.lPer100, 1), ConsumptionFormatting.monthShort(it.month), ConsumptionFormatting.barShare(it.lPer100, top, base)) },
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Text(Texts.consumptionHint(TripsFormatting.plain(base, 1)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        if (view.monthCosts.isNotEmpty()) {
-            Text(Texts.CONSUMPTION_COSTS_TITLE, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
-            ConsumptionFormatting.totalCostLine(view)?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-            val topCost = view.monthCosts.maxOf { it.costPln ?: java.math.BigDecimal.ZERO }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.Bottom,
-            ) {
-                for (cost in view.monthCosts) {
-                    val share = if (topCost.signum() > 0) (cost.costPln ?: java.math.BigDecimal.ZERO).toFloat() / topCost.toFloat() else 0f
-                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(ConsumptionFormatting.costLabel(cost), style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
-                        Box(
-                            modifier = Modifier
-                                .width(18.dp)
-                                .height(BAR_AREA * share.coerceIn(0.03f, 1f))
-                                .background(MaterialTheme.colorScheme.tertiary),
-                        )
-                        Text(
-                            ConsumptionFormatting.monthShort(cost.month),
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(top = 2.dp),
-                        )
-                    }
-                }
+    }
+}
+
+/**
+ * The monthly money card (docs/SPEC.md §24): the total of the whole archive as a headline, one bar per month from zero and
+ * the exact amounts below, newest first. Hidden without a priced month.
+ */
+@Composable
+fun CostsCard(view: ConsumptionView?) {
+    if (view == null || view.monthCosts.isEmpty()) return
+    DashboardCard(Texts.CONSUMPTION_COSTS_TITLE, "💰") {
+        view.totalCost?.let {
+            Headline(
+                TripsFormatting.plain(it, 2).let { _ -> TripsFormatting.money(it).removeSuffix(" zł") },
+                "zł",
+                Texts.costsCaption(view.totalTripsWithoutCost),
+            )
+        }
+        val topCost = view.monthCosts.maxOf { it.costPln ?: java.math.BigDecimal.ZERO }
+        Bars(
+            bars = view.monthCosts.map {
+                val share = if (topCost.signum() > 0) (it.costPln ?: java.math.BigDecimal.ZERO).toFloat() / topCost.toFloat() else 0f
+                BarData(ConsumptionFormatting.costLabel(it), ConsumptionFormatting.monthShort(it.month), share.coerceIn(0.03f, 1f))
+            },
+            color = MaterialTheme.colorScheme.tertiary,
+        )
+        // The three newest months in detail; the rest folds away so the card stays short (docs/SPEC.md §10.4).
+        var expanded by rememberSaveable { mutableStateOf(false) }
+        val newestFirst = view.monthCosts.asReversed()
+        for (cost in if (expanded) newestFirst else newestFirst.take(COST_LINES_FOLDED)) {
+            Text(ConsumptionFormatting.costLine(cost), style = MaterialTheme.typography.bodySmall)
+        }
+        if (newestFirst.size > COST_LINES_FOLDED) {
+            TextButton(onClick = { expanded = !expanded }) {
+                Text(if (expanded) Texts.COSTS_FOLD else Texts.costsUnfold(newestFirst.size))
             }
-            for (cost in view.monthCosts.asReversed()) {
-                Text(ConsumptionFormatting.costLine(cost), style = MaterialTheme.typography.bodySmall)
+        }
+        Text(Texts.CONSUMPTION_COSTS_HINT, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** One bar: the label above it, its height as a share of the tallest (0-1) and the month under it. */
+private data class BarData(val label: String, val caption: String, val share: Float)
+
+@Composable
+private fun Bars(bars: List<BarData>, color: androidx.compose.ui.graphics.Color) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        for (bar in bars) {
+            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(bar.label, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
+                Box(
+                    modifier = Modifier
+                        .width(20.dp)
+                        .height(BAR_AREA * bar.share)
+                        .background(color, RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)),
+                )
+                Text(bar.caption, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 2.dp))
             }
-            Text(Texts.CONSUMPTION_COSTS_HINT, style = MaterialTheme.typography.bodySmall)
         }
     }
 }

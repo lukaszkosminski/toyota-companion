@@ -118,14 +118,10 @@ fun StatusScreen(
                         }
                     }
                 } else {
+                    // The state at a glance: freshness chip, when it was last updated, the counters (docs/SPEC.md §10.4).
                     StatusChip(status, state.lastSyncFailed)
+                    Text(Texts.lastSuccess(status), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     StatRow(status)
-                    Text(Texts.lastSuccess(status), style = MaterialTheme.typography.bodyMedium)
-                    // Refuel forecast from the archive, never from the car (PRD F14, docs/SPEC.md §20).
-                    forecastLine?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-                    // Average consumption of the whole archive and the monthly bars (docs/SPEC.md §24).
-                    ConsumptionCard(consumption, declaredConsumption, onSetDeclared)
-                    HorizontalDivider()
                 }
 
                 if (state.lastSyncFailed == SyncErrorKind.LOGIN ||
@@ -136,101 +132,64 @@ fun StatusScreen(
                     ErrorCard(Texts.syncError(state.lastSyncFailed))
                 }
 
-                FilledTonalButton(
-                    onClick = onSyncNow,
-                    enabled = !state.syncing,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-                ) {
-                    Text(if (state.syncing) Texts.SYNCING else Texts.SYNC_NOW_BUTTON)
-                }
-                // A refuel without a price keeps the trip costs at "brak ceny" (PRD F2, F4).
+                // A refuel without a price keeps the trip costs at "brak ceny" (PRD F2, F4). Never blocked during a
+                // synchronization: confirming a price waits for the mutex instead of being refused (docs/SPEC.md §11.1).
                 val waiting = status?.pendingRefuels ?: 0
                 if (waiting > 0) {
-                    // Never blocked during a synchronization: confirming a price waits for the
-                    // mutex instead of being refused (docs/SPEC.md §11.1).
                     Button(
                         onClick = onShowRefuels,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                     ) {
                         Text(Texts.refuelPrompt(waiting))
                     }
                 }
-                OutlinedButton(
-                    onClick = onRefresh,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(Texts.REFRESH_BUTTON)
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    FilledTonalButton(
+                        onClick = onSyncNow,
+                        enabled = !state.syncing,
+                        modifier = Modifier.weight(1f).heightIn(min = 52.dp),
+                    ) {
+                        Text(if (state.syncing) Texts.SYNCING else Texts.SYNC_NOW_BUTTON)
+                    }
+                    OutlinedButton(
+                        onClick = onRefresh,
+                        modifier = Modifier.weight(1f).heightIn(min = 52.dp),
+                    ) {
+                        Text(Texts.REFRESH_BUTTON)
+                    }
                 }
-                // The trip archive lives on the phone — this only reads the local database (docs/SPEC.md §10.3).
-                OutlinedButton(
-                    onClick = onShowTrips,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(Texts.TRIPS_TITLE)
+
+                if (status != null) {
+                    // Refuel forecast from the archive, never from the car (PRD F14, docs/SPEC.md §20).
+                    forecastLine?.let { line ->
+                        DashboardCard(Texts.FORECAST_CARD_TITLE, "🔮") { Text(line, style = MaterialTheme.typography.bodyLarge) }
+                    }
+                    // Average consumption of the whole archive and the monthly bars (docs/SPEC.md §24).
+                    ConsumptionCard(consumption, declaredConsumption, onSetDeclared)
+                    CostsCard(consumption)
                 }
-                // The default price costs the trips from before the first confirmed refuel (PRD F2b).
-                // Never blocked during a synchronization: the recount waits for the mutex (§12.1).
-                OutlinedButton(
-                    onClick = onShowDefaultPrice,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(Texts.defaultPricePrompt(defaultPrice))
-                }
-                // Confirmed refuels and the fuel economy check (PRD F9, docs/SPEC.md §15).
-                OutlinedButton(
-                    onClick = onShowRefuelLog,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(Texts.LOG_TITLE)
-                }
-                // Electric share, years and seasons (PRD F10, F11, docs/SPEC.md §16-§17).
-                OutlinedButton(
-                    onClick = onShowStats,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(Texts.STATS_TITLE)
-                }
-                // Eco score, repeated routes and fuel anomalies (PRD F12, F13, docs/SPEC.md §19).
-                OutlinedButton(
-                    onClick = onShowDrivingStyle,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(Texts.STYLE_TITLE)
-                }
-                // One year of driving on one page, shareable as text (PRD F28, docs/SPEC.md §29).
-                OutlinedButton(
-                    onClick = onShowYear,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(Texts.YEAR_TITLE)
-                }
-                // Trips by temperature and rain, weather fetched only on a tap (PRD F15, docs/SPEC.md §23).
-                OutlinedButton(
-                    onClick = onShowWeather,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(Texts.WEATHER_TITLE)
-                }
-                // Places and stops, the only screen with positions (PRD F17, docs/SPEC.md §18).
-                OutlinedButton(
-                    onClick = onShowParking,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(Texts.PARKING_TITLE)
-                }
+
+                // The menu: one tile per screen (docs/SPEC.md §10.4). The default price shows its value, the others name the screen.
+                MenuGrid(
+                    listOf(
+                        Triple("🛣️", Texts.TRIPS_TITLE, onShowTrips),
+                        Triple("⛽", Texts.LOG_TITLE, onShowRefuelLog),
+                        Triple("📊", Texts.STATS_TITLE, onShowStats),
+                        Triple("🌿", Texts.STYLE_TITLE, onShowDrivingStyle),
+                        Triple("📅", Texts.YEAR_TITLE, onShowYear),
+                        Triple("🌦️", Texts.WEATHER_TITLE, onShowWeather),
+                        Triple("🅿️", Texts.PARKING_TITLE, onShowParking),
+                        Triple("💰", Texts.defaultPricePrompt(defaultPrice), onShowDefaultPrice),
+                        Triple("💾", Texts.BACKUP_TITLE, onShowBackup),
+                    ),
+                )
                 // The archive lives only on this phone (ADR-006); F8 asks for a copy (docs/SPEC.md §14.3).
                 when (backupReminder) {
                     BackupReminder.Never -> ReminderCard(Texts.BACKUP_REMINDER_NEVER)
                     is BackupReminder.Overdue -> ReminderCard(Texts.backupReminderOverdue(backupReminder.days))
                     BackupReminder.None -> Unit
                 }
-                OutlinedButton(
-                    onClick = onShowBackup,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(Texts.BACKUP_TITLE)
-                }
-                Text(lastBackupLine, style = MaterialTheme.typography.bodySmall)
+                Text(lastBackupLine, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

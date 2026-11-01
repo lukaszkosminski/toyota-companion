@@ -399,6 +399,11 @@ object Texts {
     const val CONSUMPTION_COSTS_HINT =
         "Słupki: koszt paliwa miesiąca w zł (tylko trasy z ceną), od zera. Pod słupkami: miesiące od najstarszego."
     fun consumptionTotalCost(money: String): String = "Razem z całego okresu: $money"
+    fun consumptionCaption(km: String): String = "średnio z całego okresu, $km"
+    const val COSTS_FOLD = "Zwiń"
+    fun costsUnfold(count: Int): String = "Pokaż wszystkie miesiące ($count)"
+    fun costsCaption(withoutPrice: Int): String =
+        "razem z całego okresu" + if (withoutPrice > 0) " (bez ceny: $withoutPrice tras)" else ""
     fun consumptionOverall(litres: String, km: String): String = "Średnio z całego okresu: $litres l/100 km ($km km)"
     fun consumptionRising(change: String): String = "Trend: ↗ rosnące ($change %)"
     fun consumptionFalling(change: String): String = "Trend: ↘ malejące ($change %)"
@@ -523,6 +528,8 @@ object Texts {
         pl.lk.toyotacompanion.core.domain.TemperatureBucket.WARM -> "ciepło"
     }
     fun matrixFrost(signed: String): String = "Zimą przy tej prędkości: $signed l/100 km (mróz wobec łagodnie)"
+
+    const val FORECAST_CARD_TITLE = "Prognoza"
 
     // Cena ze stacji (docs/SPEC.md §25).
 
