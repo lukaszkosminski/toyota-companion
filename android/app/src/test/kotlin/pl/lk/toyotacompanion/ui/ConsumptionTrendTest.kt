@@ -210,6 +210,55 @@ class MonthlyCostsTest {
         val month = view.monthCosts.single()
         assertEquals("4", ConsumptionFormatting.costLabel(month))
         assertEquals("paź: 4,00 zł · 20,0 km · 40,00 zł/100 km · bez ceny: 1", ConsumptionFormatting.costLine(month).replace("/100 km", "/100 km"))
-        assertEquals("Razem z całego okresu: 4,00 zł · bez ceny: 1", ConsumptionFormatting.totalCostLine(view))
+        assertEquals("Razem (paź 2026 – paź 2026): 4,00 zł · bez ceny: 1", ConsumptionFormatting.totalCostLine(view))
+    }
+}
+
+/** docs/SPEC.md §24: the monthly average and the period the total covers. */
+class MonthlyAverageTest {
+    private val today = java.time.LocalDate.parse("2026-11-05")
+
+    @Test
+    fun `the average is over the completed priced months and the month in progress stays out`() {
+        val view = consumptionView(
+            listOf(
+                priced("a", "2026-09-10T08:00:00Z", 10.0, "100.00"),
+                priced("b", "2026-10-10T08:00:00Z", 10.0, "200.00"),
+                priced("c", "2026-11-02T08:00:00Z", 10.0, "9.00"),
+            ),
+            WARSAW,
+            today,
+        )
+        assertEquals(BigDecimal("150.00"), view.averageMonthCost)
+        assertEquals(2, view.averageMonths)
+        assertEquals(BigDecimal("309.00"), view.totalCost)
+        assertEquals(MonthKey(2026, 9), view.periodFrom)
+        assertEquals(MonthKey(2026, 11), view.periodTo)
+    }
+
+    @Test
+    fun `without a completed priced month there is no average`() {
+        val onlyCurrent = consumptionView(listOf(priced("c", "2026-11-02T08:00:00Z", 10.0, "9.00")), WARSAW, today)
+        assertNull(onlyCurrent.averageMonthCost)
+        assertEquals(0, onlyCurrent.averageMonths)
+        val unpriced = consumptionView(listOf(priced("a", "2026-10-02T08:00:00Z", 10.0, null)), WARSAW, today)
+        assertNull(unpriced.averageMonthCost)
+    }
+
+    @Test
+    fun `an unpriced month is not in the average and the period names the first and the last month`() {
+        val view = consumptionView(
+            listOf(priced("a", "2026-08-10T08:00:00Z", 10.0, "60.00"), priced("b", "2026-09-10T08:00:00Z", 10.0, null), priced("c", "2026-10-10T08:00:00Z", 10.0, "40.00")),
+            WARSAW,
+            today,
+        )
+        assertEquals(BigDecimal("50.00"), view.averageMonthCost)
+        assertEquals(2, view.averageMonths)
+        assertEquals("Razem (sie 2026 – paź 2026): 100,00 zł · bez ceny: 1", ConsumptionFormatting.totalCostLine(view))
+    }
+
+    @Test
+    fun `the caption says how many months the average is over`() {
+        assertEquals("średnio z pełnych miesięcy (6), bez bieżącego", Texts.costsAverageCaption(6))
     }
 }

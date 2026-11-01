@@ -51,6 +51,13 @@ data class ConsumptionView(
     /** Σ cost of the priced trips of the whole archive, `null` without a price. */
     val totalCost: BigDecimal?,
     val totalTripsWithoutCost: Int,
+    /** Average money per completed month that has a price (the month in progress is left out), `null` without one. */
+    val averageMonthCost: BigDecimal? = null,
+    /** How many completed priced months the average is over. */
+    val averageMonths: Int = 0,
+    /** First and last month with trips in the whole archive: the period the total covers. */
+    val periodFrom: MonthKey? = null,
+    val periodTo: MonthKey? = null,
 )
 
 private fun ordinal(month: MonthKey): Int = month.year * 12 + (month.month - 1)
@@ -62,7 +69,7 @@ private fun ordinal(month: MonthKey): Int = month.year * 12 + (month.month - 1)
  * span against the mean of the bars, [CONSUMPTION_STABLE_BELOW_PCT] percent or less being STEADY. The regression is
  * only a classifier of the picture, so it runs on doubles; every shown number is a rounded BigDecimal.
  */
-fun consumptionView(trips: List<StoredTrip>, zone: ZoneId): ConsumptionView {
+fun consumptionView(trips: List<StoredTrip>, zone: ZoneId, today: java.time.LocalDate = java.time.LocalDate.now(zone)): ConsumptionView {
     val usable = trips.filter { stored ->
         val trip = stored.record.trip
         trip.distanceKm.isFinite() && trip.distanceKm > 0.0 && trip.fuelL.signum() >= 0
@@ -122,6 +129,16 @@ fun consumptionView(trips: List<StoredTrip>, zone: ZoneId): ConsumptionView {
         if (value == null || hasNoCost(stored.cost)) totalWithout++ else total = total?.add(value) ?: value
     }
 
+    // The month in progress is not a full month, so it stays out of the monthly average (docs/SPEC.md §24).
+    val current = MonthKey(today.year, today.monthValue)
+    val completedPriced = costs.filter { it.month < current && it.costPln != null }
+    val average = if (completedPriced.isEmpty()) {
+        null
+    } else {
+        completedPriced.fold(BigDecimal.ZERO) { acc, m -> acc.add(requireNotNull(m.costPln)) }
+            .divide(BigDecimal(completedPriced.size), 2, RoundingMode.HALF_UP)
+    }
+
     val (trend, change) = trendOf(bars)
     return ConsumptionView(
         overall,
@@ -132,6 +149,10 @@ fun consumptionView(trips: List<StoredTrip>, zone: ZoneId): ConsumptionView {
         costs.takeLast(CONSUMPTION_CHART_MONTHS),
         total?.setScale(2, RoundingMode.HALF_UP),
         totalWithout,
+        averageMonthCost = average,
+        averageMonths = completedPriced.size,
+        periodFrom = costs.firstOrNull()?.month,
+        periodTo = costs.lastOrNull()?.month,
     )
 }
 

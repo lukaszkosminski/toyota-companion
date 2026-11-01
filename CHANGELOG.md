@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Karta kosztów: nagłówek to średnia na miesiąc, suma całego archiwum podpisana okresem (SPEC §24)
 - Czytelniejszy ekran statusu: karty, duże liczby, kolorowy trend, kafelki menu, grupowanie tysięcy (SPEC §10.4)
 - Jazda na prądzie w tygodniach w „Statystykach” (F35, SPEC §36)
 - Android Auto (F34): ekran szablonowy IoT tylko do odczytu, Car App Library 1.7.0 (SPEC §35, ADR-014)

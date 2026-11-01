@@ -839,7 +839,7 @@ ekranie „Pogoda i spalanie” (§23).
 - Koszty miesięczne (ta sama karta, pod słupkami spalania): na miesiąc – suma kosztów tras z ceną (`null` i „–” bez ceny, nigdy 0 zł; trasa ze źródłem
   kosztu `NONE` liczy się jak bez ceny), km (0,1), zł/100 km = Σ koszt / Σ km tras z ceną i liczba tras bez ceny; miesiące z trasami, także krótkie
   i niepełny bieżący, najwyżej 12 ostatnich od najstarszego. Słupki od zera (kwoty), podpis nad słupkiem – pełne złotówki; pod słupkami lista
-  miesięcy od najnowszego z dokładną kwotą i km. Nad słupkami „Razem z całego okresu” (suma kosztów tras z ceną całego archiwum i liczba tras bez ceny).
+  miesięcy od najnowszego z dokładną kwotą i km. Nagłówek karty to średni koszt na miesiąc (suma kosztów ukończonych miesięcy z ceną podzielona przez ich liczbę, 0,01 zł; bieżący miesiąc nie jest pełny i odpada; bez takiego miesiąca brak nagłówka), a pod nim „Razem (kwi 2026 – lis 2026): 1 182,89 zł” – suma kosztów tras z ceną CAŁEGO archiwum (nie roku) z okresem od pierwszego do ostatniego miesiąca z trasami i liczbą tras bez ceny.
 
 ## 29. Podsumowanie roku (PRD F28)
 `app/ui/YearSummary.kt`, `YearSummaryController.kt`, `YearSummaryScreen.kt` (prezentacja na `StoredTrip`, bez GPS, bez lustra w Pythonie). Wejście: przycisk

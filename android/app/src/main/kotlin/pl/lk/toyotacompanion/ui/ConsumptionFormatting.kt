@@ -64,9 +64,13 @@ object ConsumptionFormatting {
         if (cost.tripsWithoutCost > 0) Texts.tripsWithoutCost(cost.tripsWithoutCost) else null,
     ).joinToString(Texts.SEPARATOR)
 
-    /** `Razem z całego okresu: 1 234,50 zł` (and the unpriced count); `null` without a single price. */
+    /** `Razem od kwi 2026 do lis 2026: 1 182,89 zł · bez ceny: 12`; `null` without a single price. */
     fun totalCostLine(view: ConsumptionView): String? = view.totalCost?.let {
-        Texts.consumptionTotalCost(TripsFormatting.money(it)) +
+        val period = view.periodFrom?.let { from -> view.periodTo?.let { to -> monthWithYear(from) + " – " + monthWithYear(to) } }
+        Texts.consumptionTotalCost(TripsFormatting.money(it), period) +
             if (view.totalTripsWithoutCost > 0) Texts.SEPARATOR + Texts.tripsWithoutCost(view.totalTripsWithoutCost) else ""
     }
+
+    /** `kwi 2026`: the short month with its year, for a period that may span years. */
+    fun monthWithYear(month: MonthKey): String = MONTHS_SHORT[month.month - 1] + " " + month.year
 }

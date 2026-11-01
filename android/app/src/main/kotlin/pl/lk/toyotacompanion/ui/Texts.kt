@@ -398,12 +398,13 @@ object Texts {
     const val CONSUMPTION_COSTS_TITLE = "Koszty miesięczne"
     const val CONSUMPTION_COSTS_HINT =
         "Słupki: koszt paliwa miesiąca w zł (tylko trasy z ceną), od zera. Pod słupkami: miesiące od najstarszego."
-    fun consumptionTotalCost(money: String): String = "Razem z całego okresu: $money"
+    fun consumptionTotalCost(money: String, period: String?): String =
+        "Razem" + (period?.let { " ($it)" } ?: " z całego okresu") + ": $money"
+    fun costsAverageCaption(months: Int): String =
+        "średnio z pełnych miesięcy ($months), bez bieżącego"
     fun consumptionCaption(km: String): String = "średnio z całego okresu, $km"
     const val COSTS_FOLD = "Zwiń"
     fun costsUnfold(count: Int): String = "Pokaż wszystkie miesiące ($count)"
-    fun costsCaption(withoutPrice: Int): String =
-        "razem z całego okresu" + if (withoutPrice > 0) " (bez ceny: $withoutPrice tras)" else ""
     fun consumptionOverall(litres: String, km: String): String = "Średnio z całego okresu: $litres l/100 km ($km km)"
     fun consumptionRising(change: String): String = "Trend: ↗ rosnące ($change %)"
     fun consumptionFalling(change: String): String = "Trend: ↘ malejące ($change %)"

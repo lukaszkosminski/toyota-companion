@@ -82,13 +82,15 @@ fun ConsumptionCard(view: ConsumptionView?, declared: java.math.BigDecimal?, onS
 fun CostsCard(view: ConsumptionView?) {
     if (view == null || view.monthCosts.isEmpty()) return
     DashboardCard(Texts.CONSUMPTION_COSTS_TITLE, "💰") {
-        view.totalCost?.let {
+        // The headline answers the title: money per month. The total of the whole archive is a line under it, with its period.
+        view.averageMonthCost?.let {
             Headline(
-                TripsFormatting.plain(it, 2).let { _ -> TripsFormatting.money(it).removeSuffix(" zł") },
-                "zł",
-                Texts.costsCaption(view.totalTripsWithoutCost),
+                TripsFormatting.money(it).removeSuffix(" zł"),
+                "zł / miesiąc",
+                Texts.costsAverageCaption(view.averageMonths),
             )
         }
+        ConsumptionFormatting.totalCostLine(view)?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
         val topCost = view.monthCosts.maxOf { it.costPln ?: java.math.BigDecimal.ZERO }
         Bars(
             bars = view.monthCosts.map {
