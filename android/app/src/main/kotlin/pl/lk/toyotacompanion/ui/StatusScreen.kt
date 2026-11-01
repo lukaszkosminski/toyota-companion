@@ -74,6 +74,7 @@ fun StatusScreen(
     backupReminder: BackupReminder,
     lastBackupLine: String,
     forecastLine: String?,
+    consumption: ConsumptionView?,
     onShowBackup: () -> Unit,
     onLogout: () -> Unit,
     askNotificationPermission: suspend () -> Boolean,
@@ -119,6 +120,8 @@ fun StatusScreen(
                     Text(Texts.lastSuccess(status), style = MaterialTheme.typography.bodyMedium)
                     // Refuel forecast from the archive, never from the car (PRD F14, docs/SPEC.md §20).
                     forecastLine?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                    // Average consumption of the whole archive and the monthly bars (docs/SPEC.md §24).
+                    ConsumptionCard(consumption)
                     HorizontalDivider()
                 }
 

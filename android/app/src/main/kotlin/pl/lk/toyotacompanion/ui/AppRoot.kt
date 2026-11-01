@@ -46,6 +46,7 @@ fun AppRoot(
     drivingStyle: DrivingStyleController,
     weather: WeatherController,
     forecast: ForecastController,
+    consumption: ConsumptionController,
     askNotificationPermission: suspend () -> Boolean,
     deepLinkRefuelId: String? = null,
     onDeepLinkShown: () -> Unit = {},
@@ -55,6 +56,7 @@ fun AppRoot(
     val promptState by prompt.state.collectAsState()
     val backupState by backup.state.collectAsState()
     val forecastState by forecast.state.collectAsState()
+    val consumptionState by consumption.state.collectAsState()
     var screen by rememberSaveable { mutableStateOf(Screen.Status) }
     // Which entry the price form edits; an id is not a secret (docs/SECURITY.md).
     var editedRefuelId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -83,6 +85,7 @@ fun AppRoot(
             drivingStyle.reset()
             weather.reset()
             forecast.reset()
+            consumption.reset()
         } else {
             // The status button shows the stored price. This effect also restarts when the
             // Activity is recreated, so the read is guarded: the file is touched only while
@@ -91,6 +94,7 @@ fun AppRoot(
             prompt.ensureLoaded()
             backup.ensureLoaded()
             forecast.ensureLoaded()
+            consumption.ensureLoaded()
         }
     }
 
@@ -185,6 +189,7 @@ fun AppRoot(
                             ?: Texts.BACKUP_NONE_YET,
                         onShowBackup = { screen = Screen.Backup },
                         forecastLine = forecastLine(forecastState, ZoneId.systemDefault()),
+                        consumption = consumptionState,
                         onLogout = session::logout,
                         askNotificationPermission = askNotificationPermission,
                     )

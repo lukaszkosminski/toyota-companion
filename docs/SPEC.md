@@ -749,3 +749,17 @@ Złączenie trasy z pogodą, pobieranie i ekran: `app/ui` (GPS, więc bez lustra
   (także tablica JSON zamiast obiektu). Komunikaty bez treści odpowiedzi, adresu i współrzędnych. Ekran zostaje na cache'u.
 - Atrybucja (CC BY 4.0) w stałej stopce ekranu (nie przewija się): „Weather data by Open-Meteo.com”. Uwaga na ekranie: to korelacja, nie pomiar przyczyny
   (reanaliza to model; zimą inne trasy; mróz skraca jazdę na prądzie, dlatego pokazujemy udział prądu).
+
+## 24. Spalanie na ekranie statusu (PRD F20)
+Funkcje czyste w `app/ui/ConsumptionTrend.kt` na `StoredTrip` (prezentacja, bez GPS – bez lustra w Pythonie, jak §22). Kontroler
+`ConsumptionController` czyta archiwum po zalogowaniu i po każdej udanej synchronizacji (jak prognoza §20.2), bez pytania auta;
+błąd odczytu chowa kartę; `reset()` przy wylogowaniu.
+- Średnia z całego okresu = Σ paliwo / Σ km wszystkich tras (0,01 l/100 km; trasy z nieskończonym lub niedodatnim dystansem albo
+  ujemnym paliwem pominięte). Pokazywana z łączną liczbą km.
+- Słupki: miesiąc (data startu w strefie telefonu) = Σ paliwo / Σ km miesiąca; miesiąc liczy się od 50 km; najwyżej 12 ostatnich,
+  od najstarszego. Podpis nad słupkiem: wartość (0,1), pod słupkiem: skrót miesiąca (styczeń z rokiem). Oś nie zaczyna się od zera:
+  początek = 70 % najniższego miesiąca w dół do 0,1 (jeden miesiąc lub równe słupki → 0); ekran podaje początek osi.
+- Trend: prosta metodą najmniejszych kwadratów przez słupki (odstęp w miesiącach kalendarzowych, więc dziura w miesiącach liczy
+  się jak czas); zmiana = nachylenie × rozpiętość / średnia słupków. |zmiana| ≤ 5 % → stabilne (→), > 0 rosnące (↗), < 0 malejące
+  (↘); poniżej 3 słupków brak trendu. Regresja tylko klasyfikuje obraz, więc liczona na liczbach zmiennoprzecinkowych; wszystkie
+  pokazane liczby to zaokrąglone `BigDecimal`. Ekran przypomina, że zimą spalanie zwykle rośnie (sezonowość, nie usterka).

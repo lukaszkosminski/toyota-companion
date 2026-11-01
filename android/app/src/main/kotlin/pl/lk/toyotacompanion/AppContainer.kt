@@ -46,6 +46,7 @@ import pl.lk.toyotacompanion.sync.SyncRunner
 import pl.lk.toyotacompanion.ui.ARCHIVE_IMPORT_LIMIT_BYTES
 import pl.lk.toyotacompanion.ui.BackupController
 import pl.lk.toyotacompanion.ui.DefaultPriceController
+import pl.lk.toyotacompanion.ui.ConsumptionController
 import pl.lk.toyotacompanion.ui.DrivingStyleController
 import pl.lk.toyotacompanion.ui.WeatherController
 import pl.lk.toyotacompanion.core.weather.WeatherGatewayFactory
@@ -144,7 +145,10 @@ class AppContainer(
             refuelNotifier.onSyncOutcome(outcome)
             if (outcome is SyncOutcome.Ok && outcome.refuelsDetected > 0) refuelPromptController.refresh()
             // New trips or a new reading change the forecast (docs/SPEC.md §20.2).
-            if (outcome is SyncOutcome.Ok) forecastController.refresh()
+            if (outcome is SyncOutcome.Ok) {
+                forecastController.refresh()
+                consumptionController.refresh()
+            }
             outcome
         }
     }
@@ -279,6 +283,11 @@ class AppContainer(
     /** The refuel forecast of the status screen (PRD F14, docs/SPEC.md §20). */
     val forecastController: ForecastController by lazy {
         ForecastController(read = { syncEngine.refuelForecast() }, scope = uiScope, io = Dispatchers.IO)
+    }
+
+    /** Average consumption and monthly bars of the status screen (docs/SPEC.md §24). */
+    val consumptionController: ConsumptionController by lazy {
+        ConsumptionController(read = tripsLoader, zone = { ZoneId.systemDefault() }, scope = uiScope, io = Dispatchers.IO)
     }
 
     /** Eco score, repeated routes and fuel anomalies of the selected vehicle (PRD F12, F13, docs/SPEC.md §19). */

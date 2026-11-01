@@ -380,6 +380,17 @@ object Texts {
     fun styleAnomaly(route: Int, actual: String, usual: String, excess: String): String =
         "Odcinek $route: $actual zamiast zwykle $usual ($excess)"
 
+    // Spalanie na ekranie statusu (docs/SPEC.md §24).
+
+    const val CONSUMPTION_TITLE = "Spalanie"
+    fun consumptionHint(axisStart: String): String =
+        "Słupki: średnie spalanie miesiąca (l/100 km), miesiące od 50 km; oś zaczyna się od $axisStart l/100 km, nie od zera. " +
+            "Trend to linia przez słupki; zimą spalanie zwykle rośnie."
+    fun consumptionOverall(litres: String, km: String): String = "Średnio z całego okresu: $litres l/100 km ($km km)"
+    fun consumptionRising(change: String): String = "Trend: ↗ rosnące ($change %)"
+    fun consumptionFalling(change: String): String = "Trend: ↘ malejące ($change %)"
+    fun consumptionSteady(change: String): String = "Trend: → stabilne ($change %)"
+
     // Pogoda i spalanie (PRD F15, docs/SPEC.md §23).
 
     const val WEATHER_TITLE = "Pogoda i spalanie"

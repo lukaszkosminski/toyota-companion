@@ -53,6 +53,7 @@ class MainActivity : ComponentActivity() {
                 container.drivingStyleController,
                 container.weatherController,
                 container.forecastController,
+                container.consumptionController,
                 askNotificationPermission = container.askNotificationPermission,
                 deepLinkRefuelId = refuelDeepLinkId,
                 onDeepLinkShown = { refuelDeepLinkId = null },

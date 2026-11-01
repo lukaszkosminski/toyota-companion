@@ -1,0 +1,55 @@
+package pl.lk.toyotacompanion.ui
+
+import java.math.BigDecimal
+
+/** Polish text of the consumption card (docs/SPEC.md §24). Pure and independent of `Locale`. */
+object ConsumptionFormatting {
+    private val MONTHS_SHORT = listOf("sty", "lut", "mar", "kwi", "maj", "cze", "lip", "sie", "wrz", "paź", "lis", "gru")
+
+    /** `paź`, with the year's last two digits for January so a chart over a year boundary reads: `sty 27`. */
+    fun monthShort(month: MonthKey): String {
+        val name = MONTHS_SHORT[month.month - 1]
+        return if (month.month == 1) name + " " + (month.year % 100).toString().padStart(2, '0') else name
+    }
+
+    /** `Średnio z całego okresu: 4,12 l/100 km (2 412,3 km)`; the km part without a thousands separator quirk. */
+    fun overallLine(view: ConsumptionView): String =
+        Texts.consumptionOverall(
+            TripsFormatting.plain(requireNotNull(view.overall), 2),
+            TripsFormatting.plain(view.overallKm, 0),
+        )
+
+    /** `↗ rosnące (+8,2 %)`, `↘ malejące (-6,0 %)` or `→ stabilne`; `null` without a trend. */
+    fun trendLine(view: ConsumptionView): String? {
+        val trend = view.trend ?: return null
+        val change = view.changePct ?: return null
+        return when (trend) {
+            ConsumptionTrend.RISING -> Texts.consumptionRising(signed(change))
+            ConsumptionTrend.FALLING -> Texts.consumptionFalling(signed(change))
+            ConsumptionTrend.STEADY -> Texts.consumptionSteady(signed(change))
+        }
+    }
+
+    /**
+     * Where the bars start: 70 % of the lowest month, rounded down to 0.1 l/100 km, so that the differences between
+     * months are visible; the card says the axis does not start at zero. A single month (or all equal) starts at 0.
+     */
+    fun axisBase(months: List<MonthConsumption>): BigDecimal {
+        if (months.size < 2) return BigDecimal.ZERO
+        val low = months.minOf { it.lPer100 }
+        if (low == months.maxOf { it.lPer100 }) return BigDecimal.ZERO
+        return low.multiply(BigDecimal("0.7")).setScale(1, java.math.RoundingMode.DOWN)
+    }
+
+    /** Height of a bar as a share (0.08–1.0) of the tallest one on the axis starting at [base]. */
+    fun barShare(value: BigDecimal, top: BigDecimal, base: BigDecimal): Float {
+        val span = top.subtract(base)
+        if (span.signum() <= 0) return 1f
+        return value.subtract(base).toFloat().div(span.toFloat()).coerceIn(0.08f, 1f)
+    }
+
+    private fun signed(value: BigDecimal): String {
+        val text = TripsFormatting.plain(value, 1)
+        return if (value.signum() > 0) "+$text" else text
+    }
+}
