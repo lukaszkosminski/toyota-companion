@@ -859,3 +859,11 @@ ekranie „Pogoda i spalanie” (§23).
   ciśnienie w oponach. To tylko podpowiedź, aplikacja nie diagnozuje.” Jedno miejsce powiadomienia (nowy alert zastępuje stary), kanał „Spalanie”.
 - Raz na ostatni miesiąc: klucz `RRRR-MM` zapisany w ustawieniach. Bez uprawnienia do powiadomień nic nie jest wysyłane ani zapisywane, więc późniejsze nadanie
   go dostarczy alert bieżącego miesiąca. Błąd odczytu lub powiadomień nie przerywa synchronizacji.
+
+## 32. Widżet na ekran główny (PRD F31)
+`app/widget/ConsumptionWidgetProvider.kt` (klasyczny `AppWidgetProvider` z `RemoteViews`, bez nowych zależności), `WidgetSnapshot.kt`, układ `res/layout/widget_consumption.xml`.
+- Trzy linie: średnie spalanie z całego okresu (§24, np. „4,60 l/100 km”), trend (↗/↘/→) i cena domyślna („↗ rosnące (+8,2 %) · cena 6,30 zł/l”) oraz prognoza tankowania
+  (§20). Brak spalania = „Otwórz aplikację”; pusta linia jest ukryta. Dotknięcie otwiera aplikację.
+- Widżet niczego nie liczy i nie pyta sieci: aplikacja zapisuje migawkę (trzy teksty) w prywatnym pliku ustawień po każdej udanej synchronizacji i odmalowuje widżet.
+  Bez synchronizacji (`updatePeriodMillis = 0`) nie ma odświeżania w tle. Wylogowanie czyści migawkę i odmalowuje widżet, więc nie zostają na nim liczby konta.
+- W migawce nie ma położenia ani VIN. Użytkownik dodaje widżet z listy widżetów launchera („Toyota Companion”).

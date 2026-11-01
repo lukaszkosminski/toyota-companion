@@ -27,6 +27,18 @@
             </intent-filter>
         </activity>
 
+        <!-- Widżet na ekran główny (docs/SPEC.md §32): pokazuje zapisany stan, nie pyta Toyoty ani sieci. -->
+        <receiver
+            android:name=".widget.ConsumptionWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_consumption_info" />
+        </receiver>
+
         <!-- WorkManager is initialized by ToyotaApp (Configuration.Provider), not by androidx.startup. -->
         <provider
             android:name="androidx.startup.InitializationProvider"

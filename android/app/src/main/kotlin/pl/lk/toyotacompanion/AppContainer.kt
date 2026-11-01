@@ -150,6 +150,28 @@ class AppContainer(
     }
 
     /**
+     * Saves the numbers of the home-screen widget and repaints it (PRD F31, docs/SPEC.md §32): from the archive and the
+     * settings only, after every successful synchronization. Never breaks the synchronization.
+     */
+    suspend fun refreshWidget() {
+        try {
+            val trips = syncEngine.trips()
+            val view = pl.lk.toyotacompanion.ui.consumptionView(trips, ZoneId.systemDefault())
+            val forecast = syncEngine.refuelForecast()?.let {
+                pl.lk.toyotacompanion.ui.forecastLine(pl.lk.toyotacompanion.ui.TimedForecast(it, java.time.Instant.now()), ZoneId.systemDefault())
+            }
+            pl.lk.toyotacompanion.widget.WidgetSnapshotStore(context).save(
+                pl.lk.toyotacompanion.widget.widgetSnapshot(view, forecast, settingsStore.defaultPrice()),
+            )
+            pl.lk.toyotacompanion.widget.ConsumptionWidgetProvider.refresh(context)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // The widget is a convenience; its failure is not the synchronization's.
+        }
+    }
+
+    /**
      * One hook for both ways of synchronizing: `SyncWorker` and "Synchronizuj teraz"
      * call this runner, so the notification and the in-app prompt cannot miss a run
      * (docs/SPEC.md §13.1, §13.3). Neither may break the synchronization, hence the
@@ -160,6 +182,7 @@ class AppContainer(
             val outcome = syncEngine.fullSync()
             refuelNotifier.onSyncOutcome(outcome)
             consumptionAlertNotifier.onSyncOutcome(outcome)
+            if (outcome is SyncOutcome.Ok) refreshWidget()
             if (outcome is SyncOutcome.Ok && outcome.refuelsDetected > 0) refuelPromptController.refresh()
             // New trips or a new reading change the forecast (docs/SPEC.md §20.2).
             if (outcome is SyncOutcome.Ok) {

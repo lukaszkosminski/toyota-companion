@@ -404,6 +404,13 @@ object Texts {
     fun consumptionFalling(change: String): String = "Trend: ↘ malejące ($change %)"
     fun consumptionSteady(change: String): String = "Trend: → stabilne ($change %)"
 
+    // Widżet (docs/SPEC.md §32).
+
+    const val WIDGET_TITLE = "Toyota Companion"
+    const val WIDGET_EMPTY = "Otwórz aplikację"
+    fun widgetMain(litres: String): String = "$litres l/100 km"
+    fun widgetPrice(price: String): String = "cena $price zł/l"
+
     // Alert o rosnącym spalaniu (docs/SPEC.md §31).
 
     const val ALERT_CHANNEL = "Spalanie"

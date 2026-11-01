@@ -62,6 +62,7 @@ fun AppRoot(
     val forecastState by forecast.state.collectAsState()
     val consumptionState by consumption.state.collectAsState()
     val routeState by tripRoute.state.collectAsState()
+    val widgetContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
     val declaredState by declared.state.collectAsState()
     var screen by rememberSaveable { mutableStateOf(Screen.Status) }
     // The map in the app (docs/SPEC.md §26): [origin ordinal, then per point: label index, lat, lon] with the positions
@@ -104,6 +105,9 @@ fun AppRoot(
             stationPrices.reset()
             tripRoute.close()
             yearSummary.reset()
+            // The widget must not keep an account's numbers after logout (docs/SPEC.md §32).
+            pl.lk.toyotacompanion.widget.WidgetSnapshotStore(widgetContext).clear()
+            pl.lk.toyotacompanion.widget.ConsumptionWidgetProvider.refresh(widgetContext)
         } else {
             // The status button shows the stored price. This effect also restarts when the
             // Activity is recreated, so the read is guarded: the file is touched only while
