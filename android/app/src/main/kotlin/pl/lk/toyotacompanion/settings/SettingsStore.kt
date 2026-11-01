@@ -57,6 +57,13 @@ class SettingsStore(private val prefs: SharedPreferences) {
         prefs.edit().apply { if (value == null) remove(KEY_DECLARED) else putString(KEY_DECLARED, value.toPlainString()) }.apply()
     }
 
+    /** Month (`YYYY-MM`) of the last "consumption keeps rising" notification (docs/SPEC.md §31). */
+    fun lastConsumptionAlert(): String? = prefs.getString(KEY_ALERT, null)
+
+    fun saveLastConsumptionAlert(key: String) {
+        prefs.edit().putString(KEY_ALERT, key).apply()
+    }
+
     /** Whether the weather of new trips is fetched on its own (docs/SPEC.md §23); on by default, the owner asked for it. */
     fun weatherAuto(): Boolean = prefs.getBoolean(KEY_WEATHER_AUTO, true)
 
@@ -130,6 +137,7 @@ class SettingsStore(private val prefs: SharedPreferences) {
         const val KEY_DEFAULT_PRICE = "default_price"
         const val KEY_WEATHER_AUTO = "weather_auto"
         const val KEY_DECLARED = "declared_consumption"
+        const val KEY_ALERT = "consumption_alert"
         const val KEY_NOTIFIED_REFUELS = "refuel_notified_ids"
         const val KEY_NOTIFICATIONS_ASKED = "notifications_asked"
         const val KEY_LAST_ARCHIVE_EXPORT = "last_archive_export"

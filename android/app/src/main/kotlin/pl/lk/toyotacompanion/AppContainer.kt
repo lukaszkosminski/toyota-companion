@@ -139,6 +139,16 @@ class AppContainer(
         )
     }
 
+    /** "Consumption keeps rising" after a synchronization (PRD F30, docs/SPEC.md §31). */
+    val consumptionAlertNotifier: pl.lk.toyotacompanion.notify.ConsumptionAlertNotifier by lazy {
+        pl.lk.toyotacompanion.notify.ConsumptionAlertNotifier(
+            context = context,
+            readTrips = { syncEngine.trips() },
+            lastAlertKey = { settingsStore.lastConsumptionAlert() },
+            markAlerted = { settingsStore.saveLastConsumptionAlert(it) },
+        )
+    }
+
     /**
      * One hook for both ways of synchronizing: `SyncWorker` and "Synchronizuj teraz"
      * call this runner, so the notification and the in-app prompt cannot miss a run
@@ -149,6 +159,7 @@ class AppContainer(
         SyncRunner {
             val outcome = syncEngine.fullSync()
             refuelNotifier.onSyncOutcome(outcome)
+            consumptionAlertNotifier.onSyncOutcome(outcome)
             if (outcome is SyncOutcome.Ok && outcome.refuelsDetected > 0) refuelPromptController.refresh()
             // New trips or a new reading change the forecast (docs/SPEC.md §20.2).
             if (outcome is SyncOutcome.Ok) {

@@ -404,6 +404,13 @@ object Texts {
     fun consumptionFalling(change: String): String = "Trend: ↘ malejące ($change %)"
     fun consumptionSteady(change: String): String = "Trend: → stabilne ($change %)"
 
+    // Alert o rosnącym spalaniu (docs/SPEC.md §31).
+
+    const val ALERT_CHANNEL = "Spalanie"
+    const val ALERT_TITLE = "Spalanie rośnie trzeci miesiąc z rzędu"
+    fun alertRising(values: String, change: String): String =
+        "l/100 km: $values ($change %). Poza zimą warto sprawdzić np. ciśnienie w oponach. To tylko podpowiedź, aplikacja nie diagnozuje."
+
     // Spalanie deklarowane (docs/SPEC.md §30).
 
     const val DECLARED_SET = "Ustaw spalanie deklarowane"

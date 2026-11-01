@@ -849,3 +849,13 @@ ekranie „Pogoda i spalanie” (§23).
 - Karta po wpisaniu pokazuje: „Deklarowane: 4,50 l/100 km · Twoje średnie: -8 % (taniej niż deklarowane)” – różnica średniej z całego okresu (§24) względem
   deklarowanego w % (zaokrąglone, ze znakiem). Bez ustawienia przycisk „Ustaw spalanie deklarowane”, po ustawieniu „Zmień deklarowane”.
 - Wartość zostaje na telefonie, nie wchodzi do kopii archiwum ani CSV.
+
+## 31. Alert o rosnącym spalaniu (PRD F30)
+`app/ui/ConsumptionAlert.kt` (reguła, czysta), `app/notify/ConsumptionAlertNotifier.kt`, wywołany po każdej udanej synchronizacji obok powiadomienia o tankowaniu (§13).
+- Reguła: trzy ostatnie ukończone miesiące ze słupków §24 (miesiąc bieżący nie jest ukończony i odpada) to kolejne miesiące kalendarzowe; każdy krok rośnie o co
+  najmniej 3 % poprzedniego, a całość o co najmniej 8 % pierwszego; ostatni z trzech miesięcy przypada w marcu–październiku (zimą spalanie rośnie samo, alert tylko
+  powtórzyłby sezon). Inaczej brak alertu.
+- Powiadomienie: „Spalanie rośnie trzeci miesiąc z rzędu” z trzema wartościami i wzrostem, np. „l/100 km: 4,0 → 4,3 → 4,7 (+18 %). Poza zimą warto sprawdzić np.
+  ciśnienie w oponach. To tylko podpowiedź, aplikacja nie diagnozuje.” Jedno miejsce powiadomienia (nowy alert zastępuje stary), kanał „Spalanie”.
+- Raz na ostatni miesiąc: klucz `RRRR-MM` zapisany w ustawieniach. Bez uprawnienia do powiadomień nic nie jest wysyłane ani zapisywane, więc późniejsze nadanie
+  go dostarczy alert bieżącego miesiąca. Błąd odczytu lub powiadomień nie przerywa synchronizacji.

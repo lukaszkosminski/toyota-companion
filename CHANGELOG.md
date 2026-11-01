@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Alert o rosnącym spalaniu trzy miesiące z rzędu poza zimą (F30, SPEC §31)
 - Spalanie deklarowane wpisywane przez właściciela i porównanie ze średnią (F29, SPEC §30)
 - Podsumowanie roku (F28) z udostępnieniem tekstu (SPEC §29)
 - Rodzaj jazdy (wolna jazda, miasto, płynnie, trasa) przy każdej trasie na liście (F27)
