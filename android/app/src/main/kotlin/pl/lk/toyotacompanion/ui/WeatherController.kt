@@ -37,6 +37,7 @@ data class WeatherView(
     val plannedRequests: Int,
     val requestsLeft: Int,
     val cachedDays: Int,
+    val matrix: List<MatrixRow>,
 )
 
 /** How the last tap on "Pobierz pogodę" ended; the text comes from [Texts], never from an exception. */
@@ -216,6 +217,7 @@ class WeatherController(
             plannedRequests = plan.requests.size + plan.requestsLeft,
             requestsLeft = plan.requestsLeft,
             cachedDays = rows.mapTo(HashSet()) { it.day.date }.size,
+            matrix = speedWeatherMatrix(stored, weather),
         )
     }
 

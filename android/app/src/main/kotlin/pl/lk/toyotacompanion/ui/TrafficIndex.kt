@@ -41,14 +41,14 @@ fun trafficClassOf(speedKmh: Double): TrafficClass {
     return bandOf(speedKmh)
 }
 
-private fun bandOf(speedKmh: Double): TrafficClass = when {
+internal fun bandOf(speedKmh: Double): TrafficClass = when {
     speedKmh < TRAFFIC_SLOW_BELOW -> TrafficClass.SLOW
     speedKmh < TRAFFIC_CITY_BELOW -> TrafficClass.CITY
     speedKmh < TRAFFIC_FLOWING_BELOW -> TrafficClass.FLOWING
     else -> TrafficClass.HIGHWAY
 }
 
-private fun usable(stored: StoredTrip): Double? {
+internal fun usable(stored: StoredTrip): Double? {
     val speed = stored.record.averageSpeed ?: return null
     val km = stored.record.trip.distanceKm
     val fuel = stored.record.trip.fuelL

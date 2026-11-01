@@ -37,4 +37,20 @@ object WeatherFormatting {
         val percent = electric.multiply(BigDecimal(100)).divide(bucket.distanceKm, 0, RoundingMode.HALF_UP)
         return percent.toPlainString() + " %"
     }
+
+    /** One cell: `4,92 l (12)`, or `7 tras – za mało` below the minimum; `–` without trips. */
+    fun cellText(cell: MatrixCell?): String = when {
+        cell == null -> "–"
+        !cell.enough -> Texts.matrixTooFew(cell.trips)
+        else -> Texts.matrixCell(TripsFormatting.plain(cell.lPer100, 2), cell.trips)
+    }
+
+    /** `mróz 5,41 l (12) · chłodno 4,90 l (30) · łagodnie – · ciepło 3,8 l (9)` for one speed band. */
+    fun rowText(row: MatrixRow): String =
+        pl.lk.toyotacompanion.core.domain.TemperatureBucket.entries.joinToString(Texts.SEPARATOR) {
+            Texts.matrixBucketShort(it) + " " + cellText(row.cells[it])
+        }
+
+    /** `Zimą przy tej prędkości: +0,81 l/100 km (mróz wobec łagodnie)`; `null` when either side is too small. */
+    fun frostLine(row: MatrixRow): String? = row.frostSurcharge()?.let { Texts.matrixFrost(TripsFormatting.signed(it, 2)) }
 }

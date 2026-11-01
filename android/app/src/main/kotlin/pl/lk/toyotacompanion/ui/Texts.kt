@@ -392,6 +392,23 @@ object Texts {
     fun consumptionFalling(change: String): String = "Trend: ↘ malejące ($change %)"
     fun consumptionSteady(change: String): String = "Trend: → stabilne ($change %)"
 
+    // Prędkość × temperatura (docs/SPEC.md §28).
+
+    const val MATRIX_TITLE = "Prędkość i temperatura"
+    const val MATRIX_HINT =
+        "Czy wolna jazda kosztuje więcej zimą? Trasy od 2 km wg tempa (z „Statystyk”) i temperatury dnia: l/100 km i w nawiasie liczba tras. " +
+            "Poniżej 5 tras w komórce nie ma wniosku."
+    const val MATRIX_EMPTY = "Brak tras z pogodą i prędkością. Pobierz pogodę."
+    fun matrixCell(litres: String, trips: Int): String = "$litres l ($trips)"
+    fun matrixTooFew(trips: Int): String = "$trips tras – za mało"
+    fun matrixBucketShort(bucket: pl.lk.toyotacompanion.core.domain.TemperatureBucket): String = when (bucket) {
+        pl.lk.toyotacompanion.core.domain.TemperatureBucket.FROST -> "mróz"
+        pl.lk.toyotacompanion.core.domain.TemperatureBucket.COLD -> "chłodno"
+        pl.lk.toyotacompanion.core.domain.TemperatureBucket.MILD -> "łagodnie"
+        pl.lk.toyotacompanion.core.domain.TemperatureBucket.WARM -> "ciepło"
+    }
+    fun matrixFrost(signed: String): String = "Zimą przy tej prędkości: $signed l/100 km (mróz wobec łagodnie)"
+
     // Cena ze stacji (docs/SPEC.md §25).
 
     const val PRICE_SOURCE = "Źródło ceny"

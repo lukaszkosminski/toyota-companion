@@ -809,3 +809,14 @@ Bez nowych zależności Gradle.
 - Mapa dostaje punkty przebiegu wyłącznie jako liczby (`showRoute([[lat,lon,e],…])`), strona nie ma dostępu do niczego poza kafelkami
   OpenStreetMap (§26). Serwer kafelków widzi okolicę, którą oglądasz (kafelki), więc obejmuje to cały obrys trasy, nie dokładne punkty.
 - Poza kopią archiwum (§14) i CSV: przebiegi nie wchodzą do pliku eksportu (rozmiar), ale zostają w bazie na telefonie.
+
+## 28. Prędkość i temperatura (PRD F24)
+`app/ui/WeatherMatrix.kt` (funkcje czyste na `StoredTrip` i mapie pogody po id trasy – bez współrzędnych, bez lustra w Pythonie), sekcja na
+ekranie „Pogoda i spalanie” (§23).
+- Wiersze: pasma tempa z §22 (wolno, miasto, płynnie, trasa; trasy od 2 km z dodatnią prędkością). Kolumny: koszyki temperatury z §23 (mróz,
+  chłodno, łagodnie, ciepło wg średniej temperatury dnia). Wchodzą tylko trasy, które mają pasmo i dzień z temperaturą; pasmo bez żadnej takiej
+  trasy nie ma wiersza, koszyk bez tras – komórki.
+- Komórka: liczba tras, km (0,1), l/100 km = Σ paliwo / Σ km (0,01), udział jazdy na prądzie (każda trasa przycięta do własnego dystansu).
+  Poniżej 5 tras (`WEATHER_MIN_TRIPS_PER_BUCKET`) komórka pokazuje tylko liczbę („N tras – za mało”), bez liczby do wniosku.
+- „Zimą przy tej prędkości” = mróz − łagodnie w tym samym paśmie, tylko gdy obie komórki mają ≥ 5 tras; inaczej brak (nie zgadujemy różnicy z kilku ttras).
+- Ekran przypomina, że to korelacja, a nie pomiar przyczyny (jak §23); pogodę trzeba pobrać (§23), bez niej tabela jest pusta.

@@ -94,6 +94,18 @@ fun WeatherScreen(controller: WeatherController, onBack: () -> Unit) {
                 impactSection(Texts.WEATHER_BY_RAIN, view.precipitation)
 
                 item { HorizontalDivider() }
+                item { Text(Texts.MATRIX_TITLE, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp)) }
+                item { Text(Texts.MATRIX_HINT, style = MaterialTheme.typography.bodySmall) }
+                if (view.matrix.isEmpty()) item { Text(Texts.MATRIX_EMPTY) }
+                items(view.matrix, key = { "mx-" + it.speed }) { row ->
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(Texts.trafficClassName(row.speed), style = MaterialTheme.typography.titleSmall)
+                        Text(WeatherFormatting.rowText(row), style = MaterialTheme.typography.bodyMedium)
+                        WeatherFormatting.frostLine(row)?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                    }
+                }
+
+                item { HorizontalDivider() }
                 item { Text(Texts.WEATHER_CAVEAT, style = MaterialTheme.typography.bodySmall) }
             }
         }
