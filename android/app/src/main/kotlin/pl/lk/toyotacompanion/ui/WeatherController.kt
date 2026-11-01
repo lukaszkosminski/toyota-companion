@@ -115,6 +115,9 @@ class WeatherController(
         ui.value = WeatherUiState()
     }
 
+    /** The cached day of every trip that has one, for the trips list (docs/SPEC.md §10.3). */
+    suspend fun daysOfTrips(): Map<String, WeatherDay> = withContext(io) { tripWeatherDays(readTrips(), cache.all(), zone()) }
+
     /** The switch of the screen: whether new trips get their weather on their own. */
     fun setAuto(on: Boolean) {
         saveAuto(on)

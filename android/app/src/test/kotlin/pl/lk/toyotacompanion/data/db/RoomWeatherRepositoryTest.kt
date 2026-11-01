@@ -55,6 +55,13 @@ class RoomWeatherRepositoryTest {
     }
 
     @Test
+    fun `the weather code is kept`() = runTest {
+        val base = row("54.37", "18.63", "2026-10-30")
+        repository.save(listOf(base.copy(day = base.day.copy(weatherCode = 61))))
+        assertEquals(61, repository.all().single().day.weatherCode)
+    }
+
+    @Test
     fun `the same place and day is one row and the later save wins`() = runTest {
         repository.save(listOf(row("54.37", "18.63", "2026-10-30", mean = null)))
         repository.save(listOf(row("54.37", "18.63", "2026-10-30", mean = 7.0, fetched = FETCHED.plusSeconds(60))))

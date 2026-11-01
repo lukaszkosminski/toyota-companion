@@ -27,6 +27,8 @@ data class WeatherDay(
     val precipitationMm: Double?,
     val precipitationHours: Double?,
     val windMaxKmh: Double?,
+    /** WMO weather code of the day (0 clear … 95+ thunderstorm); `null` when the service gave none. */
+    val weatherCode: Int? = null,
 )
 
 /** Source of daily weather; [OpenMeteoClient] is the only implementation, tests use a fake. */
@@ -124,13 +126,14 @@ class OpenMeteoClient(
         val rain = column("precipitation_sum")
         val hours = column("precipitation_hours")
         val wind = column("wind_speed_10m_max")
+        val code = column("weather_code")
         return times.mapIndexed { i, element ->
             val date = try {
                 LocalDate.parse((element as? JsonPrimitive)?.takeIf { it.isString }?.content.orEmpty())
             } catch (e: Exception) {
                 throw WeatherFetchException(WeatherErrorKind.DATA, "Weather response has a bad date")
             }
-            WeatherDay(date, value(mean, i), value(min, i), value(max, i), value(rain, i), value(hours, i), value(wind, i))
+            WeatherDay(date, value(mean, i), value(min, i), value(max, i), value(rain, i), value(hours, i), value(wind, i), value(code, i)?.toInt())
         }
     }
 
@@ -146,7 +149,7 @@ class OpenMeteoClient(
         const val USER_AGENT = "toyota-companion"
         const val COORDINATE_SCALE = 2
         const val DAILY_VARIABLES =
-            "temperature_2m_mean,temperature_2m_min,temperature_2m_max,precipitation_sum,precipitation_hours,wind_speed_10m_max"
+            "temperature_2m_mean,temperature_2m_min,temperature_2m_max,precipitation_sum,precipitation_hours,wind_speed_10m_max,weather_code"
 
         /** `54.37`: HALF_UP to [COORDINATE_SCALE] decimals, written with a dot. */
         fun rounded(value: Double): String =

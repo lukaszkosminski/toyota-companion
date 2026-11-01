@@ -223,6 +223,7 @@ data class WeatherEntity(
     @ColumnInfo(name = "precip_h") val precipitationHours: Double?,
     @ColumnInfo(name = "wind_max") val windMaxKmh: Double?,
     @ColumnInfo(name = "fetched_at") val fetchedAt: Instant,
+    @ColumnInfo(name = "weather_code") val weatherCode: Int? = null,
 ) {
     fun toRow(): WeatherRow = WeatherRow(
         latitude,
@@ -235,6 +236,7 @@ data class WeatherEntity(
             precipitationMm,
             precipitationHours,
             windMaxKmh,
+            weatherCode,
         ),
         fetchedAt,
     )
@@ -251,6 +253,7 @@ fun WeatherRow.toEntity(): WeatherEntity = WeatherEntity(
     day.precipitationHours,
     day.windMaxKmh,
     fetchedAt,
+    day.weatherCode,
 )
 
 /** The GPS route of one trip as the compact text of `encodeRoute` (docs/SPEC.md §27); empty text = Toyota has none. */

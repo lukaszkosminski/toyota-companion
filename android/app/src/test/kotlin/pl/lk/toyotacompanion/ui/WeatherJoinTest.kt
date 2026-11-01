@@ -31,7 +31,7 @@ private fun row(date: String, mean: Double?, lat: String = "54.37", lon: String 
     lat,
     lon,
     WeatherDay(LocalDate.parse(date), mean, null, null, 0.0, null, null),
-    Instant.parse("2026-11-01T10:00:00Z"),
+    Instant.parse("2026-11-02T10:00:00Z"),
 )
 
 /** docs/SPEC.md §23: which cached day belongs to a trip, and what still has to be fetched. */
@@ -144,7 +144,7 @@ class WeatherJoinTest {
             "54.37",
             "18.64",
             WeatherDay(LocalDate.parse("2026-10-28"), 4.0, null, null, null, null, null),
-            Instant.parse("2026-11-01T10:00:00Z"),
+            Instant.parse("2026-11-02T10:00:00Z"),
         )
         val plan = planWeatherFetch(listOf(trip("a", "2026-10-28T08:00:00Z")), listOf(partial), WARSAW, TODAY)
         assertEquals(1, plan.requests.size)
@@ -165,5 +165,24 @@ class WeatherJoinTest {
         assertEquals(WeatherPlace("-33.87", "-70.00"), a)
         assertEquals(WeatherPlace("-33.86", "-70.00"), b)
         assertEquals(WeatherPlace("0.00", "0.00"), weatherPlaceOf(trip("c", "2026-10-30T08:00:00Z", -0.0004, -0.0004).record))
+    }
+
+    @Test
+    fun `a day cached before the weather code existed is fetched once more, a newer one without a code is not`() {
+        val old = row("2026-09-01", 8.0)
+        val oldPlan = planWeatherFetch(listOf(trip("a", "2026-09-01T08:00:00Z")), listOf(old.copy(fetchedAt = Instant.parse("2026-11-01T10:00:00Z"))), WARSAW, TODAY)
+        assertEquals(1, oldPlan.requests.size)
+        val recentlyFetched = old.copy(fetchedAt = Instant.parse("2026-11-01T19:00:00Z"))
+        assertEquals(emptyList(), planWeatherFetch(listOf(trip("a", "2026-09-01T08:00:00Z")), listOf(recentlyFetched), WARSAW, TODAY).requests)
+        val withCode = old.copy(day = old.day.copy(weatherCode = 61))
+        assertEquals(emptyList(), planWeatherFetch(listOf(trip("a", "2026-09-01T08:00:00Z")), listOf(withCode), WARSAW, TODAY).requests)
+    }
+
+    @Test
+    fun `the days of the trips come by trip id with the code`() {
+        val withCode = row("2026-10-30", 8.0).let { it.copy(day = it.day.copy(weatherCode = 0)) }
+        val days = tripWeatherDays(listOf(trip("a", "2026-10-30T08:00:00Z"), trip("b", "2026-10-29T08:00:00Z")), listOf(withCode), WARSAW)
+        assertEquals(0, days.getValue("a").weatherCode)
+        assertNull(days["b"])
     }
 }

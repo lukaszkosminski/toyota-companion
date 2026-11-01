@@ -160,4 +160,18 @@ class OpenMeteoClientTest {
         assertNull(e.retryAfterSeconds)
         assertEquals("GET", server.takeRequest().method)
     }
+
+    @Test
+    fun `the weather code of a day is read and a missing one stays null`() = withServer { server, client ->
+        server.enqueue(
+            reply(
+                200,
+                """{"daily":{"time":["2026-10-30","2026-10-31"],"temperature_2m_mean":[8.5,7.0],"weather_code":[61,null]}}""",
+            ),
+        )
+        val days = client.daily(54.37, 18.63, LocalDate.parse("2026-10-30"), LocalDate.parse("2026-10-31"))
+        assertEquals(61, days[0].weatherCode)
+        assertNull(days[1].weatherCode)
+        assertTrue(server.takeRequest().url.queryParameter("daily").orEmpty().contains("weather_code"))
+    }
 }

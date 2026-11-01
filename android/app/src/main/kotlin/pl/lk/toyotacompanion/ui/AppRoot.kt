@@ -243,6 +243,7 @@ fun AppRoot(
                     Screen.Trips -> TripsScreen(
                         onBack = { screen = Screen.Status },
                         onShowMap = { points, id -> showMap(Screen.Trips, points, id) },
+                        weather = weather,
                         loadTrips = loadTrips,
                     )
 

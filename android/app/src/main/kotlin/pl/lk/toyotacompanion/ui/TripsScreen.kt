@@ -22,6 +22,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
@@ -68,11 +70,29 @@ private sealed interface TripsLoad {
 fun TripsScreen(
     onBack: () -> Unit,
     onShowMap: (List<MapPoint>, String?) -> Unit,
+    weather: WeatherController,
     loadTrips: suspend () -> List<StoredTrip>,
     zone: ZoneId = ZoneId.systemDefault(),
     io: CoroutineDispatcher = Dispatchers.IO,
 ) {
     BackHandler(onBack = onBack)
+
+    // The weather of each trip's day (docs/SPEC.md §10.3): read from the cache, and the missing days are fetched on their own
+    // (§23); the list picks them up as they arrive.
+    val weatherState by weather.state.collectAsState()
+    LaunchedEffect(Unit) {
+        weather.ensureLoaded()
+        weather.autoFetch()
+    }
+    val days by produceState(emptyMap<String, pl.lk.toyotacompanion.core.weather.WeatherDay>(), weatherState.view?.cachedDays, weatherState.fetching) {
+        value = try {
+            weather.daysOfTrips()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            emptyMap()
+        }
+    }
 
     val load by produceState<TripsLoad>(initialValue = TripsLoad.Loading, loadTrips, zone, io) {
         value = try {
@@ -127,7 +147,7 @@ fun TripsScreen(
                         MonthHeader(group)
                     }
                     items(group.trips, key = { it.record.id }) { stored ->
-                        TripRow(stored, zone, onShowMap)
+                        TripRow(stored, zone, days[stored.record.id], onShowMap)
                     }
                 }
             }
@@ -163,7 +183,7 @@ private fun MonthHeader(group: MonthGroup) {
 
 /** One row: when the car drove, how far, how much fuel and what it cost. */
 @Composable
-private fun TripRow(stored: StoredTrip, zone: ZoneId, onShowMap: (List<MapPoint>, String?) -> Unit) {
+private fun TripRow(stored: StoredTrip, zone: ZoneId, day: pl.lk.toyotacompanion.core.weather.WeatherDay?, onShowMap: (List<MapPoint>, String?) -> Unit) {
     val trip = stored.record.trip
     val cost = stored.cost
     val record = stored.record
@@ -189,6 +209,8 @@ private fun TripRow(stored: StoredTrip, zone: ZoneId, onShowMap: (List<MapPoint>
                     TripsFormatting.kilometers(trip.distanceKm) + Texts.SEPARATOR + TripsFormatting.liters(trip.fuelL),
                     style = MaterialTheme.typography.bodySmall,
                 )
+                // Weather of the day and the place the trip started at; nothing until it has been fetched.
+                WeatherSymbols.line(day)?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(

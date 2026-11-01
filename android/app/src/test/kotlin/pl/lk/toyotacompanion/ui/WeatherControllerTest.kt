@@ -26,7 +26,7 @@ import pl.lk.toyotacompanion.core.weather.WeatherErrorKind
 import pl.lk.toyotacompanion.core.weather.WeatherFetchException
 import pl.lk.toyotacompanion.core.weather.WeatherGateway
 
-private val NOW: Instant = Instant.parse("2026-11-01T10:00:00Z")
+private val NOW: Instant = Instant.parse("2026-11-02T10:00:00Z")
 private val WARSAW: ZoneId = ZoneId.of("Europe/Warsaw")
 
 private fun ride(id: String, date: String, lat: Double = 54.372, lon: Double = 18.638): StoredTrip {

@@ -276,6 +276,7 @@ Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – �
 - Dotknięcie wiersza trasy z położeniem (start i/lub koniec) od razu otwiera mapę w aplikacji (§26) z tymi końcami, które mają
   współrzędne, zaokrąglonymi jak w §18 (ok. 100 m). Trasa bez żadnego położenia nie reaguje na dotknięcie. Archiwum nie ma przebiegu
   trasy, więc mapa łączy początek z końcem prostą przerywaną linią.
+- Wiersz trasy pokazuje pogodę dnia i miejsca startu (§23), gdy jest w pamięci: symbol, słowo i średnią temperaturę w pełnych stopniach, np. „🌧️ deszcz · 8 °C”, „☀️ słonecznie · 12 °C”, „❄️ śnieg · -2 °C”. Symbol i słowo z kodu pogody WMO dnia (`weather_code`: bezchmurnie, zachmurzenie, mgła, mżawka, deszcz, śnieg, burza); bez kodu tylko temperatura, bez pogody nic. Otwarcie listy uruchamia pobieranie brakujących dni (§23), a lista dociąga je w miarę ich pojawiania się. Dni zapisane przed dodaniem kodu są pobierane jeszcze raz (raz).
 
 ### §11.1 Operacje w `core`
 - `pendingRefuels(): List<Refuel>` — oczekujące tankowania wybranego VIN (`state.get().vin`), najnowsze pierwsze
@@ -722,7 +723,7 @@ Domena: Python `backend/app/domain/weather.py`, Kotlin `core/domain/WeatherOps.k
 Złączenie trasy z pogodą, pobieranie i ekran: `app/ui` (GPS, więc bez lustra w Pythonie, jak §18, §21, §22).
 - Źródło: Open-Meteo `GET https://archive-api.open-meteo.com/v1/archive`, bez klucza, jedno miejsce na żądanie. Parametry:
   `latitude`, `longitude`, `start_date`, `end_date`, `daily=temperature_2m_mean,temperature_2m_min,temperature_2m_max,
-  precipitation_sum,precipitation_hours,wind_speed_10m_max`, `timezone=auto`, `timeformat=iso8601`. Żadnych innych parametrów,
+  precipitation_sum,precipitation_hours,wind_speed_10m_max,weather_code`, `timezone=auto`, `timeformat=iso8601`. Żadnych innych parametrów,
   nagłówków uwierzytelniających ani identyfikatorów; `User-Agent: toyota-companion`.
 - Prywatność: współrzędne startu trasy zaokrąglone do 0,01° (HALF_UP, ok. 1 km) – i w kluczu cache, i w żądaniu (klient
   zaokrągla jeszcze raz). Nigdy surowy GPS, VIN, konto, token ani id trasy. Ekran nie pokazuje położenia.

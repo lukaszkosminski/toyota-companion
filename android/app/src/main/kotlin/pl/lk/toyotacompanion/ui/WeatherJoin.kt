@@ -7,6 +7,7 @@ import pl.lk.toyotacompanion.core.data.TripRecord
 import pl.lk.toyotacompanion.core.data.WeatherRow
 import pl.lk.toyotacompanion.core.domain.DayWeather
 import pl.lk.toyotacompanion.core.domain.toBigDecimal
+import pl.lk.toyotacompanion.core.weather.WeatherDay
 import pl.lk.toyotacompanion.core.weather.OpenMeteoClient
 
 /** Most requests one automatic run makes (after a synchronization or when the screen opens); the first backfill fits in one. */
@@ -17,6 +18,9 @@ const val WEATHER_MAX_REQUESTS_PER_FETCH = 10
 
 /** Missing days of a place closer than this many days share one request; farther runs are asked for separately. */
 const val WEATHER_MERGE_GAP_DAYS = 14L
+
+/** The service started to be asked for `weather_code` at this moment; older cached days are fetched once more for the icon. */
+val WEATHER_CODE_SINCE: java.time.Instant = java.time.Instant.parse("2026-11-01T18:00:00Z")
 
 /** The newest days still lack reanalysis values; a day this recent with no temperature is asked for again. */
 const val WEATHER_REANALYSIS_LAG_DAYS = 10L
@@ -45,6 +49,18 @@ private data class Key(val place: WeatherPlace, val date: LocalDate)
 
 private fun index(rows: List<WeatherRow>): Map<Key, WeatherRow> =
     rows.associateBy { Key(WeatherPlace(it.latitude, it.longitude), it.day.date) }
+
+/** The cached day of every trip that has one, by trip id, as the service gave it (the trips list shows it). */
+fun tripWeatherDays(trips: List<StoredTrip>, rows: List<WeatherRow>, zone: ZoneId): Map<String, WeatherDay> {
+    val byKey = index(rows)
+    val result = HashMap<String, WeatherDay>()
+    for (stored in trips) {
+        val place = weatherPlaceOf(stored.record) ?: continue
+        val day = byKey[Key(place, weatherDateOf(stored, zone))]?.day ?: continue
+        result[stored.record.id] = day
+    }
+    return result
+}
 
 /**
  * The weather of every trip that has a cached row for its start point and day, by trip id, in the units
@@ -95,7 +111,10 @@ fun planWeatherFetch(
         val cached = byKey[Key(place, date)]
         val recent = !date.isBefore(today.minusDays(WEATHER_REANALYSIS_LAG_DAYS))
         val gap = cached != null && (cached.day.tempMeanC == null || cached.day.precipitationMm == null)
-        if (cached == null || (gap && recent)) missing.getOrPut(place) { ArrayList() } += date
+        // Rows fetched before the weather code was asked for have a temperature but no code: fetched once more.
+        val noCode = cached != null && cached.day.weatherCode == null && cached.day.tempMeanC != null &&
+            cached.fetchedAt.isBefore(WEATHER_CODE_SINCE)
+        if (cached == null || (gap && recent) || noCode) missing.getOrPut(place) { ArrayList() } += date
     }
     val all = ArrayList<WeatherRequest>()
     for ((place, dates) in missing) {
