@@ -22,8 +22,7 @@
 - Przebieg trasy (F23, SPEC §27): dociągany z Toyoty tylko po otwarciu mapy tej trasy, jednym zwykłym `GET` (jak synchronizacja, bez `refresh_status`); zapisany lokalnie z dokładnością ok. 1 m, poza eksportem i CSV; na ekranie tylko mapa, a serwer kafelków OSM widzi oglądaną okolicę.
 - CI skanuje sekrety (gitleaks).
 - Zapytania do usług zewnętrznych (Open-Meteo, F15, SPEC §23) wysyłają tylko współrzędne startu trasy zaokrąglone do 0,01° (~1 km),
-  daty i listę zmiennych; nigdy VIN, konto, token, surowy GPS ani id trasy. Tylko po dotknięciu „Pobierz pogodę”, tylko HTTPS,
-  nigdy w tle. Treść odpowiedzi, adres ani współrzędne nie trafiają do logów ani komunikatów błędu. Cache pogody (zaokrąglone
+  daty i listę zmiennych; nigdy VIN, konto, token, surowy GPS ani id trasy. Automatycznie po synchronizacji i przy otwarciu ekranu pogody (przełącznik, domyślnie włączony, albo ręcznie po dotknięciu), tylko HTTPS. Treść odpowiedzi, adres ani współrzędne nie trafiają do logów ani komunikatów błędu. Cache pogody (zaokrąglone
   miejsca i daty) zostaje na telefonie, poza kopią archiwum i CSV. Ekran pogody nie pokazuje położenia.
 
 ### Treść powiadomienia (F2c)

@@ -456,8 +456,9 @@ object Texts {
     const val WEATHER_READ_ERROR = "Nie udało się odczytać pogody. Spróbuj ponownie."
     const val WEATHER_HINT =
         "Trasy podzielone wg pogody dnia i miejsca startu (dane z archiwum reanaliz Open-Meteo, to model, nie termometr). " +
-            "Pobranie wysyła do usługi tylko punkt startu zaokrąglony do ok. 1 km i daty – nigdy VIN ani dokładne położenie."
+            "Pobranie wysyła do usługi tylko punkt startu zaokrąglony do ok. 1 km i daty – nigdy VIN ani dokładne położenie. Gdy automatyczne pobieranie jest włączone, dzieje się to po każdej synchronizacji i przy otwarciu tego ekranu."
     const val WEATHER_FETCH = "Pobierz pogodę"
+    const val WEATHER_AUTO = "Pobieraj pogodę automatycznie (po synchronizacji i przy otwarciu ekranu)"
     const val WEATHER_FETCHING = "Pobieranie…"
     const val WEATHER_BY_TEMPERATURE = "Wg temperatury"
     const val WEATHER_BY_RAIN = "Wg opadów"

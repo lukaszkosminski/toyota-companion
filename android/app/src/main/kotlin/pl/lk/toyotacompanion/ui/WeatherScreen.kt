@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,6 +17,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -41,7 +43,11 @@ fun WeatherScreen(controller: WeatherController, onBack: () -> Unit) {
     val leave = { controller.cancelFetch(); onBack() }
     BackHandler(onBack = leave)
     val state by controller.state.collectAsState()
-    LaunchedEffect(Unit) { controller.ensureLoaded() }
+    LaunchedEffect(Unit) {
+        controller.ensureLoaded()
+        // Opening the screen also brings the missing days, when the switch is on (docs/SPEC.md §23).
+        controller.autoFetch()
+    }
 
     Scaffold(
         topBar = {
@@ -73,6 +79,12 @@ fun WeatherScreen(controller: WeatherController, onBack: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 item { Text(Texts.WEATHER_HINT, style = MaterialTheme.typography.bodySmall) }
+                item {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Switch(checked = state.auto, onCheckedChange = controller::setAuto)
+                        Text(Texts.WEATHER_AUTO, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    }
+                }
                 item {
                     Button(
                         onClick = controller::fetch,

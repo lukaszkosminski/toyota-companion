@@ -152,6 +152,8 @@ class AppContainer(
             if (outcome is SyncOutcome.Ok) {
                 forecastController.refresh()
                 consumptionController.refresh()
+                // New trips get their weather without a tap (docs/SPEC.md §23).
+                weatherController.autoFetch()
             }
             outcome
         }
@@ -335,6 +337,8 @@ class AppContainer(
             zone = { ZoneId.systemDefault() },
             scope = uiScope,
             io = Dispatchers.IO,
+            autoEnabled = { settingsStore.weatherAuto() },
+            saveAuto = { settingsStore.saveWeatherAuto(it) },
         )
     }
 

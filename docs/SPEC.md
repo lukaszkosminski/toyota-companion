@@ -736,14 +736,17 @@ Złączenie trasy z pogodą, pobieranie i ekran: `app/ui` (GPS, więc bez lustra
 - Cache: tabela `weather` (klucz `lat_r`, `lon_r`, `date`; wartości, `fetched_at`), Room v2 przez migrację automatyczną
   (schemat `2.json`), bez VIN i id trasy; nie wchodzi do kopii archiwum (§14) ani CSV. Przeżywa wylogowanie (to nie sekret).
   Dzień bez wartości z usługi zapisany z `null`.
-- Pobieranie: wyłącznie po dotknięciu „Pobierz pogodę” (nigdy w synchronizacji ani w tle), po jednym zapytaniu naraz. Wyjście z
-  ekranu i wylogowanie przerywają trwające pobieranie. Brakujące dni miejsca dzielone są na odcinki (dni bliższe niż 14 dni
-  dzielą jedno zapytanie); jedno dotknięcie robi najwyżej 10 zapytań (obsługujących najwięcej tras pierwsze), reszta po kolejnym
-  dotknięciu. „Dziś” i „wczoraj” liczone są w strefie telefonu – tej samej, która datuje trasy; koniec odcinka przycinany do
-  wczoraj (archiwum nie zna dziś i odrzuca przyszłość; klient dodatkowo trzyma twardy sufit UTC). Dzień pominięty w odpowiedzi
-  zapisywany jest pusty, żeby nie był pytany w nieskończoność; odpowiedź bez ani jednego dnia to błąd „nieczytelna odpowiedź”.
-  Dni z ostatnich 10 dni bez temperatury lub opadu (opóźnienie reanaliz) są pytane ponownie; starsze puste nie. Po pobraniu
-  cache jest przycinany do dnia sprzed pierwszej trasy archiwum.
+- Pobieranie (decyzja właściciela 2026-11-01: automatycznie): po każdej udanej synchronizacji i przy otwarciu ekranu „Pogoda i spalanie”
+  aplikacja sama pobiera brakujące dni – jeden przebieg do 100 zapytań (pierwsze zasilenie archiwum mieści się w jednym), po jednym
+  zapytaniu naraz; przycisk „Pobierz pogodę” robi to samo ręcznie (do 10 zapytań na dotknięcie). Przełącznik „Pobieraj pogodę
+  automatycznie” na ekranie (domyślnie włączony, zapisany w ustawieniach) wyłącza pobieranie automatyczne. Przy włączonym przełączniku
+  przebieg trwa dalej po wyjściu z ekranu; przy wyłączonym wyjście z ekranu i wylogowanie przerywają pobieranie ręczne. Pobieranie
+  automatyczne bez nic do zrobienia jest ciche, a błąd (429, sieć…) kończy przebieg z zwykłym komunikatem. Brakujące dni miejsca
+  dzielone są na odcinki (dni bliższe niż 14 dni dzielą jedno zapytanie), najliczniejsze pierwsze. „Dziś” i „wczoraj” liczone są w strefie
+  telefonu – tej samej, która datuje trasy; koniec odcinka przycinany do wczoraj (archiwum nie zna dziś i odrzuca przyszłość; klient
+  dodatkowo trzyma twardy sufit UTC). Dzień pominięty w odpowiedzi zapisywany jest pusty, żeby nie był pytany w nieskończoność;
+  odpowiedź bez ani jednego dnia to błąd „nieczytelna odpowiedź”. Dni z ostatnich 10 dni bez temperatury lub opadu (opóźnienie reanaliz)
+  są pytane ponownie; starsze puste nie. Po pobraniu cache jest przycinany do dnia sprzed pierwszej trasy archiwum.
 - Klient nie podąża za przekierowaniami (zapytanie z punktem nie może trafić do obcej domeny); 3xx = błąd usługi.
 - Błędy: 429 (z `Retry-After`) → „usługa prosi o przerwę”, bez pętli; inne HTTP → błąd usługi; brak sieci; nieczytelna odpowiedź
   (także tablica JSON zamiast obiektu). Komunikaty bez treści odpowiedzi, adresu i współrzędnych. Ekran zostaje na cache'u.

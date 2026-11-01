@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Pogoda pobierana automatycznie po synchronizacji i przy otwarciu ekranu, z przełącznikiem (SPEC §23, ADR-013)
 - Prędkość i temperatura (F24): tabela pasm tempa × temperatura dnia z różnicą zimą (SPEC §28)
 - Przebieg trasy na mapie (F23): GPS z Toyoty dociągany przy otwarciu mapy, zielony na prądzie, zapis w Room v3 (SPEC §27, ADR-012)
 - Cena ze stacji (F22): wybór źródła ceny – ręcznie, Auchan Szczęśliwa albo WATIS z trojmiasto.pl (SPEC §25, ADR-011)

@@ -85,3 +85,10 @@ przebieg poza eksportem. Odrzucone: pobieranie przebiegów dla wszystkich tras w
 zapis surowych punktów w eksporcie (rozmiar pliku). Ryzyka: Toyota usuwa trasy po ok. 12 miesiącach (starszych tras nie da się już
 dociągnąć – mapa wraca do prostej linii); przebiegi, które właściciel nie otworzył, przepadną razem z trasami po stronie Toyoty.
 
+## ADR-013 Pogoda pobierana automatycznie (2026-11-01, zmienia ADR-009)
+ADR-009 przewidywał pobieranie pogody wyłącznie po dotknięciu. Właściciel poprosił o automatyczne pobieranie, więc: po każdej udanej
+synchronizacji i przy otwarciu ekranu pogody, do 100 zapytań w jednym przebiegu, z przełącznikiem wyłączającym (domyślnie włączony).
+Nic się nie zmienia w tym, co wychodzi z telefonu (punkt startu zaokrąglony do ok. 1 km, daty, bez VIN i konta). Zmiana: pierwsze
+pobranie po aktualizacji wyśle zaokrąglone punkty z całego archiwum bez dotknięcia. Odrzucone: pobieranie okresowe niezależne od
+synchronizacji (poza synchronizacją i otwarciem ekranu nic nie idzie do sieci).
+

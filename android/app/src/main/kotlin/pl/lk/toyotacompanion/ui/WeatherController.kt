@@ -53,6 +53,8 @@ data class WeatherUiState(
     val loadFailed: Boolean = false,
     val fetching: Boolean = false,
     val lastFetch: WeatherFetchResult? = null,
+    /** The weather of new trips is fetched on its own (docs/SPEC.md §23). */
+    val auto: Boolean = true,
 )
 
 /**
@@ -67,6 +69,8 @@ class WeatherController(
     private val zone: () -> ZoneId,
     private val scope: CoroutineScope,
     private val io: CoroutineDispatcher,
+    private val autoEnabled: () -> Boolean = { true },
+    private val saveAuto: (Boolean) -> Unit = {},
     private val clock: () -> Instant = { Instant.now() },
 ) {
     private val ui = MutableStateFlow(WeatherUiState())
@@ -78,6 +82,7 @@ class WeatherController(
 
     fun load() {
         loadStarted = true
+        ui.value = ui.value.copy(auto = autoEnabled())
         // A result of an earlier visit must not greet the next one.
         if (!ui.value.fetching) ui.value = ui.value.copy(lastFetch = null)
         val startedIn = generation
@@ -110,8 +115,27 @@ class WeatherController(
         ui.value = WeatherUiState()
     }
 
+    /** The switch of the screen: whether new trips get their weather on their own. */
+    fun setAuto(on: Boolean) {
+        saveAuto(on)
+        ui.value = ui.value.copy(auto = on)
+        if (on) autoFetch()
+    }
+
+    /**
+     * Fetches the missing days on its own: after every successful synchronization and when the weather screen opens, in one
+     * run of up to [WEATHER_MAX_REQUESTS_PER_AUTO_FETCH] requests, one at a time. Does nothing when switched off, when a run
+     * is going, or when there is nothing to fetch; a failure stops the run and is shown as usual.
+     */
+    fun autoFetch() {
+        if (!autoEnabled()) return
+        startFetch(WEATHER_MAX_REQUESTS_PER_AUTO_FETCH, quietWhenNothing = true)
+    }
+
     /** Stops a running fetch (leaving the screen): nothing is requested in the background (docs/SPEC.md §23). */
     fun cancelFetch() {
+        // With the automatic fetch on, a run goes on after the screen is left: the owner asked for it to be automatic.
+        if (autoEnabled()) return
         val job = fetchJob ?: return
         job.cancel()
         fetchJob = null
@@ -119,13 +143,15 @@ class WeatherController(
     }
 
     /** Asks the service for the days the plan names, one place at a time, and recomputes the view. */
-    fun fetch() {
+    fun fetch() = startFetch(WEATHER_MAX_REQUESTS_PER_FETCH, quietWhenNothing = false)
+
+    private fun startFetch(maxRequests: Int, quietWhenNothing: Boolean) {
         if (fetchJob?.isActive == true) return
         val startedIn = generation
         ui.value = ui.value.copy(fetching = true, lastFetch = null)
         fetchJob = scope.launch {
             val outcome: WeatherFetchResult = try {
-                withContext(io) { fetchMissing() }
+                withContext(io) { fetchMissing(maxRequests) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -142,16 +168,17 @@ class WeatherController(
             }
             ui.value = ui.value.copy(
                 fetching = false,
-                lastFetch = outcome,
+                // An automatic run with nothing to do says nothing.
+                lastFetch = if (quietWhenNothing && outcome == WeatherFetchResult.NOTHING_TO_FETCH) null else outcome,
                 view = view ?: ui.value.view,
                 loadFailed = view == null && ui.value.view == null,
             )
         }
     }
 
-    private suspend fun fetchMissing(): WeatherFetchResult {
+    private suspend fun fetchMissing(maxRequests: Int): WeatherFetchResult {
         val stored = readTrips()
-        val plan = planWeatherFetch(stored, cache.all(), zone(), today())
+        val plan = planWeatherFetch(stored, cache.all(), zone(), today(), maxRequests)
         if (plan.requests.isEmpty()) return WeatherFetchResult.NOTHING_TO_FETCH
         var received = 0
         for (request in plan.requests) {

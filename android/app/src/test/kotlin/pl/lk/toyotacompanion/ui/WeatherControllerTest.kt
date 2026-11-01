@@ -64,6 +64,7 @@ class WeatherControllerTest {
         cache: InMemoryWeatherRepository,
         gateway: FakeGateway,
         io: CoroutineDispatcher,
+        auto: Boolean = true,
     ) = WeatherController(
         readTrips = { trips },
         cache = cache,
@@ -71,6 +72,7 @@ class WeatherControllerTest {
         zone = { WARSAW },
         scope = CoroutineScope(SupervisorJob() + io),
         io = io,
+        autoEnabled = { auto },
         clock = { NOW },
     )
 
@@ -215,7 +217,7 @@ class WeatherControllerTest {
         val io = StandardTestDispatcher(testScheduler)
         val gateway = FakeGateway().apply { gate = CompletableDeferred() }
         val trips = (1..3).map { ride("p$it", "2026-10-01", lat = 50.0 + it) }
-        val c = controller(trips, InMemoryWeatherRepository(), gateway, io)
+        val c = controller(trips, InMemoryWeatherRepository(), gateway, io, auto = false)
         c.load()
         advanceUntilIdle()
         c.fetch()
@@ -296,5 +298,89 @@ class WeatherControllerTest {
         c.ensureLoaded()
         advanceUntilIdle()
         assertEquals(1, reads)
+    }
+
+    @Test
+    fun `the automatic run fetches every missing place in one go, not ten per tap`() = runTest {
+        val io = StandardTestDispatcher(testScheduler)
+        val gateway = FakeGateway()
+        val trips = (1..25).map { ride("p$it", "2026-10-01", lat = 40.0 + it) }
+        val cache = InMemoryWeatherRepository()
+        val c = controller(trips, cache, gateway, io)
+        c.load()
+        advanceUntilIdle()
+        c.autoFetch()
+        advanceUntilIdle()
+        assertEquals(25, gateway.asked.size)
+        assertEquals(WeatherFetchResult.DONE, c.state.value.lastFetch)
+        assertEquals(0, c.state.value.view?.plannedRequests)
+    }
+
+    @Test
+    fun `switched off, the automatic run does nothing`() = runTest {
+        val io = StandardTestDispatcher(testScheduler)
+        val gateway = FakeGateway()
+        val c = controller(listOf(ride("a", "2026-10-01")), InMemoryWeatherRepository(), gateway, io, auto = false)
+        c.load()
+        advanceUntilIdle()
+        c.autoFetch()
+        advanceUntilIdle()
+        assertEquals(0, gateway.asked.size)
+    }
+
+    @Test
+    fun `an automatic run with nothing to fetch says nothing`() = runTest {
+        val io = StandardTestDispatcher(testScheduler)
+        val gateway = FakeGateway()
+        val c = controller(emptyList(), InMemoryWeatherRepository(), gateway, io)
+        c.load()
+        advanceUntilIdle()
+        c.autoFetch()
+        advanceUntilIdle()
+        assertNull(c.state.value.lastFetch)
+        assertEquals(0, gateway.asked.size)
+    }
+
+    @Test
+    fun `a run goes on after the screen is left while the switch is on`() = runTest {
+        val io = StandardTestDispatcher(testScheduler)
+        val gateway = FakeGateway().apply { gate = CompletableDeferred() }
+        val trips = (1..3).map { ride("p$it", "2026-10-01", lat = 50.0 + it) }
+        val c = controller(trips, InMemoryWeatherRepository(), gateway, io)
+        c.load()
+        advanceUntilIdle()
+        c.autoFetch()
+        advanceUntilIdle()
+        c.cancelFetch()
+        gateway.gate!!.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(3, gateway.asked.size)
+    }
+
+    @Test
+    fun `the switch is saved, shown and turning it on starts a run`() = runTest {
+        val io = StandardTestDispatcher(testScheduler)
+        val gateway = FakeGateway()
+        var saved: Boolean? = null
+        var on = false
+        val c = WeatherController(
+            readTrips = { listOf(ride("a", "2026-10-01")) },
+            cache = InMemoryWeatherRepository(),
+            gateway = gateway,
+            zone = { WARSAW },
+            scope = CoroutineScope(SupervisorJob() + io),
+            io = io,
+            autoEnabled = { on },
+            saveAuto = { saved = it; on = it },
+            clock = { NOW },
+        )
+        c.load()
+        advanceUntilIdle()
+        assertFalse(c.state.value.auto)
+        c.setAuto(true)
+        advanceUntilIdle()
+        assertEquals(true, saved)
+        assertTrue(c.state.value.auto)
+        assertEquals(1, gateway.asked.size)
     }
 }

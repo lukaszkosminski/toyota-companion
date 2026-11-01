@@ -9,6 +9,9 @@ import pl.lk.toyotacompanion.core.domain.DayWeather
 import pl.lk.toyotacompanion.core.domain.toBigDecimal
 import pl.lk.toyotacompanion.core.weather.OpenMeteoClient
 
+/** Most requests one automatic run makes (after a synchronization or when the screen opens); the first backfill fits in one. */
+const val WEATHER_MAX_REQUESTS_PER_AUTO_FETCH = 100
+
 /** Most requests one tap on "Pobierz pogodę" makes; the rest waits for the next tap (docs/SPEC.md §23). */
 const val WEATHER_MAX_REQUESTS_PER_FETCH = 10
 
@@ -75,7 +78,13 @@ fun tripWeather(trips: List<StoredTrip>, rows: List<WeatherRow>, zone: ZoneId): 
  * serving the most trips first, ties by place and start for a stable order. [today] is the local date of [zone],
  * the same clock that dates the trips.
  */
-fun planWeatherFetch(trips: List<StoredTrip>, rows: List<WeatherRow>, zone: ZoneId, today: LocalDate): WeatherPlan {
+fun planWeatherFetch(
+    trips: List<StoredTrip>,
+    rows: List<WeatherRow>,
+    zone: ZoneId,
+    today: LocalDate,
+    maxRequests: Int = WEATHER_MAX_REQUESTS_PER_FETCH,
+): WeatherPlan {
     val byKey = index(rows)
     // One entry per trip (a trip counts once even when its day is shared), so the run size is a trip count.
     val missing = HashMap<WeatherPlace, MutableList<LocalDate>>()
@@ -111,6 +120,6 @@ fun planWeatherFetch(trips: List<StoredTrip>, rows: List<WeatherRow>, zone: Zone
             .thenBy { it.place.longitude }
             .thenBy { it.start },
     )
-    val requests = ordered.take(WEATHER_MAX_REQUESTS_PER_FETCH)
+    val requests = ordered.take(maxRequests)
     return WeatherPlan(requests, ordered.size - requests.size)
 }

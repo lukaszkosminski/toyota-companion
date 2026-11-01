@@ -41,6 +41,13 @@ class SettingsStore(private val prefs: SharedPreferences) {
         prefs.edit().putString(KEY_DEFAULT_PRICE, price.toPlainString()).apply()
     }
 
+    /** Whether the weather of new trips is fetched on its own (docs/SPEC.md §23); on by default, the owner asked for it. */
+    fun weatherAuto(): Boolean = prefs.getBoolean(KEY_WEATHER_AUTO, true)
+
+    fun saveWeatherAuto(on: Boolean) {
+        prefs.edit().putBoolean(KEY_WEATHER_AUTO, on).apply()
+    }
+
     /** Removes the setting; trips with no refuel before them fall back to "brak ceny". */
     fun clearDefaultPrice() {
         prefs.edit().remove(KEY_DEFAULT_PRICE).apply()
@@ -105,6 +112,7 @@ class SettingsStore(private val prefs: SharedPreferences) {
 
     private companion object {
         const val KEY_DEFAULT_PRICE = "default_price"
+        const val KEY_WEATHER_AUTO = "weather_auto"
         const val KEY_NOTIFIED_REFUELS = "refuel_notified_ids"
         const val KEY_NOTIFICATIONS_ASKED = "notifications_asked"
         const val KEY_LAST_ARCHIVE_EXPORT = "last_archive_export"
