@@ -199,3 +199,18 @@ interface TripRouteDao {
     @Query("DELETE FROM trip_routes")
     suspend fun deleteAll()
 }
+
+@Dao
+abstract class ExpenseDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun upsert(entity: ExpenseEntity)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    abstract suspend fun insertAllIfAbsent(entities: List<ExpenseEntity>)
+
+    @Query("SELECT * FROM expenses ORDER BY date_epoch_day DESC, id")
+    abstract suspend fun all(): List<ExpenseEntity>
+
+    @Query("DELETE FROM expenses WHERE id = :id")
+    abstract suspend fun delete(id: String)
+}

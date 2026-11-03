@@ -514,8 +514,7 @@ aplikacji (§13.3). Obie prowadzą do tej samej ścieżki ceny z §11 — bez no
 
 ## §14 Kopia archiwum i eksport (PRD F6, F7, F8)
 
-Toyota usuwa trasy starsze niż ok. 12 miesięcy, a `allowBackup=false` (SECURITY.md), więc ręczna kopia jest jedyną
-ochroną archiwum (ADR-006). Kopia to jeden plik JSON; import dodaje tylko to, czego w telefonie jeszcze nie ma.
+Toyota usuwa trasy starsze niż ok. 12 miesięcy, a kopię w chmurze robi Auto Backup Androida na Dysk Google właściciela (ADR-015, SECURITY.md), do tego ręczna kopia (ADR-006). Kopia to jeden plik JSON; import dodaje tylko to, czego w telefonie jeszcze nie ma.
 Arkusz tras w CSV (F6) – §14.4.
 
 ### §14.1 Plik i reguły w `core`

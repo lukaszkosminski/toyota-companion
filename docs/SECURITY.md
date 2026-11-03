@@ -10,9 +10,9 @@
 ## Zasady
 - Sekrety nigdy w repo, logach ani w aplikacji Android. `.env`, `credentials.json`, `*.db` w `.gitignore`.
 - Logi nie zawierają haseł, tokenów, VIN ani współrzędnych GPS.
-- `android:allowBackup="false"` – systemowy backup nie kopiuje bazy ani sekretów; backup archiwum tylko przez ręczny eksport (F7).
+- `android:allowBackup="true"` z listą dozwolonych plików (ADR-015): Auto Backup kopiuje na Dysk Google właściciela tylko bazę archiwum i `settings`; plik `secrets` (login, tokeny) jest wykluczony. Ręczny eksport (F7) zostaje.
 - Plik eksportu zawiera dane osobowe (GPS, VIN) i nie zawiera hasła ani tokenów Toyoty. Aplikacja ostrzega o tym przy eksporcie.
-  Zawartość (SPEC §14.1): pojazdy, trasy z GPS, tankowania, odczyty paliwa; bez sekretów, `sync_state`, kosztów i ustawień
+  Zawartość (SPEC §14.1): pojazdy, trasy z GPS, tankowania, odczyty paliwa, wydatki inne niż paliwo (serwis, opony; opcjonalne pole `expenses`, format nadal w wersji 1); bez sekretów, `sync_state`, kosztów i ustawień
   telefonu. Nazwa pliku `toyota-companion-RRRR-MM-DD.json` nie zawiera VIN; treść pliku i wyjątki nie trafiają do logów ani na ekran.
 - Arkusz CSV (F6, SPEC §14.4) nie zawiera GPS ani VIN, ale czasy i dystanse tras to też dane osobowe – plik trafia
   tylko tam, gdzie wskaże użytkownik; bez ostrzeżenia jak przy kopii. Komórki tekstowe chronione przed CSV injection.

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 and older: Auto Backup to the owner's Google Drive (ADR-015). An include list, so everything else is left out:
+     the `secrets` file (login, tokens, Keystore-encrypted and useless on another phone), the WorkManager database, caches. -->
+<full-backup-content>
+        <include domain="database" path="toyota-companion.db" />
+        <include domain="database" path="toyota-companion.db-wal" />
+        <include domain="sharedpref" path="settings.xml" />
+</full-backup-content>

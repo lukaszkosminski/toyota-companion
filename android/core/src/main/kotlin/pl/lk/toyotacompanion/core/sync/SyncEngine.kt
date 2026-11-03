@@ -249,6 +249,12 @@ class SyncEngine(
      * of the trips, the intervals computed by the domain. Without a selected VIN
      * the log is empty — the domain knows no VIN, so it must only ever see one car.
      */
+    /** Stored fuel-level readings of the selected vehicle, oldest first; empty without a vehicle (the level chart of the refuel log). */
+    suspend fun fuelLevels(): List<pl.lk.toyotacompanion.core.domain.FuelReading> {
+        val vin = state.get().vin ?: return emptyList()
+        return readings.since(java.time.Instant.EPOCH, vin)
+    }
+
     suspend fun refuelLog(): RefuelLog {
         val vin = state.get().vin ?: return RefuelLog.EMPTY
         val all = refuels.all(vin)

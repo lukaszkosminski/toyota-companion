@@ -51,6 +51,15 @@ data class ArchiveRefuel(val vin: String, val refuel: Refuel)
 /** A telemetry reading together with the vehicle it belongs to. */
 data class ArchiveReading(val vin: String, val reading: FuelReading)
 
+/** An expense that is not fuel (service, tyres...); [dateEpochDay] is the day it was paid, [category] the enum name of the app. */
+data class ArchiveExpense(
+    val id: String,
+    val dateEpochDay: Long,
+    val category: String,
+    val amountPln: BigDecimal,
+    val note: String?,
+)
+
 /** Everything the archive holds at [exportedAt]. Costs are derived data and never exported. */
 data class ArchiveSnapshot(
     val exportedAt: Instant,
@@ -58,6 +67,8 @@ data class ArchiveSnapshot(
     val trips: List<TripRecord>,
     val refuels: List<ArchiveRefuel>,
     val readings: List<ArchiveReading>,
+    /** Expenses other than fuel; files from before they existed simply have none. */
+    val expenses: List<ArchiveExpense> = emptyList(),
 )
 
 /**
@@ -121,6 +132,16 @@ private data class ArchiveFile(
     val trips: List<TripDto>,
     val refuels: List<RefuelDto>,
     val readings: List<ReadingDto>,
+    val expenses: List<ExpenseDto> = emptyList(),
+)
+
+@Serializable
+private data class ExpenseDto(
+    val id: String,
+    val dateEpochDay: Long,
+    val category: String,
+    @Serializable(with = PlainDecimal::class) val amountPln: BigDecimal,
+    val note: String? = null,
 )
 
 @Serializable
@@ -252,6 +273,7 @@ private fun ArchiveSnapshot.toDto(): ArchiveFile = ArchiveFile(
     trips = trips.map { it.toDto() },
     refuels = refuels.map { it.toDto() },
     readings = readings.map { it.toDto() },
+    expenses = expenses.map { ExpenseDto(it.id, it.dateEpochDay, it.category, it.amountPln, it.note) },
 )
 
 private fun ArchiveFile.toSnapshot(): ArchiveSnapshot = ArchiveSnapshot(
@@ -260,6 +282,7 @@ private fun ArchiveFile.toSnapshot(): ArchiveSnapshot = ArchiveSnapshot(
     trips = trips.map { it.toRecord() },
     refuels = refuels.map { it.toArchiveRefuel() },
     readings = readings.map { it.toArchiveReading() },
+    expenses = expenses.map { ArchiveExpense(it.id, it.dateEpochDay, it.category, it.amountPln, it.note) },
 )
 
 private fun VehicleRecord.toDto(): VehicleDto =

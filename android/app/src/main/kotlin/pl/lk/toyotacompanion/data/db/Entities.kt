@@ -263,3 +263,13 @@ data class TripRouteEntity(
     val points: String,
     @ColumnInfo(name = "fetched_at") val fetchedAt: Instant,
 )
+
+/** An expense that is not fuel: service, inspection, tyres... [dateEpochDay] is the day it was paid, any day, also in the past. */
+@Entity(tableName = "expenses", indices = [Index(value = ["date_epoch_day"])])
+data class ExpenseEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "date_epoch_day") val dateEpochDay: Long,
+    val category: String,
+    @ColumnInfo(name = "amount_pln") val amountPln: BigDecimal,
+    val note: String?,
+)

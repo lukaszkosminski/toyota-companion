@@ -102,3 +102,9 @@ tylko do odczytu z migawką z widżetu, kategoria `IOT`, bez pytań do sieci i a
 interaktywne ekrany (rozpraszają kierowcę). Ryzyko: to nie jest kategoria, do której aplikacja pasuje według zasad Google Play, więc nie do publikacji w sklepie; do użytku własnego
 potrzebne jest „Nieznane źródła” w ustawieniach programisty Android Auto. Ekran nie był sprawdzony na prawdziwym zestawie ani w Desktop Head Unit.
 
+## ADR-015 Kopia archiwum w chmurze przez Auto Backup Androida (2026-11-03)
+Decyzja właściciela produktu. Zmienia `allowBackup=false` z ADR-006/ADR-007: telefon sam kopiuje na Dysk Google właściciela bazę `toyota-companion.db`
+(z wydatkami) i plik ustawień `settings`, w ramach limitu 25 MB i szyfrowania konta Google. Lista dozwolonych plików w `res/xml/backup_rules.xml`
+(Android 11-) i `data_extraction_rules.xml` (12+); `secrets` (login, tokeny) i baza WorkManagera są poza kopią, więc po przywróceniu na nowym telefonie
+trzeba się zalogować do MyToyota, a archiwum wraca. Dane GPS i VIN opuszczają telefon do konta Google właściciela - to akceptowane ryzyko.
+Odrzucone: własny OAuth do Drive API (wymaga projektu w Google Cloud), plik na Dysku przez systemowy wybór pliku.
