@@ -552,6 +552,11 @@ Arkusz tras w CSV (F6) – §14.4.
   wyjątku.
 - Stan trzyma `BackupController` (scope aplikacji, licznik generacji, `reset()` przy wylogowaniu). Pliki są dla niego
   tekstem `Uri` – otwiera je `ContentResolver` w `AppContainer`, więc kontroler nie zna typów Androida.
+- Karta „Kopia w chmurze Google” (ADR-015): wyjaśnienie, że Auto Backup kopiuje bazę archiwum i ustawienia, ale nie
+  login ani tokeny MyToyota (po odtworzeniu na nowym telefonie wymagane jest ponowne logowanie). Przycisk „Zrób kopię
+  w chmurze teraz” wywołuje `BackupManager(context).dataChanged()` (podłączone w `AppContainer`, kontroler widzi lambda
+  `() -> Unit`), po którym ekran pisze „poproszono”, nigdy „zrobiono” – Android sam wybiera moment kopii;
+  poniżej podpowiedź „Ustawienia Androida → Google → Kopia zapasowa”. Błąd żądania ma własny komunikat bez treści wyjątku.
 
 ### §14.3 Przypomnienie (F8)
 - `SettingsStore.lastArchiveExport` (`last_archive_export`, milisekundy) – ustawienie telefonu: przeżywa wylogowanie,
@@ -739,7 +744,7 @@ Złączenie trasy z pogodą, pobieranie i ekran: `app/ui` (GPS, więc bez lustra
   zaokrągla jeszcze raz). Nigdy surowy GPS, VIN, konto, token ani id trasy. Ekran nie pokazuje położenia.
 - Przypisanie: trasa dostaje pogodę dnia (lokalna data startu w strefie telefonu) w punkcie startu. Brak współrzędnych (albo
   poza zakresem/NaN) lub brak wartości dla dnia → trasa „bez pogody”, liczona osobno, nie wpada do żadnego koszyka.
-- Koszyki (granice półotwarte): temperatura dnia (`temperature_2m_mean`) – mróz < 0, chłodno 0–10, łagodnie 10–20, ciepło ≥ 20 °C;
+- Koszyki (granice półotwarte): temperatura dnia (`temperature_2m_mean`) – silny mróz < −10, mróz −10…0, chłodno 0–10, łagodnie 10–20, ciepło ≥ 20 °C;
   opad (`precipitation_sum`) – sucho < 0,5 mm, mokro ≥ 0,5 mm. Odniesienie: łagodnie / sucho.
 - Miary na koszyk: liczba tras, km (0,1), paliwo, l/100 km = Σ paliwo / Σ km (0,01), zł/100 km = Σ koszt / Σ km tras z ceną
   (`null` bez ceny, nigdy 0 zł), km na prądzie, różnica l/100 km wobec odniesienia (tylko gdy odniesienie ma ≥ 5 tras),
@@ -828,7 +833,7 @@ Bez nowych zależności Gradle.
 ## 28. Prędkość i temperatura (PRD F24)
 `app/ui/WeatherMatrix.kt` (funkcje czyste na `StoredTrip` i mapie pogody po id trasy – bez współrzędnych, bez lustra w Pythonie), sekcja na
 ekranie „Pogoda i spalanie” (§23).
-- Wiersze: pasma tempa z §22 (wolno, miasto, płynnie, trasa; trasy od 2 km z dodatnią prędkością). Kolumny: koszyki temperatury z §23 (mróz,
+- Wiersze: pasma tempa z §22 (wolno, miasto, płynnie, trasa; trasy od 2 km z dodatnią prędkością). Kolumny: koszyki temperatury z §23 (silny mróz, mróz,
   chłodno, łagodnie, ciepło wg średniej temperatury dnia). Wchodzą tylko trasy, które mają pasmo i dzień z temperaturą; pasmo bez żadnej takiej
   trasy nie ma wiersza, koszyk bez tras – komórki.
 - Komórka: liczba tras, km (0,1), l/100 km = Σ paliwo / Σ km (0,01), udział jazdy na prądzie (każda trasa przycięta do własnego dystansu).

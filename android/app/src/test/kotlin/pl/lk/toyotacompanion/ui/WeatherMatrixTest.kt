@@ -65,8 +65,8 @@ class WeatherMatrixTest {
 
     @Test
     fun `bucket edges follow the weather buckets`() {
-        val trips = listOf(ride("a", 10.0), ride("b", 10.0), ride("c", 10.0), ride("d", 10.0))
-        val weather = mapOf("a" to day(-0.1), "b" to day(0.0), "c" to day(10.0), "d" to day(20.0))
+        val trips = listOf("a", "b", "c", "d", "e").map { ride(it, 10.0) }
+        val weather = mapOf("a" to day(-10.1), "b" to day(-0.1), "c" to day(0.0), "d" to day(10.0), "e" to day(20.0))
         val cells = speedWeatherMatrix(trips, weather, minTrips = 1).single().cells
         assertEquals(TemperatureBucket.entries.toSet(), cells.keys)
         assertTrue(cells.values.all { it.trips == 1 })
@@ -81,11 +81,11 @@ class WeatherMatrixTest {
     }
 
     @Test
-    fun `the row text names the four buckets and the frost line has a sign`() {
+    fun `the row text names the buckets and the frost line has a sign`() {
         val trips = many("a", 6, 10.0, 6.0) + many("b", 6, 10.0, 5.0)
         val weather = trips.associate { it.record.id to day(if (it.record.id.startsWith("a")) -3.0 else 12.0) }
         val row = speedWeatherMatrix(trips, weather).single()
-        assertEquals("mróz 6,00 l (6) · chłodno – · łagodnie 5,00 l (6) · ciepło –", WeatherFormatting.rowText(row))
+        assertEquals("silny mróz – · mróz 6,00 l (6) · chłodno – · łagodnie 5,00 l (6) · ciepło –", WeatherFormatting.rowText(row))
         assertEquals("Zimą przy tej prędkości: +1,00 l/100 km (mróz wobec łagodnie)", WeatherFormatting.frostLine(row))
     }
 }

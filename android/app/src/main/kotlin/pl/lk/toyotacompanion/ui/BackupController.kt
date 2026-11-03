@@ -89,6 +89,8 @@ fun backupReminder(lastExport: Instant?, now: Instant, tripsStored: Int): Backup
  * @param busy an export or import is running; both buttons stay blocked
  * @param message the Polish result of the last operation
  * @param error why the last operation failed, in Polish; never the exception text
+ * @param cloudRequested a Google cloud backup was requested in this screen visit (ADR-015)
+ * @param cloudError why the cloud backup request failed, in Polish
  */
 data class BackupUiState(
     val lastExport: Instant? = null,
@@ -96,6 +98,8 @@ data class BackupUiState(
     val busy: Boolean = false,
     val message: String? = null,
     val error: String? = null,
+    val cloudRequested: Boolean = false,
+    val cloudError: String? = null,
 )
 
 /**
@@ -112,6 +116,8 @@ data class BackupUiState(
  * @param readLastExport / [saveLastExport] the date in `SettingsStore`
  * @param loadTrips the trips of the selected vehicle for the CSV (`SyncEngine.trips`, docs/SPEC.md §14.4)
  * @param zone the zone of the trips list, so the CSV shows the same times
+ * @param cloudBackupNow asks Android for an Auto Backup pass (`BackupManager.dataChanged`, ADR-015);
+ *        a lambda, so the controller still has no Android types
  */
 class BackupController(
     private val export: suspend () -> ArchiveSnapshot,
@@ -121,6 +127,7 @@ class BackupController(
     private val readLastExport: suspend () -> Instant?,
     private val saveLastExport: suspend (Instant) -> Unit,
     private val loadTrips: suspend () -> List<StoredTrip>,
+    private val cloudBackupNow: () -> Unit,
     private val zone: () -> ZoneId,
     private val scope: CoroutineScope,
     private val io: CoroutineDispatcher,
@@ -158,8 +165,23 @@ class BackupController(
 
     /** Opens the screen: the result of an earlier operation is gone. */
     fun open() {
-        ui.value = ui.value.copy(message = null, error = null)
+        ui.value = ui.value.copy(message = null, error = null, cloudRequested = false, cloudError = null)
         ensureLoaded()
+    }
+
+    /**
+     * Asks Android to include this app's data in the next Auto Backup run (ADR-015,
+     * docs/SPEC.md §14.2). `dataChanged()` only schedules it – the message says
+     * requested, never done; when Android decides to run is its choice.
+     */
+    fun requestCloudBackup() {
+        try {
+            cloudBackupNow()
+            ui.value = ui.value.copy(cloudRequested = true, cloudError = null)
+        } catch (e: Exception) {
+            // The text of the exception is not shown (docs/SECURITY.md).
+            ui.value = ui.value.copy(cloudRequested = false, cloudError = Texts.BACKUP_CLOUD_FAILED)
+        }
     }
 
     /** Writes the whole archive to [target]; the date is stored only after the file was written. */

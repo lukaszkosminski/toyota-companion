@@ -236,6 +236,7 @@ private fun MatrixCard(rows: List<MatrixRow>) {
 
 /** The symbol of a weather bucket, from the same set the list of trips uses (docs/SPEC.md §10.3). */
 private fun bucketEmoji(bucket: String): String = when (bucket) {
+    "deep_frost" -> "🥶"
     "frost" -> "❄️"
     "cold" -> "🌫️"
     "mild" -> "🌤️"
@@ -247,6 +248,7 @@ private fun bucketEmoji(bucket: String): String = when (bucket) {
 
 /** A colour of its own for every bucket, so a bar and the row under it are the same thing. */
 private fun bucketColor(bucket: String): Color = when (bucket) {
+    "deep_frost" -> Palette.Pink
     "frost" -> Palette.Blue
     "cold" -> Palette.Teal
     "mild" -> Palette.Green

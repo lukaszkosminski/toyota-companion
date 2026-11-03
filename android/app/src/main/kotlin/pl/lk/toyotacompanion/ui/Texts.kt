@@ -378,6 +378,36 @@ object Texts {
 
     val BACKUP_NONE_YET: String get() = Lang.pick("Archiwum nie ma jeszcze kopii", "Archive has no backup yet")
 
+    // Kopia w chmurze Google (ADR-015, docs/SPEC.md §14.2).
+
+    val BACKUP_CLOUD_SECTION: String get() = Lang.pick("Kopia w chmurze Google", "Google cloud backup")
+
+    /** What Auto Backup copies and what it does not (login and tokens stay on the phone). */
+    val BACKUP_CLOUD_EXPLANATION: String get() = Lang.pick(
+        "Android kopiuje na Dysk Google właściciela bazę archiwum i ustawienia aplikacji. " +
+            "Nie kopiuje loginu ani tokenów MyToyota – po odtworzeniu kopii na nowym telefonie zaloguj się ponownie.",
+        "Android backs up the archive database and the app settings to the owner's Google Drive. " +
+            "Login and MyToyota tokens are not backed up – after restoring on a new phone, log in again.",
+    )
+
+    val BACKUP_CLOUD_NOW: String get() = Lang.pick("Zrób kopię w chmurze teraz", "Back up to the cloud now")
+
+    /** `dataChanged()` only requests a backup; Android decides when it runs. */
+    val BACKUP_CLOUD_REQUESTED: String get() = Lang.pick(
+        "Poproszono Androida o kopię w chmurze. System sam zdecyduje, kiedy ją wykona.",
+        "Android was asked to back up to the cloud. The system decides when the backup actually runs.",
+    )
+
+    val BACKUP_CLOUD_FAILED: String get() = Lang.pick(
+        "Android odmówił żądania kopii w chmurze. Spróbuj ponownie.",
+        "Android refused the cloud backup request. Try again.",
+    )
+
+    val BACKUP_CLOUD_HINT: String get() = Lang.pick(
+        "Ustawienia Androida → Google → Kopia zapasowa",
+        "Android Settings → Google → Backup",
+    )
+
     // Statystyki (PRD F10, F11, docs/SPEC.md §16-§17).
 
     val STATS_TITLE: String get() = Lang.pick("Statystyki", "Statistics")
@@ -764,6 +794,7 @@ object Texts {
     fun matrixCell(litres: String, trips: Int): String = "$litres l ($trips)"
     fun matrixTooFew(trips: Int): String = Lang.pick("$trips tras – za mało", "$trips trips – too few")
     fun matrixBucketShort(bucket: pl.lk.toyotacompanion.core.domain.TemperatureBucket): String = when (bucket) {
+        pl.lk.toyotacompanion.core.domain.TemperatureBucket.DEEP_FROST -> Lang.pick("silny mróz", "deep frost")
         pl.lk.toyotacompanion.core.domain.TemperatureBucket.FROST -> Lang.pick("mróz", "frost")
         pl.lk.toyotacompanion.core.domain.TemperatureBucket.COLD -> Lang.pick("chłodno", "cold")
         pl.lk.toyotacompanion.core.domain.TemperatureBucket.MILD -> Lang.pick("łagodnie", "mild")
@@ -887,7 +918,8 @@ object Texts {
         "Weather data by Open-Meteo.com (CC BY 4.0), https://open-meteo.com/",
     )
     fun weatherBucketName(bucket: String): String = when (bucket) {
-        "frost" -> Lang.pick("Mróz (poniżej 0 °C)", "Frost (below 0 °C)")
+        "deep_frost" -> Lang.pick("Silny mróz (poniżej -10 °C)", "Deep frost (below -10 °C)")
+        "frost" -> Lang.pick("Mróz (-10 do 0 °C)", "Frost (-10 to 0 °C)")
         "cold" -> Lang.pick("Chłodno (0–10 °C)", "Cold (0–10 °C)")
         "mild" -> Lang.pick("Łagodnie (10–20 °C)", "Mild (10–20 °C)")
         "warm" -> Lang.pick("Ciepło (od 20 °C)", "Warm (from 20 °C)")

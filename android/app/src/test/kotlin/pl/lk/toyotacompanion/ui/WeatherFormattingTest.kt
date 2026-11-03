@@ -73,7 +73,7 @@ class WeatherFormattingTest {
 
     @Test
     fun `every bucket of the domain has a Polish name`() {
-        for (name in listOf("frost", "cold", "mild", "warm", "dry", "wet")) {
+        for (name in listOf("deep_frost", "frost", "cold", "mild", "warm", "dry", "wet")) {
             assertTrue(Texts.weatherBucketName(name) != name, name)
         }
     }

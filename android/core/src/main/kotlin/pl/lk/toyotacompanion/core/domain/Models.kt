@@ -124,6 +124,7 @@ data class RefuelForecast(
 
 /** Bucket of a day by its mean temperature (PRD F15). `label` is the string the domain reports. */
 enum class TemperatureBucket(val label: String) {
+    DEEP_FROST("deep_frost"),
     FROST("frost"),
     COLD("cold"),
     MILD("mild"),

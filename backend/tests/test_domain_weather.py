@@ -71,7 +71,12 @@ def frosty(
 class TestTemperatureBuckets:
     def test_bucket_of_negative_mean_is_frost(self) -> None:
         assert temperature_bucket(D("-0.1")) == "frost"
-        assert temperature_bucket(D("-14.6")) == "frost"
+        assert temperature_bucket(D("-9.99")) == "frost"
+
+    def test_bucket_below_minus_ten_is_deep_frost(self) -> None:
+        assert temperature_bucket(D("-10")) == "frost"
+        assert temperature_bucket(D("-10.1")) == "deep_frost"
+        assert temperature_bucket(D("-14.6")) == "deep_frost"
 
     def test_bucket_of_zero_mean_is_cold(self) -> None:
         assert temperature_bucket(D("0")) == "cold"

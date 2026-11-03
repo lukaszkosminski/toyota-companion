@@ -1,5 +1,6 @@
 package pl.lk.toyotacompanion
 
+import android.app.backup.BackupManager
 import android.content.Context
 import android.net.Uri
 import android.os.Build
@@ -346,6 +347,8 @@ class AppContainer(
             readLastExport = { settingsStore.lastArchiveExport() },
             saveLastExport = { at -> settingsStore.saveLastArchiveExport(at) },
             loadTrips = tripsLoader,
+            // Auto Backup to the owner's Google Drive (ADR-015): dataChanged only schedules a pass.
+            cloudBackupNow = { BackupManager(context).dataChanged() },
             zone = { ZoneId.systemDefault() },
             scope = uiScope,
             io = Dispatchers.IO,

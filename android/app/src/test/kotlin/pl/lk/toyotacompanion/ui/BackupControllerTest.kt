@@ -117,6 +117,14 @@ private class FakeBackup {
     var readDateError: Exception? = null
     val savedDates = mutableListOf<Instant>()
 
+    var cloudCalls = 0
+    var cloudError: Exception? = null
+
+    fun cloud() {
+        cloudCalls++
+        cloudError?.let { throw it }
+    }
+
     suspend fun export(): ArchiveSnapshot {
         exportCalls++
         exportError?.let { throw it }
@@ -174,6 +182,7 @@ class BackupControllerTest {
         readLastExport = { backup.readDate() },
         saveLastExport = { backup.saveDate(it) },
         loadTrips = { backup.loadTrips() },
+        cloudBackupNow = { backup.cloud() },
         zone = { ZoneOffset.UTC },
         scope = CoroutineScope(SupervisorJob() + io),
         io = io,
@@ -496,5 +505,34 @@ class BackupControllerTest {
 
         advanceUntilIdle()
         assertEquals(1, backup.readDateCalls, "the date was not loaded yet, so opening reads it")
+    }
+
+    @Test
+    fun `cloud backup only requests a pass and says so`() = runTest {
+        val backup = FakeBackup()
+        val controller = controller(backup, StandardTestDispatcher(testScheduler))
+
+        controller.requestCloudBackup()
+
+        assertEquals(1, backup.cloudCalls)
+        assertTrue(controller.state.value.cloudRequested, "requested, not done: Android decides when to run")
+        assertNull(controller.state.value.cloudError)
+
+        controller.requestCloudBackup()
+        assertEquals(2, backup.cloudCalls, "every press asks Android again")
+    }
+
+    @Test
+    fun `a refused cloud backup shows the Polish failure`() = runTest {
+        val backup = FakeBackup().apply { cloudError = IllegalStateException("backup transport is gone") }
+        val controller = controller(backup, StandardTestDispatcher(testScheduler))
+
+        controller.requestCloudBackup()
+
+        assertFalse(controller.state.value.cloudRequested)
+        assertEquals(Texts.BACKUP_CLOUD_FAILED, controller.state.value.cloudError)
+
+        controller.open()
+        assertNull(controller.state.value.cloudError, "opening the screen clears the old failure")
     }
 }

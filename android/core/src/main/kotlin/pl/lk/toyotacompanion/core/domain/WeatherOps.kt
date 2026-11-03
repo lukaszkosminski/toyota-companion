@@ -16,16 +16,18 @@ val REFERENCE_PRECIPITATION_BUCKET: PrecipitationBucket = PrecipitationBucket.DR
 
 private val HUNDRED = BigDecimal(100)
 private val ZERO = BigDecimal(0)
+private val DEEP_FROST_C = BigDecimal(-10)
 
 /**
  * Bucket of a day by its mean temperature, half-open intervals (PRD F15, docs/SPEC.md §23):
- * frost is below 0 °C and a mean of exactly 0 °C is still COLD; the upper edge of a bucket
- * belongs to the next one, so 10 °C is MILD and 20 °C is WARM. `null` without a value.
+ * deep frost is below -10 °C, frost is -10 °C up to 0 °C and a mean of exactly 0 °C is still COLD; the upper edge of a bucket
+ * belongs to the next one, so -10 °C is FROST, 10 °C is MILD and 20 °C is WARM. `null` without a value.
  * Mirrors Python `temperature_bucket`.
  */
 fun temperatureBucket(tempMean: BigDecimal?): TemperatureBucket? {
     if (tempMean == null) return null
     return when {
+        tempMean < DEEP_FROST_C -> TemperatureBucket.DEEP_FROST
         tempMean < ZERO -> TemperatureBucket.FROST
         tempMean < BigDecimal(10) -> TemperatureBucket.COLD
         tempMean < BigDecimal(20) -> TemperatureBucket.MILD

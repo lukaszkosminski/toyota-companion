@@ -125,6 +125,26 @@ fun BackupScreen(
                     Text("📑 " + Texts.CSV_EXPORT)
                 }
             }
+
+            // Auto Backup to the owner's Google Drive (ADR-015, docs/SPEC.md §14.2).
+            DashboardCard(Texts.BACKUP_CLOUD_SECTION, "☁️") {
+                Text(Texts.BACKUP_CLOUD_EXPLANATION, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Button(
+                    onClick = { controller.requestCloudBackup() },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("☁️ " + Texts.BACKUP_CLOUD_NOW)
+                }
+                if (state.cloudRequested) {
+                    Text("ℹ️ " + Texts.BACKUP_CLOUD_REQUESTED, style = MaterialTheme.typography.bodyMedium, color = Palette.Blue)
+                }
+                state.cloudError?.let { Box { ErrorCard(it) } }
+                Text(
+                    "📱 " + Texts.BACKUP_CLOUD_HINT,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 

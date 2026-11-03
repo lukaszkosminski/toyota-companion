@@ -28,14 +28,14 @@ WEATHER_MIN_TRIPS_PER_BUCKET = 5
 #: From this many millimetres a day counts as wet (drizzle is not a rainy day).
 WET_DAY_MM = Decimal("0.5")
 
-TemperatureBucket = Literal["frost", "cold", "mild", "warm"]
+TemperatureBucket = Literal["deep_frost", "frost", "cold", "mild", "warm"]
 PrecipitationBucket = Literal["dry", "wet"]
 
 #: Reference of both splits: mild, dry driving is what a surcharge is counted against.
 REFERENCE_TEMPERATURE_BUCKET: TemperatureBucket = "mild"
 REFERENCE_PRECIPITATION_BUCKET: PrecipitationBucket = "dry"
 
-_TEMPERATURE_ORDER: tuple[TemperatureBucket, ...] = ("frost", "cold", "mild", "warm")
+_TEMPERATURE_ORDER: tuple[TemperatureBucket, ...] = ("deep_frost", "frost", "cold", "mild", "warm")
 _PRECIPITATION_ORDER: tuple[PrecipitationBucket, ...] = ("dry", "wet")
 
 _HUNDRED = Decimal(100)
@@ -84,7 +84,7 @@ class WeatherBucketStats:
 
 @dataclass(frozen=True)
 class WeatherImpact:
-    """Buckets in their natural order (frost first, dry first), plus the trips with no weather.
+    """Buckets in their natural order (deep frost first, dry first), plus the trips with no weather.
 
     ``reference_bucket`` and ``reference_l_per_100km`` are ``None`` when the reference bucket
     is missing or too small - then no bucket carries a difference either.
@@ -100,12 +100,14 @@ class WeatherImpact:
 def temperature_bucket(temp_mean: Decimal | None) -> TemperatureBucket | None:
     """Bucket of a day by its mean temperature, half-open intervals; ``None`` without a value.
 
-    Frost is below 0 °C and a mean of exactly 0 °C is still "cold"; the upper edge of a bucket
-    belongs to the next one, so 10 °C is mild and 20 °C is warm.
+    Deep frost is below -10 °C, frost is -10 °C up to 0 °C and a mean of exactly 0 °C is still "cold"; the upper edge of a bucket
+    belongs to the next one, so -10 °C is frost, 10 °C is mild and 20 °C is warm.
     """
     if temp_mean is None:
         return None
     temperature = as_decimal(temp_mean)
+    if temperature < -10:
+        return "deep_frost"
     if temperature < 0:
         return "frost"
     if temperature < 10:
@@ -130,7 +132,7 @@ def weather_cost_by_temperature(
     reference: TemperatureBucket | None = REFERENCE_TEMPERATURE_BUCKET,
     min_trips: int = WEATHER_MIN_TRIPS_PER_BUCKET,
 ) -> WeatherImpact:
-    """Trips grouped by the temperature of their day, frost first.
+    """Trips grouped by the temperature of their day, deep frost first.
 
     ``weather`` is keyed by trip id. A trip with no entry there, or with a day whose
     temperature the model did not give, is left out of the buckets and counted in

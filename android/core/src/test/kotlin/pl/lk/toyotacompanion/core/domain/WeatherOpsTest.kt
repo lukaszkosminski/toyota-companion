@@ -45,7 +45,14 @@ class WeatherOpsTest {
         @Test
         fun `bucket_of_negative_mean_is_frost`() {
             assertEquals(TemperatureBucket.FROST, temperatureBucket(BigDecimal("-0.1")))
-            assertEquals(TemperatureBucket.FROST, temperatureBucket(BigDecimal("-14.6")))
+            assertEquals(TemperatureBucket.FROST, temperatureBucket(BigDecimal("-9.99")))
+        }
+
+        @Test
+        fun `bucket_below_minus_ten_is_deep_frost`() {
+            assertEquals(TemperatureBucket.FROST, temperatureBucket(BigDecimal("-10")))
+            assertEquals(TemperatureBucket.DEEP_FROST, temperatureBucket(BigDecimal("-10.1")))
+            assertEquals(TemperatureBucket.DEEP_FROST, temperatureBucket(BigDecimal("-14.6")))
         }
 
         @Test
