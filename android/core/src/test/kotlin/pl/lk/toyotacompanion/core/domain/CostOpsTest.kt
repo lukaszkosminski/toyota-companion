@@ -309,4 +309,55 @@ class CostOpsTest {
         )
         assertBd("3.71", computeTripCost(t, listOf(r)).costPln, "cost_pln")
     }
+
+    @Nested
+    inner class AfterANewRefuel {
+        private val cap = bd("40")
+        private val oldTrip = trip("old", Instant.parse("2026-10-01T08:00:00Z"), "10.0")
+        private val midTrip = trip("mid", Instant.parse("2026-10-05T08:00:00Z"), "10.0")
+        private val newTrip = trip("new", Instant.parse("2026-10-10T08:00:00Z"), "10.0")
+        private val first = refuel("r1", Instant.parse("2026-10-02T12:00:00Z"), "6.00", levelBefore = 20, levelAfter = 80)
+
+        // 25 % of 40 l = 10 l at 6.00 meet 25.8 l at 7.00: (60 + 180.6) / 35.8 = 6.721.
+        private fun second(ts: String) = refuel("r2", Instant.parse(ts), "7.00", levelBefore = 25, levelAfter = 80)
+
+        private fun costs(vararg refuels: Refuel) =
+            recomputeCosts(listOf(oldTrip, midTrip, newTrip), refuels.toList(), null, cap).associateBy { it.tripId }
+
+        @Test
+        fun `a refuel after a trip leaves that trip and the ones before it on their price`() {
+            val before = costs(first)
+            val after = costs(first, second("2026-10-08T12:00:00Z"))
+            assertEquals(before.getValue("old"), after.getValue("old"))
+            assertEquals(before.getValue("mid"), after.getValue("mid"))
+            assertBd("60.00", after.getValue("mid").costPln, "mid")
+        }
+
+        @Test
+        fun `a trip before every refuel has no price without a default`() {
+            val old = costs(first, second("2026-10-08T12:00:00Z")).getValue("old")
+            assertNull(old.costPln)
+            assertEquals(CostSource.NONE, old.source)
+        }
+
+        @Test
+        fun `a trip after the new refuel gets the mixed tank price`() {
+            val new = costs(first, second("2026-10-08T12:00:00Z")).getValue("new")
+            assertBd("6.721", new.pricePerLiter, "price")
+            assertBd("67.21", new.costPln, "cost")
+            assertEquals("r2", new.refuelId)
+        }
+
+        @Test
+        fun `a refuel dated before a trip changes that trip`() {
+            val backdated = costs(first, second("2026-10-03T12:00:00Z"))
+            assertBd("67.21", backdated.getValue("mid").costPln, "mid")
+        }
+
+        @Test
+        fun `a refuel not yet confirmed changes nothing`() {
+            val pending = second("2026-10-08T12:00:00Z").copy(status = RefuelStatus.PENDING)
+            assertEquals(costs(first), costs(first, pending))
+        }
+    }
 }
