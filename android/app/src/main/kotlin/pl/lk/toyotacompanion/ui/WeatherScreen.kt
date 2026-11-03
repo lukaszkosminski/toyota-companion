@@ -10,11 +10,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -27,7 +25,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import java.math.BigDecimal
+import java.math.RoundingMode
+import pl.lk.toyotacompanion.core.domain.TemperatureBucket
 import pl.lk.toyotacompanion.core.domain.WeatherBucketStats
 import pl.lk.toyotacompanion.core.domain.WeatherImpact
 
@@ -35,6 +37,9 @@ import pl.lk.toyotacompanion.core.domain.WeatherImpact
  * "Pogoda i spalanie" (PRD F15, docs/SPEC.md §23): trips by the temperature and the rain of their day, and the
  * button that fetches the missing days. The screen shows no position; the only thing sent to the weather service
  * is the start point rounded to about 1 km, and only after a tap.
+ *
+ * Every split is a card: the buckets are bars in their own colours, the share of the battery is a green
+ * meter and the outcome of a fetch is a pill (docs/SPEC.md 10.4).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,78 +81,211 @@ fun WeatherScreen(controller: WeatherController, onBack: () -> Unit) {
                     top = innerPadding.calculateTopPadding() + 8.dp,
                     bottom = innerPadding.calculateBottomPadding() + 16.dp,
                 ),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                item { Text(Texts.WEATHER_HINT, style = MaterialTheme.typography.bodySmall) }
                 item {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Switch(checked = state.auto, onCheckedChange = controller::setAuto)
-                        Text(Texts.WEATHER_AUTO, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    DashboardCard(Texts.WEATHER_TITLE, "🌦️") {
+                        Text(
+                            Texts.WEATHER_HINT,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Switch(checked = state.auto, onCheckedChange = controller::setAuto)
+                            Text(Texts.WEATHER_AUTO, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                        }
+                        Button(
+                            onClick = controller::fetch,
+                            enabled = !state.fetching && view.plannedRequests > 0,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(if (state.fetching) Texts.WEATHER_FETCHING else "📥 " + Texts.WEATHER_FETCH)
+                        }
+                        Text(
+                            Texts.weatherPending(view.plannedRequests, view.requestsLeft, view.cachedDays),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        // The outcome of the last tap: a pill, green when it worked and red when it did not.
+                        state.lastFetch?.let { result ->
+                            val tint = fetchColor(result)
+                            Pill(fetchMark(result) + Texts.weatherFetchResult(result), tint.copy(alpha = 0.18f), tint)
+                        }
                     }
                 }
-                item {
-                    Button(
-                        onClick = controller::fetch,
-                        enabled = !state.fetching && view.plannedRequests > 0,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text(if (state.fetching) Texts.WEATHER_FETCHING else Texts.WEATHER_FETCH) }
-                }
+
+                item { ImpactCard(Texts.WEATHER_BY_TEMPERATURE, "🌡️", view.temperature) }
+                item { ImpactCard(Texts.WEATHER_BY_RAIN, "🌧️", view.precipitation) }
+                item { MatrixCard(view.matrix) }
+
                 item {
                     Text(
-                        Texts.weatherPending(view.plannedRequests, view.requestsLeft, view.cachedDays),
+                        "⚠️ " + Texts.WEATHER_CAVEAT,
                         style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                state.lastFetch?.let { result ->
-                    item { Text(Texts.weatherFetchResult(result), style = MaterialTheme.typography.bodyMedium) }
-                }
-
-                impactSection(Texts.WEATHER_BY_TEMPERATURE, view.temperature)
-                impactSection(Texts.WEATHER_BY_RAIN, view.precipitation)
-
-                item { HorizontalDivider() }
-                item { Text(Texts.MATRIX_TITLE, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp)) }
-                item { Text(Texts.MATRIX_HINT, style = MaterialTheme.typography.bodySmall) }
-                if (view.matrix.isEmpty()) item { Text(Texts.MATRIX_EMPTY) }
-                items(view.matrix, key = { "mx-" + it.speed }) { row ->
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text(Texts.trafficClassName(row.speed), style = MaterialTheme.typography.titleSmall)
-                        Text(WeatherFormatting.rowText(row), style = MaterialTheme.typography.bodyMedium)
-                        WeatherFormatting.frostLine(row)?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-                    }
-                }
-
-                item { HorizontalDivider() }
-                item { Text(Texts.WEATHER_CAVEAT, style = MaterialTheme.typography.bodySmall) }
             }
         }
     }
 }
 
-private fun androidx.compose.foundation.lazy.LazyListScope.impactSection(title: String, impact: WeatherImpact) {
-    item { HorizontalDivider() }
-    item { Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp)) }
-    if (impact.buckets.isEmpty()) {
-        item { Text(Texts.WEATHER_NO_DATA) }
-    }
-    items(impact.buckets, key = { title + "-" + it.bucket }) { bucket -> BucketRow(bucket) }
-    if (impact.tripsWithoutWeather > 0) {
-        item {
-            Text(Texts.weatherWithout(impact.tripsWithoutWeather, impact.totalTrips), style = MaterialTheme.typography.bodySmall)
+/**
+ * One weather split as a card: a bar per bucket in the colour of that bucket, the exact line of the domain under
+ * its badge, and a meter of the share of the battery the bucket allowed (docs/SPEC.md §10.4, §16).
+ */
+@Composable
+private fun ImpactCard(title: String, emoji: String, impact: WeatherImpact) {
+    DashboardCard(title, emoji) {
+        val bars = impact.buckets.mapNotNull { bucket ->
+            val litres = bucket.lPer100Km ?: return@mapNotNull null
+            ChartBar(litres.toFloat(), bucketEmoji(bucket.bucket), TripsFormatting.plain(litres, 2), bucketColor(bucket.bucket))
+        }
+        // Two bars is the least that shows a difference; one bucket alone is only a number.
+        if (bars.size > 1) BarChart(bars)
+        if (impact.buckets.isEmpty()) {
+            Text(Texts.WEATHER_NO_DATA)
+        } else {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                StatTile(impact.buckets.sumOf { it.trips }.toString(), Texts.STAT_TRIPS, Palette.Blue, Modifier.weight(1f))
+                StatTile(
+                    TripsFormatting.plain(impact.buckets.fold(BigDecimal.ZERO) { sum, bucket -> sum + bucket.distanceKm }, 0),
+                    "km",
+                    Palette.Violet,
+                    Modifier.weight(1f),
+                )
+            }
+        }
+        for (bucket in impact.buckets) BucketRow(bucket)
+        if (impact.tripsWithoutWeather > 0) {
+            Text(
+                Texts.weatherWithout(impact.tripsWithoutWeather, impact.totalTrips),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
 
+/** A bucket: its badge and its name, the exact line, the note under it and, when there is one, the meter of the battery. */
 @Composable
 private fun BucketRow(bucket: WeatherBucketStats) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(Texts.weatherBucketName(bucket.bucket), style = MaterialTheme.typography.titleSmall)
-        Text(
-            WeatherFormatting.bucketLine(bucket),
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        WeatherFormatting.bucketNote(bucket)?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+    val color = bucketColor(bucket.bucket)
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            EmojiBadge(bucketEmoji(bucket.bucket), color)
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(Texts.weatherBucketName(bucket.bucket), style = MaterialTheme.typography.titleSmall)
+                Text(WeatherFormatting.bucketLine(bucket), style = MaterialTheme.typography.bodyMedium)
+            }
+            bucket.lPer100Km?.let {
+                Text(TripsFormatting.plain(it, 2), style = MaterialTheme.typography.titleMedium, color = color)
+            }
+        }
+        WeatherFormatting.bucketNote(bucket)?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        // The share of the battery explains part of every gap, so it is shown as a meter of its own (§16).
+        val ev = WeatherFormatting.evShare(bucket)
+        if (ev != null && bucket.distanceKm.signum() > 0) {
+            val fraction = bucket.evKm.min(bucket.distanceKm).divide(bucket.distanceKm, 4, RoundingMode.HALF_UP).toFloat()
+            MeterRow(Texts.STATS_EV_SECTION, ev, fraction, Palette.Green)
+        }
     }
+}
+
+/** The speed × temperature table (docs/SPEC.md §28): a band, its bars per bucket of temperature and its exact line. */
+@Composable
+private fun MatrixCard(rows: List<MatrixRow>) {
+    DashboardCard(Texts.MATRIX_TITLE, "🛣️") {
+        Text(Texts.MATRIX_HINT, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (rows.isEmpty()) Text(Texts.MATRIX_EMPTY)
+        for (row in rows) {
+            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    EmojiBadge(trafficEmoji(row.speed), trafficColor(row.speed))
+                    Text(Texts.trafficClassName(row.speed), style = MaterialTheme.typography.titleSmall)
+                }
+                // A cell below the minimum gets a grey bar: it counts, but it proves nothing (§28).
+                val muted = MaterialTheme.colorScheme.outlineVariant
+                val bars = TemperatureBucket.entries.mapNotNull { bucket ->
+                    val cell = row.cells[bucket] ?: return@mapNotNull null
+                    ChartBar(
+                        cell.lPer100.toFloat(),
+                        bucketEmoji(bucket.name.lowercase()),
+                        TripsFormatting.plain(cell.lPer100, 1),
+                        if (cell.enough) bucketColor(bucket.name.lowercase()) else muted,
+                    )
+                }
+                if (bars.size > 1) BarChart(bars, height = 64.dp)
+                Text(WeatherFormatting.rowText(row), style = MaterialTheme.typography.bodyMedium)
+                WeatherFormatting.frostLine(row)?.let {
+                    Text("❄️ " + it, style = MaterialTheme.typography.bodySmall, color = Palette.Red)
+                }
+            }
+        }
+    }
+}
+
+/** The symbol of a weather bucket, from the same set the list of trips uses (docs/SPEC.md §10.3). */
+private fun bucketEmoji(bucket: String): String = when (bucket) {
+    "frost" -> "❄️"
+    "cold" -> "🌫️"
+    "mild" -> "🌤️"
+    "warm" -> "☀️"
+    "dry" -> "🍂"
+    "wet" -> "🌧️"
+    else -> "🌡️"
+}
+
+/** A colour of its own for every bucket, so a bar and the row under it are the same thing. */
+private fun bucketColor(bucket: String): Color = when (bucket) {
+    "frost" -> Palette.Blue
+    "cold" -> Palette.Teal
+    "mild" -> Palette.Green
+    "warm" -> Palette.Orange
+    "dry" -> Palette.Amber
+    "wet" -> Palette.Violet
+    else -> Palette.Series.first()
+}
+
+/** The symbol of a speed band, the same as the kind of drive of a trip (docs/SPEC.md §27). */
+private fun trafficEmoji(cls: TrafficClass): String = when (cls) {
+    TrafficClass.SLOW -> "🚦"
+    TrafficClass.CITY -> "🏙️"
+    TrafficClass.FLOWING -> "🚗"
+    TrafficClass.HIGHWAY -> "🛣️"
+}
+
+/** Slow driving is the bad news and an open road the good one - the colours of "Statystyki". */
+private fun trafficColor(cls: TrafficClass): Color = when (cls) {
+    TrafficClass.SLOW -> Palette.Red
+    TrafficClass.CITY -> Palette.Amber
+    TrafficClass.FLOWING -> Palette.Green
+    TrafficClass.HIGHWAY -> Palette.Blue
+}
+
+/** The mark of the last tap on fetch: a check, a warning, nothing to say or a cross. */
+private fun fetchMark(result: WeatherFetchResult): String = when (result) {
+    WeatherFetchResult.DONE -> "✅ "
+    WeatherFetchResult.PARTIAL -> "⚠️ "
+    WeatherFetchResult.NOTHING_TO_FETCH -> ""
+    else -> "❌ "
+}
+
+/** The colour of that mark: green when it worked, amber when it worked partly, red when it did not. */
+private fun fetchColor(result: WeatherFetchResult): Color = when (result) {
+    WeatherFetchResult.DONE -> Palette.Green
+    WeatherFetchResult.PARTIAL -> Palette.Amber
+    WeatherFetchResult.NOTHING_TO_FETCH -> Palette.Blue
+    else -> Palette.Red
 }
 
 @Composable

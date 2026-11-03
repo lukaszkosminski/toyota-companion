@@ -70,70 +70,72 @@ fun LoginScreen(state: UiState.LoggedOut, onSubmit: (String, String) -> Unit) {
                     .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text(Texts.LOGIN_TITLE, style = MaterialTheme.typography.headlineSmall)
+                DashboardCard(Texts.LOGIN_TITLE, "🚗") {
+                    OutlinedTextField(
+                        value = login,
+                        onValueChange = { login = it },
+                        label = { Text(Texts.LOGIN_FIELD) },
+                        leadingIcon = { Text("✉️") },
+                        enabled = enabled,
+                        singleLine = true,
+                        isError = fieldsInError && login.isBlank(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Next,
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics { contentType = ContentType.Username },
+                    )
 
-                OutlinedTextField(
-                    value = login,
-                    onValueChange = { login = it },
-                    label = { Text(Texts.LOGIN_FIELD) },
-                    enabled = enabled,
-                    singleLine = true,
-                    isError = fieldsInError && login.isBlank(),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Email,
-                        imeAction = ImeAction.Next,
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics { contentType = ContentType.Username },
-                )
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text(Texts.PASSWORD_FIELD) },
+                        leadingIcon = { Text("🔑") },
+                        enabled = enabled,
+                        singleLine = true,
+                        isError = fieldsInError && password.isBlank(),
+                        visualTransformation = if (showPassword) {
+                            VisualTransformation.None
+                        } else {
+                            PasswordVisualTransformation()
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Done,
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = { if (enabled) onSubmit(login, password) },
+                        ),
+                        trailingIcon = {
+                            TextButton(onClick = { showPassword = !showPassword }) {
+                                Text(if (showPassword) "🙈 " + Texts.HIDE_PASSWORD else "👁️ " + Texts.SHOW_PASSWORD)
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics { contentType = ContentType.Password },
+                    )
 
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text(Texts.PASSWORD_FIELD) },
-                    enabled = enabled,
-                    singleLine = true,
-                    isError = fieldsInError && password.isBlank(),
-                    visualTransformation = if (showPassword) {
-                        VisualTransformation.None
-                    } else {
-                        PasswordVisualTransformation()
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Done,
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onDone = { if (enabled) onSubmit(login, password) },
-                    ),
-                    trailingIcon = {
-                        TextButton(onClick = { showPassword = !showPassword }) {
-                            Text(if (showPassword) Texts.HIDE_PASSWORD else Texts.SHOW_PASSWORD)
+                    if (state.error != null) {
+                        ErrorCard(Texts.loginError(state.error))
+                    }
+
+                    Button(
+                        onClick = { onSubmit(login, password) },
+                        enabled = enabled,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                    ) {
+                        if (state.busy) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp,
+                            )
+                        } else {
+                            Text("🔓 " + Texts.LOGIN_BUTTON)
                         }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics { contentType = ContentType.Password },
-                )
-
-                if (state.error != null) {
-                    ErrorCard(Texts.loginError(state.error))
-                }
-
-                Button(
-                    onClick = { onSubmit(login, password) },
-                    enabled = enabled,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-                ) {
-                    if (state.busy) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 2.dp,
-                        )
-                    } else {
-                        Text(Texts.LOGIN_BUTTON)
                     }
                 }
             }

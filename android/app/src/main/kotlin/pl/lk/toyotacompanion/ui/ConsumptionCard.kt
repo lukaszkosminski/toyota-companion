@@ -52,11 +52,11 @@ fun ConsumptionCard(view: ConsumptionView?, declared: java.math.BigDecimal?, onS
             val scheme = MaterialTheme.colorScheme
             // A rising average is the bad news of this card, a falling one the good news.
             val (container, content) = when (view.trend) {
-                ConsumptionTrend.RISING -> scheme.errorContainer to scheme.onErrorContainer
-                ConsumptionTrend.FALLING -> scheme.primaryContainer to scheme.onPrimaryContainer
+                ConsumptionTrend.RISING -> Palette.Red.copy(alpha = 0.18f) to Palette.Red
+                ConsumptionTrend.FALLING -> Palette.Green.copy(alpha = 0.18f) to Palette.Green
                 else -> scheme.surfaceVariant to scheme.onSurfaceVariant
             }
-            Pill(line.removePrefix("Trend: "), container, content)
+            Pill((if (view.trend == ConsumptionTrend.RISING) "📈 " else if (view.trend == ConsumptionTrend.FALLING) "📉 " else "➡️ ") + line.removePrefix("Trend: "), container, content)
         }
         declaredComparison(view.overall, declared)?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
         TextButton(onClick = { editing = true }) {
@@ -66,7 +66,7 @@ fun ConsumptionCard(view: ConsumptionView?, declared: java.math.BigDecimal?, onS
             val top = view.months.maxOf { it.lPer100 }
             val base = ConsumptionFormatting.axisBase(view.months)
             Bars(
-                bars = view.months.map { BarData(TripsFormatting.plain(it.lPer100, 1), ConsumptionFormatting.monthShort(it.month), ConsumptionFormatting.barShare(it.lPer100, top, base)) },
+                bars = view.months.map { BarData(TripsFormatting.plain(it.lPer100, 1), ConsumptionFormatting.monthShort(it.month), ConsumptionFormatting.barShare(it.lPer100, top, base), consumptionColor(it.lPer100.toFloat(), view.overall.toFloat())) },
                 color = MaterialTheme.colorScheme.primary,
             )
             Text(Texts.consumptionHint(TripsFormatting.plain(base, 1)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -86,7 +86,7 @@ fun CostsCard(view: ConsumptionView?) {
         view.averageMonthCost?.let {
             Headline(
                 TripsFormatting.money(it).removeSuffix(" zł"),
-                "zł / miesiąc",
+                Lang.pick("zł / miesiąc", "zł / month"),
                 Texts.costsAverageCaption(view.averageMonths),
             )
         }
@@ -95,9 +95,9 @@ fun CostsCard(view: ConsumptionView?) {
         Bars(
             bars = view.monthCosts.map {
                 val share = if (topCost.signum() > 0) (it.costPln ?: java.math.BigDecimal.ZERO).toFloat() / topCost.toFloat() else 0f
-                BarData(ConsumptionFormatting.costLabel(it), ConsumptionFormatting.monthShort(it.month), share.coerceIn(0.03f, 1f))
+                BarData(ConsumptionFormatting.costLabel(it), ConsumptionFormatting.monthShort(it.month), share.coerceIn(0.03f, 1f), Palette.Teal)
             },
-            color = MaterialTheme.colorScheme.tertiary,
+            color = Palette.Teal,
         )
         // The three newest months in detail; the rest folds away so the card stays short (docs/SPEC.md §10.4).
         var expanded by rememberSaveable { mutableStateOf(false) }
@@ -115,7 +115,14 @@ fun CostsCard(view: ConsumptionView?) {
 }
 
 /** One bar: the label above it, its height as a share of the tallest (0-1) and the month under it. */
-private data class BarData(val label: String, val caption: String, val share: Float)
+private data class BarData(val label: String, val caption: String, val share: Float, val color: androidx.compose.ui.graphics.Color? = null)
+
+/** A month at or under the archive average is green, up to 8 % above amber, above that red. */
+private fun consumptionColor(month: Float, overall: Float): androidx.compose.ui.graphics.Color = when {
+    month <= overall -> Palette.Green
+    month <= overall * 1.08f -> Palette.Amber
+    else -> Palette.Red
+}
 
 @Composable
 private fun Bars(bars: List<BarData>, color: androidx.compose.ui.graphics.Color) {
@@ -131,7 +138,7 @@ private fun Bars(bars: List<BarData>, color: androidx.compose.ui.graphics.Color)
                     modifier = Modifier
                         .width(20.dp)
                         .height(BAR_AREA * bar.share)
-                        .background(color, RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)),
+                        .background(bar.color ?: color, RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)),
                 )
                 Text(bar.caption, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 2.dp))
             }

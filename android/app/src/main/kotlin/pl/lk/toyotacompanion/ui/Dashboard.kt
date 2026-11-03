@@ -73,12 +73,12 @@ fun Pill(text: String, container: Color, content: Color) {
 
 /** One tile of the menu: a big emoji over a short label, the whole tile is the touch target (at least 88 dp high). */
 @Composable
-fun MenuTile(emoji: String, label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun MenuTile(emoji: String, label: String, onClick: () -> Unit, modifier: Modifier = Modifier, accent: Color = MaterialTheme.colorScheme.primary) {
     Card(
         onClick = onClick,
         modifier = modifier.heightIn(min = 88.dp),
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.14f)),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -86,7 +86,7 @@ fun MenuTile(emoji: String, label: String, onClick: () -> Unit, modifier: Modifi
             verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
         ) {
             Text(emoji, style = MaterialTheme.typography.headlineMedium)
-            Text(label, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center)
+            Text(label, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center, color = accent)
         }
     }
 }
@@ -95,11 +95,12 @@ fun MenuTile(emoji: String, label: String, onClick: () -> Unit, modifier: Modifi
 @Composable
 fun MenuGrid(tiles: List<Triple<String, String, () -> Unit>>) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        var index = 0
         for (pair in tiles.chunked(2)) {
             // Equal height per row, even when one label wraps to two lines.
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
                 for ((emoji, label, onClick) in pair) {
-                    MenuTile(emoji, label, onClick, Modifier.weight(1f).fillMaxHeight())
+                    MenuTile(emoji, label, onClick, Modifier.weight(1f).fillMaxHeight(), Palette.Series[index++ % Palette.Series.size])
                 }
                 if (pair.size == 1) Box(Modifier.weight(1f))
             }

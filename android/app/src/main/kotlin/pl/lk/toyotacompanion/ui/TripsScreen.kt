@@ -172,13 +172,16 @@ private fun MonthHeader(group: MonthGroup) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
         shape = MaterialTheme.shapes.small,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Text(TripsFormatting.monthLabel(group.month), style = MaterialTheme.typography.titleMedium)
+            Text("🗓️ " + TripsFormatting.monthLabel(group.month), style = MaterialTheme.typography.titleMedium)
             Text(
                 TripsFormatting.kilometers(group.totalKm) +
                     Texts.SEPARATOR + TripsFormatting.liters(group.totalLiters) +
@@ -210,16 +213,27 @@ private fun TripRow(stored: StoredTrip, zone: ZoneId, day: pl.lk.toyotacompanion
         Row(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
+            EmojiBadge(if (points.isNotEmpty()) "🚗" else "🚙", Palette.Blue)
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(TripsFormatting.startDateTime(trip.start, zone), style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    TripsFormatting.kilometers(trip.distanceKm) + Texts.SEPARATOR + TripsFormatting.liters(trip.fuelL),
+                    "📏 " + TripsFormatting.kilometers(trip.distanceKm) + Texts.SEPARATOR + "⛽ " + TripsFormatting.liters(trip.fuelL),
                     style = MaterialTheme.typography.bodySmall,
+                    color = Palette.Blue,
                 )
+                // Consumption of the trip itself, l/100 km; a very short drive says nothing, so it is left out under 1 km.
+                tripConsumption(trip.distanceKm, trip.fuelL)?.let { value ->
+                    Text(
+                        "📉 " + RefuelLogFormatting.consumption(value),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (value.toFloat() <= 5f) Palette.Green else if (value.toFloat() <= 7f) Palette.Amber else Palette.Red,
+                    )
+                }
                 // Weather of the day and the place the trip started at; nothing until it has been fetched.
                 WeatherSymbols.line(day)?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                 // Kind of drive by average speed (§22): slow, city, flowing, route.
@@ -232,7 +246,8 @@ private fun TripRow(stored: StoredTrip, zone: ZoneId, day: pl.lk.toyotacompanion
                     } else {
                         TripsFormatting.money(requireNotNull(cost?.costPln))
                     },
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (hasNoCost(cost)) MaterialTheme.colorScheme.onSurfaceVariant else Palette.Green,
                 )
                 // Price per litre under the cost; "cena domyślna" rides on the same line (§10.3).
                 val priceLine = TripsFormatting.priceLine(stored)
@@ -266,4 +281,10 @@ private fun BackfillCard(state: BackfillState, controller: RouteBackfillControll
             }
         }
     }
+}
+
+/** Litres per 100 km of one trip; `null` without fuel or under 1 km. */
+private fun tripConsumption(distanceKm: Double, fuelL: java.math.BigDecimal): java.math.BigDecimal? {
+    if (distanceKm < 1.0 || fuelL.signum() <= 0) return null
+    return fuelL.multiply(java.math.BigDecimal(100)).divide(java.math.BigDecimal.valueOf(distanceKm), 2, java.math.RoundingMode.HALF_UP)
 }

@@ -36,6 +36,13 @@ class SettingsStore(private val prefs: SharedPreferences) {
         return if (parsed.signum() <= 0) null else parsed
     }
 
+    /** UI language tag (`pl` / `en`); `null` when the owner never chose, which means Polish. */
+    fun language(): String? = prefs.getString(KEY_LANGUAGE, null)
+
+    fun saveLanguage(tag: String) {
+        prefs.edit().putString(KEY_LANGUAGE, tag).apply()
+    }
+
     /** Stores [price] as plain text; deciding the rounding is the caller's job (docs/SPEC.md §12.2). */
     fun saveDefaultPrice(price: BigDecimal) {
         prefs.edit().putString(KEY_DEFAULT_PRICE, price.toPlainString()).apply()
@@ -137,6 +144,7 @@ class SettingsStore(private val prefs: SharedPreferences) {
         const val KEY_DEFAULT_PRICE = "default_price"
         const val KEY_WEATHER_AUTO = "weather_auto"
         const val KEY_DECLARED = "declared_consumption"
+        const val KEY_LANGUAGE = "language"
         const val KEY_ALERT = "consumption_alert"
         const val KEY_NOTIFIED_REFUELS = "refuel_notified_ids"
         const val KEY_NOTIFICATIONS_ASKED = "notifications_asked"

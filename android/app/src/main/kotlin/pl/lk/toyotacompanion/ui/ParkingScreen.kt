@@ -5,14 +5,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -69,32 +71,112 @@ fun ParkingScreen(
                     top = innerPadding.calculateTopPadding() + 8.dp,
                     bottom = innerPadding.calculateBottomPadding() + 16.dp,
                 ),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                item { Text(Texts.PARKING_PRIVACY, style = MaterialTheme.typography.bodySmall) }
+                item {
+                    DashboardCard(Texts.PARKING_TITLE, "🅿️") {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            StatTile("${log.places.size}", Texts.PARKING_PLACES, Palette.Blue, Modifier.weight(1f))
+                            StatTile("${log.stops.size}", Texts.PARKING_RECENT, Palette.Teal, Modifier.weight(1f))
+                        }
+                        Text(
+                            "🔒 " + Texts.PARKING_PRIVACY,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
                 // Stops without coordinates form no place: then the section is left out.
                 if (log.places.isNotEmpty()) {
-                    item { Text(Texts.PARKING_PLACES, style = MaterialTheme.typography.titleMedium) }
+                    item { SectionHeader("📍", Texts.PARKING_PLACES, Palette.Blue) }
                     items(log.places, key = { "p-" + it.lat + "," + it.lon }) { place ->
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            val label = placeLabel(place, known)
-                        Text(label + ParkingFormatting.place(place.lat, place.lon), style = MaterialTheme.typography.titleSmall)
-                            Text(ParkingFormatting.placeLine(place, zone), style = MaterialTheme.typography.bodyMedium)
-                            if (placeMapPoints(place.lat, place.lon).isNotEmpty()) {
-                                TextButton(onClick = { onShowMap(placeMapPoints(place.lat, place.lon), null) }) { Text(Texts.PARKING_OPEN_MAP) }
+                        val isHome = known?.home?.let { it.lat == place.lat && it.lon == place.lon } == true
+                        val isWork = known?.work?.let { it.lat == place.lat && it.lon == place.lon } == true
+                        val emoji = when {
+                            isHome -> "🏠"
+                            isWork -> "🏢"
+                            else -> "📍"
+                        }
+                        val badgeColor = when {
+                            isHome -> Palette.Green
+                            isWork -> Palette.Amber
+                            else -> Palette.Blue
+                        }
+                        // The longest stay sets the scale, so the places are compared with each other (§18).
+                        val longestStay = log.places.maxOf { it.total }.toMillis().coerceAtLeast(1L)
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.medium,
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                EmojiBadge(emoji, badgeColor)
+                                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    val label = placeLabel(place, known)
+                                    Text(label + ParkingFormatting.place(place.lat, place.lon), style = MaterialTheme.typography.titleSmall)
+                                    Text(
+                                        ParkingFormatting.placeLine(place, zone),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    MeterRow(
+                                        Texts.parkingStops(place.stops),
+                                        ParkingFormatting.duration(place.total),
+                                        place.total.toMillis().toFloat() / longestStay.toFloat(),
+                                        badgeColor,
+                                    )
+                                    if (placeMapPoints(place.lat, place.lon).isNotEmpty()) {
+                                        TextButton(onClick = { onShowMap(placeMapPoints(place.lat, place.lon), null) }) {
+                                            Text("🗺️ " + Texts.PARKING_OPEN_MAP)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
-                    item { HorizontalDivider() }
                 }
-                item { Text(Texts.PARKING_RECENT, style = MaterialTheme.typography.titleMedium) }
+
+                item { SectionHeader("⏱️", Texts.PARKING_RECENT, Palette.Teal) }
                 items(log.stops.take(RECENT_STOPS), key = { "s-" + it.from }) { stop ->
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text(ParkingFormatting.stopLine(stop, zone), style = MaterialTheme.typography.bodyMedium)
-                        Text(ParkingFormatting.place(stop.lat, stop.lon), style = MaterialTheme.typography.bodySmall)
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.small,
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            EmojiBadge("🛑", Palette.Amber)
+                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(ParkingFormatting.stopLine(stop, zone), style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    ParkingFormatting.place(stop.lat, stop.lon),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
                     }
                 }
-                item { Text(Texts.parkingSkipped(log.unmatched, log.longGaps), style = MaterialTheme.typography.bodySmall) }
+
+                item {
+                    Text(
+                        "ℹ️ " + Texts.parkingSkipped(log.unmatched, log.longGaps),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 4.dp),
+                    )
+                }
             }
         }
     }

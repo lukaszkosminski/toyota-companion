@@ -8,176 +8,215 @@ import pl.lk.toyotacompanion.core.sync.ArchiveImportCounts
 import pl.lk.toyotacompanion.core.sync.RefuelChange
 
 /**
- * Polish UI texts (the app is single-language, docs/SPEC.md §9).
+ * Polish and English UI texts via [Lang] (docs/SPEC.md §9).
  *
  * Plain functions instead of string resources: they are testable without
  * Android and the `when` over an enum forces a message for every error kind.
  * Never a password, token, VIN or GPS position (docs/SECURITY.md).
  */
 object Texts {
-    const val LOGIN_TITLE = "Zaloguj się do MyToyota"
-    const val LOGIN_FIELD = "Login"
-    const val PASSWORD_FIELD = "Hasło"
-    const val LOGIN_BUTTON = "Zaloguj"
-    const val LOGIN_BUSY = "Logowanie…"
-    const val LOGOUT_BUTTON = "Wyloguj"
-    const val SYNC_NOW_BUTTON = "Synchronizuj teraz"
-    const val SYNCING = "Synchronizacja w toku…"
-    const val STATUS_TITLE = "Status synchronizacji"
-    const val NO_DATA = "Brak danych"
-    const val RELOGIN_HINT = "Zaloguj się ponownie – Toyota odrzuciła dane logowania."
+    val LOGIN_TITLE: String get() = Lang.pick("Zaloguj się do MyToyota", "Log in to MyToyota")
+    val LOGIN_FIELD: String get() = Lang.pick("Login", "Login")
+    val PASSWORD_FIELD: String get() = Lang.pick("Hasło", "Password")
+    val LOGIN_BUTTON: String get() = Lang.pick("Zaloguj", "Log in")
+    val LOGIN_BUSY: String get() = Lang.pick("Logowanie…", "Logging in…")
+    val LOGOUT_BUTTON: String get() = Lang.pick("Wyloguj", "Log out")
+    val SYNC_NOW_BUTTON: String get() = Lang.pick("Synchronizuj teraz", "Sync now")
+    val SYNCING: String get() = Lang.pick("Synchronizacja w toku…", "Sync in progress…")
+    val STATUS_TITLE: String get() = Lang.pick("Status synchronizacji", "Sync status")
+    val NO_DATA: String get() = Lang.pick("Brak danych", "No data")
+    val RELOGIN_HINT: String get() = Lang.pick(
+        "Zaloguj się ponownie – Toyota odrzuciła dane logowania.",
+        "Log in again – Toyota rejected login credentials.",
+    )
 
     /** docs/SPEC.md §9.2 — what each login failure means for the user. */
     fun loginError(error: LoginError): String = when (error) {
-        LoginError.EMPTY_FIELDS -> "Podaj login i hasło."
-        LoginError.INVALID_CREDENTIALS -> "Toyota odrzuciła logowanie – sprawdź login i hasło."
-        LoginError.NETWORK -> "Brak internetu. Sprawdź połączenie i spróbuj ponownie."
-        LoginError.SERVICE -> "Serwis Toyoty niedostępny. Spróbuj później."
+        LoginError.EMPTY_FIELDS -> Lang.pick("Podaj login i hasło.", "Enter login and password.")
+        LoginError.INVALID_CREDENTIALS -> Lang.pick(
+            "Toyota odrzuciła logowanie – sprawdź login i hasło.",
+            "Toyota rejected the login – check your login and password.",
+        )
+        LoginError.NETWORK -> Lang.pick(
+            "Brak internetu. Sprawdź połączenie i spróbuj ponownie.",
+            "No internet connection. Check connection and try again.",
+        )
+        LoginError.SERVICE -> Lang.pick("Serwis Toyoty niedostępny. Spróbuj później.", "Toyota service unavailable. Try again later.")
     }
 
     /** docs/SPEC.md §9.3 — only the kind is shown, never the stored message. */
     fun syncError(kind: SyncErrorKind): String = when (kind) {
-        SyncErrorKind.NO_CREDENTIALS -> "Brak danych logowania – zaloguj się."
-        SyncErrorKind.LOGIN -> "Toyota odrzuciła logowanie – zaloguj się ponownie."
-        SyncErrorKind.NO_VEHICLE -> "Brak pojazdu na koncie lub kilka pojazdów do wyboru."
-        SyncErrorKind.API -> "Serwis Toyoty niedostępny. Spróbuj później."
-        SyncErrorKind.NETWORK -> "Brak internetu. Spróbuj później."
-        SyncErrorKind.DATA -> "Nieoczekiwana odpowiedź Toyoty. Spróbuj później."
-        SyncErrorKind.STORAGE -> "Nie udało się zapisać danych w telefonie. Sprawdź wolne miejsce i spróbuj ponownie."
+        SyncErrorKind.NO_CREDENTIALS -> Lang.pick("Brak danych logowania – zaloguj się.", "No login credentials – log in.")
+        SyncErrorKind.LOGIN -> Lang.pick("Toyota odrzuciła logowanie – zaloguj się ponownie.", "Toyota rejected login – log in again.")
+        SyncErrorKind.NO_VEHICLE -> Lang.pick(
+            "Brak pojazdu na koncie lub kilka pojazdów do wyboru.",
+            "No vehicle on the account or multiple vehicles to choose from.",
+        )
+        SyncErrorKind.API -> Lang.pick("Serwis Toyoty niedostępny. Spróbuj później.", "Toyota service unavailable. Try again later.")
+        SyncErrorKind.NETWORK -> Lang.pick("Brak internetu. Spróbuj później.", "No internet connection. Try again later.")
+        SyncErrorKind.DATA -> Lang.pick("Nieoczekiwana odpowiedź Toyoty. Spróbuj później.", "Unexpected response from Toyota. Try again later.")
+        SyncErrorKind.STORAGE -> Lang.pick(
+            "Nie udało się zapisać danych w telefonie. Sprawdź wolne miejsce i spróbuj ponownie.",
+            "Failed to save data on phone. Check free space and try again.",
+        )
     }
 
     /** "aktualne" / "nieaktualne" — local data on screen but not current (docs/SPEC.md §8.4). */
-    fun freshness(status: SyncStatus): String = if (status.isFresh) "aktualne" else "nieaktualne"
+    fun freshness(status: SyncStatus): String =
+        if (status.isFresh) Lang.pick("aktualne", "current") else Lang.pick("nieaktualne", "not current")
 
     /** Last full success as `YYYY-MM-DD HH:mm` in the local zone, or "brak". */
     fun lastSuccess(status: SyncStatus, zone: ZoneId = ZoneId.systemDefault()): String {
-        val at = status.state.lastSuccessAt ?: return "Ostatnia synchronizacja: brak"
+        val at = status.state.lastSuccessAt ?: return Lang.pick("Ostatnia synchronizacja: brak", "Last sync: none")
         val local = at.atZone(zone)
-        return "Ostatnia synchronizacja: " +
-            "%04d-%02d-%02d %02d:%02d".format(local.year, local.monthValue, local.dayOfMonth, local.hour, local.minute)
+        val formatted = "%04d-%02d-%02d %02d:%02d".format(local.year, local.monthValue, local.dayOfMonth, local.hour, local.minute)
+        return Lang.pick("Ostatnia synchronizacja: $formatted", "Last sync: $formatted")
     }
 
     /** Dialog confirming logout, so a tap on "Wyloguj" is never final by itself. */
-    const val LOGOUT_CONFIRM_TITLE = "Wylogować się?"
-    const val LOGOUT_CONFIRM_BODY =
+    val LOGOUT_CONFIRM_TITLE: String get() = Lang.pick("Wylogować się?", "Log out?")
+    val LOGOUT_CONFIRM_BODY: String get() = Lang.pick(
         "Usuniemy zapisane dane logowania i dostęp Toyoty. Trasy i odczyty zostaną " +
-            "w bazie do następnego logowania."
-    const val LOGOUT_CONFIRM_YES = "Wyloguj"
-    const val LOGOUT_CONFIRM_NO = "Anuluj"
+            "w bazie do następnego logowania.",
+        "We will delete saved login credentials and Toyota access. Trips and readings will remain " +
+            "in the database until the next login.",
+    )
+    val LOGOUT_CONFIRM_YES: String get() = Lang.pick("Wyloguj", "Log out")
+    val LOGOUT_CONFIRM_NO: String get() = Lang.pick("Anuluj", "Cancel")
 
     /** Title of the status screen; same wording as `app_name` in res/values/strings.xml. */
-    const val APP_NAME = "Toyota Companion"
+    val APP_NAME: String get() = Lang.pick("Toyota Companion", "Toyota Companion")
 
     /** First read of the local archive. */
-    const val LOADING = "Ładowanie…"
+    val LOADING: String get() = Lang.pick("Ładowanie…", "Loading…")
 
     /** Reads the archive again, without asking Toyota (docs/SPEC.md §9.3). */
-    const val REFRESH_BUTTON = "Odśwież"
+    val REFRESH_BUTTON: String get() = Lang.pick("Odśwież", "Refresh")
 
-    const val SHOW_PASSWORD = "Pokaż"
-    const val HIDE_PASSWORD = "Ukryj"
+    val SHOW_PASSWORD: String get() = Lang.pick("Pokaż", "Show")
+    val HIDE_PASSWORD: String get() = Lang.pick("Ukryj", "Hide")
 
     /** Stat cards show the number alone, the caption below says what it counts. */
-    const val STAT_TRIPS = "Trasy"
-    const val STAT_READINGS = "Odczyty paliwa"
-    const val STAT_PENDING_REFUELS = "Oczekujące tankowania"
+    val STAT_TRIPS: String get() = Lang.pick("Trasy", "Trips")
+    val STAT_READINGS: String get() = Lang.pick("Odczyty paliwa", "Fuel readings")
+    val STAT_PENDING_REFUELS: String get() = Lang.pick("Oczekujące tankowania", "Pending refuels")
 
     /** Chip on the status screen when there is nothing fresh or stale to say yet. */
-    const val STATE_NEVER = "brak synchronizacji"
-    const val STATE_NEEDS_RELOGIN = "wymaga logowania"
+    val STATE_NEVER: String get() = Lang.pick("brak synchronizacji", "never synced")
+    val STATE_NEEDS_RELOGIN: String get() = Lang.pick("wymaga logowania", "login required")
 
     // ---------------- Trips list (docs/SPEC.md §10) ----------------
 
     /** Title of the trips screen and the button that opens it from the status screen. */
-    const val TRIPS_TITLE = "Trasy"
+    val TRIPS_TITLE: String get() = Lang.pick("Trasy", "Trips")
 
     /** Every secondary screen leaves through a text button with this word (no Icons). */
-    const val BACK = "Wstecz"
+    val BACK: String get() = Lang.pick("Wstecz", "Back")
 
     /** The archive of the selected vehicle is empty. */
-    const val TRIPS_EMPTY = "Brak tras – zsynchronizuj dane"
+    val TRIPS_EMPTY: String get() = Lang.pick("Brak tras – zsynchronizuj dane", "No trips – sync data")
 
     /** The local read failed; never the exception text (docs/SECURITY.md). */
-    const val TRIPS_READ_ERROR = "Nie udało się odczytać tras. Spróbuj ponownie."
+    val TRIPS_READ_ERROR: String get() = Lang.pick(
+        "Nie udało się odczytać tras. Spróbuj ponownie.",
+        "Failed to read trips. Try again.",
+    )
 
     /** Trip without a usable cost, and the month header when no trip in it has one. */
-    const val NO_PRICE = "brak ceny"
+    val NO_PRICE: String get() = Lang.pick("brak ceny", "no price")
 
     /** The cost came from the configured default price, not from a refuel (docs/SPEC.md §4). */
-    const val DEFAULT_PRICE_NOTE = "cena domyślna"
+    val DEFAULT_PRICE_NOTE: String get() = Lang.pick("cena domyślna", "default price")
 
     /** Separates the values inside one line of the trips list. */
     const val SEPARATOR = " · "
 
     /** „bez ceny: 3” — the month header shows it only when the count is not zero. */
-    fun tripsWithoutCost(count: Int): String = "bez ceny: $count"
+    fun tripsWithoutCost(count: Int): String = Lang.pick("bez ceny: $count", "without price: $count")
 
     // ---------------- refuel price form (docs/SPEC.md §11) ----------------
 
     /** Title of the list of refuels that still wait for a price. */
-    const val REFUELS_TITLE = "Tankowania"
+    val REFUELS_TITLE: String get() = Lang.pick("Tankowania", "Refuels")
 
     /** The selected vehicle has no refuel waiting for a price. */
-    const val REFUELS_EMPTY = "Brak tankowań czekających na cenę"
+    val REFUELS_EMPTY: String get() = Lang.pick("Brak tankowań czekających na cenę", "No refuels waiting for a price")
 
     /** The local read failed; never the exception text (docs/SECURITY.md). */
-    const val REFUELS_READ_ERROR = "Nie udało się odczytać tankowań. Spróbuj ponownie."
+    val REFUELS_READ_ERROR: String get() = Lang.pick(
+        "Nie udało się odczytać tankowań. Spróbuj ponownie.",
+        "Failed to read refuels. Try again.",
+    )
 
     /** Button on the status screen; [count] is how many refuels still wait for a price. */
-    fun refuelPrompt(count: Int): String = "Podaj cenę tankowania ($count)"
+    fun refuelPrompt(count: Int): String = Lang.pick("Podaj cenę tankowania ($count)", "Enter refuel price ($count)")
 
     /** Title of the form. */
-    const val REFUEL_FORM_TITLE = "Cena tankowania"
+    val REFUEL_FORM_TITLE: String get() = Lang.pick("Cena tankowania", "Refuel price")
 
-    const val REFUEL_FIELD_PRICE = "Cena za litr"
-    const val REFUEL_FIELD_LITERS = "Litry"
-    const val REFUEL_FIELD_TOTAL = "Kwota"
+    val REFUEL_FIELD_PRICE: String get() = Lang.pick("Cena za litr", "Price per liter")
+    val REFUEL_FIELD_LITERS: String get() = Lang.pick("Litry", "Liters")
+    val REFUEL_FIELD_TOTAL: String get() = Lang.pick("Kwota", "Total cost")
 
     /** Only usable when the liters are known (docs/SPEC.md §11.3). */
-    const val REFUEL_FILLED_FULL = "Do pełna"
+    val REFUEL_FILLED_FULL: String get() = Lang.pick("Do pełna", "Filled to full")
 
-    const val REFUEL_SAVE = "Zapisz"
-    const val REFUEL_DISMISS = "Odrzuć"
+    val REFUEL_SAVE: String get() = Lang.pick("Zapisz", "Save")
+    val REFUEL_DISMISS: String get() = Lang.pick("Odrzuć", "Dismiss")
 
     /** Refusing an entry is final for that entry, so it is confirmed first. */
-    const val REFUEL_DISMISS_TITLE = "Odrzucić to tankowanie?"
-    const val REFUEL_DISMISS_BODY =
-        "Odrzucone tankowanie nie wejdzie do kosztów tras i nie będzie czekać na cenę."
-    const val REFUEL_DISMISS_YES = "Odrzuć"
-    const val REFUEL_DISMISS_NO = "Anuluj"
+    val REFUEL_DISMISS_TITLE: String get() = Lang.pick("Odrzucić to tankowanie?", "Dismiss this refuel?")
+    val REFUEL_DISMISS_BODY: String get() = Lang.pick(
+        "Odrzucone tankowanie nie wejdzie do kosztów tras i nie będzie czekać na cenę.",
+        "Dismissed refuel will not be included in trip costs and will not wait for a price.",
+    )
+    val REFUEL_DISMISS_YES: String get() = Lang.pick("Odrzuć", "Dismiss")
+    val REFUEL_DISMISS_NO: String get() = Lang.pick("Anuluj", "Cancel")
 
     /** `6,1,9` or `abc` in an amount field. */
-    const val REFUEL_NUMBER_ERROR = "To nie jest liczba"
+    val REFUEL_NUMBER_ERROR: String get() = Lang.pick("To nie jest liczba", "This is not a number")
 
     /** `0` or a negative amount; the domain would refuse the same value (§2). */
-    const val REFUEL_POSITIVE_ERROR = "Wartość musi być większa od zera"
+    val REFUEL_POSITIVE_ERROR: String get() = Lang.pick("Wartość musi być większa od zera", "Value must be greater than zero")
 
     /** The form has to keep the combinations of docs/SPEC.md §2. */
-    const val REFUEL_COMBINATION_ERROR = "Podaj cenę za litr albo litry i kwotę"
+    val REFUEL_COMBINATION_ERROR: String get() = Lang.pick(
+        "Podaj cenę za litr albo litry i kwotę",
+        "Enter price per liter, or liters and total cost",
+    )
 
     /** D3 of PRD F2a: an estimate cannot be the base of a price (docs/SPEC.md §11.2). */
-    const val REFUEL_ESTIMATE_NEEDS_PRICE = "Podaj cenę za litr \u2013 z szacunku litrów nie da się wyliczyć ceny"
+    val REFUEL_ESTIMATE_NEEDS_PRICE: String get() = Lang.pick(
+        "Podaj cenę za litr – z szacunku litrów nie da się wyliczyć ceny",
+        "Enter price per liter – price cannot be calculated from estimated liters",
+    )
 
     /** Sensor estimate under the liters field, e.g. `Szacunek z czujnika: ok. 14,19 l` (§11.3). */
-    fun refuelEstimateHint(liters: String): String = "Szacunek z czujnika: ok. $liters"
+    fun refuelEstimateHint(liters: String): String = Lang.pick("Szacunek z czujnika: ok. $liters", "Sensor estimate: approx. $liters")
 
     /** Fills the liters field with the estimate. */
-    const val REFUEL_USE_ESTIMATE = "U\u017cyj szacunku"
+    val REFUEL_USE_ESTIMATE: String get() = Lang.pick("Użyj szacunku", "Use estimate")
 
     /** Shown while the liters field holds the accepted estimate. */
-    const val REFUEL_LITERS_FROM_ESTIMATE = "Litry z szacunku czujnika"
+    val REFUEL_LITERS_FROM_ESTIMATE: String get() = Lang.pick("Litry z szacunku czujnika", "Liters from sensor estimate")
 
     /** Takes the estimate mark off: the same number is from the receipt. */
-    const val REFUEL_LITERS_FROM_RECEIPT = "Z paragonu"
+    val REFUEL_LITERS_FROM_RECEIPT: String get() = Lang.pick("Z paragonu", "From receipt")
 
     /** The domain refused the values although the form check passed (docs/SPEC.md §11.2). */
-    const val REFUEL_WRITE_ERROR = "Nie udało się zapisać ceny. Popraw wartości i spróbuj ponownie."
+    val REFUEL_WRITE_ERROR: String get() = Lang.pick(
+        "Nie udało się zapisać ceny. Popraw wartości i spróbuj ponownie.",
+        "Failed to save price. Correct values and try again.",
+    )
 
     /** The write itself failed (the database, not the values): the user may try again. */
-    const val REFUEL_SAVE_FAILED = "Nie udało się zapisać. Spróbuj ponownie."
+    val REFUEL_SAVE_FAILED: String get() = Lang.pick("Nie udało się zapisać. Spróbuj ponownie.", "Failed to save. Try again.")
 
     /** The entry is gone, already answered or belongs to another vehicle. */
-    const val REFUEL_STALE_ENTRY = "Ten wpis już nie czeka na cenę. Odśwież listę."
+    val REFUEL_STALE_ENTRY: String get() = Lang.pick(
+        "Ten wpis już nie czeka na cenę. Odśwież listę.",
+        "This entry is no longer waiting for a price. Refresh the list.",
+    )
 
     /** Polish message of a refused write; null when the write went through. */
     fun refuelChangeError(change: RefuelChange): String? = when (change) {
@@ -190,10 +229,10 @@ object Texts {
     // ---------------- domyślna cena paliwa (docs/SPEC.md §12) ----------------
 
     /** Title of the default price screen. */
-    const val DEFAULT_PRICE_TITLE = "Cena domyślna"
+    val DEFAULT_PRICE_TITLE: String get() = Lang.pick("Cena domyślna", "Default price")
 
     /** Status-screen button when no default price is stored yet. */
-    const val DEFAULT_PRICE_PROMPT_UNSET = "Ustaw cenę domyślną paliwa"
+    val DEFAULT_PRICE_PROMPT_UNSET: String get() = Lang.pick("Ustaw cenę domyślną paliwa", "Set default fuel price")
 
     /**
      * Status-screen button: [price] in the label when one is stored, e.g.
@@ -201,34 +240,43 @@ object Texts {
      */
     fun defaultPricePrompt(price: BigDecimal?): String =
         if (price == null) DEFAULT_PRICE_PROMPT_UNSET
-        else "Cena domyślna paliwa: " + TripsFormatting.pricePerLiter(price)
+        else {
+            val formatted = TripsFormatting.pricePerLiter(price)
+            Lang.pick("Cena domyślna paliwa: $formatted", "Default fuel price: $formatted")
+        }
 
     /** Under the field: which trips the default price prices (docs/SPEC.md §4). */
-    const val DEFAULT_PRICE_HINT =
-        "Cena domyślna liczy trasy sprzed pierwszego potwierdzonego tankowania."
+    val DEFAULT_PRICE_HINT: String get() = Lang.pick(
+        "Cena domyślna liczy trasy sprzed pierwszego potwierdzonego tankowania.",
+        "The default price calculates trips before the first confirmed refuel.",
+    )
 
     /** Removes the setting; an empty field never does that (docs/SPEC.md §12.3). */
-    const val DEFAULT_PRICE_REMOVE = "Usuń cenę domyślną"
+    val DEFAULT_PRICE_REMOVE: String get() = Lang.pick("Usuń cenę domyślną", "Remove default price")
 
-    const val DEFAULT_PRICE_REMOVE_TITLE = "Usunąć cenę domyślną?"
-    const val DEFAULT_PRICE_REMOVE_BODY =
-        "Trasy bez potwierdzonego tankowania znów będą bez ceny."
-    const val DEFAULT_PRICE_REMOVE_YES = "Usuń"
-    const val DEFAULT_PRICE_REMOVE_NO = "Anuluj"
+    val DEFAULT_PRICE_REMOVE_TITLE: String get() = Lang.pick("Usunąć cenę domyślną?", "Remove default price?")
+    val DEFAULT_PRICE_REMOVE_BODY: String get() = Lang.pick(
+        "Trasy bez potwierdzonego tankowania znów będą bez ceny.",
+        "Trips without a confirmed refuel will again have no price.",
+    )
+    val DEFAULT_PRICE_REMOVE_YES: String get() = Lang.pick("Usuń", "Remove")
+    val DEFAULT_PRICE_REMOVE_NO: String get() = Lang.pick("Anuluj", "Cancel")
 
     /** "Zapisz" with an empty field: removing the price has its own button. */
-    const val DEFAULT_PRICE_EMPTY_ERROR =
-        "Podaj cenę za litr albo usuń cenę przyciskiem poniżej"
+    val DEFAULT_PRICE_EMPTY_ERROR: String get() = Lang.pick(
+        "Podaj cenę za litr albo usuń cenę przyciskiem poniżej",
+        "Enter price per liter or remove price using the button below",
+    )
 
 
     /** Name of the notification channel of refuels (docs/SPEC.md §13.1). */
-    const val REFUEL_NOTIFICATION_CHANNEL = "Tankowania"
+    val REFUEL_NOTIFICATION_CHANNEL: String get() = Lang.pick("Tankowania", "Refuels")
 
     /**
      * Title of the heads-up notification and of the in-app prompt: the same words,
      * because both say the same thing (docs/SPEC.md §13).
      */
-    const val REFUEL_NOTIFICATION_TITLE = "Wykryto tankowanie"
+    val REFUEL_NOTIFICATION_TITLE: String get() = Lang.pick("Wykryto tankowanie", "Refuel detected")
 
     /**
      * Notification text: when and how much the level changed, then the request, e.g.
@@ -236,489 +284,839 @@ object Texts {
      * (docs/SECURITY.md, docs/SPEC.md §13.1).
      */
     fun refuelNotificationText(time: String, levelJump: String): String =
-        "$time \u00b7 $levelJump. Podaj cen\u0119 za litr."
+        Lang.pick(
+            "$time · $levelJump. Podaj cenę za litr.",
+            "$time · $levelJump. Enter price per liter.",
+        )
 
     /** First line of the in-app prompt: the refuel this question is about. */
-    fun refuelPromptBody(time: String, levelJump: String): String = "$time \u00b7 $levelJump"
+    fun refuelPromptBody(time: String, levelJump: String): String = "$time · $levelJump"
 
     /** "Not now": silences this one entry for the rest of the process (docs/SPEC.md §13.3). */
-    const val REFUEL_PROMPT_LATER = "P\u00f3\u017aniej"
+    val REFUEL_PROMPT_LATER: String get() = Lang.pick("Później", "Later")
 
     /** Opens the full form of C3 with liters and total cost. */
-    const val REFUEL_PROMPT_MORE = "Wi\u0119cej"
+    val REFUEL_PROMPT_MORE: String get() = Lang.pick("Więcej", "More")
 
 
     // Kopia archiwum (PRD F7, F8, docs/SPEC.md §14).
 
     /** Status button and the title of the backup screen. */
-    const val BACKUP_TITLE = "Kopia i eksport"
+    val BACKUP_TITLE: String get() = Lang.pick("Kopia i eksport", "Backup and export")
 
-    const val BACKUP_EXPORT = "Eksportuj archiwum"
-    const val BACKUP_IMPORT = "Importuj archiwum"
+    val BACKUP_EXPORT: String get() = Lang.pick("Eksportuj archiwum", "Export archive")
+    val BACKUP_IMPORT: String get() = Lang.pick("Importuj archiwum", "Import archive")
 
     /** Shown before the system file picker, docs/SECURITY.md. */
-    const val BACKUP_WARNING_TITLE = "Plik z danymi osobowymi"
-    const val BACKUP_WARNING_BODY =
-        "Kopia zawiera trasy z położeniem GPS i numer VIN samochodu. Zapisz ją w bezpiecznym miejscu i nie udostępniaj."
-    const val BACKUP_WARNING_OK = "Eksportuj"
-    const val BACKUP_WARNING_CANCEL = "Anuluj"
+    val BACKUP_WARNING_TITLE: String get() = Lang.pick("Plik z danymi osobowymi", "File with personal data")
+    val BACKUP_WARNING_BODY: String get() = Lang.pick(
+        "Kopia zawiera trasy z położeniem GPS i numer VIN samochodu. Zapisz ją w bezpiecznym miejscu i nie udostępniaj.",
+        "The backup contains trips with GPS locations and car VIN. Save it in a safe place and do not share it.",
+    )
+    val BACKUP_WARNING_OK: String get() = Lang.pick("Eksportuj", "Export")
+    val BACKUP_WARNING_CANCEL: String get() = Lang.pick("Anuluj", "Cancel")
 
     /** Explains the screen: the phone is the only place the old trips live (ADR-006). */
-    const val BACKUP_EXPLANATION =
+    val BACKUP_EXPLANATION: String get() = Lang.pick(
         "Toyota usuwa trasy starsze niż około rok, więc archiwum jest tylko w tym telefonie. " +
-            "Kopia to jeden plik – import na nowym telefonie dodaje tylko to, czego jeszcze nie ma."
+            "Kopia to jeden plik – import na nowym telefonie dodaje tylko to, czego jeszcze nie ma.",
+        "Toyota deletes trips older than about a year, so the archive only lives on this phone. " +
+            "The backup is a single file – importing on a new phone only adds what is not already there.",
+    )
 
-    fun backupExported(trips: Int): String = "Zapisano kopię archiwum (trasy: $trips)."
+    fun backupExported(trips: Int): String = Lang.pick(
+        "Zapisano kopię archiwum (trasy: $trips).",
+        "Archive backup saved (trips: $trips).",
+    )
 
     /** Counts without Polish plural forms: "trasy: 3" reads right for every number. */
-    fun backupImported(counts: ArchiveImportCounts): String = buildString {
-        append("Zaimportowano – trasy: ${counts.tripsAdded}, tankowania: ${counts.refuelsAdded}, ")
-        append("odczyty paliwa: ${counts.readingsAdded}.")
-        if (counts.refuelsUpdated > 0) append(" Uzupełnione ceny tankowań: ${counts.refuelsUpdated}.")
-        if (counts.refuelsSkipped > 0) {
-            append(" Pominięte tankowania (odrzucone w tym telefonie): ${counts.refuelsSkipped}.")
+    fun backupImported(counts: ArchiveImportCounts): String = if (Lang.isEnglish) {
+        buildString {
+            append("Imported – trips: ${counts.tripsAdded}, refuels: ${counts.refuelsAdded}, ")
+            append("fuel readings: ${counts.readingsAdded}.")
+            if (counts.refuelsUpdated > 0) append(" Refuel prices updated: ${counts.refuelsUpdated}.")
+            if (counts.refuelsSkipped > 0) {
+                append(" Skipped refuels (dismissed on this phone): ${counts.refuelsSkipped}.")
+            }
+            if (counts.otherVehicleTrips > 0) {
+                append(" Other vehicle trips: ${counts.otherVehicleTrips} – shown under that vehicle.")
+            }
         }
-        if (counts.otherVehicleTrips > 0) {
-            append(" Trasy innego pojazdu: ${counts.otherVehicleTrips} – widać je przy tamtym pojeździe.")
+    } else {
+        buildString {
+            append("Zaimportowano – trasy: ${counts.tripsAdded}, tankowania: ${counts.refuelsAdded}, ")
+            append("odczyty paliwa: ${counts.readingsAdded}.")
+            if (counts.refuelsUpdated > 0) append(" Uzupełnione ceny tankowań: ${counts.refuelsUpdated}.")
+            if (counts.refuelsSkipped > 0) {
+                append(" Pominięte tankowania (odrzucone w tym telefonie): ${counts.refuelsSkipped}.")
+            }
+            if (counts.otherVehicleTrips > 0) {
+                append(" Trasy innego pojazdu: ${counts.otherVehicleTrips} – widać je przy tamtym pojeździe.")
+            }
         }
     }
 
-    const val BACKUP_UNSUPPORTED =
-        "To nie jest kopia archiwum tej aplikacji albo pochodzi z nowszej wersji. Nic nie zostało zapisane."
-    const val BACKUP_CORRUPT = "Plik kopii jest uszkodzony. Nic nie zostało zapisane."
-    const val BACKUP_TOO_LARGE = "Plik jest za duży na kopię archiwum. Nic nie zostało zapisane."
-    const val BACKUP_FAILED = "Nie udało się zapisać ani odczytać pliku. Spróbuj ponownie."
+    val BACKUP_UNSUPPORTED: String get() = Lang.pick(
+        "To nie jest kopia archiwum tej aplikacji albo pochodzi z nowszej wersji. Nic nie zostało zapisane.",
+        "This is not an archive backup from this app or it comes from a newer version. Nothing was saved.",
+    )
+    val BACKUP_CORRUPT: String get() = Lang.pick(
+        "Plik kopii jest uszkodzony. Nic nie zostało zapisane.",
+        "The backup file is corrupt. Nothing was saved.",
+    )
+    val BACKUP_TOO_LARGE: String get() = Lang.pick(
+        "Plik jest za duży na kopię archiwum. Nic nie zostało zapisane.",
+        "The file is too large for an archive backup. Nothing was saved.",
+    )
+    val BACKUP_FAILED: String get() = Lang.pick(
+        "Nie udało się zapisać ani odczytać pliku. Spróbuj ponownie.",
+        "Failed to save or read file. Try again.",
+    )
 
     /** Status line under the backup button, e.g. `Ostatnia kopia archiwum: 31.10.2026`. */
-    fun lastBackup(date: String): String = "Ostatnia kopia archiwum: $date"
+    fun lastBackup(date: String): String = Lang.pick("Ostatnia kopia archiwum: $date", "Last archive backup: $date")
 
-    const val BACKUP_NONE_YET = "Archiwum nie ma jeszcze kopii"
+    val BACKUP_NONE_YET: String get() = Lang.pick("Archiwum nie ma jeszcze kopii", "Archive has no backup yet")
 
     // Statystyki (PRD F10, F11, docs/SPEC.md §16-§17).
 
-    const val STATS_TITLE = "Statystyki"
-    const val STATS_EMPTY = "Brak tras do policzenia statystyk."
-    const val STATS_READ_ERROR = "Nie udało się policzyć statystyk. Spróbuj ponownie."
-    const val STATS_EV_SECTION = "Jazda na prądzie"
-    const val STATS_NO_EV_DATA = "brak danych"
-    const val STATS_CLIPPED_MARK = "(dane Toyoty niespójne)"
-    const val STATS_RANKING = "Najwięcej jazdy na prądzie (trasy od 1 km)"
-    const val STATS_YEAR_OVER_YEAR = "Rok do roku"
-    const val STATS_YEARS = "Lata"
-    const val STATS_SEASONS = "Pory roku"
-    const val SEASON_WINTER = "zima"
-    const val SEASON_SPRING = "wiosna"
-    const val SEASON_SUMMER = "lato"
-    const val SEASON_AUTUMN = "jesień"
+    val STATS_TITLE: String get() = Lang.pick("Statystyki", "Statistics")
+    val STATS_EMPTY: String get() = Lang.pick("Brak tras do policzenia statystyk.", "No trips to calculate statistics.")
+    val STATS_READ_ERROR: String get() = Lang.pick(
+        "Nie udało się policzyć statystyk. Spróbuj ponownie.",
+        "Failed to calculate statistics. Try again.",
+    )
+    val STATS_EV_SECTION: String get() = Lang.pick("Jazda na prądzie", "EV driving")
+    val STATS_NO_EV_DATA: String get() = Lang.pick("brak danych", "no data")
+    val STATS_CLIPPED_MARK: String get() = Lang.pick("(dane Toyoty niespójne)", "(Toyota data inconsistent)")
+    val STATS_RANKING: String get() = Lang.pick("Najwięcej jazdy na prądzie (trasy od 1 km)", "Most EV driving (trips from 1 km)")
+    val STATS_YEAR_OVER_YEAR: String get() = Lang.pick("Rok do roku", "Year over year")
+    val STATS_YEARS: String get() = Lang.pick("Lata", "Years")
+    val STATS_SEASONS: String get() = Lang.pick("Pory roku", "Seasons")
+    val SEASON_WINTER: String get() = Lang.pick("zima", "winter")
+    val SEASON_SPRING: String get() = Lang.pick("wiosna", "spring")
+    val SEASON_SUMMER: String get() = Lang.pick("lato", "summer")
+    val SEASON_AUTUMN: String get() = Lang.pick("jesień", "autumn")
 
-    fun statsEvTotal(share: String): String = "$share kilometrów na prądzie"
-    fun statsShareOfTrip(share: String): String = "$share na prądzie"
-    fun statsTrips(count: Int): String = "trasy: $count"
-    fun statsLeftOut(withoutData: Int, tooShort: Int): String =
-        "Pominięte – bez danych o prądzie: $withoutData, krótsze niż 1 km: $tooShort."
+    fun statsEvTotal(share: String): String = Lang.pick("$share kilometrów na prądzie", "$share kilometers on battery")
+    fun statsShareOfTrip(share: String): String = Lang.pick("$share na prądzie", "$share on battery")
+    fun statsTrips(count: Int): String = Lang.pick("trasy: $count", "trips: $count")
+    fun statsLeftOut(withoutData: Int, tooShort: Int): String = Lang.pick(
+        "Pominięte – bez danych o prądzie: $withoutData, krótsze niż 1 km: $tooShort.",
+        "Skipped – without EV data: $withoutData, shorter than 1 km: $tooShort.",
+    )
     fun statsWindow(window: String, current: Int, previous: Int): String = "$window $current vs $previous"
 
     // Typy tras (PRD F16, docs/SPEC.md §21).
 
-    const val DRIVING_SHORT = "📏 krótki odcinek"
-    fun drivingType(cls: TrafficClass, kmh: String): String = when (cls) {
-        TrafficClass.SLOW -> "🚦 wolna jazda"
-        TrafficClass.CITY -> "🏙️ miasto"
-        TrafficClass.FLOWING -> "🚗 płynnie"
-        TrafficClass.HIGHWAY -> "🛣️ trasa"
-    } + SEPARATOR + "$kmh km/h"
+    val DRIVING_SHORT: String get() = Lang.pick("📏 krótki odcinek", "📏 short trip")
+    fun drivingType(cls: TrafficClass, kmh: String): String = (when (cls) {
+        TrafficClass.SLOW -> Lang.pick("🚦 wolna jazda", "🚦 slow traffic")
+        TrafficClass.CITY -> Lang.pick("🏙️ miasto", "🏙️ city")
+        TrafficClass.FLOWING -> Lang.pick("🚗 płynnie", "🚗 flowing")
+        TrafficClass.HIGHWAY -> Lang.pick("🛣️ trasa", "🛣️ highway")
+    }) + SEPARATOR + "$kmh km/h"
 
-    const val TRAFFIC_SECTION = "Tempo jazdy a spalanie"
-    const val TRAFFIC_HINT =
-        "Średnia prędkość trasy (od 2 km) jako miara ruchu – wolna jazda to też sygnalizacja i krótkie odcinki, nie tylko korki. Litry liczone do wszystkich km, także tych na prądzie – patrz udział prądu."
+    val TRAFFIC_SECTION: String get() = Lang.pick("Tempo jazdy a spalanie", "Driving pace and consumption")
+    val TRAFFIC_HINT: String get() = Lang.pick(
+        "Średnia prędkość trasy (od 2 km) jako miara ruchu – wolna jazda to też sygnalizacja i krótkie odcinki, nie tylko korki. Litry liczone do wszystkich km, także tych na prądzie – patrz udział prądu.",
+        "Average trip speed (from 2 km) as a measure of traffic – slow driving also includes traffic lights and short trips, not just traffic jams. Liters counted for all km, including those on battery – see EV share.",
+    )
     fun trafficClassName(cls: TrafficClass): String = when (cls) {
-        TrafficClass.SLOW -> "Wolno (poniżej 15 km/h)"
-        TrafficClass.CITY -> "Miasto (15–25 km/h)"
-        TrafficClass.FLOWING -> "Płynnie (25–40 km/h)"
-        TrafficClass.HIGHWAY -> "Trasa (od 40 km/h)"
+        TrafficClass.SLOW -> Lang.pick("Wolno (poniżej 15 km/h)", "Slow (under 15 km/h)")
+        TrafficClass.CITY -> Lang.pick("Miasto (15–25 km/h)", "City (15–25 km/h)")
+        TrafficClass.FLOWING -> Lang.pick("Płynnie (25–40 km/h)", "Flowing (25–40 km/h)")
+        TrafficClass.HIGHWAY -> Lang.pick("Trasa (od 40 km/h)", "Highway (over 40 km/h)")
     }
     fun trafficConsumption(litres: String): String = "$litres l/100 km"
     fun trafficCost(money: String): String = "$money/100 km"
-    fun statsLeftOutTrips(left: Int, total: Int): String = "Poza zestawieniem: $left z $total tras (poniżej 2 km albo bez prędkości)."
-    fun trafficSurcharge(litres: String, money: String?): String =
-        "Wolna jazda wobec płynnej: $litres l/100 km" + (money?.let { " ($it/100 km)" } ?: "")
-    const val TRIP_TYPES_SECTION = "Typy tras"
-    const val TRIP_TYPES_HINT = "Dom i praca rozpoznane z postojów; dojazdy to trasy między nimi."
-    const val TRIP_TYPES_NO_PLACES = "Za mało postojów, żeby rozpoznać dom i pracę – dojazdów jeszcze nie ma."
-    fun tripTypeName(type: TripType): String = when (type) {
-        TripType.COMMUTE -> "Dojazdy dom – praca"
-        TripType.ERRAND -> "Sprawy i zakupy"
-        TripType.WEEKEND -> "Weekend"
-        TripType.OTHER -> "Inne"
+    fun statsLeftOutTrips(left: Int, total: Int): String = Lang.pick(
+        "Poza zestawieniem: $left z $total tras (poniżej 2 km albo bez prędkości).",
+        "Excluded: $left of $total trips (under 2 km or without speed).",
+    )
+    fun trafficSurcharge(litres: String, money: String?): String {
+        val pl = "Wolna jazda wobec płynnej: $litres l/100 km" + (money?.let { " ($it/100 km)" } ?: "")
+        val en = "Slow traffic vs flowing: $litres l/100 km" + (money?.let { " ($it/100 km)" } ?: "")
+        return Lang.pick(pl, en)
     }
-    const val PLACE_HOME = "Dom"
-    const val PLACE_WORK = "Praca"
+    val TRIP_TYPES_SECTION: String get() = Lang.pick("Typy tras", "Trip types")
+    val TRIP_TYPES_HINT: String get() = Lang.pick(
+        "Dom i praca rozpoznane z postojów; dojazdy to trasy między nimi.",
+        "Home and work recognized from parking stops; commutes are trips between them.",
+    )
+    val TRIP_TYPES_NO_PLACES: String get() = Lang.pick(
+        "Za mało postojów, żeby rozpoznać dom i pracę – dojazdów jeszcze nie ma.",
+        "Not enough parking stops to recognize home and work – commutes are not available yet.",
+    )
+    fun tripTypeName(type: TripType): String = when (type) {
+        TripType.COMMUTE -> Lang.pick("Dojazdy dom – praca", "Commute home – work")
+        TripType.ERRAND -> Lang.pick("Sprawy i zakupy", "Errands and shopping")
+        TripType.WEEKEND -> Lang.pick("Weekend", "Weekend")
+        TripType.OTHER -> Lang.pick("Inne", "Other")
+    }
+    val PLACE_HOME: String get() = Lang.pick("Dom", "Home")
+    val PLACE_WORK: String get() = Lang.pick("Praca", "Work")
 
     // Prognoza tankowania (PRD F14, docs/SPEC.md §20).
 
     fun forecastWhen(days: Long, date: String): String = when (days) {
-        0L -> "Tankowanie dziś"
-        1L -> "Tankowanie jutro ($date)"
-        else -> "Tankowanie za ok. $days dni (ok. $date)"
+        0L -> Lang.pick("Tankowanie dziś", "Refuel today")
+        1L -> Lang.pick("Tankowanie jutro ($date)", "Refuel tomorrow ($date)")
+        else -> Lang.pick("Tankowanie za ok. $days dni (ok. $date)", "Refuel in approx. $days days (approx. $date)")
     }
-    fun forecastBeyond(days: Long): String = "Tankowanie za ponad $days dni"
-    fun forecastLeft(liters: String, level: String): String = "w baku ok. $liters ($level)"
-    fun forecastRange(km: String): String = "ok. $km do rezerwy"
-    const val FORECAST_RESERVE = "Paliwo na rezerwie – zatankuj"
+    fun forecastBeyond(days: Long): String = Lang.pick("Tankowanie za ponad $days dni", "Refuel in over $days days")
+    fun forecastLeft(liters: String, level: String): String = Lang.pick("w baku ok. $liters ($level)", "approx. $liters in tank ($level)")
+    fun forecastRange(km: String): String = Lang.pick("ok. $km do rezerwy", "approx. $km to reserve")
+    val FORECAST_RESERVE: String get() = Lang.pick("Paliwo na rezerwie – zatankuj", "Fuel on reserve – refuel")
 
     // Styl jazdy (PRD F12, F13, docs/SPEC.md §19).
 
-    const val STYLE_TITLE = "Styl jazdy"
-    const val STYLE_EMPTY = "Brak tras do oceny stylu jazdy."
-    const val STYLE_READ_ERROR = "Nie udało się odczytać stylu jazdy. Spróbuj ponownie."
-    const val STYLE_ECO_SECTION = "Wynik eco Toyoty po miesiącach"
-    const val STYLE_ECO_NONE = "Toyota nie przysłała wyników eco."
-    const val STYLE_ROUTES_SECTION = "Ten sam odcinek"
-    fun styleRoutesNone(minTrips: Int): String = "Żaden odcinek nie powtórzył się jeszcze $minTrips razy."
-    const val STYLE_ANOMALIES_SECTION = "Spalanie wyższe niż zwykle"
-    const val STYLE_ANOMALIES_NONE = "Brak przejazdów ze spalaniem wyższym niż zwykle."
-    const val STYLE_ANOMALIES_HINT =
-        "Aplikacja nie zna przyczyny. Częste powody: zimny silnik i mróz, korki, bagaż lub bagażnik dachowy, za niskie ciśnienie w oponach."
+    val STYLE_TITLE: String get() = Lang.pick("Styl jazdy", "Driving style")
+    val STYLE_EMPTY: String get() = Lang.pick("Brak tras do oceny stylu jazdy.", "No trips to assess driving style.")
+    val STYLE_READ_ERROR: String get() = Lang.pick(
+        "Nie udało się odczytać stylu jazdy. Spróbuj ponownie.",
+        "Failed to read driving style. Try again.",
+    )
+    val STYLE_ECO_SECTION: String get() = Lang.pick("Wynik eco Toyoty po miesiącach", "Toyota eco score by month")
+    val STYLE_ECO_NONE: String get() = Lang.pick("Toyota nie przysłała wyników eco.", "Toyota did not send eco scores.")
+    val STYLE_ROUTES_SECTION: String get() = Lang.pick("Ten sam odcinek", "Same route")
+    fun styleRoutesNone(minTrips: Int): String = Lang.pick(
+        "Żaden odcinek nie powtórzył się jeszcze $minTrips razy.",
+        "No route has repeated $minTrips times yet.",
+    )
+    val STYLE_ANOMALIES_SECTION: String get() = Lang.pick("Spalanie wyższe niż zwykle", "Consumption higher than usual")
+    val STYLE_ANOMALIES_NONE: String get() = Lang.pick(
+        "Brak przejazdów ze spalaniem wyższym niż zwykle.",
+        "No trips with consumption higher than usual.",
+    )
+    val STYLE_ANOMALIES_HINT: String get() = Lang.pick(
+        "Aplikacja nie zna przyczyny. Częste powody: zimny silnik i mróz, korki, bagaż lub bagażnik dachowy, za niskie ciśnienie w oponach.",
+        "The app does not know the cause. Common reasons: cold engine and frost, traffic jams, luggage or roof rack, low tire pressure.",
+    )
 
-    fun styleEco(score: String, trips: Int): String = "$score pkt · ocenione trasy: $trips"
-    fun styleRoute(number: Int): String = "Odcinek $number"
-    fun styleRouteLine(km: String, trips: Int, hour: String?): String =
-        "ok. $km · przejazdy: $trips" + (hour?.let { " · zwykle ok. $it" } ?: "")
-    fun styleRouteFacts(eco: String?, usual: String?): String =
+    fun styleEco(score: String, trips: Int): String = Lang.pick(
+        "$score pkt · ocenione trasy: $trips",
+        "$score pts · rated trips: $trips",
+    )
+    fun styleRoute(number: Int): String = Lang.pick("Odcinek $number", "Route $number")
+    fun styleRouteLine(km: String, trips: Int, hour: String?): String {
+        val pl = "ok. $km · przejazdy: $trips" + (hour?.let { " · zwykle ok. $it" } ?: "")
+        val en = "approx. $km · trips: $trips" + (hour?.let { " · usually approx. $it" } ?: "")
+        return Lang.pick(pl, en)
+    }
+    fun styleRouteFacts(eco: String?, usual: String?): String = if (Lang.isEnglish) {
+        listOfNotNull(eco?.let { "eco $it pts" }, usual?.let { "usually $it" }).joinToString(" · ")
+    } else {
         listOfNotNull(eco?.let { "eco $it pkt" }, usual?.let { "zwykle $it" }).joinToString(" · ")
-    fun styleAnomaly(route: Int, actual: String, usual: String, excess: String): String =
-        "Odcinek $route: $actual zamiast zwykle $usual ($excess)"
+    }
+    fun styleAnomaly(route: Int, actual: String, usual: String, excess: String): String = Lang.pick(
+        "Odcinek $route: $actual zamiast zwykle $usual ($excess)",
+        "Route $route: $actual instead of usual $usual ($excess)",
+    )
 
     // Spalanie na ekranie statusu (docs/SPEC.md §24).
 
-    const val CONSUMPTION_TITLE = "Spalanie"
-    fun consumptionHint(axisStart: String): String =
+    val CONSUMPTION_TITLE: String get() = Lang.pick("Spalanie", "Consumption")
+    fun consumptionHint(axisStart: String): String = Lang.pick(
         "Słupki: średnie spalanie miesiąca (l/100 km), miesiące od 50 km; oś zaczyna się od $axisStart l/100 km, nie od zera. " +
-            "Trend to linia przez słupki; zimą spalanie zwykle rośnie."
-    const val CONSUMPTION_COSTS_TITLE = "Koszty miesięczne"
-    const val CONSUMPTION_COSTS_HINT =
-        "Słupki: koszt paliwa miesiąca w zł (tylko trasy z ceną), od zera. Pod słupkami: miesiące od najstarszego."
-    fun consumptionTotalCost(money: String, period: String?): String =
-        "Razem" + (period?.let { " ($it)" } ?: " z całego okresu") + ": $money"
-    fun costsAverageCaption(months: Int): String =
-        "średnio z pełnych miesięcy ($months), bez bieżącego"
-    fun consumptionCaption(km: String): String = "średnio z całego okresu, $km"
-    const val COSTS_FOLD = "Zwiń"
-    fun costsUnfold(count: Int): String = "Pokaż wszystkie miesiące ($count)"
-    fun consumptionOverall(litres: String, km: String): String = "Średnio z całego okresu: $litres l/100 km ($km km)"
-    fun consumptionRising(change: String): String = "Trend: ↗ rosnące ($change %)"
-    fun consumptionFalling(change: String): String = "Trend: ↘ malejące ($change %)"
-    fun consumptionSteady(change: String): String = "Trend: → stabilne ($change %)"
+            "Trend to linia przez słupki; zimą spalanie zwykle rośnie.",
+        "Bars: monthly average consumption (l/100 km), months from 50 km; axis starts at $axisStart l/100 km, not zero. " +
+            "Trend is a line through the bars; consumption usually rises in winter.",
+    )
+    val CONSUMPTION_COSTS_TITLE: String get() = Lang.pick("Koszty miesięczne", "Monthly costs")
+    val CONSUMPTION_COSTS_HINT: String get() = Lang.pick(
+        "Słupki: koszt paliwa miesiąca w zł (tylko trasy z ceną), od zera. Pod słupkami: miesiące od najstarszego.",
+        "Bars: monthly fuel cost in zł (trips with price only), from zero. Below bars: months from oldest.",
+    )
+    fun consumptionTotalCost(money: String, period: String?): String {
+        val pl = "Razem" + (period?.let { " ($it)" } ?: " z całego okresu") + ": $money"
+        val en = "Total" + (period?.let { " ($it)" } ?: " all-time") + ": $money"
+        return Lang.pick(pl, en)
+    }
+    fun costsAverageCaption(months: Int): String = Lang.pick(
+        "średnio z pełnych miesięcy ($months), bez bieżącego",
+        "average of full months ($months), excluding current",
+    )
+    fun consumptionCaption(km: String): String = Lang.pick(
+        "średnio z całego okresu, $km",
+        "all-time average, $km",
+    )
+    val COSTS_FOLD: String get() = Lang.pick("Zwiń", "Collapse")
+    fun costsUnfold(count: Int): String = Lang.pick("Pokaż wszystkie miesiące ($count)", "Show all months ($count)")
+    fun consumptionOverall(litres: String, km: String): String = Lang.pick(
+        "Średnio z całego okresu: $litres l/100 km ($km km)",
+        "All-time average: $litres l/100 km ($km km)",
+    )
+    fun consumptionRising(change: String): String = Lang.pick("Trend: ↗ rosnące ($change %)", "Trend: ↗ rising ($change %)")
+    fun consumptionFalling(change: String): String = Lang.pick("Trend: ↘ malejące ($change %)", "Trend: ↘ falling ($change %)")
+    fun consumptionSteady(change: String): String = Lang.pick("Trend: → stabilne ($change %)", "Trend: → steady ($change %)")
 
     // Jazda na prądzie w tygodniach (docs/SPEC.md §36).
 
-    const val EV_WEEKS_SECTION = "Jazda na prądzie w tygodniach"
-    const val EV_WEEKS_HINT =
-        "Udział km na prądzie w każdym tygodniu (od poniedziałku), 12 ostatnich. Toyota nie podaje poziomu naładowania baterii hybrydowej ani napięcia akumulatora 12 V – to jedyny obraz baterii z danych tras."
-    fun evOnBattery(percent: String): String = "$percent % na prądzie"
-    fun evMinutes(minutes: Long): String = "$minutes min na prądzie"
+    val EV_WEEKS_SECTION: String get() = Lang.pick("Jazda na prądzie w tygodniach", "Weekly EV driving")
+    val EV_WEEKS_HINT: String get() = Lang.pick(
+        "Udział km na prądzie w każdym tygodniu (od poniedziałku), 12 ostatnich. Toyota nie podaje poziomu naładowania baterii hybrydowej ani napięcia akumulatora 12 V – to jedyny obraz baterii z danych tras.",
+        "Share of km on battery in each week (from Monday), last 12 weeks. Toyota does not provide hybrid battery charge level or 12 V battery voltage – this is the only picture of the battery from trip data.",
+    )
+    fun evOnBattery(percent: String): String = Lang.pick("$percent % na prądzie", "$percent % on battery")
+    fun evMinutes(minutes: Long): String = Lang.pick("$minutes min na prądzie", "$minutes min on battery")
 
     // Android Auto (docs/SPEC.md §35).
 
-    const val CAR_TITLE = "Toyota Companion"
-    const val CAR_CONSUMPTION = "Średnie spalanie"
-    const val CAR_TREND = "Trend i cena"
-    const val CAR_FORECAST = "Tankowanie"
-    const val CAR_EMPTY_TITLE = "Brak danych"
-    const val CAR_EMPTY_TEXT = "Otwórz aplikację na telefonie i zsynchronizuj."
+    val CAR_TITLE: String get() = Lang.pick("Toyota Companion", "Toyota Companion")
+    val CAR_CONSUMPTION: String get() = Lang.pick("Średnie spalanie", "Average consumption")
+    val CAR_TREND: String get() = Lang.pick("Trend i cena", "Trend and price")
+    val CAR_FORECAST: String get() = Lang.pick("Tankowanie", "Refuel")
+    val CAR_EMPTY_TITLE: String get() = Lang.pick("Brak danych", "No data")
+    val CAR_EMPTY_TEXT: String get() = Lang.pick(
+        "Otwórz aplikację na telefonie i zsynchronizuj.",
+        "Open the app on your phone and sync.",
+    )
 
     // Mapa ciepła ulubionych tras (docs/SPEC.md §34).
 
-    const val HEAT_BUTTON = "Pokaż przebiegi na mapie"
-    const val HEAT_TITLE = "Mapa ciepła trasy"
+    val HEAT_BUTTON: String get() = Lang.pick("Pokaż przebiegi na mapie", "Show routes on map")
+    val HEAT_TITLE: String get() = Lang.pick("Mapa ciepła trasy", "Route heat map")
     fun heatTooltip(litres: String): String = "$litres l/100 km"
     fun heatNote(heat: HeatState): String = when (heat) {
         HeatState.None -> ""
-        HeatState.Loading -> "Wczytuję zapisane przebiegi…"
-        HeatState.Failed -> "Nie udało się odczytać przebiegów. Spróbuj ponownie."
-        is HeatState.Empty -> "Żaden z ${heat.total} przejazdów tej trasy nie ma zapisanego przebiegu. Zapisz je przyciskiem na ekranie „Trasy”."
-        is HeatState.Ready ->
-            "Zielony – najmniejsze spalanie na tej trasie (${TripsFormatting.plain(heat.minLPer100, 1)} l/100 km), czerwony – największe " +
-                "(${TripsFormatting.plain(heat.maxLPer100, 1)}). Przejazdy z przebiegiem: ${heat.lines.size} z ${heat.total}."
+        HeatState.Loading -> Lang.pick("Wczytuję zapisane przebiegi…", "Loading saved routes…")
+        HeatState.Failed -> Lang.pick(
+            "Nie udało się odczytać przebiegów. Spróbuj ponownie.",
+            "Failed to read routes. Try again.",
+        )
+        is HeatState.Empty -> Lang.pick(
+            "Żaden z ${heat.total} przejazdów tej trasy nie ma zapisanego przebiegu. Zapisz je przyciskiem na ekranie „Trasy”.",
+            "None of the ${heat.total} trips of this route has a saved route. Save them using the button on the \"Trips\" screen.",
+        )
+        is HeatState.Ready -> {
+            val min = TripsFormatting.plain(heat.minLPer100, 1)
+            val max = TripsFormatting.plain(heat.maxLPer100, 1)
+            val linesCount = heat.lines.size
+            val total = heat.total
+            Lang.pick(
+                "Zielony – najmniejsze spalanie na tej trasie ($min l/100 km), czerwony – największe " +
+                    "($max). Przejazdy z przebiegiem: $linesCount z $total.",
+                "Green – lowest consumption on this route ($min l/100 km), red – highest " +
+                    "($max). Trips with route: $linesCount of $total.",
+            )
+        }
     }
 
     // Zapis przebiegów (docs/SPEC.md §33).
 
-    const val BACKFILL_BUTTON = "Zapisz przebiegi starszych tras"
-    const val BACKFILL_STOP = "Zatrzymaj"
-    const val BACKFILL_HINT =
-        "Toyota usuwa trasy po ok. 12 miesiącach. Przebieg zapisany na telefonie zostaje. Jedno dotknięcie pobiera do 100 przebiegów, od najstarszych."
-    fun backfillCounts(stored: Int, total: Int): String = "Przebiegi zapisane na telefonie: $stored z $total tras"
-    fun backfillRunning(fetched: Int): String = "Pobieram przebiegi z Toyoty… zapisano $fetched"
+    val BACKFILL_BUTTON: String get() = Lang.pick("Zapisz przebiegi starszych tras", "Save routes of older trips")
+    val BACKFILL_STOP: String get() = Lang.pick("Zatrzymaj", "Stop")
+    val BACKFILL_HINT: String get() = Lang.pick(
+        "Toyota usuwa trasy po ok. 12 miesiącach. Przebieg zapisany na telefonie zostaje. Jedno dotknięcie pobiera do 100 przebiegów, od najstarszych.",
+        "Toyota deletes trips after approx. 12 months. Routes saved on phone remain. One tap fetches up to 100 routes, from oldest.",
+    )
+    fun backfillCounts(stored: Int, total: Int): String = Lang.pick(
+        "Przebiegi zapisane na telefonie: $stored z $total tras",
+        "Routes saved on phone: $stored of $total trips",
+    )
+    fun backfillRunning(fetched: Int): String = Lang.pick(
+        "Pobieram przebiegi z Toyoty… zapisano $fetched",
+        "Fetching routes from Toyota… saved $fetched",
+    )
     fun backfillResult(result: BackfillResult, fetched: Int): String = when (result) {
-        BackfillResult.DONE -> "Zapisano przebiegi ($fetched). Wszystkie trasy mają już przebieg."
-        BackfillResult.PARTIAL -> "Zapisano $fetched przebiegów. Dotknij ponownie, żeby pobrać resztę."
-        BackfillResult.NOTHING -> "Wszystkie trasy mają już zapisany przebieg."
-        BackfillResult.NETWORK -> "Brak połączenia z Toyotą. Zapisano $fetched. Spróbuj później."
-        BackfillResult.LOGIN -> "Toyota prosi o ponowne logowanie. Zapisano $fetched."
-        BackfillResult.API -> "Toyota nie odpowiedziała poprawnie. Zapisano $fetched. Spróbuj później."
-        BackfillResult.STOPPED -> "Zatrzymano. Zapisano $fetched."
+        BackfillResult.DONE -> Lang.pick(
+            "Zapisano przebiegi ($fetched). Wszystkie trasy mają już przebieg.",
+            "Saved routes ($fetched). All trips now have a route.",
+        )
+        BackfillResult.PARTIAL -> Lang.pick(
+            "Zapisano $fetched przebiegów. Dotknij ponownie, żeby pobrać resztę.",
+            "Saved $fetched routes. Tap again to fetch the rest.",
+        )
+        BackfillResult.NOTHING -> Lang.pick(
+            "Wszystkie trasy mają już zapisany przebieg.",
+            "All trips already have a saved route.",
+        )
+        BackfillResult.NETWORK -> Lang.pick(
+            "Brak połączenia z Toyotą. Zapisano $fetched. Spróbuj później.",
+            "No connection to Toyota. Saved $fetched. Try again later.",
+        )
+        BackfillResult.LOGIN -> Lang.pick(
+            "Toyota prosi o ponowne logowanie. Zapisano $fetched.",
+            "Toyota asks to log in again. Saved $fetched.",
+        )
+        BackfillResult.API -> Lang.pick(
+            "Toyota nie odpowiedziała poprawnie. Zapisano $fetched. Spróbuj później.",
+            "Toyota did not respond properly. Saved $fetched. Try again later.",
+        )
+        BackfillResult.STOPPED -> Lang.pick("Zatrzymano. Zapisano $fetched.", "Stopped. Saved $fetched.")
     }
 
     // Widżet (docs/SPEC.md §32).
 
-    const val WIDGET_TITLE = "Toyota Companion"
-    const val WIDGET_EMPTY = "Otwórz aplikację"
+    val WIDGET_TITLE: String get() = Lang.pick("Toyota Companion", "Toyota Companion")
+    val WIDGET_EMPTY: String get() = Lang.pick("Otwórz aplikację", "Open app")
     fun widgetMain(litres: String): String = "$litres l/100 km"
-    fun widgetPrice(price: String): String = "cena $price zł/l"
+    fun widgetPrice(price: String): String = Lang.pick("cena $price zł/l", "price $price zł/l")
 
     // Alert o rosnącym spalaniu (docs/SPEC.md §31).
 
-    const val ALERT_CHANNEL = "Spalanie"
-    const val ALERT_TITLE = "Spalanie rośnie trzeci miesiąc z rzędu"
-    fun alertRising(values: String, change: String): String =
-        "l/100 km: $values ($change %). Poza zimą warto sprawdzić np. ciśnienie w oponach. To tylko podpowiedź, aplikacja nie diagnozuje."
+    val ALERT_CHANNEL: String get() = Lang.pick("Spalanie", "Consumption")
+    val ALERT_TITLE: String get() = Lang.pick(
+        "Spalanie rośnie trzeci miesiąc z rzędu",
+        "Consumption is rising for the third consecutive month",
+    )
+    fun alertRising(values: String, change: String): String = Lang.pick(
+        "l/100 km: $values ($change %). Poza zimą warto sprawdzić np. ciśnienie w oponach. To tylko podpowiedź, aplikacja nie diagnozuje.",
+        "l/100 km: $values ($change %). Outside winter, it is worth checking tire pressure. This is only a hint, the app does not diagnose.",
+    )
 
     // Spalanie deklarowane (docs/SPEC.md §30).
 
-    const val DECLARED_SET = "Ustaw spalanie deklarowane"
-    const val DECLARED_EDIT = "Zmień deklarowane"
-    const val DECLARED_TITLE = "Spalanie deklarowane"
-    const val DECLARED_FIELD = "l/100 km (puste usuwa)"
-    const val DECLARED_BODY = "Wpisz spalanie mieszane z danych producenta albo z dowodu rejestracyjnego Twojego modelu. Aplikacja go nie zna."
-    const val DECLARED_INVALID = "Wpisz liczbę większą od 0 i nie większą niż 20, np. 4,5."
-    const val DECLARED_SAVE = "Zapisz"
-    const val DECLARED_CANCEL = "Anuluj"
-    const val DECLARED_LESS = "taniej"
-    const val DECLARED_MORE = "drożej"
-    const val DECLARED_SAME = "tak samo"
-    fun declaredVersus(declared: String, change: String, word: String): String =
-        "Deklarowane: $declared l/100 km · Twoje średnie: $change ($word niż deklarowane)"
+    val DECLARED_SET: String get() = Lang.pick("Ustaw spalanie deklarowane", "Set declared consumption")
+    val DECLARED_EDIT: String get() = Lang.pick("Zmień deklarowane", "Edit declared")
+    val DECLARED_TITLE: String get() = Lang.pick("Spalanie deklarowane", "Declared consumption")
+    val DECLARED_FIELD: String get() = Lang.pick("l/100 km (puste usuwa)", "l/100 km (empty removes)")
+    val DECLARED_BODY: String get() = Lang.pick(
+        "Wpisz spalanie mieszane z danych producenta albo z dowodu rejestracyjnego Twojego modelu. Aplikacja go nie zna.",
+        "Enter combined consumption from manufacturer data or your vehicle registration certificate. The app does not know it.",
+    )
+    val DECLARED_INVALID: String get() = Lang.pick(
+        "Wpisz liczbę większą od 0 i nie większą niż 20, np. 4,5.",
+        "Enter a number greater than 0 and no more than 20, e.g. 4.5.",
+    )
+    val DECLARED_SAVE: String get() = Lang.pick("Zapisz", "Save")
+    val DECLARED_CANCEL: String get() = Lang.pick("Anuluj", "Cancel")
+    val DECLARED_LESS: String get() = Lang.pick("taniej", "lower")
+    val DECLARED_MORE: String get() = Lang.pick("drożej", "higher")
+    val DECLARED_SAME: String get() = Lang.pick("tak samo", "the same")
+    fun declaredVersus(declared: String, change: String, word: String): String = Lang.pick(
+        "Deklarowane: $declared l/100 km · Twoje średnie: $change ($word niż deklarowane)",
+        "Declared: $declared l/100 km · Your average: $change ($word than declared)",
+    )
 
     // Podsumowanie roku (docs/SPEC.md §29).
 
-    const val YEAR_TITLE = "Podsumowanie roku"
-    const val YEAR_EMPTY = "Brak tras do podsumowania."
-    const val YEAR_READ_ERROR = "Nie udało się odczytać tras. Spróbuj ponownie."
-    const val YEAR_SHARE = "Udostępnij podsumowanie"
-    const val YEAR_NOTE = "Udostępniany jest tylko tekst z tej strony: bez położenia, VIN i danych konta."
-    val yearNoCost = "Koszt: brak ceny"
-    fun yearHeading(year: Int): String = "Rok $year"
-    fun yearShareTitle(year: Int): String = "Toyota Companion – podsumowanie roku $year"
-    fun yearTotals(trips: Int, km: String, litres: String): String = "Trasy: $trips · $km km · $litres l paliwa"
-    fun yearAverage(litres: String): String = "Średnie spalanie: $litres l/100 km"
-    fun yearCost(total: String, per100: String?): String = "Koszt paliwa: $total" + (per100?.let { " ($it/100 km)" } ?: "")
-    fun yearEv(percent: String): String = "Jazda na prądzie: $percent % km"
-    fun yearDays(days: Int): String = "Dni z jazdą: $days"
-    fun yearLongest(km: String, start: String): String = "Najdłuższa trasa: $km km ($start)"
-    fun yearBest(month: String, litres: String): String = "Najlepsze spalanie: $month, $litres l/100 km"
-    fun yearWorst(month: String, litres: String): String = "Najwyższe spalanie: $month, $litres l/100 km"
-    fun yearDearest(month: String, money: String): String = "Najdroższy miesiąc: $month, $money"
-    fun yearVersus(year: Int, km: String?, cost: String?, litres: String?): String =
+    val YEAR_TITLE: String get() = Lang.pick("Podsumowanie roku", "Year summary")
+    val YEAR_EMPTY: String get() = Lang.pick("Brak tras do podsumowania.", "No trips to summarize.")
+    val YEAR_READ_ERROR: String get() = Lang.pick(
+        "Nie udało się odczytać tras. Spróbuj ponownie.",
+        "Failed to read trips. Try again.",
+    )
+    val YEAR_SHARE: String get() = Lang.pick("Udostępnij podsumowanie", "Share summary")
+    val YEAR_NOTE: String get() = Lang.pick(
+        "Udostępniany jest tylko tekst z tej strony: bez położenia, VIN i danych konta.",
+        "Only text from this page is shared: without location, VIN or account data.",
+    )
+    val yearNoCost: String get() = Lang.pick("Koszt: brak ceny", "Cost: no price")
+    fun yearHeading(year: Int): String = Lang.pick("Rok $year", "Year $year")
+    fun yearShareTitle(year: Int): String = Lang.pick(
+        "Toyota Companion – podsumowanie roku $year",
+        "Toyota Companion – year $year summary",
+    )
+    fun yearTotals(trips: Int, km: String, litres: String): String = Lang.pick(
+        "Trasy: $trips · $km km · $litres l paliwa",
+        "Trips: $trips · $km km · $litres l fuel",
+    )
+    fun yearAverage(litres: String): String = Lang.pick(
+        "Średnie spalanie: $litres l/100 km",
+        "Average consumption: $litres l/100 km",
+    )
+    fun yearCost(total: String, per100: String?): String {
+        val pl = "Koszt paliwa: $total" + (per100?.let { " ($it/100 km)" } ?: "")
+        val en = "Fuel cost: $total" + (per100?.let { " ($it/100 km)" } ?: "")
+        return Lang.pick(pl, en)
+    }
+    fun yearEv(percent: String): String = Lang.pick("Jazda na prądzie: $percent % km", "EV driving: $percent % km")
+    fun yearDays(days: Int): String = Lang.pick("Dni z jazdą: $days", "Days driven: $days")
+    fun yearLongest(km: String, start: String): String = Lang.pick(
+        "Najdłuższa trasa: $km km ($start)",
+        "Longest trip: $km km ($start)",
+    )
+    fun yearBest(month: String, litres: String): String = Lang.pick(
+        "Najlepsze spalanie: $month, $litres l/100 km",
+        "Best consumption: $month, $litres l/100 km",
+    )
+    fun yearWorst(month: String, litres: String): String = Lang.pick(
+        "Najwyższe spalanie: $month, $litres l/100 km",
+        "Highest consumption: $month, $litres l/100 km",
+    )
+    fun yearDearest(month: String, money: String): String = Lang.pick(
+        "Najdroższy miesiąc: $month, $money",
+        "Most expensive month: $month, $money",
+    )
+    fun yearVersus(year: Int, km: String?, cost: String?, litres: String?): String = if (Lang.isEnglish) {
+        "Vs $year: " + listOfNotNull(km?.let { "km $it" }, cost?.let { "cost $it" }, litres?.let { "consumption $it l/100 km" })
+            .ifEmpty { listOf("no comparison") }.joinToString(SEPARATOR)
+    } else {
         "Wobec $year: " + listOfNotNull(km?.let { "km $it" }, cost?.let { "koszt $it" }, litres?.let { "spalanie $it l/100 km" })
             .ifEmpty { listOf("brak porównania") }.joinToString(SEPARATOR)
+    }
 
     // Prędkość × temperatura (docs/SPEC.md §28).
 
-    const val MATRIX_TITLE = "Prędkość i temperatura"
-    const val MATRIX_HINT =
+    val MATRIX_TITLE: String get() = Lang.pick("Prędkość i temperatura", "Speed and temperature")
+    val MATRIX_HINT: String get() = Lang.pick(
         "Czy wolna jazda kosztuje więcej zimą? Trasy od 2 km wg tempa (z „Statystyk”) i temperatury dnia: l/100 km i w nawiasie liczba tras. " +
-            "Poniżej 5 tras w komórce nie ma wniosku."
-    const val MATRIX_EMPTY = "Brak tras z pogodą i prędkością. Pobierz pogodę."
+            "Poniżej 5 tras w komórce nie ma wniosku.",
+        "Does slow driving cost more in winter? Trips from 2 km by pace (from \"Statistics\") and daily temperature: l/100 km and trip count in parentheses. " +
+            "Fewer than 5 trips in a cell yields no conclusion.",
+    )
+    val MATRIX_EMPTY: String get() = Lang.pick(
+        "Brak tras z pogodą i prędkością. Pobierz pogodę.",
+        "No trips with weather and speed. Fetch weather.",
+    )
     fun matrixCell(litres: String, trips: Int): String = "$litres l ($trips)"
-    fun matrixTooFew(trips: Int): String = "$trips tras – za mało"
+    fun matrixTooFew(trips: Int): String = Lang.pick("$trips tras – za mało", "$trips trips – too few")
     fun matrixBucketShort(bucket: pl.lk.toyotacompanion.core.domain.TemperatureBucket): String = when (bucket) {
-        pl.lk.toyotacompanion.core.domain.TemperatureBucket.FROST -> "mróz"
-        pl.lk.toyotacompanion.core.domain.TemperatureBucket.COLD -> "chłodno"
-        pl.lk.toyotacompanion.core.domain.TemperatureBucket.MILD -> "łagodnie"
-        pl.lk.toyotacompanion.core.domain.TemperatureBucket.WARM -> "ciepło"
+        pl.lk.toyotacompanion.core.domain.TemperatureBucket.FROST -> Lang.pick("mróz", "frost")
+        pl.lk.toyotacompanion.core.domain.TemperatureBucket.COLD -> Lang.pick("chłodno", "cold")
+        pl.lk.toyotacompanion.core.domain.TemperatureBucket.MILD -> Lang.pick("łagodnie", "mild")
+        pl.lk.toyotacompanion.core.domain.TemperatureBucket.WARM -> Lang.pick("ciepło", "warm")
     }
-    fun matrixFrost(signed: String): String = "Zimą przy tej prędkości: $signed l/100 km (mróz wobec łagodnie)"
+    fun matrixFrost(signed: String): String = Lang.pick(
+        "Zimą przy tej prędkości: $signed l/100 km (mróz wobec łagodnie)",
+        "In winter at this speed: $signed l/100 km (frost vs mild)",
+    )
 
-    const val FORECAST_CARD_TITLE = "Prognoza"
+    val FORECAST_CARD_TITLE: String get() = Lang.pick("Prognoza", "Forecast")
 
     // Cena ze stacji (docs/SPEC.md §25).
 
-    const val PRICE_SOURCE = "Źródło ceny"
-    const val PRICE_MANUAL = "Ręcznie"
-    const val PRICE_FETCHING = "Sprawdzam cenę na trojmiasto.pl…"
-    const val PRICE_AGE_TODAY = "wpisana dziś"
-    const val PRICE_AGE_YESTERDAY = "wpisana wczoraj"
-    const val PRICE_AGE_OLDER = "wpisana dawniej niż wczoraj"
-    fun priceFound(station: String, price: String, age: String, stale: Boolean): String =
-        "$station: $price zł/l, $age (ceny wpisują użytkownicy portalu i stacje)." +
+    val PRICE_SOURCE: String get() = Lang.pick("Źródło ceny", "Price source")
+    val PRICE_MANUAL: String get() = Lang.pick("Ręcznie", "Manual")
+    val PRICE_FETCHING: String get() = Lang.pick("Sprawdzam cenę na trojmiasto.pl…", "Checking price on trojmiasto.pl…")
+    val PRICE_AGE_TODAY: String get() = Lang.pick("wpisana dziś", "entered today")
+    val PRICE_AGE_YESTERDAY: String get() = Lang.pick("wpisana wczoraj", "entered yesterday")
+    val PRICE_AGE_OLDER: String get() = Lang.pick("wpisana dawniej niż wczoraj", "entered earlier than yesterday")
+    fun priceFound(station: String, price: String, age: String, stale: Boolean): String {
+        val pl = "$station: $price zł/l, $age (ceny wpisują użytkownicy portalu i stacje)." +
             (if (stale) " Cena może być nieaktualna – sprawdź." else "")
-    fun priceStationMissing(station: String): String = "$station: nie ma jej teraz na liście cen. Wpisz cenę ręcznie."
-    fun priceNone(station: String): String = "$station: nikt nie wpisał ceny 95. Wpisz cenę ręcznie."
+        val en = "$station: $price zł/l, $age (prices are entered by portal users and stations)." +
+            (if (stale) " Price may be outdated – check." else "")
+        return Lang.pick(pl, en)
+    }
+    fun priceStationMissing(station: String): String = Lang.pick(
+        "$station: nie ma jej teraz na liście cen. Wpisz cenę ręcznie.",
+        "$station: not currently on the price list. Enter price manually.",
+    )
+    fun priceNone(station: String): String = Lang.pick(
+        "$station: nikt nie wpisał ceny 95. Wpisz cenę ręcznie.",
+        "$station: no one entered a price for 95. Enter price manually.",
+    )
     fun priceFetchError(error: PriceFetchResult): String = when (error) {
-        PriceFetchResult.NETWORK -> "Brak połączenia z trojmiasto.pl. Wpisz cenę ręcznie."
-        PriceFetchResult.API -> "trojmiasto.pl nie odpowiada poprawnie. Wpisz cenę ręcznie."
-        PriceFetchResult.DATA -> "Nie udało się odczytać cen z trojmiasto.pl (strona mogła się zmienić). Wpisz cenę ręcznie."
+        PriceFetchResult.NETWORK -> Lang.pick(
+            "Brak połączenia z trojmiasto.pl. Wpisz cenę ręcznie.",
+            "No connection to trojmiasto.pl. Enter price manually.",
+        )
+        PriceFetchResult.API -> Lang.pick(
+            "trojmiasto.pl nie odpowiada poprawnie. Wpisz cenę ręcznie.",
+            "trojmiasto.pl did not respond properly. Enter price manually.",
+        )
+        PriceFetchResult.DATA -> Lang.pick(
+            "Nie udało się odczytać cen z trojmiasto.pl (strona mogła się zmienić). Wpisz cenę ręcznie.",
+            "Failed to read prices from trojmiasto.pl (page may have changed). Enter price manually.",
+        )
     }
 
     // Mapa w aplikacji (docs/SPEC.md §26).
 
-    const val MAP_TITLE_TRIP = "Mapa trasy"
-    const val MAP_TITLE_PLACE = "Mapa miejsca"
-    const val MAP_START = "Start"
-    const val MAP_END = "Koniec"
-    const val MAP_PLACE = "Miejsce"
-    const val MAP_NOTE =
-        "Mapa OpenStreetMap. Serwer map widzi okolicę, którą oglądasz (kafelki), nie dokładne punkty."
+    val MAP_TITLE_TRIP: String get() = Lang.pick("Mapa trasy", "Trip map")
+    val MAP_TITLE_PLACE: String get() = Lang.pick("Mapa miejsca", "Place map")
+    val MAP_START: String get() = Lang.pick("Start", "Start")
+    val MAP_END: String get() = Lang.pick("Koniec", "End")
+    val MAP_PLACE: String get() = Lang.pick("Miejsce", "Place")
+    val MAP_NOTE: String get() = Lang.pick(
+        "Mapa OpenStreetMap. Serwer map widzi okolicę, którą oglądasz (kafelki), nie dokładne punkty.",
+        "OpenStreetMap map. The map server sees the area you view (tiles), not exact points.",
+    )
     fun mapRouteNote(route: RouteState): String = when (route) {
-        RouteState.None -> "Miejsce zaokrąglone do ok. 100 m."
-        RouteState.Loading -> "Pobieram przebieg trasy z Toyoty…"
-        is RouteState.Ready -> "Przebieg trasy z GPS Toyoty: zielony – jazda na prądzie, niebieski – silnik spalinowy."
-        RouteState.Missing -> "Toyota nie ma przebiegu tej trasy (przechowuje ok. 12 miesięcy). Pokazuję początek i koniec, prosta linia."
+        RouteState.None -> Lang.pick("Miejsce zaokrąglone do ok. 100 m.", "Location rounded to approx. 100 m.")
+        RouteState.Loading -> Lang.pick("Pobieram przebieg trasy z Toyoty…", "Fetching route from Toyota…")
+        is RouteState.Ready -> Lang.pick(
+            "Przebieg trasy z GPS Toyoty: zielony – jazda na prądzie, niebieski – silnik spalinowy.",
+            "Route from Toyota GPS: green – EV driving, blue – combustion engine.",
+        )
+        RouteState.Missing -> Lang.pick(
+            "Toyota nie ma przebiegu tej trasy (przechowuje ok. 12 miesięcy). Pokazuję początek i koniec, prosta linia.",
+            "Toyota has no route for this trip (stored for approx. 12 months). Showing start and end, straight line.",
+        )
         is RouteState.Failed -> when (route.reason) {
-            RouteFailure.NETWORK -> "Brak połączenia z Toyotą – pokazuję początek i koniec (prosta linia). Otwórz mapę ponownie później."
-            RouteFailure.LOGIN -> "Toyota prosi o ponowne logowanie – pokazuję początek i koniec (prosta linia)."
-            RouteFailure.API -> "Toyota nie podała przebiegu tej trasy – pokazuję początek i koniec (prosta linia)."
+            RouteFailure.NETWORK -> Lang.pick(
+                "Brak połączenia z Toyotą – pokazuję początek i koniec (prosta linia). Otwórz mapę ponownie później.",
+                "No connection to Toyota – showing start and end (straight line). Open map again later.",
+            )
+            RouteFailure.LOGIN -> Lang.pick(
+                "Toyota prosi o ponowne logowanie – pokazuję początek i koniec (prosta linia).",
+                "Toyota asks to log in again – showing start and end (straight line).",
+            )
+            RouteFailure.API -> Lang.pick(
+                "Toyota nie podała przebiegu tej trasy – pokazuję początek i koniec (prosta linia).",
+                "Toyota did not provide route for this trip – showing start and end (straight line).",
+            )
         }
     }
-    const val MAP_OPEN_EXTERNAL = "Otwórz w innej aplikacji z mapą"
+    val MAP_OPEN_EXTERNAL: String get() = Lang.pick("Otwórz w innej aplikacji z mapą", "Open in another map app")
 
     // Pogoda i spalanie (PRD F15, docs/SPEC.md §23).
 
-    const val WEATHER_TITLE = "Pogoda i spalanie"
-    const val WEATHER_READ_ERROR = "Nie udało się odczytać pogody. Spróbuj ponownie."
-    const val WEATHER_HINT =
+    val WEATHER_TITLE: String get() = Lang.pick("Pogoda i spalanie", "Weather and consumption")
+    val WEATHER_READ_ERROR: String get() = Lang.pick(
+        "Nie udało się odczytać pogody. Spróbuj ponownie.",
+        "Failed to read weather. Try again.",
+    )
+    val WEATHER_HINT: String get() = Lang.pick(
         "Trasy podzielone wg pogody dnia i miejsca startu (dane z archiwum reanaliz Open-Meteo, to model, nie termometr). " +
-            "Pobranie wysyła do usługi tylko punkt startu zaokrąglony do ok. 1 km i daty – nigdy VIN ani dokładne położenie. Gdy automatyczne pobieranie jest włączone, dzieje się to po każdej synchronizacji i przy otwarciu tego ekranu."
-    const val WEATHER_FETCH = "Pobierz pogodę"
-    const val WEATHER_AUTO = "Pobieraj pogodę automatycznie (po synchronizacji i przy otwarciu ekranu)"
-    const val WEATHER_FETCHING = "Pobieranie…"
-    const val WEATHER_BY_TEMPERATURE = "Wg temperatury"
-    const val WEATHER_BY_RAIN = "Wg opadów"
-    const val WEATHER_NO_DATA = "Brak tras z pogodą. Pobierz pogodę."
-    const val WEATHER_TOO_FEW = "za mało tras na wniosek"
-    const val WEATHER_CAVEAT =
+            "Pobranie wysyła do usługi tylko punkt startu zaokrąglony do ok. 1 km i daty – nigdy VIN ani dokładne położenie. Gdy automatyczne pobieranie jest włączone, dzieje się to po każdej synchronizacji i przy otwarciu tego ekranu.",
+        "Trips grouped by daily weather and start place (data from Open-Meteo reanalysis archive, this is a model, not a thermometer). " +
+            "Fetching sends to the service only the start point rounded to approx. 1 km and dates – never VIN or exact location. When auto-fetch is enabled, this happens after every sync and upon opening this screen.",
+    )
+    val WEATHER_FETCH: String get() = Lang.pick("Pobierz pogodę", "Fetch weather")
+    val WEATHER_AUTO: String get() = Lang.pick(
+        "Pobieraj pogodę automatycznie (po synchronizacji i przy otwarciu ekranu)",
+        "Fetch weather automatically (after sync and when opening screen)",
+    )
+    val WEATHER_FETCHING: String get() = Lang.pick("Pobieranie…", "Fetching…")
+    val WEATHER_BY_TEMPERATURE: String get() = Lang.pick("Wg temperatury", "By temperature")
+    val WEATHER_BY_RAIN: String get() = Lang.pick("Wg opadów", "By precipitation")
+    val WEATHER_NO_DATA: String get() = Lang.pick("Brak tras z pogodą. Pobierz pogodę.", "No trips with weather. Fetch weather.")
+    val WEATHER_TOO_FEW: String get() = Lang.pick("za mało tras na wniosek", "too few trips for conclusion")
+    val WEATHER_CAVEAT: String get() = Lang.pick(
         "To korelacja na Twoich trasach, nie pomiar przyczyny: zimą trasy są inne, a mróz skraca też jazdę na prądzie " +
-            "(patrz udział jazdy elektrycznej)."
-    const val WEATHER_ATTRIBUTION = "Weather data by Open-Meteo.com (CC BY 4.0), https://open-meteo.com/"
+            "(patrz udział jazdy elektrycznej).",
+        "This is a correlation across your trips, not a cause measurement: in winter trips are different, and frost also shortens EV driving " +
+            "(see EV share).",
+    )
+    val WEATHER_ATTRIBUTION: String get() = Lang.pick(
+        "Weather data by Open-Meteo.com (CC BY 4.0), https://open-meteo.com/",
+        "Weather data by Open-Meteo.com (CC BY 4.0), https://open-meteo.com/",
+    )
     fun weatherBucketName(bucket: String): String = when (bucket) {
-        "frost" -> "Mróz (poniżej 0 °C)"
-        "cold" -> "Chłodno (0–10 °C)"
-        "mild" -> "Łagodnie (10–20 °C)"
-        "warm" -> "Ciepło (od 20 °C)"
-        "dry" -> "Sucho (poniżej 0,5 mm)"
-        "wet" -> "Mokro (od 0,5 mm)"
+        "frost" -> Lang.pick("Mróz (poniżej 0 °C)", "Frost (below 0 °C)")
+        "cold" -> Lang.pick("Chłodno (0–10 °C)", "Cold (0–10 °C)")
+        "mild" -> Lang.pick("Łagodnie (10–20 °C)", "Mild (10–20 °C)")
+        "warm" -> Lang.pick("Ciepło (od 20 °C)", "Warm (from 20 °C)")
+        "dry" -> Lang.pick("Sucho (poniżej 0,5 mm)", "Dry (below 0.5 mm)")
+        "wet" -> Lang.pick("Mokro (od 0,5 mm)", "Wet (from 0.5 mm)")
         else -> bucket
     }
-    fun weatherDelta(signed: String): String = "$signed l/100 km wobec odniesienia"
-    fun weatherEv(share: String): String = "na prądzie $share"
-    fun weatherWind(kmh: String): String = "wiatr do $kmh km/h"
-    fun weatherWithout(count: Int, total: Int): String = "Bez pogody w tym podziale: $count z $total tras (brak położenia lub danych dla dnia)."
+    fun weatherDelta(signed: String): String = Lang.pick("$signed l/100 km wobec odniesienia", "$signed l/100 km vs baseline")
+    fun weatherEv(share: String): String = Lang.pick("na prądzie $share", "on battery $share")
+    fun weatherWind(kmh: String): String = Lang.pick("wiatr do $kmh km/h", "wind up to $kmh km/h")
+    fun weatherWithout(count: Int, total: Int): String = Lang.pick(
+        "Bez pogody w tym podziale: $count z $total tras (brak położenia lub danych dla dnia).",
+        "Without weather in this split: $count of $total trips (missing location or daily data).",
+    )
     fun weatherPending(requests: Int, left: Int, cachedDays: Int): String = when {
-        requests == 0 -> "Nic do pobrania. Dni w pamięci: $cachedDays."
-        left > 0 -> "Do pobrania: zapytania $requests (jedno dotknięcie robi ${requests - left}). Dni w pamięci: $cachedDays."
-        else -> "Do pobrania: zapytania $requests. Dni w pamięci: $cachedDays."
+        requests == 0 -> Lang.pick(
+            "Nic do pobrania. Dni w pamięci: $cachedDays.",
+            "Nothing to fetch. Days cached: $cachedDays.",
+        )
+        left > 0 -> Lang.pick(
+            "Do pobrania: zapytania $requests (jedno dotknięcie robi ${requests - left}). Dni w pamięci: $cachedDays.",
+            "To fetch: $requests requests (one tap does ${requests - left}). Days cached: $cachedDays.",
+        )
+        else -> Lang.pick(
+            "Do pobrania: zapytania $requests. Dni w pamięci: $cachedDays.",
+            "To fetch: $requests requests. Days cached: $cachedDays.",
+        )
     }
     fun weatherFetchResult(result: WeatherFetchResult): String = when (result) {
-        WeatherFetchResult.DONE -> "Pobrano pogodę."
-        WeatherFetchResult.PARTIAL -> "Pobrano część. Dotknij ponownie, żeby pobrać resztę."
-        WeatherFetchResult.NOTHING_TO_FETCH -> "Nie ma czego pobierać."
-        WeatherFetchResult.NETWORK -> "Brak połączenia z usługą pogody. Spróbuj później."
-        WeatherFetchResult.RATE_LIMIT -> "Usługa pogody prosi o chwilę przerwy. Spróbuj za minutę."
-        WeatherFetchResult.API -> "Usługa pogody odrzuciła zapytanie. Spróbuj później."
-        WeatherFetchResult.DATA -> "Usługa pogody zwróciła nieczytelną odpowiedź."
-        WeatherFetchResult.STORAGE -> "Nie udało się zapisać pogody w telefonie."
+        WeatherFetchResult.DONE -> Lang.pick("Pobrano pogodę.", "Weather fetched.")
+        WeatherFetchResult.PARTIAL -> Lang.pick(
+            "Pobrano część. Dotknij ponownie, żeby pobrać resztę.",
+            "Partially fetched. Tap again to fetch the rest.",
+        )
+        WeatherFetchResult.NOTHING_TO_FETCH -> Lang.pick("Nie ma czego pobierać.", "Nothing to fetch.")
+        WeatherFetchResult.NETWORK -> Lang.pick(
+            "Brak połączenia z usługą pogody. Spróbuj później.",
+            "No connection to weather service. Try again later.",
+        )
+        WeatherFetchResult.RATE_LIMIT -> Lang.pick(
+            "Usługa pogody prosi o chwilę przerwy. Spróbuj za minutę.",
+            "Weather service asks for a short pause. Try in a minute.",
+        )
+        WeatherFetchResult.API -> Lang.pick(
+            "Usługa pogody odrzuciła zapytanie. Spróbuj później.",
+            "Weather service rejected request. Try again later.",
+        )
+        WeatherFetchResult.DATA -> Lang.pick(
+            "Usługa pogody zwróciła nieczytelną odpowiedź.",
+            "Weather service returned an unreadable response.",
+        )
+        WeatherFetchResult.STORAGE -> Lang.pick(
+            "Nie udało się zapisać pogody w telefonie.",
+            "Failed to save weather on the phone.",
+        )
     }
 
     // Postoje (PRD F17, docs/SPEC.md §18).
 
-    const val PARKING_TITLE = "Postoje"
-    const val PARKING_EMPTY = "Brak postojów do pokazania."
-    const val PARKING_READ_ERROR = "Nie udało się odczytać postojów. Spróbuj ponownie."
-    const val PARKING_PRIVACY =
-        "Położenie zaokrąglone do ok. 100 m – liczone z tras w archiwum, bez pytania auta. Poza aplikację trafia tylko po dotknięciu „Otwórz w mapie” albo wiersza trasy na liście tras."
-    const val PARKING_PLACES = "Miejsca"
-    const val PARKING_RECENT = "Ostatnie postoje"
-    const val TRIP_MAP_HINT = "Trasa zapisuje tylko początek i koniec. Otworzy się aplikacja z mapą, położenie zaokrąglone do ok. 100 m."
-    const val TRIP_MAP_CANCEL = "Anuluj"
-    const val TRIP_MAP_START = "Start w mapie"
-    const val TRIP_MAP_END = "Koniec w mapie"
-    const val PARKING_OPEN_MAP = "Otwórz w mapie"
-    const val PARKING_NO_MAP_APP = "Brak aplikacji z mapą."
-    const val PARKING_NO_POSITION = "bez położenia"
+    val PARKING_TITLE: String get() = Lang.pick("Postoje", "Parking stops")
+    val PARKING_EMPTY: String get() = Lang.pick("Brak postojów do pokazania.", "No parking stops to show.")
+    val PARKING_READ_ERROR: String get() = Lang.pick(
+        "Nie udało się odczytać postojów. Spróbuj ponownie.",
+        "Failed to read parking stops. Try again.",
+    )
+    val PARKING_PRIVACY: String get() = Lang.pick(
+        "Położenie zaokrąglone do ok. 100 m – liczone z tras w archiwum, bez pytania auta. Poza aplikację trafia tylko po dotknięciu „Otwórz w mapie” albo wiersza trasy na liście tras.",
+        "Location rounded to approx. 100 m – calculated from archived trips without querying the car. Left the app only after tapping \"Open in map\" or a trip row in the trips list.",
+    )
+    val PARKING_PLACES: String get() = Lang.pick("Miejsca", "Places")
+    val PARKING_RECENT: String get() = Lang.pick("Ostatnie postoje", "Recent parking stops")
+    val TRIP_MAP_HINT: String get() = Lang.pick(
+        "Trasa zapisuje tylko początek i koniec. Otworzy się aplikacja z mapą, położenie zaokrąglone do ok. 100 m.",
+        "Trip records only start and end. A map app will open, location rounded to approx. 100 m.",
+    )
+    val TRIP_MAP_CANCEL: String get() = Lang.pick("Anuluj", "Cancel")
+    val TRIP_MAP_START: String get() = Lang.pick("Start w mapie", "Start on map")
+    val TRIP_MAP_END: String get() = Lang.pick("Koniec w mapie", "End on map")
+    val PARKING_OPEN_MAP: String get() = Lang.pick("Otwórz w mapie", "Open in map")
+    val PARKING_NO_MAP_APP: String get() = Lang.pick("Brak aplikacji z mapą.", "No map app available.")
+    val PARKING_NO_POSITION: String get() = Lang.pick("bez położenia", "no location")
 
-    fun parkingStops(count: Int): String = "postoje: $count"
-    fun parkingTotal(duration: String): String = "razem $duration"
-    fun parkingLast(time: String): String = "ostatnio $time"
-    fun parkingSkipped(unmatched: Int, longGaps: Int): String =
-        "Pominięte – koniec i start w różnych miejscach (brak trasy w archiwum): $unmatched, przerwy dłuższe niż 21 dni: $longGaps."
+    fun parkingStops(count: Int): String = Lang.pick("postoje: $count", "parking stops: $count")
+    fun parkingTotal(duration: String): String = Lang.pick("razem $duration", "total $duration")
+    fun parkingLast(time: String): String = Lang.pick("ostatnio $time", "last $time")
+    fun parkingSkipped(unmatched: Int, longGaps: Int): String = Lang.pick(
+        "Pominięte – koniec i start w różnych miejscach (brak trasy w archiwum): $unmatched, przerwy dłuższe niż 21 dni: $longGaps.",
+        "Skipped – start and end in different places (missing trip in archive): $unmatched, gaps longer than 21 days: $longGaps.",
+    )
 
     // Dziennik tankowań (PRD F9, docs/SPEC.md §15).
 
     /** Status button and the title of the screen. */
-    const val LOG_TITLE = "Dziennik tankowań"
+    val LOG_TITLE: String get() = Lang.pick("Dziennik tankowań", "Refuel log")
 
-    const val LOG_EMPTY = "Brak potwierdzonych tankowań."
-    const val LOG_HINT =
-        "Żeby porównać spalanie z komputerem auta, przy tankowaniu zaznacz „Do pełna” i podaj litry z paragonu."
-    const val LOG_READ_ERROR = "Nie udało się odczytać dziennika. Spróbuj ponownie."
+    val LOG_EMPTY: String get() = Lang.pick("Brak potwierdzonych tankowań.", "No confirmed refuels.")
+    val LOG_HINT: String get() = Lang.pick(
+        "Żeby porównać spalanie z komputerem auta, przy tankowaniu zaznacz „Do pełna” i podaj litry z paragonu.",
+        "To compare consumption with the car computer, mark \"Filled to full\" when refueling and enter liters from receipt.",
+    )
+    val LOG_READ_ERROR: String get() = Lang.pick("Nie udało się odczytać dziennika. Spróbuj ponownie.", "Failed to read log. Try again.")
 
     /** Where the liters of a refuel come from (docs/SPEC.md §2). */
-    const val LOG_SOURCE_RECEIPT = "z paragonu"
-    const val LOG_SOURCE_DERIVED = "wyliczone z paragonu"
-    const val LOG_SOURCE_ESTIMATE = "szacunek z czujnika"
+    val LOG_SOURCE_RECEIPT: String get() = Lang.pick("z paragonu", "from receipt")
+    val LOG_SOURCE_DERIVED: String get() = Lang.pick("wyliczone z paragonu", "calculated from receipt")
+    val LOG_SOURCE_ESTIMATE: String get() = Lang.pick("szacunek z czujnika", "sensor estimate")
 
     /** Header of the open interval at the top of the log. */
-    const val LOG_CURRENT = "Bieżący odcinek"
+    val LOG_CURRENT: String get() = Lang.pick("Bieżący odcinek", "Current interval")
 
-    fun economyCompared(actual: String, computer: String, difference: String): String =
-        "Spalanie: faktyczne $actual · komputer $computer ($difference)"
+    fun economyCompared(actual: String, computer: String, difference: String): String = Lang.pick(
+        "Spalanie: faktyczne $actual · komputer $computer ($difference)",
+        "Consumption: actual $actual · computer $computer ($difference)",
+    )
 
-    fun economyTrips(distance: String): String = "$distance tras"
-    fun economyOdometer(distance: String): String = "licznik $distance"
-    fun economyEv(distance: String): String = "w tym EV $distance"
-    fun economyComputerSoFar(consumption: String): String = "komputer $consumption"
+    fun economyTrips(distance: String): String = Lang.pick("$distance tras", "$distance trips")
+    fun economyOdometer(distance: String): String = Lang.pick("licznik $distance", "odometer $distance")
+    fun economyEv(distance: String): String = Lang.pick("w tym EV $distance", "including EV $distance")
+    fun economyComputerSoFar(consumption: String): String = Lang.pick("komputer $consumption", "computer $consumption")
 
     // Poprawka potwierdzonego tankowania (docs/SPEC.md §15.3).
-    const val AMEND_BUTTON = "Popraw litry"
-    const val AMEND_TITLE = "Litry z paragonu"
-    const val AMEND_BODY = "Wpisz litry z paragonu. Kwota jest opcjonalna – z nią cena za litr policzy się z paragonu."
-    const val AMEND_FIELD_LITERS = "Litry z paragonu"
-    const val AMEND_FIELD_TOTAL = "Kwota z paragonu (opcjonalnie)"
-    const val AMEND_SAVE = "Zapisz"
-    const val AMEND_CANCEL = "Anuluj"
-    const val AMEND_LITERS_REQUIRED = "Podaj litry z paragonu."
-    const val AMEND_NOT_CONFIRMED = "Najpierw podaj cenę tego tankowania."
+    val AMEND_BUTTON: String get() = Lang.pick("Popraw litry", "Amend liters")
+    val AMEND_TITLE: String get() = Lang.pick("Litry z paragonu", "Liters from receipt")
+    val AMEND_BODY: String get() = Lang.pick(
+        "Wpisz litry z paragonu. Kwota jest opcjonalna – z nią cena za litr policzy się z paragonu.",
+        "Enter liters from receipt. Total cost is optional – with it, price per liter is calculated from receipt.",
+    )
+    val AMEND_FIELD_LITERS: String get() = Lang.pick("Litry z paragonu", "Liters from receipt")
+    val AMEND_FIELD_TOTAL: String get() = Lang.pick("Kwota z paragonu (opcjonalnie)", "Total cost from receipt (optional)")
+    val AMEND_SAVE: String get() = Lang.pick("Zapisz", "Save")
+    val AMEND_CANCEL: String get() = Lang.pick("Anuluj", "Cancel")
+    val AMEND_LITERS_REQUIRED: String get() = Lang.pick("Podaj litry z paragonu.", "Enter liters from receipt.")
+    val AMEND_NOT_CONFIRMED: String get() = Lang.pick("Najpierw podaj cenę tego tankowania.", "First enter the price for this refuel.")
 
-    const val ECONOMY_OPEN = "Czeka na kolejne tankowanie do pełna."
-    const val ECONOMY_PENDING = "Brak porównania: tankowanie w tym odcinku czeka na cenę."
-    const val ECONOMY_DISMISSED = "Brak porównania: w tym odcinku jest odrzucone tankowanie."
-    const val ECONOMY_MISSING_RECEIPT = "Brak porównania: tankowanie w tym odcinku nie ma litrów z paragonu."
-    const val ECONOMY_NO_TRIPS = "Brak porównania: brak tras w tym odcinku."
-    const val ECONOMY_TOO_SHORT = "Brak porównania: odcinek krótszy niż 100 km."
+    val ECONOMY_OPEN: String get() = Lang.pick("Czeka na kolejne tankowanie do pełna.", "Waiting for next fill to full.")
+    val ECONOMY_PENDING: String get() = Lang.pick(
+        "Brak porównania: tankowanie w tym odcinku czeka na cenę.",
+        "No comparison: refuel in this interval is waiting for a price.",
+    )
+    val ECONOMY_DISMISSED: String get() = Lang.pick(
+        "Brak porównania: w tym odcinku jest odrzucone tankowanie.",
+        "No comparison: this interval contains a dismissed refuel.",
+    )
+    val ECONOMY_MISSING_RECEIPT: String get() = Lang.pick(
+        "Brak porównania: tankowanie w tym odcinku nie ma litrów z paragonu.",
+        "No comparison: refuel in this interval has no liters from receipt.",
+    )
+    val ECONOMY_NO_TRIPS: String get() = Lang.pick("Brak porównania: brak tras w tym odcinku.", "No comparison: no trips in this interval.")
+    val ECONOMY_TOO_SHORT: String get() = Lang.pick("Brak porównania: odcinek krótszy niż 100 km.", "No comparison: interval shorter than 100 km.")
 
     // Arkusz tras (PRD F6, docs/SPEC.md §14.4).
 
-    const val CSV_SECTION = "Arkusz kalkulacyjny"
-    const val CSV_EXPLANATION =
-        "Trasy wybranego pojazdu z kosztem w pliku CSV dla Excela i Arkuszy Google – bez położenia GPS i numeru VIN."
-    const val CSV_EXPORT = "Eksportuj trasy do CSV"
-    const val CSV_NO_TRIPS = "Brak tras do eksportu."
+    val CSV_SECTION: String get() = Lang.pick("Arkusz kalkulacyjny", "Spreadsheet")
+    val CSV_EXPLANATION: String get() = Lang.pick(
+        "Trasy wybranego pojazdu z kosztem w pliku CSV dla Excela i Arkuszy Google – bez położenia GPS i numeru VIN.",
+        "Trips of selected vehicle with cost in a CSV file for Excel and Google Sheets – without GPS location and VIN.",
+    )
+    val CSV_EXPORT: String get() = Lang.pick("Eksportuj trasy do CSV", "Export trips to CSV")
+    val CSV_NO_TRIPS: String get() = Lang.pick("Brak tras do eksportu.", "No trips to export.")
 
-    fun csvExported(trips: Int): String = "Zapisano arkusz tras (trasy: $trips)."
+    fun csvExported(trips: Int): String = Lang.pick(
+        "Zapisano arkusz tras (trasy: $trips).",
+        "Saved trip spreadsheet (trips: $trips).",
+    )
 
     /** Header cells; the unit lives here, so the cells below stay plain numbers. */
-    val CSV_HEADER: List<String> = listOf(
-        "Start",
-        "Koniec",
-        "Dystans [km]",
-        "Paliwo [l]",
-        "Dystans EV [km]",
-        "Cena [zł/l]",
-        "Koszt [zł]",
-        "Źródło ceny",
+    val CSV_HEADER: List<String> get() = listOf(
+        Lang.pick("Start", "Start"),
+        Lang.pick("Koniec", "End"),
+        Lang.pick("Dystans [km]", "Distance [km]"),
+        Lang.pick("Paliwo [l]", "Fuel [l]"),
+        Lang.pick("Dystans EV [km]", "EV distance [km]"),
+        Lang.pick("Cena [zł/l]", "Price [zł/l]"),
+        Lang.pick("Koszt [zł]", "Cost [zł]"),
+        Lang.pick("Źródło ceny", "Price source"),
     )
 
     /** "Źródło ceny" of a trip priced by a confirmed refuel. */
-    const val CSV_SOURCE_REFUEL = "tankowanie"
+    val CSV_SOURCE_REFUEL: String get() = Lang.pick("tankowanie", "refuel")
 
     /** "Źródło ceny" of a trip priced with the default price of the phone. */
-    const val CSV_SOURCE_DEFAULT = "cena domyślna"
+    val CSV_SOURCE_DEFAULT: String get() = Lang.pick("cena domyślna", "default price")
 
     /** F8 reminder card on the status screen. */
-    const val BACKUP_REMINDER_NEVER =
-        "Zrób kopię archiwum – trasy starsze niż rok są już tylko w tym telefonie."
+    val BACKUP_REMINDER_NEVER: String get() = Lang.pick(
+        "Zrób kopię archiwum – trasy starsze niż rok są już tylko w tym telefonie.",
+        "Make an archive backup – trips older than a year are now only on this phone.",
+    )
 
-    fun backupReminderOverdue(days: Long): String =
-        "Od ostatniej kopii archiwum minęło $days dni – zrób nową."
+    fun backupReminderOverdue(days: Long): String {
+        val daysWord = if (days == 1L) "day" else "days"
+        return Lang.pick(
+            "Od ostatniej kopii archiwum minęło $days dni – zrób nową.",
+            "It has been $days $daysWord since the last archive backup – make a new one.",
+        )
+    }
+
+    val LEVEL_CHART_TITLE: String get() = Lang.pick("Poziom paliwa w czasie", "Fuel level over time")
+    val LEVEL_CHART_HINT: String get() = Lang.pick("Pomarańczowe kropki to wykryte tankowania.", "Orange dots are detected refuels.")
+
+    // Other expenses (service, inspection, tyres...), separate from fuel.
+    val EXPENSES_TITLE: String get() = Lang.pick("Wydatki", "Expenses")
+    val EXPENSES_ADD: String get() = Lang.pick("Dodaj wydatek", "Add expense")
+    val EXPENSES_EMPTY: String get() = Lang.pick("Brak wydatków. Dodaj przegląd, opony, serwis – także z datą wstecz.", "No expenses yet. Add an inspection, tyres, service – dates in the past are fine.")
+    val EXPENSES_READ_ERROR: String get() = Lang.pick("Nie udało się odczytać wydatków.", "Could not read the expenses.")
+    val EXPENSES_FUEL_VS_OTHER: String get() = Lang.pick("Paliwo i reszta", "Fuel and the rest")
+    val EXPENSES_FUEL: String get() = Lang.pick("Paliwo (z tras)", "Fuel (from trips)")
+    val EXPENSES_OTHER: String get() = Lang.pick("Pozostałe wydatki", "Other expenses")
+    val EXPENSES_BY_CATEGORY: String get() = Lang.pick("Według rodzaju", "By category")
+    val EXPENSES_BY_MONTH: String get() = Lang.pick("Według miesięcy", "By month")
+    val EXPENSES_HISTORY: String get() = Lang.pick("Historia", "History")
+    val EXPENSE_AMOUNT_FIELD: String get() = Lang.pick("Kwota (zł)", "Amount (PLN)")
+    val EXPENSE_NOTE_FIELD: String get() = Lang.pick("Opis (opcjonalnie)", "Note (optional)")
+    val EXPENSE_DATE: String get() = Lang.pick("Data", "Date")
+    val EXPENSE_AMOUNT_INVALID: String get() = Lang.pick("Podaj kwotę, np. 350 lub 1234,50.", "Enter an amount, e.g. 350 or 1234.50.")
+    val EXPENSE_SAVE: String get() = Lang.pick("Zapisz", "Save")
+    val EXPENSE_CANCEL: String get() = Lang.pick("Anuluj", "Cancel")
+    val EXPENSE_DELETE: String get() = Lang.pick("Usuń", "Delete")
+    val OPTIONS_TITLE: String get() = Lang.pick("Opcje", "Options")
+    val LANGUAGE_TITLE: String get() = Lang.pick("Język / Language", "Language / Język")
+
+    fun expenseCategoryName(category: ExpenseCategory): String = when (category) {
+        ExpenseCategory.SERVICE -> Lang.pick("Serwis", "Service")
+        ExpenseCategory.INSPECTION -> Lang.pick("Przegląd", "Inspection")
+        ExpenseCategory.TYRES -> Lang.pick("Opony", "Tyres")
+        ExpenseCategory.INSURANCE -> Lang.pick("Ubezpieczenie", "Insurance")
+        ExpenseCategory.PARTS -> Lang.pick("Części", "Parts")
+        ExpenseCategory.WASH -> Lang.pick("Myjnia", "Car wash")
+        ExpenseCategory.FEES -> Lang.pick("Parkingi i opłaty", "Parking and fees")
+        ExpenseCategory.OTHER -> Lang.pick("Inne", "Other")
+    }
 }

@@ -19,20 +19,38 @@ import pl.lk.toyotacompanion.core.domain.toBigDecimal
 object TripsFormatting {
 
     /** Month names in nominative case (docs/SPEC.md §10.2) — own table, no `TextStyle`, no `Locale`. */
-    private val MONTHS_NOMINATIVE = listOf(
-        "styczeń",
-        "luty",
-        "marzec",
-        "kwiecień",
-        "maj",
-        "czerwiec",
-        "lipiec",
-        "sierpień",
-        "wrzesień",
-        "październik",
-        "listopad",
-        "grudzień",
-    )
+    private val MONTHS_NOMINATIVE: List<String>
+        get() = if (Lang.isEnglish) {
+            listOf(
+                "January",
+                "February",
+                "March",
+                "April",
+                "May",
+                "June",
+                "July",
+                "August",
+                "September",
+                "October",
+                "November",
+                "December",
+            )
+        } else {
+            listOf(
+                "styczeń",
+                "luty",
+                "marzec",
+                "kwiecień",
+                "maj",
+                "czerwiec",
+                "lipiec",
+                "sierpień",
+                "wrzesień",
+                "październik",
+                "listopad",
+                "grudzień",
+            )
+        }
 
     /** Trip cost: `3,68 zł`. */
     fun money(value: BigDecimal): String = fixed(value, 2) + " zł"

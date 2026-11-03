@@ -104,6 +104,7 @@ fun RefuelFormScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
+                .padding(16.dp)
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -123,121 +124,135 @@ fun RefuelFormScreen(
                 // text first, and a focus asked for before the field is composed is lost for good.
                 if (focusPriceOnOpen) showKeyboardOnFocus(priceFocus, id)
 
-                Text(
-                    RefuelFormatting.time(entry.ts, zone) +
-                        Texts.SEPARATOR + RefuelFormatting.levelJump(entry.levelBefore, entry.levelAfter) +
-                        Texts.SEPARATOR + RefuelFormatting.odometer(entry.odometerKm),
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
-
-                state.formError?.let { Box(Modifier.padding(horizontal = 16.dp)) { ErrorCard(it) } }
-
-                StationPricePicker(
-                    controller = prices,
-                    onPrice = { priceText = it },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                )
-                OutlinedTextField(
-                    value = priceText,
-                    onValueChange = { priceText = it },
-                    label = { Text(Texts.REFUEL_FIELD_PRICE) },
-                    supportingText = { FieldNote(state, RefuelField.Price) },
-                    isError = state.formFieldErrors.any { it.field == RefuelField.Price },
-                    singleLine = true,
-                    enabled = !busy,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).focusRequester(priceFocus),
-                )
-                OutlinedTextField(
-                    value = litersText,
-                    onValueChange = {
-                        litersText = it
-                        // Typed by hand, cleared included: these are no longer the estimate.
-                        litersFromEstimate = false
-                    },
-                    label = { Text(Texts.REFUEL_FIELD_LITERS) },
-                    supportingText = { FieldNote(state, RefuelField.Liters) },
-                    isError = state.formFieldErrors.any { it.field == RefuelField.Liters },
-                    singleLine = true,
-                    enabled = !busy,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                )
-                if (estimate != null) {
+                DashboardCard(Texts.REFUEL_FORM_TITLE, "⛽") {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text(
-                            if (litersFromEstimate) {
-                                Texts.REFUEL_LITERS_FROM_ESTIMATE
-                            } else {
-                                Texts.refuelEstimateHint(RefuelFormatting.liters(estimate))
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f),
-                        )
-                        if (litersFromEstimate) {
-                            // The same number, read off the receipt: drop the mark, keep the value (D7).
-                            TextButton(onClick = { litersFromEstimate = false }, enabled = !busy) {
-                                Text(Texts.REFUEL_LITERS_FROM_RECEIPT)
-                            }
-                        } else {
-                            TextButton(
-                                onClick = {
-                                    litersText = RefuelFormatting.litersInput(estimate)
-                                    litersFromEstimate = true
-                                },
-                                enabled = !busy,
-                            ) {
-                                Text(Texts.REFUEL_USE_ESTIMATE)
-                            }
-                        }
+                        StatTile(RefuelFormatting.levelJump(entry.levelBefore, entry.levelAfter), Texts.REFUELS_TITLE, Palette.Orange, Modifier.weight(1f))
+                        StatTile(RefuelFormatting.odometer(entry.odometerKm), Texts.STAT_TRIPS, Palette.Blue, Modifier.weight(1f))
                     }
-                }
-                OutlinedTextField(
-                    value = totalText,
-                    onValueChange = { totalText = it },
-                    label = { Text(Texts.REFUEL_FIELD_TOTAL) },
-                    supportingText = { FieldNote(state, RefuelField.Total) },
-                    isError = state.formFieldErrors.any { it.field == RefuelField.Total },
-                    singleLine = true,
-                    enabled = !busy,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(Texts.REFUEL_FILLED_FULL, style = MaterialTheme.typography.bodyLarge)
-                    }
-                    // "Do pełna" without liters is what the domain refuses (docs/SPEC.md §2).
-                    Switch(
-                        checked = filledToFull && litersGiven,
-                        onCheckedChange = { filledToFull = it },
-                        enabled = litersGiven && !busy,
+                    Text(
+                        "🕒 " + RefuelFormatting.time(entry.ts, zone),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
 
-                Button(
-                    onClick = {
-                        controller.confirm(id, priceText, litersText, totalText, filledToFull, litersFromEstimate)
-                    },
-                    enabled = !busy,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                ) {
-                    Text(Texts.REFUEL_SAVE)
-                }
-                OutlinedButton(
-                    onClick = { asksAboutDismissing = true },
-                    enabled = !busy,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                ) {
-                    Text(Texts.REFUEL_DISMISS)
+                DashboardCard(Texts.REFUEL_FIELD_TOTAL, "🧾") {
+                    state.formError?.let { ErrorCard(it) }
+
+                    StationPricePicker(
+                        controller = prices,
+                        onPrice = { priceText = it },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = priceText,
+                        onValueChange = { priceText = it },
+                        label = { Text(Texts.REFUEL_FIELD_PRICE) },
+                        leadingIcon = { Text("⛽") },
+                        supportingText = { FieldNote(state, RefuelField.Price) },
+                        isError = state.formFieldErrors.any { it.field == RefuelField.Price },
+                        singleLine = true,
+                        enabled = !busy,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth().focusRequester(priceFocus),
+                    )
+                    OutlinedTextField(
+                        value = litersText,
+                        onValueChange = {
+                            litersText = it
+                            // Typed by hand, cleared included: these are no longer the estimate.
+                            litersFromEstimate = false
+                        },
+                        label = { Text(Texts.REFUEL_FIELD_LITERS) },
+                        leadingIcon = { Text("🧪") },
+                        supportingText = { FieldNote(state, RefuelField.Liters) },
+                        isError = state.formFieldErrors.any { it.field == RefuelField.Liters },
+                        singleLine = true,
+                        enabled = !busy,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    if (estimate != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                if (litersFromEstimate) {
+                                    Texts.REFUEL_LITERS_FROM_ESTIMATE
+                                } else {
+                                    Texts.refuelEstimateHint(RefuelFormatting.liters(estimate))
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Palette.Blue,
+                                modifier = Modifier.weight(1f),
+                            )
+                            if (litersFromEstimate) {
+                                // The same number, read off the receipt: drop the mark, keep the value (D7).
+                                TextButton(onClick = { litersFromEstimate = false }, enabled = !busy) {
+                                    Text("🧾 " + Texts.REFUEL_LITERS_FROM_RECEIPT)
+                                }
+                            } else {
+                                TextButton(
+                                    onClick = {
+                                        litersText = RefuelFormatting.litersInput(estimate)
+                                        litersFromEstimate = true
+                                    },
+                                    enabled = !busy,
+                                ) {
+                                    Text("📊 " + Texts.REFUEL_USE_ESTIMATE)
+                                }
+                            }
+                        }
+                    }
+                    OutlinedTextField(
+                        value = totalText,
+                        onValueChange = { totalText = it },
+                        label = { Text(Texts.REFUEL_FIELD_TOTAL) },
+                        leadingIcon = { Text("💰") },
+                        supportingText = { FieldNote(state, RefuelField.Total) },
+                        isError = state.formFieldErrors.any { it.field == RefuelField.Total },
+                        singleLine = true,
+                        enabled = !busy,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("⛽ " + Texts.REFUEL_FILLED_FULL, style = MaterialTheme.typography.bodyLarge)
+                        }
+                        // "Do pełna" without liters is what the domain refuses (docs/SPEC.md §2).
+                        Switch(
+                            checked = filledToFull && litersGiven,
+                            onCheckedChange = { filledToFull = it },
+                            enabled = litersGiven && !busy,
+                        )
+                    }
+
+                    Button(
+                        onClick = {
+                            controller.confirm(id, priceText, litersText, totalText, filledToFull, litersFromEstimate)
+                        },
+                        enabled = !busy,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("💾 " + Texts.REFUEL_SAVE)
+                    }
+                    OutlinedButton(
+                        onClick = { asksAboutDismissing = true },
+                        enabled = !busy,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("❌ " + Texts.REFUEL_DISMISS)
+                    }
                 }
             }
         }

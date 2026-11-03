@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -76,43 +77,62 @@ fun DefaultPriceScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
+                .padding(16.dp)
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            state.error?.let { ErrorCard(it) }
+            DashboardCard(Texts.DEFAULT_PRICE_TITLE, "⛽") {
+                val currentPrice = state.price
+                if (currentPrice != null) {
+                    Headline(
+                        value = TripsFormatting.plain(currentPrice, 2),
+                        unit = "zł/l",
+                        caption = Texts.DEFAULT_PRICE_NOTE,
+                    )
+                } else {
+                    // Without a stored price the card says what is missing, in the colour of a hint.
+                    Text(
+                        "🛢️ " + Texts.DEFAULT_PRICE_PROMPT_UNSET,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
 
-            StationPricePicker(
-                controller = prices,
-                onPrice = { priceText = it },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            )
+                state.error?.let { ErrorCard(it) }
 
-            OutlinedTextField(
-                value = priceText,
-                onValueChange = { priceText = it },
-                label = { Text(Texts.REFUEL_FIELD_PRICE) },
-                supportingText = { Text(Texts.DEFAULT_PRICE_HINT) },
-                isError = state.error != null,
-                singleLine = true,
-                enabled = !state.busy,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            )
+                StationPricePicker(
+                    controller = prices,
+                    onPrice = { priceText = it },
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
-            Button(
-                onClick = { controller.save(priceText) },
-                enabled = !state.busy,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            ) {
-                Text(Texts.REFUEL_SAVE)
-            }
-            // Removing has its own button: an empty field is a typo, not a request to remove.
-            OutlinedButton(
-                onClick = { asksAboutRemoving = true },
-                enabled = !state.busy && state.price != null,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            ) {
-                Text(Texts.DEFAULT_PRICE_REMOVE)
+                OutlinedTextField(
+                    value = priceText,
+                    onValueChange = { priceText = it },
+                    label = { Text(Texts.REFUEL_FIELD_PRICE) },
+                    supportingText = { Text(Texts.DEFAULT_PRICE_HINT) },
+                    isError = state.error != null,
+                    singleLine = true,
+                    enabled = !state.busy,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                Button(
+                    onClick = { controller.save(priceText) },
+                    enabled = !state.busy,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("💾 " + Texts.REFUEL_SAVE)
+                }
+                // Removing has its own button: an empty field is a typo, not a request to remove.
+                OutlinedButton(
+                    onClick = { asksAboutRemoving = true },
+                    enabled = !state.busy && state.price != null,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("🗑️ " + Texts.DEFAULT_PRICE_REMOVE)
+                }
             }
         }
     }

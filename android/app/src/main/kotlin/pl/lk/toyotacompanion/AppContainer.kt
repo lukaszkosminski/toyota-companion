@@ -84,6 +84,22 @@ class AppContainer(
         SettingsStore(context.getSharedPreferences(SETTINGS_PREFS, Context.MODE_PRIVATE))
     }
 
+    init {
+        // One small preference read, so the very first frame already speaks the chosen language.
+        pl.lk.toyotacompanion.ui.Lang.current = pl.lk.toyotacompanion.ui.AppLanguage.fromTag(settingsStore.language())
+    }
+
+    /** The language the texts are read in; applied before the first screen, kept in the settings file. */
+    fun setLanguage(language: pl.lk.toyotacompanion.ui.AppLanguage) {
+        pl.lk.toyotacompanion.ui.Lang.current = language
+        uiScope.launch(Dispatchers.IO) { settingsStore.saveLanguage(language.tag) }
+        pl.lk.toyotacompanion.widget.ConsumptionWidgetProvider.refresh(context)
+    }
+
+    val expensesController: pl.lk.toyotacompanion.ui.ExpensesController by lazy {
+        pl.lk.toyotacompanion.ui.ExpensesController(database.expenseDao(), uiScope, Dispatchers.IO)
+    }
+
     val credentialStore: CredentialStore by lazy { CredentialStore(secretStore) }
     val tokenStore: KeystoreTokenStore by lazy { KeystoreTokenStore(secretStore) }
 
@@ -298,8 +314,24 @@ class AppContainer(
      */
     val backupController: BackupController by lazy {
         BackupController(
-            export = { syncEngine.exportArchive() },
-            import = { snapshot -> syncEngine.importArchive(snapshot) },
+            // The expenses live in the app's own table, next to the archive; they travel in the same file.
+            export = {
+                syncEngine.exportArchive().copy(
+                    expenses = database.expenseDao().all().map {
+                        pl.lk.toyotacompanion.core.data.ArchiveExpense(it.id, it.dateEpochDay, it.category, it.amountPln, it.note)
+                    },
+                )
+            },
+            import = { snapshot ->
+                val done = syncEngine.importArchive(snapshot)
+                // Added only when the id is new, like the other rows: an import never overwrites what the phone has.
+                database.expenseDao().insertAllIfAbsent(
+                    snapshot.expenses.map {
+                        pl.lk.toyotacompanion.data.db.ExpenseEntity(it.id, it.dateEpochDay, it.category, it.amountPln, it.note)
+                    },
+                )
+                done
+            },
             writeFile = { target, bytes ->
                 // "wt": an existing file chosen again is replaced, not appended to.
                 val out = context.contentResolver.openOutputStream(Uri.parse(target), "wt")
@@ -424,6 +456,7 @@ class AppContainer(
             amend = { id, liters, total, full -> syncEngine.amendRefuel(id, liters, total, full) },
             scope = uiScope,
             io = Dispatchers.IO,
+            readLevels = { syncEngine.fuelLevels() },
         )
     }
 

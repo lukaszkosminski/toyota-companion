@@ -86,8 +86,19 @@ fun RefuelListScreen(
             }
             else -> LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = innerPadding,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = innerPadding.calculateTopPadding() + 8.dp,
+                    bottom = innerPadding.calculateBottomPadding() + 16.dp,
+                ),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                item {
+                    DashboardCard(Texts.REFUELS_TITLE, "⛽") {
+                        StatTile("${state.refuels.size}", Texts.STAT_PENDING_REFUELS, Palette.Orange)
+                    }
+                }
                 items(state.refuels, key = { it.id }) { refuel ->
                     RefuelRow(
                         refuel = refuel,
@@ -107,26 +118,29 @@ private fun RefuelRow(refuel: Refuel, zone: ZoneId, enabled: Boolean, onEdit: ()
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 3.dp)
             .clickable(enabled = enabled, onClick = onEdit),
-        shape = MaterialTheme.shapes.small,
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
+            EmojiBadge("⛽", Palette.Orange)
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(RefuelFormatting.time(refuel.ts, zone), style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    RefuelFormatting.levelJump(refuel.levelBefore, refuel.levelAfter),
+                    "⛽ " + RefuelFormatting.levelJump(refuel.levelBefore, refuel.levelAfter),
                     style = MaterialTheme.typography.bodySmall,
+                    color = Palette.Orange,
                 )
             }
-            Text(RefuelFormatting.odometer(refuel.odometerKm), style = MaterialTheme.typography.bodySmall)
+            Text("📏 " + RefuelFormatting.odometer(refuel.odometerKm), style = MaterialTheme.typography.bodySmall, color = Palette.Blue)
+            Text("✏️", style = MaterialTheme.typography.bodyMedium)
         }
     }
 }

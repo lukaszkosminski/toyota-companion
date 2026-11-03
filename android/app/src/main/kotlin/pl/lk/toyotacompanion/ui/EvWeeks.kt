@@ -71,7 +71,7 @@ object EvWeeksFormatting {
     /** `13.10: 62 % na prądzie · 41,2 z 66,5 km · 98 min · trasy: 9`. */
     fun line(week: EvWeek): String = listOfNotNull(
         weekLabel(week) + ": " + Texts.evOnBattery(TripsFormatting.plain(week.evSharePct, 0)),
-        TripsFormatting.plain(week.evKm, 1) + " z " + TripsFormatting.plain(week.distanceKm, 1) + " km",
+        TripsFormatting.plain(week.evKm, 1) + Lang.pick(" z ", " of ") + TripsFormatting.plain(week.distanceKm, 1) + " km",
         week.evMinutes?.let { Texts.evMinutes(it) },
         Texts.statsTrips(week.trips),
     ).joinToString(Texts.SEPARATOR)

@@ -119,20 +119,30 @@ fun MapScreen(title: String, points: List<MapPoint>, route: RouteState, onBack: 
                     it.destroy()
                 },
             )
-            Text(
-                if (heat != HeatState.None) Texts.heatNote(heat) else Texts.mapRouteNote(route),
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-            )
-            Text(
-                Texts.MAP_NOTE,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
-            points.firstOrNull()?.let { first ->
-                ParkingFormatting.mapUri(first.lat, first.lon)?.let { uri ->
-                    TextButton(onClick = { openInMap(context, uri) }, modifier = Modifier.padding(horizontal = 8.dp)) {
-                        Text(Texts.MAP_OPEN_EXTERNAL)
+            DashboardCard(
+                title = title,
+                emoji = if (heat != HeatState.None) "🔥" else "🗺️",
+                modifier = Modifier.padding(12.dp),
+            ) {
+                val routeNote = if (heat != HeatState.None) Texts.heatNote(heat) else Texts.mapRouteNote(route)
+                Text(
+                    (if (heat != HeatState.None) "🔥 " else "🛣️ ") + routeNote,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Palette.Blue,
+                )
+                Text(
+                    "🔒 " + Texts.MAP_NOTE,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                points.firstOrNull()?.let { first ->
+                    ParkingFormatting.mapUri(first.lat, first.lon)?.let { uri ->
+                        androidx.compose.material3.Button(
+                            onClick = { openInMap(context, uri) },
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        ) {
+                            Text("🌐 " + Texts.MAP_OPEN_EXTERNAL)
+                        }
                     }
                 }
             }

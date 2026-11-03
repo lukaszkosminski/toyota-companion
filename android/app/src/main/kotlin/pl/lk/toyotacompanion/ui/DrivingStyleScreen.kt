@@ -4,15 +4,14 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -66,63 +65,80 @@ fun DrivingStyleScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                item { Header(Texts.STYLE_ECO_SECTION) }
-                if (view.months.isEmpty()) item { Text(Texts.STYLE_ECO_NONE) }
-                items(view.months, key = { "m-" + it.month.year + "-" + it.month.month }) { month ->
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text(TripsFormatting.monthLabel(month.month), style = MaterialTheme.typography.titleSmall)
-                        Text(
-                            Texts.styleEco(DrivingStyleFormatting.points(month.score), month.trips),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
+                item {
+                    DashboardCard(Texts.STYLE_ECO_SECTION, "🌿") {
+                        if (view.months.isEmpty()) {
+                            Text(Texts.STYLE_ECO_NONE)
+                        } else {
+                            val months = view.months.asReversed()
+                            BarChart(
+                                months.map {
+                                    val score = it.score.toFloat()
+                                    ChartBar(score, TripsFormatting.monthLabel(it.month), DrivingStyleFormatting.points(it.score), Palette.score(score / 100f))
+                                },
+                                max = 100f,
+                            )
+                            view.months.forEach { month ->
+                                val score = month.score.toFloat() / 100f
+                                MeterRow(
+                                    TripsFormatting.monthLabel(month.month),
+                                    Texts.styleEco(DrivingStyleFormatting.points(month.score), month.trips),
+                                    score,
+                                    Palette.score(score),
+                                )
+                            }
+                        }
                     }
                 }
 
-                item { HorizontalDivider() }
-                item { Header(Texts.STYLE_ROUTES_SECTION) }
-                if (view.routes.isEmpty()) item { Text(Texts.styleRoutesNone(MIN_ROUTE_TRIPS)) }
-                items(view.routes, key = { "r-" + it.number }) { route ->
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text(Texts.styleRoute(route.number), style = MaterialTheme.typography.titleSmall)
-                        Text(
-                            Texts.styleRouteLine(TripsFormatting.plain(route.typicalKm, 1) + " km", route.trips, route.usualHour),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        val facts = Texts.styleRouteFacts(
-                            route.eco?.let { DrivingStyleFormatting.points(it) },
-                            route.usualLPer100Km?.let { RefuelLogFormatting.consumption(it) },
-                        )
-                        if (facts.isNotEmpty()) Text(facts, style = MaterialTheme.typography.bodySmall)
-                        TextButton(onClick = { onShowHeat(route.tripIds) }) { Text(Texts.HEAT_BUTTON) }
+                item {
+                    DashboardCard(Texts.STYLE_ROUTES_SECTION, "🛣️") {
+                        if (view.routes.isEmpty()) Text(Texts.styleRoutesNone(MIN_ROUTE_TRIPS))
+                        view.routes.forEachIndexed { i, route ->
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                EmojiBadge("📍", Palette.Series[i % Palette.Series.size])
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(Texts.styleRoute(route.number), style = MaterialTheme.typography.titleSmall)
+                                    Text(
+                                        Texts.styleRouteLine(TripsFormatting.plain(route.typicalKm, 1) + " km", route.trips, route.usualHour),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                    )
+                                    val facts = Texts.styleRouteFacts(
+                                        route.eco?.let { DrivingStyleFormatting.points(it) },
+                                        route.usualLPer100Km?.let { RefuelLogFormatting.consumption(it) },
+                                    )
+                                    if (facts.isNotEmpty()) Text(facts, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                TextButton(onClick = { onShowHeat(route.tripIds) }) { Text("🗺️ " + Texts.HEAT_BUTTON) }
+                            }
+                        }
                     }
                 }
 
-                item { HorizontalDivider() }
-                item { Header(Texts.STYLE_ANOMALIES_SECTION) }
-                item { Text(Texts.STYLE_ANOMALIES_HINT, style = MaterialTheme.typography.bodySmall) }
-                if (view.anomalies.isEmpty()) item { Text(Texts.STYLE_ANOMALIES_NONE) }
-                items(view.anomalies, key = { "a-" + it.trip.record.trip.id }) { anomaly ->
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text(RefuelFormatting.time(anomaly.trip.record.trip.start, zone), style = MaterialTheme.typography.bodySmall)
-                        Text(
-                            Texts.styleAnomaly(
-                                anomaly.routeIndex + 1,
-                                RefuelLogFormatting.consumption(anomaly.lPer100Km),
-                                RefuelLogFormatting.consumption(anomaly.usualLPer100Km),
-                                DrivingStyleFormatting.excess(anomaly.excessPct),
-                            ),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
+                item {
+                    DashboardCard(Texts.STYLE_ANOMALIES_SECTION, "⚠️") {
+                        Text(Texts.STYLE_ANOMALIES_HINT, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (view.anomalies.isEmpty()) Text("✅ " + Texts.STYLE_ANOMALIES_NONE)
+                        view.anomalies.forEach { anomaly ->
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Text(RefuelFormatting.time(anomaly.trip.record.trip.start, zone), style = MaterialTheme.typography.bodySmall)
+                                Text(
+                                    Texts.styleAnomaly(
+                                        anomaly.routeIndex + 1,
+                                        RefuelLogFormatting.consumption(anomaly.lPer100Km),
+                                        RefuelLogFormatting.consumption(anomaly.usualLPer100Km),
+                                        DrivingStyleFormatting.excess(anomaly.excessPct),
+                                    ),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Palette.Red,
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
     }
-}
-
-@Composable
-private fun Header(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp))
 }
 
 @Composable

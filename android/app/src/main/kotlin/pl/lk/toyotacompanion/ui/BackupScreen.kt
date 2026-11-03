@@ -14,7 +14,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -80,44 +79,51 @@ fun BackupScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(Texts.BACKUP_EXPLANATION, style = MaterialTheme.typography.bodyMedium)
-            Text(
-                state.lastExport?.let { Texts.lastBackup(backupDate(it, zone)) } ?: Texts.BACKUP_NONE_YET,
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            if (state.busy) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            state.error?.let { Box { ErrorCard(it) } }
-            state.message?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+            DashboardCard(Texts.BACKUP_TITLE, "💾") {
+                Text(Texts.BACKUP_EXPLANATION, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                val last = state.lastExport
+                if (last != null) {
+                    StatTile(backupDate(last, zone), Texts.BACKUP_TITLE, Palette.Green)
+                } else {
+                    Text(
+                        "🕓️ " + Texts.BACKUP_NONE_YET,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
 
-            Button(
-                onClick = { warnsBeforeExport = true },
-                enabled = !state.busy,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(Texts.BACKUP_EXPORT)
-            }
-            OutlinedButton(
-                onClick = { openFile.launch(ARCHIVE_MIME_TYPES) },
-                enabled = !state.busy,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(Texts.BACKUP_IMPORT)
+                if (state.busy) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                state.error?.let { Box { ErrorCard(it) } }
+                state.message?.let { Text("ℹ️ " + it, style = MaterialTheme.typography.bodyMedium, color = Palette.Blue) }
+
+                Button(
+                    onClick = { warnsBeforeExport = true },
+                    enabled = !state.busy,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("📤 " + Texts.BACKUP_EXPORT)
+                }
+                OutlinedButton(
+                    onClick = { openFile.launch(ARCHIVE_MIME_TYPES) },
+                    enabled = !state.busy,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("📥 " + Texts.BACKUP_IMPORT)
+                }
             }
 
-            // The spreadsheet (PRD F6): no GPS and no VIN, so no warning; without trips the
-            // picker would create an empty file before anything is known, hence disabled.
-            HorizontalDivider()
-            Text(Texts.CSV_SECTION, style = MaterialTheme.typography.titleMedium)
-            Text(Texts.CSV_EXPLANATION, style = MaterialTheme.typography.bodyMedium)
-            OutlinedButton(
-                onClick = { createCsv.launch(tripsCsvFileName(LocalDate.now(zone))) },
-                enabled = hasTrips && !state.busy,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(Texts.CSV_EXPORT)
+            DashboardCard(Texts.CSV_SECTION, "📊") {
+                Text(Texts.CSV_EXPLANATION, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Button(
+                    onClick = { createCsv.launch(tripsCsvFileName(LocalDate.now(zone))) },
+                    enabled = hasTrips && !state.busy,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("📑 " + Texts.CSV_EXPORT)
+                }
             }
         }
     }

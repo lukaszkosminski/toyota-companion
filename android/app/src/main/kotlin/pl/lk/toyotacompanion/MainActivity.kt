@@ -60,6 +60,8 @@ class MainActivity : ComponentActivity() {
                 container.declaredConsumptionController,
                 container.routeBackfillController,
                 container.routeHeatController,
+                container.expensesController,
+                container::setLanguage,
                 askNotificationPermission = container.askNotificationPermission,
                 deepLinkRefuelId = refuelDeepLinkId,
                 onDeepLinkShown = { refuelDeepLinkId = null },

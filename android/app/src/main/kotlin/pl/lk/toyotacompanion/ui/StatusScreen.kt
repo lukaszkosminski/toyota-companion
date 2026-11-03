@@ -39,6 +39,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import java.math.BigDecimal
 import pl.lk.toyotacompanion.core.data.SyncErrorKind
@@ -70,6 +71,8 @@ fun StatusScreen(
     onShowDrivingStyle: () -> Unit,
     onShowWeather: () -> Unit,
     onShowYear: () -> Unit,
+    onShowExpenses: () -> Unit,
+    onShowOptions: () -> Unit,
     defaultPrice: BigDecimal?,
     onShowDefaultPrice: () -> Unit,
     backupReminder: BackupReminder,
@@ -178,9 +181,11 @@ fun StatusScreen(
                         Triple("🌿", Texts.STYLE_TITLE, onShowDrivingStyle),
                         Triple("📅", Texts.YEAR_TITLE, onShowYear),
                         Triple("🌦️", Texts.WEATHER_TITLE, onShowWeather),
+                        Triple("🧾", Texts.EXPENSES_TITLE, onShowExpenses),
                         Triple("🅿️", Texts.PARKING_TITLE, onShowParking),
                         Triple("💰", Texts.defaultPricePrompt(defaultPrice), onShowDefaultPrice),
                         Triple("💾", Texts.BACKUP_TITLE, onShowBackup),
+                        Triple("⚙️", Texts.OPTIONS_TITLE, onShowOptions),
                     ),
                 )
                 // The archive lives only on this phone (ADR-006); F8 asks for a copy (docs/SPEC.md §14.3).
@@ -223,12 +228,12 @@ private fun StatusChip(status: SyncStatus, failure: SyncErrorKind?) {
     val container = when {
         status.state.needsLogin || failure == SyncErrorKind.LOGIN -> scheme.errorContainer
         status.state.lastSuccessAt == null -> scheme.surfaceVariant
-        status.isFresh -> scheme.primaryContainer
-        else -> scheme.secondaryContainer
+        status.isFresh -> Palette.Green.copy(alpha = 0.22f)
+        else -> Palette.Amber.copy(alpha = 0.25f)
     }
     AssistChip(
         onClick = {},
-        label = { Text(label) },
+        label = { Text((if (status.isFresh && !status.state.needsLogin) "✅ " else if (status.state.needsLogin) "🔒 " else "🕒 ") + label) },
         colors = AssistChipDefaults.assistChipColors(
             containerColor = container,
             labelColor = scheme.onSurface,
@@ -242,15 +247,15 @@ private fun StatRow(status: SyncStatus) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Stat(status.tripsStored, Texts.STAT_TRIPS)
-            Stat(status.readingsStored, Texts.STAT_READINGS)
-            Stat(status.pendingRefuels, Texts.STAT_PENDING_REFUELS)
+            StatTile("🛣️ " + status.tripsStored, Texts.STAT_TRIPS, Palette.Blue, Modifier.weight(1f))
+            StatTile("📡 " + status.readingsStored, Texts.STAT_READINGS, Palette.Teal, Modifier.weight(1f))
+            StatTile("⛽ " + status.pendingRefuels, Texts.STAT_PENDING_REFUELS, if (status.pendingRefuels > 0) Palette.Orange else Palette.Green, Modifier.weight(1f))
         }
     }
 }

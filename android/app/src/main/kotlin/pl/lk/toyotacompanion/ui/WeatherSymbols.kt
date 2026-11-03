@@ -21,16 +21,16 @@ object WeatherSymbols {
 
     /** Polish word for the symbol, for the screen reader and the text next to it. */
     fun word(code: Int?): String? = when (code) {
-        0 -> "słonecznie"
-        1 -> "prawie bezchmurnie"
-        2 -> "częściowe zachmurzenie"
-        3 -> "pochmurno"
-        45, 48 -> "mgła"
-        51, 53, 55, 56, 57 -> "mżawka"
-        61, 63, 65, 66, 67 -> "deszcz"
-        80, 81, 82 -> "przelotny deszcz"
-        71, 73, 75, 77, 85, 86 -> "śnieg"
-        95, 96, 99 -> "burza"
+        0 -> Lang.pick("słonecznie", "sunny")
+        1 -> Lang.pick("prawie bezchmurnie", "mostly clear")
+        2 -> Lang.pick("częściowe zachmurzenie", "partly cloudy")
+        3 -> Lang.pick("pochmurno", "overcast")
+        45, 48 -> Lang.pick("mgła", "fog")
+        51, 53, 55, 56, 57 -> Lang.pick("mżawka", "drizzle")
+        61, 63, 65, 66, 67 -> Lang.pick("deszcz", "rain")
+        80, 81, 82 -> Lang.pick("przelotny deszcz", "rain showers")
+        71, 73, 75, 77, 85, 86 -> Lang.pick("śnieg", "snow")
+        95, 96, 99 -> Lang.pick("burza", "thunderstorm")
         else -> null
     }
 

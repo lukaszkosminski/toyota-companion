@@ -53,6 +53,8 @@ fun AppRoot(
     declared: DeclaredConsumptionController,
     backfill: RouteBackfillController,
     heat: RouteHeatController,
+    expenses: ExpensesController,
+    onSetLanguage: (AppLanguage) -> Unit,
     askNotificationPermission: suspend () -> Boolean,
     deepLinkRefuelId: String? = null,
     onDeepLinkShown: () -> Unit = {},
@@ -208,6 +210,11 @@ fun AppRoot(
                             weather.load()
                             screen = Screen.Weather
                         },
+                        onShowExpenses = {
+                            expenses.load()
+                            screen = Screen.Expenses
+                        },
+                        onShowOptions = { screen = Screen.Options },
                         defaultPrice = priceState.price,
                         onShowDefaultPrice = { screen = Screen.DefaultPrice },
                         // Until the date is read there is no reminder: an unknown date is not "never".
@@ -228,6 +235,12 @@ fun AppRoot(
                         askNotificationPermission = askNotificationPermission,
                     )
 
+                    Screen.Options -> OptionsScreen(onSetLanguage = onSetLanguage, onBack = { screen = Screen.Status })
+                    Screen.Expenses -> ExpensesScreen(
+                        controller = expenses,
+                        fuelTotal = consumptionState?.totalCost,
+                        onBack = { screen = Screen.Status },
+                    )
                     Screen.Year -> YearSummaryScreen(controller = yearSummary, onBack = { screen = Screen.Status })
                     Screen.Weather -> WeatherScreen(controller = weather, onBack = { screen = Screen.Status })
                     Screen.Heat -> MapScreen(

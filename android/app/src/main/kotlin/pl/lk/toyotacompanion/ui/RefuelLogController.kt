@@ -26,6 +26,8 @@ data class RefuelLogUiState(
     val busyId: String? = null,
     val amendError: String? = null,
     val amendedId: String? = null,
+    /** Fuel-level readings for the level chart, oldest first; empty when none are stored. */
+    val levels: List<pl.lk.toyotacompanion.core.domain.FuelReading> = emptyList(),
 )
 
 /**
@@ -43,6 +45,7 @@ class RefuelLogController(
     private val amend: suspend (id: String, liters: BigDecimal, totalCost: BigDecimal?, filledToFull: Boolean) -> RefuelChange,
     private val scope: CoroutineScope,
     private val io: CoroutineDispatcher,
+    private val readLevels: suspend () -> List<pl.lk.toyotacompanion.core.domain.FuelReading> = { emptyList() },
 ) {
     private val ui = MutableStateFlow(RefuelLogUiState())
     val state: StateFlow<RefuelLogUiState> = ui.asStateFlow()
@@ -55,8 +58,8 @@ class RefuelLogController(
         loadStarted = true
         val startedIn = generation
         scope.launch {
-            val result: Result<RefuelLog> = try {
-                Result.success(withContext(io) { read() })
+            val result: Result<Pair<RefuelLog, List<pl.lk.toyotacompanion.core.domain.FuelReading>>> = try {
+                Result.success(withContext(io) { read() to readLevels() })
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -65,7 +68,7 @@ class RefuelLogController(
             if (generation != startedIn) return@launch
             ui.value = if (result.isSuccess) {
                 // A correction's result stays visible over the fresh read.
-                ui.value.copy(loading = false, loadFailed = false, log = result.getOrThrow())
+                ui.value.copy(loading = false, loadFailed = false, log = result.getOrThrow().first, levels = result.getOrThrow().second)
             } else {
                 ui.value.copy(loading = false, loadFailed = true)
             }

@@ -4,7 +4,12 @@ import java.math.BigDecimal
 
 /** Polish text of the consumption card (docs/SPEC.md §24). Pure and independent of `Locale`. */
 object ConsumptionFormatting {
-    private val MONTHS_SHORT = listOf("sty", "lut", "mar", "kwi", "maj", "cze", "lip", "sie", "wrz", "paź", "lis", "gru")
+    private val MONTHS_SHORT: List<String>
+        get() = if (Lang.isEnglish) {
+            listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+        } else {
+            listOf("sty", "lut", "mar", "kwi", "maj", "cze", "lip", "sie", "wrz", "paź", "lis", "gru")
+        }
 
     /** `paź`, with the year's last two digits for January so a chart over a year boundary reads: `sty 27`. */
     fun monthShort(month: MonthKey): String {

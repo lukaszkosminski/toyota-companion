@@ -7,15 +7,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -69,126 +68,161 @@ fun StatsScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                item { Header(Texts.STATS_EV_SECTION) }
-                item { Text(Texts.statsEvTotal(StatsFormatting.share(view.evShare)), style = MaterialTheme.typography.bodyLarge) }
-                if (view.ranking.rows.isNotEmpty()) {
-                    item { Text(Texts.STATS_RANKING, style = MaterialTheme.typography.titleSmall) }
-                    items(view.ranking.rows, key = { "ev-" + it.tripId }) { row ->
-                        val start = view.starts[row.tripId]
-                        Column {
-                            if (start != null) Text(RefuelFormatting.time(start, zone), style = MaterialTheme.typography.bodySmall)
-                            Text(StatsFormatting.rankingRow(row), style = MaterialTheme.typography.bodyMedium)
-                        }
-                    }
-                }
                 item {
-                    Text(
-                        Texts.statsLeftOut(view.ranking.withoutData, view.ranking.tooShort),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                    DashboardCard(Texts.STATS_EV_SECTION, "⚡") {
+                        val share = view.evShare
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            if (share != null) {
+                                RingGauge(share.toFloat() / 100f, color = Palette.Green) {
+                                    Text(TripsFormatting.plain(share, 0) + "%", style = MaterialTheme.typography.titleMedium)
+                                }
+                            }
+                            Text(Texts.statsEvTotal(StatsFormatting.share(view.evShare)), style = MaterialTheme.typography.bodyLarge)
+                        }
+                        if (view.ranking.rows.isNotEmpty()) {
+                            Text(Texts.STATS_RANKING, style = MaterialTheme.typography.titleSmall)
+                            view.ranking.rows.forEachIndexed { i, row ->
+                                val start = view.starts[row.tripId]
+                                Column {
+                                    if (start != null) Text(RefuelFormatting.time(start, zone), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(listOf("🥇", "🥈", "🥉").getOrElse(i) { "▫️" } + " " + StatsFormatting.rankingRow(row), style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                        }
+                        Text(
+                            Texts.statsLeftOut(view.ranking.withoutData, view.ranking.tooShort),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
 
                 val yoy = view.yearOverYear
                 val end = view.windowEnd
                 if (yoy != null && end != null) {
-                    item { HorizontalDivider() }
-                    item { Header(Texts.STATS_YEAR_OVER_YEAR) }
                     item {
-                        Text(
-                            Texts.statsWindow(StatsFormatting.window(end), yoy.first.year, yoy.second.year),
-                            style = MaterialTheme.typography.bodySmall,
-                        )
+                        DashboardCard(Texts.STATS_YEAR_OVER_YEAR, "📈") {
+                            Text(
+                                Texts.statsWindow(StatsFormatting.window(end), yoy.first.year, yoy.second.year),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            val pair = listOf(yoy.first, yoy.second)
+                            val maxKm = pair.maxOf { it.distanceKm.toFloat() }
+                            pair.forEachIndexed { i, p ->
+                                MeterRow(p.year.toString(), TripsFormatting.plain(p.distanceKm, 0) + " km", p.distanceKm.toFloat() / maxKm.coerceAtLeast(1f), Palette.Series[i])
+                            }
+                            PeriodRow(yoy.first)
+                            PeriodRow(yoy.second)
+                        }
                     }
-                    item { PeriodRow(yoy.first) }
-                    item { PeriodRow(yoy.second) }
                 }
 
                 if (view.tripTypes.isNotEmpty()) {
-                    item { HorizontalDivider() }
-                    item { Header(Texts.TRIP_TYPES_SECTION) }
                     item {
-                        Text(
-                            if (view.placesKnown) Texts.TRIP_TYPES_HINT else Texts.TRIP_TYPES_NO_PLACES,
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                    items(view.tripTypes, key = { "tt-" + it.type }) { summary ->
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(Texts.tripTypeName(summary.type), style = MaterialTheme.typography.titleSmall)
+                        DashboardCard(Texts.TRIP_TYPES_SECTION, "🧭") {
                             Text(
-                                listOf(
-                                    Texts.statsTrips(summary.trips),
-                                    TripsFormatting.plain(summary.distanceKm, 1) + " km",
-                                    summary.costPln?.let { TripsFormatting.money(it) } ?: Texts.NO_PRICE,
-                                ).joinToString(Texts.SEPARATOR),
-                                style = MaterialTheme.typography.bodyMedium,
+                                if (view.placesKnown) Texts.TRIP_TYPES_HINT else Texts.TRIP_TYPES_NO_PLACES,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
+                            val maxKm = view.tripTypes.maxOf { it.distanceKm.toFloat() }.coerceAtLeast(1f)
+                            view.tripTypes.forEachIndexed { i, summary ->
+                                MeterRow(
+                                    Texts.tripTypeName(summary.type),
+                                    TripsFormatting.plain(summary.distanceKm, 1) + " km",
+                                    summary.distanceKm.toFloat() / maxKm,
+                                    Palette.Series[i % Palette.Series.size],
+                                )
+                                Text(
+                                    listOf(
+                                        Texts.statsTrips(summary.trips),
+                                        summary.costPln?.let { TripsFormatting.money(it) } ?: Texts.NO_PRICE,
+                                    ).joinToString(Texts.SEPARATOR),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
                     }
                 }
 
                 if (view.evWeeks.isNotEmpty()) {
-                    item { HorizontalDivider() }
-                    item { Header(Texts.EV_WEEKS_SECTION) }
-                    item { EvWeeksBars(view.evWeeks) }
-                    items(view.evWeeks.asReversed(), key = { "ev-" + it.weekStart }) { week ->
-                        Text(EvWeeksFormatting.line(week), style = MaterialTheme.typography.bodySmall)
+                    item {
+                        DashboardCard(Texts.EV_WEEKS_SECTION, "🔋") {
+                            EvWeeksBars(view.evWeeks)
+                            Text(Texts.EV_WEEKS_HINT, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            view.evWeeks.asReversed().forEach { week ->
+                                Text(EvWeeksFormatting.line(week), style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
                     }
-                    item { Text(Texts.EV_WEEKS_HINT, style = MaterialTheme.typography.bodySmall) }
                 }
 
                 if (view.traffic.isNotEmpty()) {
-                    item { HorizontalDivider() }
-                    item { Header(Texts.TRAFFIC_SECTION) }
-                    item { Text(Texts.TRAFFIC_HINT, style = MaterialTheme.typography.bodySmall) }
-                    if (view.trafficLeftOut > 0) {
-                        item {
-                            Text(Texts.statsLeftOutTrips(view.trafficLeftOut, view.tripTotal), style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                    items(view.traffic, key = { "tr-" + it.trafficClass }) { row ->
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(Texts.trafficClassName(row.trafficClass), style = MaterialTheme.typography.titleSmall)
-                            Text(
-                                listOfNotNull(
-                                    Texts.statsTrips(row.trips),
-                                    TripsFormatting.plain(row.distanceKm, 1) + " km",
-                                    Texts.trafficConsumption(TripsFormatting.plain(row.litresPer100, 2)),
-                                    row.costPer100?.let { Texts.trafficCost(TripsFormatting.money(it)) } ?: Texts.NO_PRICE,
-                                    row.evSharePct?.let { Texts.weatherEv(TripsFormatting.plain(it, 0) + " %") },
-                                ).joinToString(Texts.SEPARATOR),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        }
-                    }
-                    view.trafficSurcharge?.let { extra ->
-                        item {
-                            Text(
-                                Texts.trafficSurcharge(
-                                    TripsFormatting.signed(extra.litresPer100, 2),
-                                    extra.costPer100?.let { TripsFormatting.signedMoney(it) },
-                                ),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
+                    item {
+                        DashboardCard(Texts.TRAFFIC_SECTION, "🚦") {
+                            Text(Texts.TRAFFIC_HINT, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (view.trafficLeftOut > 0) {
+                                Text(Texts.statsLeftOutTrips(view.trafficLeftOut, view.tripTotal), style = MaterialTheme.typography.bodySmall)
+                            }
+                            val maxL = view.traffic.maxOf { it.litresPer100.toFloat() }.coerceAtLeast(0.1f)
+                            view.traffic.forEach { row ->
+                                val color = when (row.trafficClass) {
+                                    TrafficClass.SLOW -> Palette.Red
+                                    TrafficClass.CITY -> Palette.Amber
+                                    TrafficClass.FLOWING -> Palette.Green
+                                    TrafficClass.HIGHWAY -> Palette.Blue
+                                }
+                                MeterRow(
+                                    Texts.trafficClassName(row.trafficClass),
+                                    TripsFormatting.plain(row.litresPer100, 2) + " l/100 km",
+                                    row.litresPer100.toFloat() / maxL,
+                                    color,
+                                )
+                                Text(
+                                    listOfNotNull(
+                                        Texts.statsTrips(row.trips),
+                                        TripsFormatting.plain(row.distanceKm, 1) + " km",
+                                        row.costPer100?.let { Texts.trafficCost(TripsFormatting.money(it)) } ?: Texts.NO_PRICE,
+                                        row.evSharePct?.let { Texts.weatherEv(TripsFormatting.plain(it, 0) + " %") },
+                                    ).joinToString(Texts.SEPARATOR),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            view.trafficSurcharge?.let { extra ->
+                                Text(
+                                    Texts.trafficSurcharge(
+                                        TripsFormatting.signed(extra.litresPer100, 2),
+                                        extra.costPer100?.let { TripsFormatting.signedMoney(it) },
+                                    ),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
                         }
                     }
                 }
 
-                item { HorizontalDivider() }
-                item { Header(Texts.STATS_YEARS) }
-                items(view.years.asReversed(), key = { "y-" + it.year }) { PeriodRow(it) }
+                item {
+                    DashboardCard(Texts.STATS_YEARS, "📅") {
+                        val years = view.years
+                        BarChart(
+                            years.map { ChartBar(it.distanceKm.toFloat(), it.year.toString(), TripsFormatting.plain(it.distanceKm, 0)) },
+                            color = Palette.Blue,
+                        )
+                        years.asReversed().forEach { PeriodRow(it) }
+                    }
+                }
 
-                item { HorizontalDivider() }
-                item { Header(Texts.STATS_SEASONS) }
-                items(view.seasons.asReversed(), key = { "s-" + it.year + it.season }) { PeriodRow(it) }
+                item {
+                    DashboardCard(Texts.STATS_SEASONS, "🍂") {
+                        view.seasons.asReversed().forEach { PeriodRow(it) }
+                    }
+                }
             }
         }
     }
-}
-
-@Composable
-private fun Header(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp))
 }
 
 @Composable
@@ -222,7 +256,7 @@ private fun EvWeeksBars(weeks: List<EvWeek>) {
                     modifier = Modifier
                         .width(14.dp)
                         .height(72.dp * (week.evSharePct.toFloat() / 100f).coerceIn(0.03f, 1f))
-                        .background(MaterialTheme.colorScheme.secondary),
+                        .background(Palette.score(week.evSharePct.toFloat() / 100f), androidx.compose.foundation.shape.RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)),
                 )
                 Text(EvWeeksFormatting.weekLabel(week), style = MaterialTheme.typography.labelSmall)
             }

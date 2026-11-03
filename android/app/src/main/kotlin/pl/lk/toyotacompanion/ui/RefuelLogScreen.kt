@@ -93,6 +93,18 @@ fun RefuelLogScreen(
                     ),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    if (state.levels.size >= 2) item(key = "levels") {
+                        DashboardCard(Texts.LEVEL_CHART_TITLE, "⛽") {
+                            val recent = state.levels.takeLast(LEVEL_CHART_MAX_POINTS)
+                            val step = (recent.size / LEVEL_CHART_MAX_POINTS.toFloat()).coerceAtLeast(1f)
+                            val points = recent.filterIndexed { i, _ -> i == recent.lastIndex || (i % step.toInt().coerceAtLeast(1)) == 0 }
+                            FuelLevelChart(
+                                points.map { it.ts.toEpochMilli() to it.levelPct },
+                                log.refuels.map { it.ts.toEpochMilli() },
+                            )
+                            Text(Texts.LEVEL_CHART_HINT, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
                     if (open != null) item(key = "open") { EconomyCard(open, title = Texts.LOG_CURRENT) }
                     items(log.refuels, key = { it.id }) { refuel ->
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -202,19 +214,28 @@ private fun Centered(innerPadding: PaddingValues, content: @Composable () -> Uni
 
 @Composable
 private fun RefuelRow(refuel: Refuel, zone: ZoneId, busy: Boolean, onAmend: () -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(
-            RefuelFormatting.time(refuel.ts, zone) + Texts.SEPARATOR +
-                RefuelFormatting.levelJump(refuel.levelBefore, refuel.levelAfter),
-            style = MaterialTheme.typography.titleSmall,
-        )
-        RefuelLogFormatting.litersLine(refuel)?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-        val money = listOfNotNull(
-            refuel.pricePerLiter?.let { TripsFormatting.pricePerLiter(it) },
-            refuel.totalCost?.let { TripsFormatting.money(it) },
-        )
-        if (money.isNotEmpty()) Text(money.joinToString(Texts.SEPARATOR), style = MaterialTheme.typography.bodyMedium)
-        TextButton(onClick = onAmend, enabled = !busy) { Text(Texts.AMEND_BUTTON) }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+    ) {
+        Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            EmojiBadge("⛽", Palette.Orange)
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    RefuelFormatting.time(refuel.ts, zone) + Texts.SEPARATOR +
+                        RefuelFormatting.levelJump(refuel.levelBefore, refuel.levelAfter),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                RefuelLogFormatting.litersLine(refuel)?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Palette.Blue) }
+                val money = listOfNotNull(
+                    refuel.pricePerLiter?.let { TripsFormatting.pricePerLiter(it) },
+                    refuel.totalCost?.let { TripsFormatting.money(it) },
+                )
+                if (money.isNotEmpty()) Text("💰 " + money.joinToString(Texts.SEPARATOR), style = MaterialTheme.typography.bodyMedium, color = Palette.Green)
+                TextButton(onClick = onAmend, enabled = !busy) { Text("✏️ " + Texts.AMEND_BUTTON) }
+            }
+        }
     }
 }
 
@@ -222,12 +243,16 @@ private fun RefuelRow(refuel: Refuel, zone: ZoneId, busy: Boolean, onAmend: () -
 private fun EconomyCard(interval: EconomyInterval, title: String?) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            title?.let { Text(it, style = MaterialTheme.typography.titleSmall) }
+            title?.let { Text("📉 " + it, style = MaterialTheme.typography.titleSmall) }
             Text(RefuelLogFormatting.economyLine(interval), style = MaterialTheme.typography.bodyMedium)
             Text(RefuelLogFormatting.detailLine(interval), style = MaterialTheme.typography.bodySmall)
         }
     }
 }
+
+/** The level chart shows the newest readings only (one every 30 minutes would be thousands of points). */
+private const val LEVEL_CHART_MAX_POINTS = 400

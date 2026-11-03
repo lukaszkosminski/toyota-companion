@@ -95,4 +95,9 @@ enum class Screen {
 
     /** The map of a trip or a parking place, shown in the app (docs/SPEC.md §26). */
     Map,
+    /** Expenses other than fuel: service, inspection, tyres... */
+    Expenses,
+
+    /** App options: the language. */
+    Options,
 }
