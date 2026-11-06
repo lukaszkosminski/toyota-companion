@@ -46,7 +46,7 @@ fun RefuelPromptDialog(
     val priceFocus = remember { FocusRequester() }
 
     // The whole point of F2c is that the user can type right away.
-    showKeyboardOnFocus(priceFocus, entry.id)
+    ShowKeyboardOnFocus(priceFocus, entry.id)
 
     AlertDialog(
         onDismissRequest = onLater,

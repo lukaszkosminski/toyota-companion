@@ -194,7 +194,7 @@ fun StatTile(value: String, caption: String, color: Color, modifier: Modifier = 
 
 /** A tinted strip with a section title and an emoji, to open a group of rows inside a long list. */
 @Composable
-fun SectionHeader(emoji: String, text: String, color: Color = MaterialTheme.colorScheme.primary, modifier: Modifier = Modifier) {
+fun SectionHeader(emoji: String, text: String, modifier: Modifier = Modifier, color: Color = MaterialTheme.colorScheme.primary) {
     Row(
         modifier = modifier.fillMaxWidth().padding(top = 12.dp),
         verticalAlignment = Alignment.CenterVertically,

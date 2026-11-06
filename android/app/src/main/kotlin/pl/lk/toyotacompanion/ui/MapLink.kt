@@ -4,8 +4,8 @@ import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
+import androidx.core.net.toUri
 import pl.lk.toyotacompanion.core.data.TripRecord
 
 /** Longest `geo:` link the app hands over: two coordinates of three decimals twice stay far below it. */
@@ -19,7 +19,7 @@ private const val MAX_GEO_URI_LENGTH = 64
  */
 fun openInMap(context: Context, uri: String) {
     require(uri.startsWith("geo:") && uri.length <= MAX_GEO_URI_LENGTH) { "Only a short geo: link may leave the app" }
-    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uri))
+    val intent = Intent(Intent.ACTION_VIEW, uri.toUri())
     if (context !is Activity) intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     try {
         context.startActivity(intent)

@@ -30,6 +30,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import android.Manifest
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
@@ -89,7 +90,10 @@ fun StatusScreen(
     val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     LaunchedEffect(Unit) {
-        if (askNotificationPermission()) askPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        // The permission exists from API 33; the decision is false below it anyway, the check states it for lint too.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && askNotificationPermission()) {
+            askPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
     }
 
     Scaffold(

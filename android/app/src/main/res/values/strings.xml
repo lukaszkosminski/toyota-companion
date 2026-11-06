@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Toyota Companion</string>
+    <!-- Fuel pump glyph in the consumption widget; a symbol, not a translatable word. -->
+    <string name="widget_fuel_emoji" translatable="false">⛽</string>
 </resources>

@@ -33,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -176,7 +177,7 @@ private fun AddExpenseDialog(
     var amount by rememberSaveable { mutableStateOf("") }
     var note by rememberSaveable { mutableStateOf("") }
     var invalid by rememberSaveable { mutableStateOf(false) }
-    var epochDay by rememberSaveable { mutableStateOf(LocalDate.now().toEpochDay()) }
+    var epochDay by rememberSaveable { mutableLongStateOf(LocalDate.now().toEpochDay()) }
     var pickingDate by rememberSaveable { mutableStateOf(false) }
 
     AlertDialog(

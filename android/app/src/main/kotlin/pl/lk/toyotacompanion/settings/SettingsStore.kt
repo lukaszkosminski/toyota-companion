@@ -1,6 +1,7 @@
 package pl.lk.toyotacompanion.settings
 
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import java.math.BigDecimal
 import java.time.Instant
 
@@ -40,12 +41,12 @@ class SettingsStore(private val prefs: SharedPreferences) {
     fun language(): String? = prefs.getString(KEY_LANGUAGE, null)
 
     fun saveLanguage(tag: String) {
-        prefs.edit().putString(KEY_LANGUAGE, tag).apply()
+        prefs.edit { putString(KEY_LANGUAGE, tag) }
     }
 
     /** Stores [price] as plain text; deciding the rounding is the caller's job (docs/SPEC.md §12.2). */
     fun saveDefaultPrice(price: BigDecimal) {
-        prefs.edit().putString(KEY_DEFAULT_PRICE, price.toPlainString()).apply()
+        prefs.edit { putString(KEY_DEFAULT_PRICE, price.toPlainString()) }
     }
 
     /** The consumption the maker declares, l/100 km, typed by the owner (docs/SPEC.md §30); `null` when never set or garbage. */
@@ -61,26 +62,26 @@ class SettingsStore(private val prefs: SharedPreferences) {
     }
 
     fun saveDeclaredConsumption(value: BigDecimal?) {
-        prefs.edit().apply { if (value == null) remove(KEY_DECLARED) else putString(KEY_DECLARED, value.toPlainString()) }.apply()
+        prefs.edit { if (value == null) remove(KEY_DECLARED) else putString(KEY_DECLARED, value.toPlainString()) }
     }
 
     /** Month (`YYYY-MM`) of the last "consumption keeps rising" notification (docs/SPEC.md §31). */
     fun lastConsumptionAlert(): String? = prefs.getString(KEY_ALERT, null)
 
     fun saveLastConsumptionAlert(key: String) {
-        prefs.edit().putString(KEY_ALERT, key).apply()
+        prefs.edit { putString(KEY_ALERT, key) }
     }
 
     /** Whether the weather of new trips is fetched on its own (docs/SPEC.md §23); on by default, the owner asked for it. */
     fun weatherAuto(): Boolean = prefs.getBoolean(KEY_WEATHER_AUTO, true)
 
     fun saveWeatherAuto(on: Boolean) {
-        prefs.edit().putBoolean(KEY_WEATHER_AUTO, on).apply()
+        prefs.edit { putBoolean(KEY_WEATHER_AUTO, on) }
     }
 
     /** Removes the setting; trips with no refuel before them fall back to "brak ceny". */
     fun clearDefaultPrice() {
-        prefs.edit().remove(KEY_DEFAULT_PRICE).apply()
+        prefs.edit { remove(KEY_DEFAULT_PRICE) }
     }
 
     /**
@@ -97,7 +98,7 @@ class SettingsStore(private val prefs: SharedPreferences) {
     /** Remembers that [id] was announced; the next synchronization leaves it alone. */
     fun markRefuelNotified(id: String) {
         val ids = notifiedRefuelIds() + id
-        prefs.edit().putString(KEY_NOTIFIED_REFUELS, ids.joinToString(",")).apply()
+        prefs.edit { putString(KEY_NOTIFIED_REFUELS, ids.joinToString(",")) }
     }
 
     /**
@@ -107,9 +108,9 @@ class SettingsStore(private val prefs: SharedPreferences) {
      */
     fun forgetNotifiedRefuel(id: String) {
         val ids = notifiedRefuelIds() - id
-        val editor = prefs.edit()
-        if (ids.isEmpty()) editor.remove(KEY_NOTIFIED_REFUELS) else editor.putString(KEY_NOTIFIED_REFUELS, ids.joinToString(","))
-        editor.apply()
+        prefs.edit {
+            if (ids.isEmpty()) remove(KEY_NOTIFIED_REFUELS) else putString(KEY_NOTIFIED_REFUELS, ids.joinToString(","))
+        }
     }
 
     /**
@@ -129,7 +130,7 @@ class SettingsStore(private val prefs: SharedPreferences) {
 
     /** Stores the moment of a successful archive export. */
     fun saveLastArchiveExport(at: Instant) {
-        prefs.edit().putLong(KEY_LAST_ARCHIVE_EXPORT, at.toEpochMilli()).apply()
+        prefs.edit { putLong(KEY_LAST_ARCHIVE_EXPORT, at.toEpochMilli()) }
     }
 
     /** Whether the runtime notification permission was already requested (docs/SPEC.md §13.2). */
@@ -137,7 +138,7 @@ class SettingsStore(private val prefs: SharedPreferences) {
 
     /** A refused permission is never asked for again. */
     fun markNotificationsAsked() {
-        prefs.edit().putBoolean(KEY_NOTIFICATIONS_ASKED, true).apply()
+        prefs.edit { putBoolean(KEY_NOTIFICATIONS_ASKED, true) }
     }
 
     private companion object {

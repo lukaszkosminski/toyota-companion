@@ -1,6 +1,7 @@
 package pl.lk.toyotacompanion.widget
 
 import android.content.Context
+import androidx.core.content.edit
 import java.math.BigDecimal
 import pl.lk.toyotacompanion.ui.ConsumptionView
 import pl.lk.toyotacompanion.ui.Texts
@@ -39,12 +40,14 @@ class WidgetSnapshotStore(context: Context) {
     )
 
     fun save(snapshot: WidgetSnapshot) {
-        prefs.edit().putString(MAIN, snapshot.main).putString(LINE2, snapshot.line2).putString(LINE3, snapshot.line3).apply()
+        prefs.edit {
+            putString(MAIN, snapshot.main).putString(LINE2, snapshot.line2).putString(LINE3, snapshot.line3)
+        }
     }
 
     /** Logout: the widget must not keep showing an account's numbers. */
     fun clear() {
-        prefs.edit().clear().apply()
+        prefs.edit { clear() }
     }
 
     private companion object {

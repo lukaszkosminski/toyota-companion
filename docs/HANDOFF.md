@@ -43,7 +43,7 @@
   wykryła tankowanie — `SyncWorker` i „Synchronizuj teraz” są tym samym traktowane. Id powiadomienia
   `NOTIFICATION_ID_BASE + Math.floorMod(id.hashCode(), 100000)` (`hashCode` bywa ujemny) jest również
   `requestCode` `PendingIntent`, który otwiera `MainActivity` (`launchMode="singleTop"` + `onNewIntent`, extra
-  `refuel_id`) i prowadzi prosto na pełny formularz ceny z fokusem w polu (`showKeyboardOnFocus`: fokus i
+  `refuel_id`) i prowadzi prosto na pełny formularz ceny z fokusem w polu (`ShowKeyboardOnFocus`: fokus i
   `LocalSoftwareKeyboardController.current?.show()` po pierwszej narysowanej klatce (`withFrameNanos`),
   z okna samego dialogu, nie z aktywności). Zbiór powiadomionych id i flaga
   „pytaliśmy już o uprawnienie” trzymamy w `SettingsStore` (plik jawny, to nie sekrety), więc powtórzona
@@ -58,7 +58,7 @@
   `container.askNotificationPermission` przez `AppRoot` do `StatusScreen`); po odmowie aplikacja działa jak
   wcześniej (okno + przyciski). Bez VIN, GPS i przebiegu w
   treści powiadomienia (`Texts.refuelNotificationText`, `RefuelFormatting.odometer` nie jest użyty). Dodano
-  `res/drawable/ic_stat_refuel.xml` (od C10 aplikacja ma ikonę launchera: `mipmap-anydpi-v26/ic_launcher*`; wcześniej poza
+  `res/drawable/ic_stat_refuel.xml` (od C10 aplikacja ma ikonę launchera: `mipmap-anydpi/ic_launcher*`; wcześniej poza
   zakresem C5). Po przeglądzie: deep link przy zimnym starcie czeka na `loggedIn`, `post()` zwraca `Boolean`,
   `suspend cancel` z `SettingsStore` na `io`, `screenChanged()`/`resolvedElsewhere(id)` zamiast odczytu bazy przy
   każdej zmianie ekranu, `NoVehicle` w C3 nie anuluje powiadomienia; testy app 181, core bez zmian 198.
@@ -83,7 +83,7 @@
   samych nazwach); odcinki „do pełna – do pełna”, litry `receipt`/`derived` (decyzja D7), próg 100 km (D8), dystans
   i paliwo komputera z tych samych tras. `SyncEngine.refuelLog()`, `RefuelLogController` (odczyt w callbacku nawigacji),
   ekran „Dziennik tankowań” ze statusu. Archiwum nie ma jeszcze potwierdzonych tankowań – na emulatorze tylko pusty stan.
-- Domknięcie MVP (C10): ikona aplikacji (adaptacyjna, wektorowa, `mipmap-anydpi-v26`, tło `#EB0A1E`, monochrome)
+- Domknięcie MVP (C10): ikona aplikacji (adaptacyjna, wektorowa, `mipmap-anydpi`, tło `#EB0A1E`, monochrome)
   i „Popraw litry” w dzienniku (SPEC §15.3, `SyncEngine.amendRefuel`, `RefuelChange.NotConfirmed`). Pierwszy etap w trybie
   równoległym: kod i testy app – agent 2, testy `core` i przegląd – agent 1.
 - Statystyki i postoje (C11, PRD F10, F11, F17, SPEC §16–§18, ADR-008): domena `tripstats.py` / `TripStatsOps.kt`

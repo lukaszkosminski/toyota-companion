@@ -22,7 +22,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
  * `IllegalStateException`; the keyboard is a convenience, never a reason to crash.
  */
 @Composable
-fun showKeyboardOnFocus(focusRequester: FocusRequester, key: Any?) {
+fun ShowKeyboardOnFocus(focusRequester: FocusRequester, key: Any?) {
     val keyboard = LocalSoftwareKeyboardController.current
     LaunchedEffect(key) {
         withFrameNanos { }

@@ -2,9 +2,9 @@ package pl.lk.toyotacompanion
 
 import android.app.backup.BackupManager
 import android.content.Context
-import android.net.Uri
 import android.os.Build
 import android.util.Log
+import androidx.core.net.toUri
 import androidx.room3.Room
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.work.WorkManager
@@ -350,12 +350,12 @@ class AppContainer(
             },
             writeFile = { target, bytes ->
                 // "wt": an existing file chosen again is replaced, not appended to.
-                val out = context.contentResolver.openOutputStream(Uri.parse(target), "wt")
+                val out = context.contentResolver.openOutputStream(target.toUri(), "wt")
                     ?: throw IOException("no output stream")
                 out.use { it.write(bytes) }
             },
             readFile = { source ->
-                val input = context.contentResolver.openInputStream(Uri.parse(source))
+                val input = context.contentResolver.openInputStream(source.toUri())
                     ?: throw IOException("no input stream")
                 input.use { readArchiveBytes(it) }
             },

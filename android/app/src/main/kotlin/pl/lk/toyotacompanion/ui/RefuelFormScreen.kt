@@ -122,7 +122,7 @@ fun RefuelFormScreen(
                 // Called from the notification: put the cursor in the price and open the keyboard.
                 // Only here, where the field exists: on a cold start the form shows the loading
                 // text first, and a focus asked for before the field is composed is lost for good.
-                if (focusPriceOnOpen) showKeyboardOnFocus(priceFocus, id)
+                if (focusPriceOnOpen) ShowKeyboardOnFocus(priceFocus, id)
 
                 DashboardCard(Texts.REFUEL_FORM_TITLE, "⛽") {
                     Row(

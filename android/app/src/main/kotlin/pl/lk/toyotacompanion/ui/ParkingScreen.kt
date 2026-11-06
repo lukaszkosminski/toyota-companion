@@ -92,7 +92,7 @@ fun ParkingScreen(
 
                 // Stops without coordinates form no place: then the section is left out.
                 if (log.places.isNotEmpty()) {
-                    item { SectionHeader("📍", Texts.PARKING_PLACES, Palette.Blue) }
+                    item { SectionHeader("📍", Texts.PARKING_PLACES, color = Palette.Blue) }
                     items(log.places, key = { "p-" + it.lat + "," + it.lon }) { place ->
                         val isHome = known?.home?.let { it.lat == place.lat && it.lon == place.lon } == true
                         val isWork = known?.work?.let { it.lat == place.lat && it.lon == place.lon } == true
@@ -144,7 +144,7 @@ fun ParkingScreen(
                     }
                 }
 
-                item { SectionHeader("⏱️", Texts.PARKING_RECENT, Palette.Teal) }
+                item { SectionHeader("⏱️", Texts.PARKING_RECENT, color = Palette.Teal) }
                 items(log.stops.take(RECENT_STOPS), key = { "s-" + it.from }) { stop ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),

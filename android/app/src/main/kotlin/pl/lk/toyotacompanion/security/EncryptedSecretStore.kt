@@ -3,6 +3,7 @@ package pl.lk.toyotacompanion.security
 import android.content.SharedPreferences
 import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.util.Base64
+import androidx.core.content.edit
 import javax.crypto.AEADBadTagException
 
 /**
@@ -21,7 +22,7 @@ class EncryptedSecretStore(
     fun putText(key: String, value: String) {
         val blob = cipher.encrypt(value.toByteArray(Charsets.UTF_8), key.toByteArray(Charsets.UTF_8))
         // commit(): a just-entered password must be on disk before the caller moves on.
-        prefs.edit().putString(key, Base64.encodeToString(blob, Base64.NO_WRAP)).commit()
+        prefs.edit(commit = true) { putString(key, Base64.encodeToString(blob, Base64.NO_WRAP)) }
     }
 
     fun getText(key: String): String? {
@@ -33,7 +34,7 @@ class EncryptedSecretStore(
             // Only permanent damage deletes the entry. Anything else (e.g. a transient
             // KeyStoreException/ProviderException right after boot) must not destroy the
             // owner's password: report "no value" and keep the entry for the next attempt.
-            if (isPermanent(e)) prefs.edit().remove(key).commit()
+            if (isPermanent(e)) prefs.edit(commit = true) { remove(key) }
             null
         }
     }
@@ -45,6 +46,7 @@ class EncryptedSecretStore(
             e is KeyPermanentlyInvalidatedException
 
     fun remove(key: String) {
-        prefs.edit().remove(key).commit()
+        // commit(): the caller expects the secret gone from disk when this returns.
+        prefs.edit(commit = true) { remove(key) }
     }
 }
