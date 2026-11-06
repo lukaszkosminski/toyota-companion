@@ -100,8 +100,9 @@ class WeatherImpact:
 def temperature_bucket(temp_mean: Decimal | None) -> TemperatureBucket | None:
     """Bucket of a day by its mean temperature, half-open intervals; ``None`` without a value.
 
-    Deep frost is below -10 °C, frost is -10 °C up to 0 °C and a mean of exactly 0 °C is still "cold"; the upper edge of a bucket
-    belongs to the next one, so -10 °C is frost, 10 °C is mild and 20 °C is warm.
+    Deep frost is below -10 °C, frost is -10 °C up to 0 °C and a mean of exactly 0 °C is still
+    "cold"; the upper edge of a bucket belongs to the next one, so -10 °C is frost, 10 °C is mild
+    and 20 °C is warm.
     """
     if temp_mean is None:
         return None

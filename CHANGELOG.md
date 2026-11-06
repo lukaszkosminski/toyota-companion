@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- Synchronizacja i ekran pogody liczą datę przez `atZone().toLocalDate()` zamiast `LocalDate.ofInstant` (metoda z API 34): na Androidzie 10–13 dawało to `NoSuchMethodError`, którego `catch (Exception)` nie łapie, więc synchronizacja kończyła się po cichu, a ekran pogody zostawał na „Ładowanie” (SPEC §8, §23)
+- Lint Androida (`:app:lintDebug`) w CI: brak sprawdzenia uprawnienia `POST_NOTIFICATIONS` przy powiadomieniu i użycie metody spoza API 29 blokują build; test `ApiLevelGuardTest` pilnuje, żeby klasy `core` i `app` nie nazywały metod `java.time` z API 34 (bez desugaringu)
+- Backend: zawinięty zbyt długi wiersz dokumentacji `temperature_bucket` (E501 w `app/domain/weather.py`)
 - Karta kosztów: nagłówek to średnia na miesiąc, suma całego archiwum podpisana okresem (SPEC §24)
 - Czytelniejszy ekran statusu: karty, duże liczby, kolorowy trend, kafelki menu, grupowanie tysięcy (SPEC §10.4)
 - Jazda na prądzie w tygodniach w „Statystykach” (F35, SPEC §36)

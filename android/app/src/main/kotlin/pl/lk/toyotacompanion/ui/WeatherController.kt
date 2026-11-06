@@ -273,6 +273,10 @@ class WeatherController(
         )
     }
 
-    /** The local date of the phone: the clock that dates the trips, so "yesterday" means the same for both. */
-    private fun today(): LocalDate = LocalDate.ofInstant(clock(), zone())
+    /**
+     * The local date of the phone: the clock that dates the trips, so "yesterday" means the same for both.
+     * `atZone().toLocalDate()` rather than `LocalDate.ofInstant`: the latter needs API 34 on Android and the app
+     * runs on API 29+ (docs/SPEC.md §23).
+     */
+    private fun today(): LocalDate = clock().atZone(zone()).toLocalDate()
 }

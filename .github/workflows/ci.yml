@@ -58,6 +58,11 @@ jobs:
       - name: Core + app unit tests, debug APK
         run: ./gradlew --no-daemon :core:test :app:testDebugUnitTest :app:assembleDebug
 
+      # Android lint: API-level regressions (NewApi) and missing runtime permissions (MissingPermission)
+      # are errors here; without this step they only show up on the owner's phone.
+      - name: Android lint
+        run: ./gradlew --no-daemon :app:lintDebug
+
   secrets-scan:
     runs-on: ubuntu-latest
     permissions:

@@ -416,7 +416,9 @@ class SyncEngine(
         }
 
         // 3. Trips since the watermark, with an overlap for late-arriving trips.
-        val today = LocalDate.ofInstant(clock(), ZoneOffset.UTC)
+        // `atZone().toLocalDate()` instead of `LocalDate.ofInstant`: the latter is API 34 on Android and the
+        // app runs on API 29+, so it would be a NoSuchMethodError there (docs/SPEC.md §8).
+        val today = clock().atZone(ZoneOffset.UTC).toLocalDate()
         val from = stored.watermarkEpochDay
             ?.let { LocalDate.ofEpochDay(it).minusDays(config.tripBookmarkOverlapDays) }
             ?: today.minusDays(config.firstSyncWindowDays.toLong())

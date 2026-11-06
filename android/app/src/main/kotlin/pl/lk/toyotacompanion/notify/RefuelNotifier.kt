@@ -1,5 +1,6 @@
 package pl.lk.toyotacompanion.notify
 
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -82,6 +83,10 @@ open class RefuelNotifier(
      * Posts one heads-up notification about [refuel]; `false` when nothing was posted
      * because the permission is missing. Overridable so a test can make it fail.
      */
+    // [canPost] checks `POST_NOTIFICATIONS`; lint cannot look into the injected lambda, and a post without the
+    // permission on API 33+ is dropped silently, never thrown (docs/SPEC.md §13.2). Keeping the check in the seam
+    // is what lets the tests post without the platform permission.
+    @SuppressLint("MissingPermission")
     open fun post(refuel: Refuel): Boolean {
         if (!canPost()) return false
         val manager = NotificationManagerCompat.from(context)

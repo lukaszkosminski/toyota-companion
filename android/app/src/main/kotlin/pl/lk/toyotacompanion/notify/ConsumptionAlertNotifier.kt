@@ -1,5 +1,6 @@
 package pl.lk.toyotacompanion.notify
 
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
@@ -55,6 +56,10 @@ open class ConsumptionAlertNotifier(
     }
 
     /** Posts the notification; `false` when nothing was posted. Overridable so a test can see it. */
+    // [canPost] checks `POST_NOTIFICATIONS` (and the channel); lint cannot look into the injected lambda. A post
+    // without the permission on API 33+ is dropped silently, never thrown, so nothing here can crash
+    // (docs/SPEC.md §13.2). Keeping the check in the seam is what lets the tests post without the platform.
+    @SuppressLint("MissingPermission")
     open fun post(alert: RisingAlert): Boolean {
         if (!canPost()) return false
         val manager = NotificationManagerCompat.from(context)
