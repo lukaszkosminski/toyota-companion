@@ -171,8 +171,9 @@ class AppContainer(
     /**
      * Saves the numbers of the home-screen widget and repaints it (PRD F31, docs/SPEC.md §32): from the archive and the
      * settings only, after every successful synchronization. Never breaks the synchronization.
+     * "Synchronizuj teraz" calls it from the UI scope, so the preferences write and the repaint go to IO.
      */
-    suspend fun refreshWidget() {
+    suspend fun refreshWidget() = withContext(Dispatchers.IO) {
         try {
             val trips = syncEngine.trips()
             val view = pl.lk.toyotacompanion.ui.consumptionView(trips, ZoneId.systemDefault())

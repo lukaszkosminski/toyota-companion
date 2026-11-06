@@ -2,6 +2,9 @@
 
 ## Unreleased
 - Synchronizacja i ekran pogody liczą datę przez `atZone().toLocalDate()` zamiast `LocalDate.ofInstant` (metoda z API 34): na Androidzie 10–13 dawało to `NoSuchMethodError`, którego `catch (Exception)` nie łapie, więc synchronizacja kończyła się po cichu, a ekran pogody zostawał na „Ładowanie” (SPEC §8, §23)
+- 401 z API Toyoty → jednorazowe odnowienie tokenu i powtórzenie żądania, nieudane odnowienie = prośba o ponowne logowanie
+- Wylogowanie czyści też listę wydatków
+- Odświeżanie widżetu poza wątkiem UI
 - Lint Androida (`:app:lintDebug`) w CI: brak sprawdzenia uprawnienia `POST_NOTIFICATIONS` przy powiadomieniu i użycie metody spoza API 29 blokują build; test `ApiLevelGuardTest` pilnuje, żeby klasy `core` i `app` nie nazywały metod `java.time` z API 34 (bez desugaringu)
 - Backend: zawinięty zbyt długi wiersz dokumentacji `temperature_bucket` (E501 w `app/domain/weather.py`)
 - Karta kosztów: nagłówek to średnia na miesiąc, suma całego archiwum podpisana okresem (SPEC §24)

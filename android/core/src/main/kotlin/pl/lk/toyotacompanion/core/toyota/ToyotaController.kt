@@ -228,6 +228,10 @@ class ToyotaController(
      * Authorized data request with retry on 429/5xx: backoffs (2,4,8)s,
      * max 4 attempts total; accepts 200/202.
      * pytoyoda controller.py:394-487 (hishel caching and body/params not needed here).
+     *
+     * Not in pytoyoda: a 401 means the server dropped the access token before its
+     * expiration, so the token is renewed once (refresh, then full login) and the
+     * request repeated. A failed renewal surfaces as [ToyotaLoginException].
      */
     suspend fun request(
         method: String = "GET",
@@ -235,6 +239,25 @@ class ToyotaController(
         vin: String? = null,
     ): String {
         val token = if (currentTokenValid()) requireNotNull(tokenInfo) else updateToken()
+        try {
+            return requestWith(token, method, endpoint, vin)
+        } catch (e: ToyotaApiException) {
+            if (e.statusCode != HTTP_UNAUTHORIZED) {
+                throw e
+            }
+        }
+        val expired = token.copy(expiration = clock())
+        tokenInfo = expired
+        tokenStore.save(username, expired)
+        return requestWith(updateToken(), method, endpoint, vin)
+    }
+
+    private suspend fun requestWith(
+        token: TokenInfo,
+        method: String,
+        endpoint: String,
+        vin: String?,
+    ): String {
         val headers = ToyotaHeaders.dataHeaders(
             uuid = token.uuid,
             accessToken = token.accessToken,
@@ -342,6 +365,7 @@ class ToyotaController(
 private const val HTTP_OK = 200
 private const val HTTP_ACCEPTED = 202
 private const val HTTP_FOUND = 302
+private const val HTTP_UNAUTHORIZED = 401
 private const val HTTP_TOO_MANY_REQUESTS = 429
 private const val HTTP_INTERNAL_ERROR = 500
 

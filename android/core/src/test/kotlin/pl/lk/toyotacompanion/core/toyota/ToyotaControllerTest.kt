@@ -317,6 +317,66 @@ class ToyotaControllerTest {
         }
     }
 
+    // ---------------- 401: renew the token once ----------------
+
+    @Test
+    fun `request_401_renews_token_and_repeats_once`() = runBlocking {
+        MockWebServer().apply { start() }.use { server ->
+            val store = InMemoryTokenStore()
+            store.save(USER, validToken(refresh = "REFRESH-MOCK-1"))
+            server.enqueue(MockResponse.Builder().code(401).body("revoked").build())
+            server.enqueue(jsonResponse("tokens_refreshed.json"))
+            server.enqueue(MockResponse.Builder().code(200).body("""{"ok":true}""").build())
+
+            val body = ToyotaController(USER, PASS, OkHttpClient(), urls = urlsFor(server), tokenStore = store)
+                .request("GET", "/v3/telemetry")
+
+            assertTrue(body.contains("ok"))
+            assertEquals("Bearer ACCESS-PRE", server.takeRequest().headers["authorization"])
+            val refreshReq = server.takeRequest()
+            assertEquals("/token", refreshReq.url.encodedPath)
+            assertTrue(requireNotNull(refreshReq.body).utf8().contains("grant_type=refresh_token"))
+            assertEquals("Bearer ACCESS-MOCK-2", server.takeRequest().headers["authorization"])
+            assertEquals("ACCESS-MOCK-2", requireNotNull(store.load(USER)).accessToken)
+        }
+    }
+
+    @Test
+    fun `request_401_with_failed_renewal_raises_login_exception`() = runBlocking {
+        MockWebServer().apply { start() }.use { server ->
+            val store = InMemoryTokenStore()
+            store.save(USER, validToken(refresh = "REFRESH-MOCK-1"))
+            server.enqueue(MockResponse.Builder().code(401).body("revoked").build())
+            server.enqueue(MockResponse.Builder().code(400).body("invalid_grant").build())
+            server.enqueue(MockResponse.Builder().code(401).body("bad credentials").build())
+
+            assertFailsWith<ToyotaLoginException> {
+                ToyotaController(USER, PASS, OkHttpClient(), urls = urlsFor(server), tokenStore = store)
+                    .request("GET", "/v3/telemetry")
+            }
+            // data GET + refresh POST + first authenticate POST
+            assertEquals(3, server.requestCount)
+        }
+    }
+
+    @Test
+    fun `request_401_after_renewal_is_not_repeated_again`() = runBlocking {
+        MockWebServer().apply { start() }.use { server ->
+            val store = InMemoryTokenStore()
+            store.save(USER, validToken(refresh = "REFRESH-MOCK-1"))
+            server.enqueue(MockResponse.Builder().code(401).body("revoked").build())
+            server.enqueue(jsonResponse("tokens_refreshed.json"))
+            server.enqueue(MockResponse.Builder().code(401).body("still no").build())
+
+            val ex = assertFailsWith<ToyotaApiException> {
+                ToyotaController(USER, PASS, OkHttpClient(), urls = urlsFor(server), tokenStore = store)
+                    .request("GET", "/v3/telemetry")
+            }
+            assertEquals(401, ex.statusCode)
+            assertEquals(3, server.requestCount)
+        }
+    }
+
     private fun urlsFor(server: MockWebServer) = ToyotaUrls(
         apiBase = server.url("/").toString().trimEnd('/'),
         authenticate = server.url("/authenticate").toString(),

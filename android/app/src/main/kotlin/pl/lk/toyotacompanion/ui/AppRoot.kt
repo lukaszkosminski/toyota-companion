@@ -110,6 +110,7 @@ fun AppRoot(
             stationPrices.reset()
             tripRoute.close()
             yearSummary.reset()
+            expenses.reset()
             backfill.reset()
             heat.close()
             // The widget must not keep an account's numbers after logout (docs/SPEC.md §32).

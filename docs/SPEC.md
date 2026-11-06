@@ -126,6 +126,9 @@ Zapis typów w Room (`android/app/.../data/db`, `AppDatabase` v1, schemat w `and
 ### §8.4 Błędy
 - Rodzaje: `LOGIN`, `NO_CREDENTIALS`, `NO_VEHICLE` (bez ponawiania, UI prosi o działanie),
   `API`, `NETWORK`, `DATA`, `STORAGE` (ponawiane przez WorkManager).
+- HTTP 401 z API danych (token odrzucony przed swoim terminem): `ToyotaController.request` raz odnawia token
+  (refresh, a gdy się nie uda – pełne logowanie) i powtarza żądanie. Nieudane odnowienie to `LOGIN` (UI prosi
+  o ponowne logowanie); drugie 401 po odnowieniu to `API`, bez kolejnych prób. Odejście od pytoyody, która 401 nie obsługuje.
 - `STORAGE` – lokalnego archiwum nie dało się odczytać ani zapisać (Room, pełny dysk). Błędy gatewaya są
   klasyfikowane tam, gdzie powstają (`classify`); wszystko, co mimo to wyjdzie z kroków synchronizacji, łapie
   `guarded` i zamienia na `STORAGE`. Komunikat zawiera tylko nazwę klasy wyjątku, nigdy jego treść. W kroku
