@@ -101,6 +101,13 @@ fun RefuelLogScreen(
                             FuelLevelChart(
                                 points.map { it.ts.toEpochMilli() to it.levelPct },
                                 log.refuels.map { it.ts.toEpochMilli() },
+                                description = Texts.levelChartDescription(
+                                    points.minOf { it.levelPct },
+                                    points.maxOf { it.levelPct },
+                                    points.last().levelPct,
+                                    // The same refuels the chart draws: inside the time span of the line.
+                                    log.refuels.count { it.ts >= points.first().ts && it.ts <= points.last().ts },
+                                ),
                             )
                             Text(Texts.LEVEL_CHART_HINT, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
@@ -227,12 +234,12 @@ private fun RefuelRow(refuel: Refuel, zone: ZoneId, busy: Boolean, onAmend: () -
                         RefuelFormatting.levelJump(refuel.levelBefore, refuel.levelAfter),
                     style = MaterialTheme.typography.titleSmall,
                 )
-                RefuelLogFormatting.litersLine(refuel)?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Palette.Blue) }
+                RefuelLogFormatting.litersLine(refuel)?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = readable(Palette.Blue)) }
                 val money = listOfNotNull(
                     refuel.pricePerLiter?.let { TripsFormatting.pricePerLiter(it) },
                     refuel.totalCost?.let { TripsFormatting.money(it) },
                 )
-                if (money.isNotEmpty()) Text("💰 " + money.joinToString(Texts.SEPARATOR), style = MaterialTheme.typography.bodyMedium, color = Palette.Green)
+                if (money.isNotEmpty()) Text("💰 " + money.joinToString(Texts.SEPARATOR), style = MaterialTheme.typography.bodyMedium, color = readable(Palette.Green))
                 TextButton(onClick = onAmend, enabled = !busy) { Text("✏️ " + Texts.AMEND_BUTTON) }
             }
         }

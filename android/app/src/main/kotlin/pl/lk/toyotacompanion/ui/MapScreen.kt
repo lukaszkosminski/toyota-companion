@@ -128,7 +128,7 @@ fun MapScreen(title: String, points: List<MapPoint>, route: RouteState, onBack: 
                 Text(
                     (if (heat != HeatState.None) "🔥 " else "🛣️ ") + routeNote,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Palette.Blue,
+                    color = readable(Palette.Blue),
                 )
                 Text(
                     "🔒 " + Texts.MAP_NOTE,

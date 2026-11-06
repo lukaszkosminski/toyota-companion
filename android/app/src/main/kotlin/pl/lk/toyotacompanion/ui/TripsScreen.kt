@@ -224,14 +224,14 @@ private fun TripRow(stored: StoredTrip, zone: ZoneId, day: pl.lk.toyotacompanion
                 Text(
                     "📏 " + TripsFormatting.kilometers(trip.distanceKm) + Texts.SEPARATOR + "⛽ " + TripsFormatting.liters(trip.fuelL),
                     style = MaterialTheme.typography.bodySmall,
-                    color = Palette.Blue,
+                    color = readable(Palette.Blue),
                 )
                 // Consumption of the trip itself, l/100 km; a very short drive says nothing, so it is left out under 1 km.
                 tripConsumption(trip.distanceKm, trip.fuelL)?.let { value ->
                     Text(
                         "📉 " + RefuelLogFormatting.consumption(value),
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (value.toFloat() <= 5f) Palette.Green else if (value.toFloat() <= 7f) Palette.Amber else Palette.Red,
+                        color = readable(if (value.toFloat() <= 5f) Palette.Green else if (value.toFloat() <= 7f) Palette.Amber else Palette.Red),
                     )
                 }
                 // Weather of the day and the place the trip started at; nothing until it has been fetched.

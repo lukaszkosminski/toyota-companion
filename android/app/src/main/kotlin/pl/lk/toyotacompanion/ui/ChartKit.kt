@@ -24,6 +24,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
@@ -55,7 +58,10 @@ object Palette {
 /** One vertical bar of [BarChart]: [value] drives the height, [top] is printed above it, [label] below. */
 data class ChartBar(val value: Float, val label: String, val top: String? = null, val color: Color? = null)
 
-/** Vertical bars drawn on a canvas with a faint baseline grid; [max] fixes the axis (default: the tallest bar). */
+/**
+ * Vertical bars drawn on a canvas with a faint baseline grid; [max] fixes the axis (default: the tallest bar). A value of
+ * zero or less draws no bar, only the baseline. A screen reader reads each column (top text and label) as one item.
+ */
 @Composable
 fun BarChart(
     bars: List<ChartBar>,
@@ -70,10 +76,12 @@ fun BarChart(
     Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.Bottom) {
         for (bar in bars) {
             val barColor = bar.color ?: color
-            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(modifier = Modifier.weight(1f).semantics(mergeDescendants = true) {}, horizontalAlignment = Alignment.CenterHorizontally) {
                 if (bar.top != null) Text(bar.top, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                 Canvas(modifier = Modifier.fillMaxWidth().height(height)) {
                     drawLine(grid, Offset(0f, size.height), Offset(size.width, size.height), strokeWidth = 2f)
+                    if (bar.value <= 0f) return@Canvas
+                    // A small positive value keeps a visible stub; zero is no bar at all.
                     val h = size.height * (bar.value / axis).coerceIn(0.02f, 1f)
                     val w = size.width * 0.7f
                     drawRoundRect(
@@ -140,32 +148,37 @@ fun RingGauge(
     }
 }
 
-/** A label with a value on the right and a thin coloured bar under it, [fraction] of the full width. */
+/**
+ * A label with a value on the right and a thin coloured bar under it, [fraction] of the full width (none for zero).
+ * The value text takes a readable tone of [color]; the bar keeps the palette colour.
+ */
 @Composable
 fun MeterRow(label: String, value: String, fraction: Float, color: Color, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(label, style = MaterialTheme.typography.bodyMedium)
-            Text(value, style = MaterialTheme.typography.labelLarge, color = color)
+            Text(value, style = MaterialTheme.typography.labelLarge, color = readable(color))
         }
         val track = MaterialTheme.colorScheme.surfaceContainerHighest
         Canvas(modifier = Modifier.fillMaxWidth().height(8.dp)) {
             drawRoundRect(track, size = size, cornerRadius = CornerRadius(size.height / 2))
-            drawRoundRect(color, size = Size(size.width * fraction.coerceIn(0.02f, 1f), size.height), cornerRadius = CornerRadius(size.height / 2))
+            if (fraction > 0f) {
+                drawRoundRect(color, size = Size(size.width * fraction.coerceIn(0.02f, 1f), size.height), cornerRadius = CornerRadius(size.height / 2))
+            }
         }
     }
 }
 
-/** A coloured round badge with an emoji, for list rows. */
+/** A coloured round badge with an emoji, for list rows. Decorative: a screen reader skips it, the row text says it all. */
 @Composable
 fun EmojiBadge(emoji: String, color: Color, modifier: Modifier = Modifier) {
     Box(
-        modifier = modifier.size(40.dp).background(color.copy(alpha = 0.18f), RoundedCornerShape(50)),
+        modifier = modifier.size(40.dp).background(color.copy(alpha = 0.18f), RoundedCornerShape(50)).clearAndSetSemantics {},
         contentAlignment = Alignment.Center,
     ) { Text(emoji, style = MaterialTheme.typography.titleMedium) }
 }
 
-/** A small number tile: [value] big in [color], [caption] under it. Put several in a [Row] with weight. */
+/** A small number tile: [value] big in a readable tone of [color] on its tint, [caption] under it. Put several in a [Row] with weight. */
 @Composable
 fun StatTile(value: String, caption: String, color: Color, modifier: Modifier = Modifier) {
     Column(
@@ -174,7 +187,7 @@ fun StatTile(value: String, caption: String, color: Color, modifier: Modifier = 
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Text(value, style = MaterialTheme.typography.titleLarge, color = color)
+        Text(value, style = MaterialTheme.typography.titleLarge, color = readable(color, tint = color.copy(alpha = 0.12f)))
         Text(caption, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -188,13 +201,14 @@ fun SectionHeader(emoji: String, text: String, color: Color = MaterialTheme.colo
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         EmojiBadge(emoji, color)
-        Text(text, style = MaterialTheme.typography.titleMedium, color = color)
+        Text(text, style = MaterialTheme.typography.titleMedium, color = readable(color))
     }
 }
 
 /**
  * The tank level over time: a line of [levels] (percent, oldest first, any spacing) with a dot where a refuel happened
- * ([refuelTimes], epoch millis). The x axis is time, so gaps between readings look like gaps.
+ * ([refuelTimes], epoch millis). The x axis is time, so gaps between readings look like gaps. [description] is what a
+ * screen reader says for the whole chart (it has no text of its own).
  */
 @Composable
 fun FuelLevelChart(
@@ -204,12 +218,14 @@ fun FuelLevelChart(
     color: Color = Palette.Blue,
     dot: Color = Palette.Orange,
     height: androidx.compose.ui.unit.Dp = 140.dp,
+    description: String? = null,
 ) {
     if (levels.size < 2) return
     val grid = MaterialTheme.colorScheme.outlineVariant
     val t0 = levels.first().first
     val span = (levels.last().first - t0).coerceAtLeast(1L).toFloat()
-    Canvas(modifier = modifier.fillMaxWidth().height(height)) {
+    val described = if (description == null) modifier else modifier.semantics { contentDescription = description }
+    Canvas(modifier = described.fillMaxWidth().height(height)) {
         val pad = 10f
         fun x(t: Long) = pad + (size.width - 2 * pad) * ((t - t0) / span).coerceIn(0f, 1f)
         fun y(pct: Int) = pad + (size.height - 2 * pad) * (1f - pct.coerceIn(0, 100) / 100f)

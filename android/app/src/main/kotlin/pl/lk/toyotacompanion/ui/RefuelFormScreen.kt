@@ -187,7 +187,7 @@ fun RefuelFormScreen(
                                     Texts.refuelEstimateHint(RefuelFormatting.liters(estimate))
                                 },
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Palette.Blue,
+                                color = readable(Palette.Blue),
                                 modifier = Modifier.weight(1f),
                             )
                             if (litersFromEstimate) {

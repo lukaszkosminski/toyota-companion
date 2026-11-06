@@ -130,7 +130,7 @@ fun DrivingStyleScreen(
                                         DrivingStyleFormatting.excess(anomaly.excessPct),
                                     ),
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = Palette.Red,
+                                    color = readable(Palette.Red),
                                 )
                             }
                         }

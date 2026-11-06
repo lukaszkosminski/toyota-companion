@@ -136,10 +136,10 @@ private fun RefuelRow(refuel: Refuel, zone: ZoneId, enabled: Boolean, onEdit: ()
                 Text(
                     "⛽ " + RefuelFormatting.levelJump(refuel.levelBefore, refuel.levelAfter),
                     style = MaterialTheme.typography.bodySmall,
-                    color = Palette.Orange,
+                    color = readable(Palette.Orange),
                 )
             }
-            Text("📏 " + RefuelFormatting.odometer(refuel.odometerKm), style = MaterialTheme.typography.bodySmall, color = Palette.Blue)
+            Text("📏 " + RefuelFormatting.odometer(refuel.odometerKm), style = MaterialTheme.typography.bodySmall, color = readable(Palette.Blue))
             Text("✏️", style = MaterialTheme.typography.bodyMedium)
         }
     }

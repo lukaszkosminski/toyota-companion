@@ -291,6 +291,12 @@ Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – �
 - Menu to kafelki po dwa w rzędzie, o równej wysokości w rzędzie, z emoji nad etykietą, każdy kafelek co najmniej 88 dp wysoki: Trasy, Dziennik tankowań, Statystyki, Styl jazdy,
   Podsumowanie roku, Pogoda i spalanie, Postoje, cena domyślna (z wartością) i Kopia i eksport. Przypomnienie o kopii zostaje pod menu.
 - Liczby do wyświetlania grupują tysiące twardą spacją („1 182,89 zł”, „4 625,9 km”), żeby długa kwota nie łamała się w środku; eksport CSV i formy `plain` nie grupują.
+- Kontrast (WCAG AA): tekst w kolorze palety (`Palette` w `ui/ChartKit.kt`: wartości `StatTile`, `MeterRow`, tytuł `SectionHeader`, etykieta `MenuTile`, treść `Pill`, kolorowe wiersze
+  ekranów) idzie przez `readable` z `ui/Contrast.kt`: ta sama barwa przyciemniana (jasny motyw) albo rozjaśniana (ciemny) aż do 4,5:1 względem `surfaceContainerHigh`, z tłem kafelka
+  lub pigułki nałożonym na kartę. Wypełnienia (słupki, pierścienie, paski) zostają w kolorach palety.
+- Słupki i paski: wartość 0 (miesiąc bez kosztu, 0 km) nie rysuje słupka, tylko linię bazową; dodatnia kwota w „Kosztach miesięcznych” ma co najmniej 3 % wysokości (`costBarShare`).
+- Czytnik ekranu: ozdobne emoji kart, kafelków i odznak są pomijane (czytany jest tytuł lub etykieta); kolumna słupka (wartość i miesiąc) czytana jako jedna pozycja; wykres poziomu
+  paliwa w „Dzienniku tankowań” ma opis (najniższy i najwyższy poziom, ostatni odczyt, liczba tankowań).
 
 ### §11.1 Operacje w `core`
 - `pendingRefuels(): List<Refuel>` — oczekujące tankowania wybranego VIN (`state.get().vin`), najnowsze pierwsze

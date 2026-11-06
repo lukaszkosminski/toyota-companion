@@ -1120,6 +1120,12 @@ object Texts {
     val LEVEL_CHART_TITLE: String get() = Lang.pick("Poziom paliwa w czasie", "Fuel level over time")
     val LEVEL_CHART_HINT: String get() = Lang.pick("Pomarańczowe kropki to wykryte tankowania.", "Orange dots are detected refuels.")
 
+    /** What a screen reader says for the tank level chart, which has no text of its own. */
+    fun levelChartDescription(lowest: Int, highest: Int, last: Int, refuels: Int): String = Lang.pick(
+        "Wykres poziomu paliwa: od $lowest do $highest %, ostatni odczyt $last %, tankowania: $refuels.",
+        "Tank level chart: from $lowest to $highest %, last reading $last %, refuels: $refuels.",
+    )
+
     // Other expenses (service, inspection, tyres...), separate from fuel.
     val EXPENSES_TITLE: String get() = Lang.pick("Wydatki", "Expenses")
     val EXPENSES_ADD: String get() = Lang.pick("Dodaj wydatek", "Add expense")

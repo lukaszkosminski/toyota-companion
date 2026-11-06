@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Czytelność: kolorowe teksty (kafelki, pigułki, wartości pasków, wiersze list) mają kontrast co najmniej 4,5:1 w jasnym i ciemnym motywie; miesiąc bez kosztu nie ma słupka; czytnik ekranu pomija ozdobne emoji, czyta słupek z miesiącem razem i opisuje wykres poziomu paliwa (SPEC §10.4)
 - Wydanie: workflow `Release` publikuje tylko APK podpisane kluczem wydań (odcisk SHA-256 przypięty w `release.yml`); aktualizacja: błąd zapisu pliku w telefonie ma własny komunikat zamiast „Brak internetu”
 
 ## 0.2.0 (2026-11-06)

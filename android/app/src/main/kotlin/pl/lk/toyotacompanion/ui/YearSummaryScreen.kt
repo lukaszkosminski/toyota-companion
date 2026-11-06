@@ -166,14 +166,14 @@ fun YearSummaryScreen(
                             Text(
                                 "🟢 " + Texts.yearBest(TripsFormatting.monthLabel(it.month), TripsFormatting.plain(it.lPer100, 2)),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Palette.Green,
+                                color = readable(Palette.Green),
                             )
                         }
                         summary.worstMonth?.takeIf { it.month != summary.bestMonth?.month }?.let {
                             Text(
                                 "🔴 " + Texts.yearWorst(TripsFormatting.monthLabel(it.month), TripsFormatting.plain(it.lPer100, 2)),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Palette.Red,
+                                color = readable(Palette.Red),
                             )
                         }
                         summary.dearestMonth?.let { dearest ->
@@ -181,7 +181,7 @@ fun YearSummaryScreen(
                                 Text(
                                     "💰 " + Texts.yearDearest(TripsFormatting.monthLabel(dearest.month), TripsFormatting.money(costVal)),
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = Palette.Violet,
+                                    color = readable(Palette.Violet),
                                 )
                                 // How much of the money of the whole year the dearest month took (§29).
                                 val yearCost = summary.costPln

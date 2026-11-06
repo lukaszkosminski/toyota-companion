@@ -20,8 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
@@ -39,7 +38,8 @@ fun DashboardCard(title: String, emoji: String, modifier: Modifier = Modifier, c
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(emoji, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { contentDescription = "" })
+                // Decorative: a screen reader reads the title only.
+                Text(emoji, style = MaterialTheme.typography.titleLarge, modifier = Modifier.clearAndSetSemantics {})
                 Text(title, style = MaterialTheme.typography.titleMedium)
             }
             content()
@@ -59,7 +59,10 @@ fun Headline(value: String, unit: String, caption: String) {
     }
 }
 
-/** A small rounded label: the trend, a count; [container] says whether it is good news, bad news or neutral. */
+/**
+ * A small rounded label: the trend, a count; [container] says whether it is good news, bad news or neutral. The text
+ * takes a readable tone of [content] on that container.
+ */
 @Composable
 fun Pill(text: String, container: Color, content: Color) {
     Box(
@@ -67,7 +70,7 @@ fun Pill(text: String, container: Color, content: Color) {
             .background(container, RoundedCornerShape(50))
             .padding(horizontal = 12.dp, vertical = 6.dp),
     ) {
-        Text(text, style = MaterialTheme.typography.labelLarge, color = content)
+        Text(text, style = MaterialTheme.typography.labelLarge, color = readable(content, tint = container))
     }
 }
 
@@ -85,8 +88,8 @@ fun MenuTile(emoji: String, label: String, onClick: () -> Unit, modifier: Modifi
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
         ) {
-            Text(emoji, style = MaterialTheme.typography.headlineMedium)
-            Text(label, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center, color = accent)
+            Text(emoji, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.clearAndSetSemantics {})
+            Text(label, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center, color = readable(accent, tint = accent.copy(alpha = 0.14f)))
         }
     }
 }

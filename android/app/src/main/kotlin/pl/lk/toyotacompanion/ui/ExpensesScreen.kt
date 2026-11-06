@@ -144,7 +144,7 @@ fun ExpensesScreen(controller: ExpensesController, fuelTotal: BigDecimal?, onBac
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            Text(TripsFormatting.money(expense.amount), style = MaterialTheme.typography.titleMedium, color = Palette.Violet)
+                            Text(TripsFormatting.money(expense.amount), style = MaterialTheme.typography.titleMedium, color = readable(Palette.Violet))
                             TextButton(onClick = { controller.delete(expense.id) }) { Text("🗑️") }
                         }
                     }

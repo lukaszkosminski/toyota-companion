@@ -182,7 +182,7 @@ private fun BucketRow(bucket: WeatherBucketStats) {
                 Text(WeatherFormatting.bucketLine(bucket), style = MaterialTheme.typography.bodyMedium)
             }
             bucket.lPer100Km?.let {
-                Text(TripsFormatting.plain(it, 2), style = MaterialTheme.typography.titleMedium, color = color)
+                Text(TripsFormatting.plain(it, 2), style = MaterialTheme.typography.titleMedium, color = readable(color))
             }
         }
         WeatherFormatting.bucketNote(bucket)?.let {
@@ -227,7 +227,7 @@ private fun MatrixCard(rows: List<MatrixRow>) {
                 if (bars.size > 1) BarChart(bars, height = 64.dp)
                 Text(WeatherFormatting.rowText(row), style = MaterialTheme.typography.bodyMedium)
                 WeatherFormatting.frostLine(row)?.let {
-                    Text("❄️ " + it, style = MaterialTheme.typography.bodySmall, color = Palette.Red)
+                    Text("❄️ " + it, style = MaterialTheme.typography.bodySmall, color = readable(Palette.Red))
                 }
             }
         }

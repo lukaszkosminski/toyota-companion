@@ -23,6 +23,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
@@ -94,8 +95,7 @@ fun CostsCard(view: ConsumptionView?) {
         val topCost = view.monthCosts.maxOf { it.costPln ?: java.math.BigDecimal.ZERO }
         Bars(
             bars = view.monthCosts.map {
-                val share = if (topCost.signum() > 0) (it.costPln ?: java.math.BigDecimal.ZERO).toFloat() / topCost.toFloat() else 0f
-                BarData(ConsumptionFormatting.costLabel(it), ConsumptionFormatting.monthShort(it.month), share.coerceIn(0.03f, 1f), Palette.Teal)
+                BarData(ConsumptionFormatting.costLabel(it), ConsumptionFormatting.monthShort(it.month), costBarShare(it.costPln, topCost), Palette.Teal)
             },
             color = Palette.Teal,
         )
@@ -113,6 +113,17 @@ fun CostsCard(view: ConsumptionView?) {
         Text(Texts.CONSUMPTION_COSTS_HINT, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
+
+/**
+ * Height of a month's cost bar as a share of the dearest month: none for a month without a priced trip or with 0 zł,
+ * at least 3 % for any positive amount so a cheap month is still visible next to a dear one.
+ */
+internal fun costBarShare(cost: java.math.BigDecimal?, top: java.math.BigDecimal): Float {
+    if (cost == null || cost.signum() <= 0 || top.signum() <= 0) return 0f
+    return (cost.toFloat() / top.toFloat()).coerceIn(MIN_COST_BAR, 1f)
+}
+
+private const val MIN_COST_BAR = 0.03f
 
 /** One bar: the label above it, its height as a share of the tallest (0-1) and the month under it. */
 private data class BarData(val label: String, val caption: String, val share: Float, val color: androidx.compose.ui.graphics.Color? = null)
@@ -132,7 +143,8 @@ private fun Bars(bars: List<BarData>, color: androidx.compose.ui.graphics.Color)
         verticalAlignment = Alignment.Bottom,
     ) {
         for (bar in bars) {
-            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+            // Amount and month are read together by a screen reader.
+            Column(modifier = Modifier.weight(1f).semantics(mergeDescendants = true) {}, horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(bar.label, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
                 Box(
                     modifier = Modifier
