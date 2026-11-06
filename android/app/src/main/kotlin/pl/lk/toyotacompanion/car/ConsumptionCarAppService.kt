@@ -45,9 +45,9 @@ class ConsumptionCarAppService : CarAppService() {
             // A debuggable build is sideloaded on purpose and also runs against the Desktop Head Unit.
             HostValidator.ALLOW_ALL_HOSTS_VALIDATOR
         } else {
-            // A release build answers only to the hosts the library lists as Google's own.
+            // A release build answers only to Google's Android Auto hosts (own copy of the library's sample list).
             HostValidator.Builder(applicationContext)
-                .addAllowedHosts(androidx.car.app.R.array.hosts_allowlist_sample)
+                .addAllowedHosts(pl.lk.toyotacompanion.R.array.car_hosts_allowlist)
                 .build()
         }
 
