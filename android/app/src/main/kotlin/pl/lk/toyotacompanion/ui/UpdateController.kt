@@ -35,7 +35,7 @@ interface ApkInstaller {
 
 enum class UpdatePhase { IDLE, CHECKING, UP_TO_DATE, AVAILABLE, NEEDS_PERMISSION, DOWNLOADING, INSTALLING, FAILED }
 
-enum class UpdateFailure { NETWORK, API, DATA, BAD_APK, INSTALL }
+enum class UpdateFailure { NETWORK, API, DATA, STORAGE, BAD_APK, INSTALL }
 
 /** Outcome of the system installer, mapped from `PackageInstaller.STATUS_*` by the receiver. */
 enum class InstallResult { SUCCESS, ABORTED, FAILED }
@@ -154,5 +154,6 @@ class UpdateController(
         UpdateErrorKind.NETWORK -> UpdateFailure.NETWORK
         UpdateErrorKind.API -> UpdateFailure.API
         UpdateErrorKind.DATA -> UpdateFailure.DATA
+        UpdateErrorKind.STORAGE -> UpdateFailure.STORAGE
     }
 }

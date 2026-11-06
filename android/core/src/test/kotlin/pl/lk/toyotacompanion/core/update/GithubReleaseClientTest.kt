@@ -182,4 +182,44 @@ class GithubReleaseClientTest {
             assertEquals(UpdateErrorKind.API, e.kind)
         }
     }
+
+    @Test
+    fun `a target that cannot be created is a storage error`() = runBlocking {
+        MockWebServer().apply { start() }.use { server ->
+            val url = server.url("/dl/v0.2.0/a.apk").toString()
+            server.enqueue(MockResponse.Builder().code(200).body(okio.Buffer().write(APK)).build())
+            // The parent of the target is an ordinary file, so the cache directory cannot be created and
+            // FileOutputStream fails: that is the phone's storage, not the connection.
+            val blocker = Files.createTempDirectory("update").resolve("blocked").toFile()
+            blocker.writeText("not a directory")
+            val target = File(blocker, "update.apk")
+
+            val e = assertFailsWith<AppUpdateException> {
+                client(server).download(AppRelease("0.2.0", 200, url, APK.size.toLong(), APK_SHA), target)
+            }
+
+            assertEquals(UpdateErrorKind.STORAGE, e.kind)
+            assertFalse(target.exists())
+        }
+    }
+
+    @Test
+    fun `progress is reported about once per percent, with the full size at the end`() = runBlocking {
+        val big = ByteArray(8 * 1024 * 1024) { (it % 251).toByte() }
+        MockWebServer().apply { start() }.use { server ->
+            val url = server.url("/dl/v0.2.0/big.apk").toString()
+            server.enqueue(MockResponse.Builder().code(200).body(okio.Buffer().write(big)).build())
+            val target = tempApk()
+            val reported = mutableListOf<Long>()
+
+            client(server).download(AppRelease("0.2.0", 200, url, big.size.toLong(), null), target) { reported += it }
+
+            assertEquals(big.size.toLong(), target.length())
+            assertEquals(big.size.toLong(), reported.last(), "the last report is the whole file")
+            // One call per 1% of the announced size: at most 100 + the final one, not one per 64 KiB buffer (~128).
+            assertTrue(reported.size <= 101, "reported ${reported.size} times")
+            assertTrue(reported.size < big.size / 65_536, "still one call per buffer")
+            assertEquals(reported.sorted(), reported, "progress never goes back")
+        }
+    }
 }

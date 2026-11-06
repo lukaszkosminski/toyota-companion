@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- Wydanie: workflow `Release` publikuje tylko APK podpisane kluczem wydań (odcisk SHA-256 przypięty w `release.yml`); aktualizacja: błąd zapisu pliku w telefonie ma własny komunikat zamiast „Brak internetu”
+
+## 0.2.0 (2026-11-06)
 - Aktualizacja aplikacji z GitHub Releases w „Opcjach” (F36, SPEC §37, ADR-016): sprawdzenie i pobranie tylko po dotknięciu, kontrola rozmiaru, SHA-256, pakietu, wersji i podpisu przed instalatorem systemu; workflow `Release` (tag `v*`) buduje podpisane APK i sprawdza w nim wersję z tagu
 - Synchronizacja i ekran pogody liczą datę przez `atZone().toLocalDate()` zamiast `LocalDate.ofInstant` (metoda z API 34): na Androidzie 10–13 dawało to `NoSuchMethodError`, którego `catch (Exception)` nie łapie, więc synchronizacja kończyła się po cichu, a ekran pogody zostawał na „Ładowanie” (SPEC §8, §23)
 - 401 z API Toyoty → jednorazowe odnowienie tokenu i powtórzenie żądania, nieudane odnowienie = prośba o ponowne logowanie

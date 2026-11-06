@@ -201,6 +201,18 @@ class UpdateControllerTest {
     }
 
     @Test
+    fun `storage failure is reported as a storage error`() = runTest {
+        gateway.downloadFailure = AppUpdateException(UpdateErrorKind.STORAGE, "x")
+        val c = controller()
+        c.check()
+        advanceUntilIdle()
+        c.install()
+        advanceUntilIdle()
+        assertEquals(UpdatePhase.FAILED, c.state.value.phase)
+        assertEquals(UpdateFailure.STORAGE, c.state.value.failure)
+    }
+
+    @Test
     fun `install can start over when the system confirmation never showed up`() = runTest {
         val c = controller()
         c.check()

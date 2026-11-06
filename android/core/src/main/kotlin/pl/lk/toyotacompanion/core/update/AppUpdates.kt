@@ -2,6 +2,7 @@ package pl.lk.toyotacompanion.core.update
 
 import java.io.File
 import java.io.IOException
+import java.io.OutputStream
 import java.security.MessageDigest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -44,7 +45,8 @@ data class AppRelease(
     val sha256: String?,
 )
 
-enum class UpdateErrorKind { NETWORK, API, DATA }
+/** STORAGE: the phone could not write the APK (full disk, no cache dir) – retrying the network does not help. */
+enum class UpdateErrorKind { NETWORK, API, DATA, STORAGE }
 
 /** A failed check or download. SECURITY: only the kind and the HTTP status, never the response body. */
 class AppUpdateException(val kind: UpdateErrorKind, message: String) : RuntimeException(message)
@@ -118,6 +120,14 @@ class GithubReleaseClient(
         return AppRelease(name, requireNotNull(AppVersion.codeOf(name)), url, size, digest)
     }
 
+    /**
+     * Downloads the APK of [release] into [target], checks its size and digest and reports progress.
+     *
+     * Progress is reported at most once per **1% of the announced size** (not once per 64 KiB buffer: the card
+     * shows whole percent, so a 200 MB APK would otherwise emit ~3200 updates for at most 100 values), plus one
+     * last call with the full size. A failure of the phone's storage (no cache directory, full disk) is
+     * [UpdateErrorKind.STORAGE]; a failure of the connection stays [UpdateErrorKind.NETWORK].
+     */
     override suspend fun download(release: AppRelease, target: File, onProgress: (Long) -> Unit) {
         if (!isReleaseAsset(release.apkUrl)) {
             throw AppUpdateException(UpdateErrorKind.DATA, "APK asset is not served from the repository releases")
@@ -125,15 +135,17 @@ class GithubReleaseClient(
         val request = Request.Builder().url(release.apkUrl).header("User-Agent", USER_AGENT).get().build()
         try {
             withContext(Dispatchers.IO) {
-                target.parentFile?.mkdirs()
                 val digest = MessageDigest.getInstance("SHA-256")
                 var written = 0L
+                var reported = 0L
+                val step = (release.apkSize / 100).coerceAtLeast(1L)
                 http.newCall(request).execute().use { response ->
                     if (response.code !in 200..299) {
                         throw AppUpdateException(UpdateErrorKind.API, "APK download failed (HTTP ${response.code})")
                     }
-                    response.body.byteStream().use { input ->
-                        target.outputStream().use { output ->
+                    val output = openTarget(target)
+                    try {
+                        response.body.byteStream().use { input ->
                             val buffer = ByteArray(BUFFER_BYTES)
                             while (true) {
                                 val read = input.read(buffer)
@@ -143,13 +155,19 @@ class GithubReleaseClient(
                                     throw AppUpdateException(UpdateErrorKind.DATA, "APK is larger than announced")
                                 }
                                 digest.update(buffer, 0, read)
-                                output.write(buffer, 0, read)
-                                onProgress(written)
+                                writeToDisk(output, buffer, read)
+                                if (written - reported >= step) {
+                                    reported = written
+                                    onProgress(written)
+                                }
                             }
                         }
+                    } finally {
+                        closeQuietly(output)
                     }
                 }
                 if (written != release.apkSize) throw AppUpdateException(UpdateErrorKind.DATA, "APK is shorter than announced")
+                if (reported != written) onProgress(written)
                 val actual = digest.digest().joinToString("") { "%02x".format(it) }
                 if (release.sha256 != null && actual != release.sha256) {
                     throw AppUpdateException(UpdateErrorKind.DATA, "APK digest does not match the release")
@@ -161,6 +179,34 @@ class GithubReleaseClient(
         } catch (e: IOException) {
             target.delete()
             throw AppUpdateException(UpdateErrorKind.NETWORK, "APK download failed: ${e.javaClass.simpleName}")
+        }
+    }
+
+    /** Creates the cache directory and the file; a phone that cannot do it is [UpdateErrorKind.STORAGE], not a network error. */
+    private fun openTarget(target: File): OutputStream = try {
+        target.parentFile?.mkdirs()
+        target.outputStream()
+    } catch (e: IOException) {
+        throw AppUpdateException(UpdateErrorKind.STORAGE, "APK file cannot be created: ${e.javaClass.simpleName}")
+    }
+
+    private fun writeToDisk(output: OutputStream, buffer: ByteArray, count: Int) {
+        try {
+            output.write(buffer, 0, count)
+        } catch (e: IOException) {
+            throw AppUpdateException(UpdateErrorKind.STORAGE, "APK file cannot be written: ${e.javaClass.simpleName}")
+        }
+    }
+
+    /**
+     * `FileOutputStream` is unbuffered: after [writeToDisk] every byte is already handed to the system, so a close
+     * failure loses nothing and must not replace the real error (a size or digest check, or a network failure).
+     */
+    private fun closeQuietly(output: OutputStream) {
+        try {
+            output.close()
+        } catch (e: IOException) {
+            // Nothing is left to write; the file is complete or about to be deleted.
         }
     }
 

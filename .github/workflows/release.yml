@@ -14,6 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      # SHA-256 of the release signing certificate (ADR-016, docs/SPEC.md §37); public, not a secret.
+      RELEASE_CERT_SHA256: 4047aa035af2b9e7a3d4ccdfc325bcc8cd716cca5ca4132297ae2bd7478e7127
     defaults:
       run:
         working-directory: android
@@ -67,6 +70,10 @@ jobs:
           build_tools="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n 1)"
           "${build_tools}apksigner" verify --print-certs "$apk" > "$RUNNER_TEMP/certs.txt"
           head -n 3 "$RUNNER_TEMP/certs.txt"
+          # Only the release key (ADR-016): a wrong keystore in the secrets would publish an APK the phone refuses.
+          signers="$({ grep -o 'certificate SHA-256 digest: [0-9a-f]*' "$RUNNER_TEMP/certs.txt" || true; } | awk '{print $4}' | sort -u)"
+          [ "$signers" = "$RELEASE_CERT_SHA256" ] \
+            || { echo "APK is not signed only by the release key $RELEASE_CERT_SHA256" >&2; exit 1; }
           # The app compares the tag with the installed versionCode, so an APK with another version would never be offered.
           version="${{ steps.version.outputs.version }}"
           IFS=. read -r major minor patch <<< "$version"

@@ -927,7 +927,8 @@ ekranie „Pogoda i spalanie” (§23).
 `core/update/AppUpdates.kt` (`GithubReleaseClient`, `AppVersion`), `app/ui/UpdateController.kt`, `app/update/AndroidApkInstaller.kt`, karta „Aktualizacja aplikacji” w „Opcjach”.
 - Wersja: `MAJOR.MINOR.PATCH` (MINOR i PATCH 0–99), `versionCode = MAJOR·10000 + MINOR·100 + PATCH` – ten sam wzór w `AppVersion.codeOf` i `app/build.gradle.kts`
   (`-PappVersion=…`, domyślnie `0.1.0` = 100). Wydanie to tag `vMAJOR.MINOR.PATCH`; `.github/workflows/release.yml` uruchamia testy i lint, buduje `assembleRelease`
-  podpisane kluczem z sekretów repozytorium (`RELEASE_KEYSTORE_BASE64`, `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`), sprawdza podpis (`apksigner`) i `versionCode`/`versionName`
+  podpisane kluczem z sekretów repozytorium (`RELEASE_KEYSTORE_BASE64`, `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`), sprawdza podpis (`apksigner`: jedynym certyfikatem
+  musi być klucz wydań, SHA-256 `4047aa03…7127` w `RELEASE_CERT_SHA256`) i `versionCode`/`versionName`
   w APK względem tagu (`aapt2 dump badging`); checkout bez zapisanego tokenu (`persist-credentials: false`). Publikuje Release z jednym plikiem
   `toyota-companion-<wersja>.apk`. Bez klucza build release jest niepodpisany i workflow kończy się błędem przed publikacją.
 - Sprawdzenie tylko po dotknięciu „Sprawdź aktualizacje”: `GET https://api.github.com/repos/lukaszkosminski/toyota-companion/releases/latest` (User-Agent `toyota-companion`, bez tokenu
@@ -940,5 +941,5 @@ ekranie „Pogoda i spalanie” (§23).
 - Instalacja przez sesję `PackageInstaller`; system zawsze pokazuje własne okno potwierdzenia. Anulowanie wraca do „Dostępna wersja X”; błąd instalatora – „Instalacja się nie udała”.
   W czasie instalacji przycisk „Pobierz i zainstaluj” zostaje dostępny: gdy okno systemu się nie pokaże (Android blokuje start okna z tła), dotknięcie zaczyna od nowa.
   Plik jest usuwany po każdym wyniku. Po udanej instalacji system zastępuje proces; dane (Room, ustawienia, sekrety) zostają, bo klucz podpisu jest ten sam.
-- Błędy: brak sieci, GitHub (HTTP ≠ 2xx, w tym limit 60 zapytań/h bez tokenu), nieczytelne wydanie lub plik, plik nie tej aplikacji / innego klucza, błąd instalacji – tylko rodzaj, bez treści odpowiedzi.
+- Błędy: brak sieci, GitHub (HTTP ≠ 2xx, w tym limit 60 zapytań/h bez tokenu), nieczytelne wydanie lub plik, zapis pliku w telefonie (`STORAGE`, np. brak miejsca – nie „brak sieci”), plik nie tej aplikacji / innego klucza, błąd instalacji – tylko rodzaj, bez treści odpowiedzi.
 - Stan nie zależy od logowania do MyToyota i nie jest czyszczony przy wylogowaniu. Brak sprawdzania w tle i powiadomień (decyzja właściciela).

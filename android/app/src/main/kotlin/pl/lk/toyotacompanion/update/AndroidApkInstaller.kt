@@ -46,7 +46,7 @@ class AndroidApkInstaller(private val context: Context) : ApkInstaller {
         val installed = pm.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
         val current = installed.currentSigners()
         val accepted = archive.allSigners()
-        return if (current.isNotEmpty() && accepted.containsAll(current)) ApkCheck.OK else ApkCheck.OTHER_SIGNER
+        return if (signerMatches(current, accepted)) ApkCheck.OK else ApkCheck.OTHER_SIGNER
     }
 
     override fun install(apk: File) {
@@ -85,9 +85,28 @@ private fun PackageInfo.currentSigners(): Set<String> =
 /** The current signers plus the rotation history, so an APK signed after a key rotation is still accepted. */
 private fun PackageInfo.allSigners(): Set<String> {
     val info = signingInfo ?: return emptySet()
-    val history = if (info.hasMultipleSigners()) emptyList() else info.signingCertificateHistory.orEmpty().toList()
-    return (info.apkContentsSigners.orEmpty().toList() + history).mapTo(HashSet()) { it.toCharsString() }
+    return acceptedSigners(
+        apkContents = info.apkContentsSigners.orEmpty().map { it.toCharsString() },
+        history = info.signingCertificateHistory.orEmpty().map { it.toCharsString() },
+        multipleSigners = info.hasMultipleSigners(),
+    )
 }
+
+/**
+ * Certificates a downloaded APK may carry: its current signers plus, unless it is signed by several keys at once,
+ * the rotation history of its lineage (docs/SPEC.md §37). Pure, so the rules are tested without Android
+ * ([SignersTest]).
+ */
+internal fun acceptedSigners(apkContents: List<String>, history: List<String>, multipleSigners: Boolean): Set<String> =
+    (apkContents + if (multipleSigners) emptyList() else history).toSet()
+
+/**
+ * The installed app's signers must all be among [accepted]. Deliberately loose: an APK signed with our key **plus**
+ * another one passes here and is refused by the system (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`) anyway — this check
+ * only gives a clear message instead of a system error. Pure, see [SignersTest].
+ */
+internal fun signerMatches(current: Set<String>, accepted: Set<String>): Boolean =
+    current.isNotEmpty() && accepted.containsAll(current)
 
 /**
  * Status of the install session. The first answer is "user action needed": the system confirmation is opened
