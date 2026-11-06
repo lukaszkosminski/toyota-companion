@@ -5,6 +5,16 @@ plugins {
     alias(libs.plugins.room3)
 }
 
+// Release version from the tag (`-PappVersion=0.2.0`, docs/SPEC.md §37, ADR-016). versionCode has the formula of
+// core AppVersion.codeOf: the app compares it with the release tag on GitHub.
+val appVersion: String = providers.gradleProperty("appVersion").getOrElse("0.1.0")
+val appVersionCode: Int = Regex("""(\d{1,3})\.(\d{1,2})\.(\d{1,2})""").matchEntire(appVersion)
+    ?.destructured?.let { (major, minor, patch) -> major.toInt() * 10_000 + minor.toInt() * 100 + patch.toInt() }
+    ?: error("appVersion must be MAJOR.MINOR.PATCH with MINOR and PATCH up to 99, got '$appVersion'")
+
+// Release signing only from the environment (GitHub secrets in .github/workflows/release.yml); never in the repo.
+val releaseKeystore: String? = System.getenv("RELEASE_KEYSTORE_FILE")
+
 android {
     namespace = "pl.lk.toyotacompanion"
     compileSdk = 37
@@ -13,8 +23,26 @@ android {
         applicationId = "pl.lk.toyotacompanion"
         minSdk = 29
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = appVersionCode
+        versionName = appVersion
+    }
+
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+                keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            // Without the key a release build stays unsigned and cannot be installed; CI fails on it before publishing.
+            if (releaseKeystore != null) signingConfig = signingConfigs.getByName("release")
+        }
     }
 
     compileOptions {

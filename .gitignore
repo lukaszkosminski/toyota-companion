@@ -10,3 +10,6 @@ android/**/build/
 local.properties
 android/.kotlin/
 android/build/
+# Release signing key (ADR-016) - only in GitHub secrets and the owner backup
+*.jks
+*.keystore

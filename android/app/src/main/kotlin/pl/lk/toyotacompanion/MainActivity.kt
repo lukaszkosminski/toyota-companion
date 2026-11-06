@@ -61,6 +61,7 @@ class MainActivity : ComponentActivity() {
                 container.routeBackfillController,
                 container.routeHeatController,
                 container.expensesController,
+                container.updateController,
                 container::setLanguage,
                 askNotificationPermission = container.askNotificationPermission,
                 deepLinkRefuelId = refuelDeepLinkId,

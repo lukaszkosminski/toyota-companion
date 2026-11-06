@@ -1140,6 +1140,44 @@ object Texts {
     val EXPENSE_DELETE: String get() = Lang.pick("Usuń", "Delete")
     val OPTIONS_TITLE: String get() = Lang.pick("Opcje", "Options")
     val LANGUAGE_TITLE: String get() = Lang.pick("Język / Language", "Language / Język")
+    val UPDATE_TITLE: String get() = Lang.pick("Aktualizacja aplikacji", "App update")
+    val UPDATE_CHECK: String get() = Lang.pick("Sprawdź aktualizacje", "Check for updates")
+    val UPDATE_CHECKING: String get() = Lang.pick("Sprawdzanie…", "Checking…")
+    val UPDATE_UP_TO_DATE: String get() = Lang.pick("Masz najnowszą wersję.", "You have the latest version.")
+    val UPDATE_INSTALL: String get() = Lang.pick("Pobierz i zainstaluj", "Download and install")
+    val UPDATE_INSTALLING: String get() = Lang.pick(
+        "Instalacja – potwierdź w oknie systemu. Jeśli okno się nie pokazało, dotknij „Pobierz i zainstaluj” jeszcze raz.",
+        "Installing – confirm in the system window. If it did not show up, tap “Download and install” again.",
+    )
+    val UPDATE_ALLOW: String get() = Lang.pick("Zezwól na instalację", "Allow installing")
+    val UPDATE_NEEDS_PERMISSION: String get() = Lang.pick(
+        "Android wymaga zgody na instalowanie aplikacji z tej aplikacji. Włącz ją, wróć i dotknij „Pobierz i zainstaluj”.",
+        "Android needs permission for this app to install apps. Turn it on, come back and tap “Download and install”.",
+    )
+    val UPDATE_SOURCE_NOTE: String get() = Lang.pick(
+        "Źródło: wydania na GitHubie. Nic nie jest wysyłane poza samym zapytaniem.",
+        "Source: releases on GitHub. Nothing is sent beyond the request itself.",
+    )
+
+    fun updateCurrent(version: String): String = Lang.pick("Zainstalowana wersja: $version", "Installed version: $version")
+
+    fun updateAvailable(version: String): String = Lang.pick("Dostępna wersja $version.", "Version $version is available.")
+
+    fun updateDownloading(done: Long, total: Long): String {
+        val percent = if (total > 0) (done * 100 / total).coerceIn(0, 100) else 0
+        return Lang.pick("Pobieranie… $percent %", "Downloading… $percent%")
+    }
+
+    fun updateFailure(failure: UpdateFailure): String = when (failure) {
+        UpdateFailure.NETWORK -> Lang.pick("Brak internetu. Spróbuj później.", "No internet connection. Try again later.")
+        UpdateFailure.API -> Lang.pick("GitHub nie odpowiada albo ogranicza zapytania. Spróbuj później.", "GitHub is not responding or limits requests. Try again later.")
+        UpdateFailure.DATA -> Lang.pick("Nieczytelne wydanie na GitHubie albo uszkodzony plik.", "Unreadable release on GitHub or a damaged file.")
+        UpdateFailure.BAD_APK -> Lang.pick(
+            "Pobrany plik nie jest tą aplikacją albo jest podpisany innym kluczem – nie został zainstalowany.",
+            "The downloaded file is not this app or is signed with another key – it was not installed.",
+        )
+        UpdateFailure.INSTALL -> Lang.pick("Instalacja się nie udała.", "The installation failed.")
+    }
 
     fun expenseCategoryName(category: ExpenseCategory): String = when (category) {
         ExpenseCategory.SERVICE -> Lang.pick("Serwis", "Service")

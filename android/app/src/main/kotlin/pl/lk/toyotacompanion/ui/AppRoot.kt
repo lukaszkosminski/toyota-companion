@@ -54,6 +54,7 @@ fun AppRoot(
     backfill: RouteBackfillController,
     heat: RouteHeatController,
     expenses: ExpensesController,
+    update: UpdateController,
     onSetLanguage: (AppLanguage) -> Unit,
     askNotificationPermission: suspend () -> Boolean,
     deepLinkRefuelId: String? = null,
@@ -236,7 +237,7 @@ fun AppRoot(
                         askNotificationPermission = askNotificationPermission,
                     )
 
-                    Screen.Options -> OptionsScreen(onSetLanguage = onSetLanguage, onBack = { screen = Screen.Status })
+                    Screen.Options -> OptionsScreen(update = update, onSetLanguage = onSetLanguage, onBack = { screen = Screen.Status })
                     Screen.Expenses -> ExpensesScreen(
                         controller = expenses,
                         fuelTotal = consumptionState?.totalCost,

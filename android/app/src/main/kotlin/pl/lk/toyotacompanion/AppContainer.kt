@@ -101,6 +101,20 @@ class AppContainer(
         pl.lk.toyotacompanion.ui.ExpensesController(database.expenseDao(), uiScope, Dispatchers.IO)
     }
 
+    /** App update from GitHub Releases, only after a tap in "Opcje" (PRD F36, docs/SPEC.md §37, ADR-016). */
+    val updateController: pl.lk.toyotacompanion.ui.UpdateController by lazy {
+        val installed = context.packageManager.getPackageInfo(context.packageName, 0)
+        pl.lk.toyotacompanion.ui.UpdateController(
+            gateway = pl.lk.toyotacompanion.core.update.AppUpdateGatewayFactory.create(),
+            installer = pl.lk.toyotacompanion.update.AndroidApkInstaller(context),
+            currentVersionCode = installed.longVersionCode,
+            currentVersionName = installed.versionName.orEmpty(),
+            apkFile = java.io.File(context.cacheDir, "updates/update.apk"),
+            scope = uiScope,
+            io = Dispatchers.IO,
+        )
+    }
+
     val credentialStore: CredentialStore by lazy { CredentialStore(secretStore) }
     val tokenStore: KeystoreTokenStore by lazy { KeystoreTokenStore(secretStore) }
 

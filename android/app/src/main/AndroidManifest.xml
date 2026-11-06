@@ -9,6 +9,9 @@
          (docs/SPEC.md §13.1). Na API 33+ pytamy o nie raz, po zalogowaniu (po odmowie nie pytamy ponownie). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Aktualizacja z GitHub Releases po dotknięciu w „Opcjach” (docs/SPEC.md §37, ADR-016); system i tak pyta o zgodę. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <application
         android:name=".ToyotaApp"
         android:allowBackup="true"
@@ -56,6 +59,11 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_consumption_info" />
         </receiver>
+
+        <!-- Status of the update install session; only the PackageInstaller PendingIntent reaches it (docs/SPEC.md §37). -->
+        <receiver
+            android:name=".update.UpdateInstallReceiver"
+            android:exported="false" />
 
         <!-- WorkManager is initialized by ToyotaApp (Configuration.Provider), not by androidx.startup. -->
         <provider

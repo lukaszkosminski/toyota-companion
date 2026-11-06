@@ -144,6 +144,14 @@ Program tylko czyta (bez `refresh_status`), pokazuje VIN z maską i nie wypisuje
 Sprawdzone 2026-10-29: fikcyjny login dostaje od prawdziwego serwera Toyoty „User Not Found”,
 czyli pierwszy etap logowania działa z prawdziwym API.
 
+## Wydanie i aktualizacja (F36, ADR-016)
+Jednorazowo: klucz wydań poza repo (`keytool -genkeypair -keystore release.jks -alias toyota-companion -keyalg RSA -keysize 4096 -validity 10000`),
+kopia klucza i haseł w bezpiecznym miejscu właściciela, a w GitHub → Settings → Secrets and variables → Actions sekrety `RELEASE_KEYSTORE_BASE64` (`base64 -w0 release.jks`),
+`RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`. Przejście z wersji debug (inny klucz): w aplikacji „Eksportuj archiwum” → odinstalowanie → instalacja APK z pierwszego
+wydania → zalogowanie → „Importuj archiwum”.
+Każde wydanie: podnieś wersję w tagu (`git tag v0.2.0 && git push origin v0.2.0`); workflow `Release` publikuje APK, telefon: „Opcje” → „Sprawdź aktualizacje”.
+Lokalny podpisany build: `RELEASE_KEYSTORE_FILE=… RELEASE_KEYSTORE_PASSWORD=… RELEASE_KEY_ALIAS=… RELEASE_KEY_PASSWORD=… ./gradlew -PappVersion=0.2.0 :app:assembleRelease`.
+
 ## Środowisko lokalne
 - `source ~/Android/env.sh` – JDK 21, Android SDK 37, Gradle 9.8.2
 - `cd android && ./gradlew --no-daemon -q :core:test :app:testDebugUnitTest :app:assembleDebug`

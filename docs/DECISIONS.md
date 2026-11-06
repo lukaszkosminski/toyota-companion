@@ -108,3 +108,12 @@ Decyzja właściciela produktu. Zmienia `allowBackup=false` z ADR-006/ADR-007: t
 (Android 11-) i `data_extraction_rules.xml` (12+); `secrets` (login, tokeny) i baza WorkManagera są poza kopią, więc po przywróceniu na nowym telefonie
 trzeba się zalogować do MyToyota, a archiwum wraca. Dane GPS i VIN opuszczają telefon do konta Google właściciela - to akceptowane ryzyko.
 Odrzucone: własny OAuth do Drive API (wymaga projektu w Google Cloud), plik na Dysku przez systemowy wybór pliku.
+
+## ADR-016 Aktualizacja aplikacji z GitHub Releases, wbudowana (2026-11-05)
+Decyzja właściciela produktu. Aplikacja jest instalowana z boku, więc nie ma aktualizacji ze sklepu. Wybrane: wydania na GitHubie (tag `v*` → workflow buduje podpisane APK) i karta
+w „Opcjach”, która tylko po dotknięciu sprawdza najnowsze wydanie i instaluje je przez `PackageInstaller` (uprawnienie `REQUEST_INSTALL_PACKAGES`, zgoda na instalowanie nieznanych aplikacji,
+potwierdzenie systemu przy każdej instalacji). Nowy klucz podpisu wydań (nie klucz debug), trzymany w sekretach repozytorium i w kopii właściciela; `versionCode` liczony z wersji.
+Zmiana Gradle (`signingConfigs`, `versionCode` z `-PappVersion`) za zgodą właściciela. Piąta usługa zewnętrzna (GitHub), bez danych właściciela w zapytaniu.
+Odrzucone: Obtainium (zewnętrzna aplikacja), sprawdzanie w tle z powiadomieniem (właściciel wybrał tylko przycisk), klucz debug do wydań (znane hasło, build debugowalny),
+`versionCode` z numeru przebiegu CI (wersji nie dałoby się porównać z samego tagu). Ryzyka: jednorazowo trzeba odinstalować obecną wersję debug (inny klucz) – przed tym eksport archiwum
+(F7) i import po instalacji; utrata klucza = kolejne odinstalowanie; wyciek klucza lub przejęcie konta GitHub pozwala dostarczyć złośliwą aktualizację (system i tak pyta o zgodę).
