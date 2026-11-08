@@ -27,6 +27,9 @@ import pl.lk.toyotacompanion.core.sync.SyncEngine
 import pl.lk.toyotacompanion.core.sync.SyncOutcome
 import pl.lk.toyotacompanion.core.sync.ToyotaGateway
 import pl.lk.toyotacompanion.core.sync.ToyotaGatewayFactory
+import pl.lk.toyotacompanion.core.toyota.TokenInfo
+import pl.lk.toyotacompanion.core.toyota.TokenStore
+import pl.lk.toyotacompanion.core.toyota.ToyotaController
 import pl.lk.toyotacompanion.data.db.AppDatabase
 import pl.lk.toyotacompanion.data.db.RoomCostRepository
 import pl.lk.toyotacompanion.data.db.RoomFuelReadingRepository
@@ -116,7 +119,22 @@ class AppContainer(
     }
 
     val credentialStore: CredentialStore by lazy { CredentialStore(secretStore) }
-    val tokenStore: KeystoreTokenStore by lazy { KeystoreTokenStore(secretStore) }
+
+    /**
+     * The encrypted token file. Clearing the tokens (logout) also drops the shared [ToyotaController], so the access
+     * token kept in its memory does not outlive the file it was read from (docs/SECURITY.md).
+     */
+    val tokenStore: TokenStore by lazy {
+        val keystore = KeystoreTokenStore(secretStore)
+        object : TokenStore {
+            override fun load(username: String): TokenInfo? = keystore.load(username)
+            override fun save(username: String, token: TokenInfo) = keystore.save(username, token)
+            override fun clear(username: String) {
+                keystore.clear(username)
+                forgetSharedController()
+            }
+        }
+    }
 
     val database: AppDatabase by lazy {
         Room.databaseBuilder(context, AppDatabase::class.java, DATABASE_NAME)
@@ -124,12 +142,37 @@ class AppContainer(
             .build()
     }
 
-    /** Reads the stored login at call time, so a password change needs no restart. */
-    private val gateway = object : ToyotaGateway {
-        private fun current(): ToyotaGateway {
-            val credentials = credentialStore.load() ?: throw NoCredentialsException()
-            return ToyotaGatewayFactory.create(credentials.username, credentials.password, tokenStore)
+    /** The account the shared [ToyotaController] belongs to, and the controller itself. */
+    private class AccountController(val username: String, val password: String, val controller: ToyotaController)
+
+    private val controllerLock = Any()
+    private var accountController: AccountController? = null
+
+    /**
+     * One [ToyotaController] for every Toyota call of the stored account – synchronization, a trip route and the
+     * route backfill – so its lock renews the token once when they run in parallel (single flight). Rebuilt only when
+     * the stored login or password changes; the login is read at call time, so a password change needs no restart.
+     */
+    private fun sharedController(): ToyotaController {
+        val credentials = credentialStore.load() ?: throw NoCredentialsException()
+        synchronized(controllerLock) {
+            val cached = accountController
+            if (cached != null && cached.username == credentials.username && cached.password == credentials.password) {
+                return cached.controller
+            }
+            val controller = ToyotaGatewayFactory.controller(credentials.username, credentials.password, tokenStore)
+            accountController = AccountController(credentials.username, credentials.password, controller)
+            return controller
         }
+    }
+
+    /** Logout clears the token file; the controller's in-memory copy of the token goes with it (docs/SECURITY.md). */
+    private fun forgetSharedController() {
+        synchronized(controllerLock) { accountController = null }
+    }
+
+    private val gateway = object : ToyotaGateway {
+        private fun current(): ToyotaGateway = ToyotaGatewayFactory.create(sharedController())
 
         override suspend fun vehicles(): List<VehicleRecord> = current().vehicles()
 
@@ -383,10 +426,9 @@ class AppContainer(
         ForecastController(read = { syncEngine.refuelForecast() }, scope = uiScope, io = Dispatchers.IO)
     }
 
-    /** Reads the stored login at call time, like [gateway]; one trip's route per request (docs/SPEC.md §27). */
+    /** The same shared controller as [gateway]; one trip's route per request (docs/SPEC.md §27). */
     private val routeGateway = pl.lk.toyotacompanion.core.routes.TripRouteGateway { vin, tripId ->
-        val credentials = credentialStore.load() ?: throw NoCredentialsException()
-        ToyotaGatewayFactory.createRoutes(credentials.username, credentials.password, tokenStore).route(vin, tripId)
+        ToyotaGatewayFactory.createRoutes(sharedController()).route(vin, tripId)
     }
 
     /** The GPS route of the trip whose map is open, from the phone or one read-only Toyota GET (docs/SPEC.md §27). */

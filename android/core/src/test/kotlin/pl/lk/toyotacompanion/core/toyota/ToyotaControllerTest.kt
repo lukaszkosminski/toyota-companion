@@ -4,13 +4,20 @@ package pl.lk.toyotacompanion.core.toyota
 
 import java.time.Duration
 import java.time.Instant
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
+import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
+import mockwebserver3.RecordedRequest
 import okhttp3.OkHttpClient
 
 private fun resourceText(name: String): String =
@@ -374,6 +381,102 @@ class ToyotaControllerTest {
             }
             assertEquals(401, ex.statusCode)
             assertEquals(3, server.requestCount)
+        }
+    }
+
+    /** Counts writes, so a second renewal by a parallel caller shows up as an extra save. */
+    private class CountingTokenStore : TokenStore {
+        private val inner = InMemoryTokenStore()
+        val saves = java.util.Collections.synchronizedList(mutableListOf<String>())
+        override fun load(username: String): TokenInfo? = synchronized(this) { inner.load(username) }
+        override fun save(username: String, token: TokenInfo) {
+            saves += token.accessToken
+            synchronized(this) { inner.save(username, token) }
+        }
+        override fun clear(username: String) = synchronized(this) { inner.clear(username) }
+    }
+
+    /**
+     * Answers by path, so the order of parallel calls does not matter: the token endpoint is slow (both callers are
+     * in flight during the renewal) and the data endpoint accepts only the renewed token.
+     */
+    private class RenewalServer(private val rejectedOnce: Boolean) : Dispatcher() {
+        val refreshes = AtomicInteger()
+        val rejected = AtomicInteger()
+        val served = AtomicInteger()
+
+        override fun dispatch(request: RecordedRequest): MockResponse = when (request.url.encodedPath) {
+            "/token" -> {
+                refreshes.incrementAndGet()
+                MockResponse.Builder().code(200).headersDelay(400, TimeUnit.MILLISECONDS)
+                    .addHeader("Content-Type", "application/json")
+                    .body(resourceText("tokens_refreshed.json"))
+                    .build()
+            }
+            else -> if (request.headers["authorization"] == "Bearer ACCESS-MOCK-2") {
+                served.incrementAndGet()
+                MockResponse.Builder().code(200).body("""{"ok":true}""").build()
+            } else {
+                rejected.incrementAndGet()
+                // A short delay lets both callers send the old token before either renews it.
+                val delay = if (rejectedOnce) 100L else 0L
+                MockResponse.Builder().code(401).headersDelay(delay, TimeUnit.MILLISECONDS).body("revoked").build()
+            }
+        }
+    }
+
+    @Test
+    fun `parallel_requests_with_an_expired_token_refresh_it_once`() = runBlocking {
+        MockWebServer().apply { start() }.use { server ->
+            val routes = RenewalServer(rejectedOnce = false)
+            server.dispatcher = routes
+            val store = CountingTokenStore()
+            store.save(USER, expiredToken(refresh = "REFRESH-MOCK-1"))
+            store.saves.clear()
+            val controller = ToyotaController(USER, PASS, OkHttpClient(), urls = urlsFor(server), tokenStore = store)
+
+            val bodies = List(2) { async(Dispatchers.Default) { controller.request("GET", "/v3/telemetry") } }.awaitAll()
+
+            assertTrue(bodies.all { "ok" in it }, bodies.toString())
+            assertEquals(1, routes.refreshes.get())
+            assertEquals(0, routes.rejected.get())
+            assertEquals(2, routes.served.get())
+            assertEquals(listOf("ACCESS-MOCK-2"), store.saves.toList())
+        }
+    }
+
+    @Test
+    fun `parallel_401s_renew_the_token_once_and_both_requests_are_repeated`() = runBlocking {
+        MockWebServer().apply { start() }.use { server ->
+            val routes = RenewalServer(rejectedOnce = true)
+            server.dispatcher = routes
+            val store = CountingTokenStore()
+            store.save(USER, validToken(refresh = "REFRESH-MOCK-1"))
+            store.saves.clear()
+            val controller = ToyotaController(USER, PASS, OkHttpClient(), urls = urlsFor(server), tokenStore = store)
+
+            val bodies = List(2) { async(Dispatchers.Default) { controller.request("GET", "/v3/telemetry") } }.awaitAll()
+
+            assertTrue(bodies.all { "ok" in it }, bodies.toString())
+            assertEquals(2, routes.rejected.get()) // both callers really got the 401
+            assertEquals(1, routes.refreshes.get())
+            assertEquals(2, routes.served.get())
+            // The first caller marks the rejected token expired and stores the renewed one; the second only reuses it.
+            assertEquals(listOf("ACCESS-PRE", "ACCESS-MOCK-2"), store.saves.toList())
+        }
+    }
+
+    @Test
+    fun `parallel_logins_authenticate_once`() = runBlocking {
+        MockWebServer().apply { start() }.use { server ->
+            enqueueLoginFlow(server)
+            val store = CountingTokenStore()
+            val controller = ToyotaController(USER, PASS, OkHttpClient(), urls = urlsFor(server), tokenStore = store)
+
+            List(3) { async(Dispatchers.Default) { controller.login() } }.awaitAll()
+
+            assertEquals(5, server.requestCount) // one full login flow, nothing more
+            assertEquals(listOf("ACCESS-MOCK-1"), store.saves.toList())
         }
     }
 

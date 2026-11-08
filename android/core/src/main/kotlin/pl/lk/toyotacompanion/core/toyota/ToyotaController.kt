@@ -2,6 +2,8 @@ package pl.lk.toyotacompanion.core.toyota
 
 import java.time.Instant
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -48,13 +50,46 @@ class ToyotaController(
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
+    @Volatile
     private var tokenInfo: TokenInfo? = null
+
+    /**
+     * Single flight for the token (not in pytoyoda): reading, refreshing and replacing it happen under this lock,
+     * so parallel requests (sync, a trip route, the route backfill) renew an expired or rejected token once
+     * instead of each logging in to the same account. Only token work runs under it, never a data request.
+     * Not reentrant: [updateToken] and [currentTokenValid] are called with the lock already held.
+     */
+    private val tokenLock = Mutex()
 
     /** Full login unless a valid token is cached. pytoyoda controller.py:169-172 */
     suspend fun login() {
-        if (!currentTokenValid()) {
-            updateToken()
+        tokenLock.withLock {
+            if (!currentTokenValid()) {
+                updateToken()
+            }
         }
+    }
+
+    /** A valid token, renewed when needed; one renewal for all callers waiting on [tokenLock]. */
+    private suspend fun validToken(): TokenInfo = tokenLock.withLock {
+        if (currentTokenValid()) requireNotNull(tokenInfo) else updateToken()
+    }
+
+    /**
+     * The server rejected [rejected] (HTTP 401). When another caller has already replaced it with a token that is
+     * still valid, that one is used; otherwise [rejected] is stored as expired and renewed (refresh, then login).
+     */
+    private suspend fun renewAfterUnauthorized(rejected: TokenInfo): TokenInfo = tokenLock.withLock {
+        val latest = tokenInfo?.takeIf { it.accessToken != rejected.accessToken }
+            ?: tokenStore.load(username)?.takeIf { it.accessToken != rejected.accessToken }
+        if (latest != null && latest.isValidAt(clock())) {
+            tokenInfo = latest
+            return@withLock latest
+        }
+        val expired = rejected.copy(expiration = clock())
+        tokenInfo = expired
+        tokenStore.save(username, expired)
+        updateToken()
     }
 
     private fun currentTokenValid(): Boolean {
@@ -231,14 +266,15 @@ class ToyotaController(
      *
      * Not in pytoyoda: a 401 means the server dropped the access token before its
      * expiration, so the token is renewed once (refresh, then full login) and the
-     * request repeated. A failed renewal surfaces as [ToyotaLoginException].
+     * request repeated. A failed renewal surfaces as [ToyotaLoginException]. Parallel callers share one renewal
+     * ([tokenLock]).
      */
     suspend fun request(
         method: String = "GET",
         endpoint: String,
         vin: String? = null,
     ): String {
-        val token = if (currentTokenValid()) requireNotNull(tokenInfo) else updateToken()
+        val token = validToken()
         try {
             return requestWith(token, method, endpoint, vin)
         } catch (e: ToyotaApiException) {
@@ -246,10 +282,7 @@ class ToyotaController(
                 throw e
             }
         }
-        val expired = token.copy(expiration = clock())
-        tokenInfo = expired
-        tokenStore.save(username, expired)
-        return requestWith(updateToken(), method, endpoint, vin)
+        return requestWith(renewAfterUnauthorized(token), method, endpoint, vin)
     }
 
     private suspend fun requestWith(
