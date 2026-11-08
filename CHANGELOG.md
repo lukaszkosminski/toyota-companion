@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.2.3 (2026-11-08)
+- Stan pojazdu, lokalizacja i stan techniczny z chmury Toyoty, tylko do odczytu i bez budzenia auta (F41–F43, SPEC §42–§44); dokładna pozycja auta tylko w pamięci, na mapie i w linku `geo:` po dotknięciu (ADR-022)
+- Archiwum tras zapisuje jazdę autostradą i ponad dozwoloną prędkością podawaną przez Toyotę (F40, baza Room v6)
+- Przebieg auta na ekranie statusu; wykres poziomu paliwa z osią, datami i znacznikami tankowań
+- Wydatki pokazują też koszt paliwa z tras (wiersz i słupki miesięcy); cena domyślna paliwa przeniesiona z menu do „Opcji”
+- Jeden odczyt archiwum tras po synchronizacji zamiast kilku – wspólna kopia listy dla widżetu, prognozy, kart i ekranów (SPEC §10.1)
 - Porządki z przeglądu C22: nowszy odczyt ekranu zawsze wygrywa ze starszym (pogoda, statystyki, podsumowanie roku, styl jazdy, postoje, karta spalania, prognoza), wydatki zapisywane po kolei bez zgubionych zmian, strona cen czytana do 2 MB, data ostatniej synchronizacji bez `String.format`
 - Cele eco: miesięczny cel spalania i jazdy na prądzie, karta „Cel miesiąca” na ekranie statusu, wynik poprzedniego miesiąca i linia w widżecie (F39, SPEC §40)
 - Koszt całkowity auta w „Podsumowaniu roku”: paliwo i wydatki, zł/km, średnio na miesiąc, udział paliwa, największe kategorie i zmiana rok do roku (F38, SPEC §39, ADR-020)
