@@ -3,7 +3,7 @@
 ## Unreleased
 - Ikony Material Symbols zamiast emoji na kartach, kafelkach, przyciskach i w wierszach (SPEC §10.4); emoji zostają tylko przy symbolach pogody
 - Jasny motyw: czerwień Toyoty przyciemniona do `#C8001A` dla tekstów i przycisków, żeby kontrast wynosił co najmniej 4,5:1 (SPEC §10.4)
-- Build release zmniejszany przez R8 i bez nieużywanych zasobów (ADR-017): APK spadł z 30,9 MB do 4,3 MB, reguły w `proguard-rules.pro`
+- Build release zmniejszany przez R8 i bez nieużywanych zasobów (ADR-017): APK spadł z 30,9 MB do 4,3 MB, reguły w `proguard-rules.pro`; `mapping.txt` wydania zostaje jako artefakt workflow `Release`
 - Aktualizacja: gdy wydań nie ma, aplikacja sprawdza też samo repozytorium; brak repozytorium to błąd „Nie znaleziono repozytorium wydań”, a nie „masz najnowszą wersję” (SPEC §37)
 - Android Auto w wersji wydanej: własna lista hostów Google (`car_hosts_allowlist`) zamiast prywatnego zasobu przykładowego biblioteki, który mógł zniknąć przy aktualizacji (SPEC §35)
 - Czytelność: kolorowe teksty (kafelki, pigułki, wartości pasków, wiersze list) mają kontrast co najmniej 4,5:1 w jasnym i ciemnym motywie; miesiąc bez kosztu nie ma słupka; czytnik ekranu pomija ozdobne emoji, czyta słupek z miesiącem razem i opisuje wykres poziomu paliwa (SPEC §10.4)
