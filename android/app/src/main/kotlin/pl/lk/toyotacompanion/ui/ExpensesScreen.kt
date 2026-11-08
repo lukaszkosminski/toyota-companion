@@ -54,11 +54,17 @@ import java.time.ZoneOffset
 /**
  * "Wydatki": everything the car costs except fuel - service, inspection, tyres, insurance... Each entry has its own date, so
  * an expense from last month (or last year) is entered with that date. [fuelTotal] is the estimated fuel money of the trips,
- * shown next to the sum of the other expenses.
+ * shown next to the sum of the other expenses, as a row among the categories and in the monthly bars ([fuelByMonth]) - the fuel
+ * is most of what the car costs, so it is part of the picture even before the first other expense is entered.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExpensesScreen(controller: ExpensesController, fuelTotal: BigDecimal?, onBack: () -> Unit) {
+fun ExpensesScreen(
+    controller: ExpensesController,
+    fuelTotal: BigDecimal?,
+    onBack: () -> Unit,
+    fuelByMonth: Map<MonthKey, BigDecimal> = emptyMap(),
+) {
     BackHandler(onBack = onBack)
     val state by controller.state.collectAsState()
     LaunchedEffect(Unit) { controller.load() }
@@ -78,7 +84,8 @@ fun ExpensesScreen(controller: ExpensesController, fuelTotal: BigDecimal?, onBac
         when {
             state.loading -> Centered(innerPadding) { CircularProgressIndicator() }
             state.failed -> Centered(innerPadding) { Text(Texts.EXPENSES_READ_ERROR) }
-            state.expenses.isEmpty() -> Centered(innerPadding) { Text(Texts.EXPENSES_EMPTY, style = MaterialTheme.typography.bodyLarge) }
+            state.expenses.isEmpty() && (fuelTotal == null || fuelTotal.signum() <= 0) ->
+                Centered(innerPadding) { Text(Texts.EXPENSES_EMPTY, style = MaterialTheme.typography.bodyLarge) }
             else -> {
                 val expenses = state.expenses
                 val other = expenses.fold(BigDecimal.ZERO) { a, e -> a + e.amount }
@@ -111,19 +118,23 @@ fun ExpensesScreen(controller: ExpensesController, fuelTotal: BigDecimal?, onBac
                     }
                     item {
                         DashboardCard(Texts.EXPENSES_BY_CATEGORY, AppIcons.Category) {
-                            val totals = categoryTotals(expenses)
-                            val top = totals.first().total.toFloat().coerceAtLeast(1f)
-                            totals.forEachIndexed { i, row ->
+                            // The fuel of the trips is a row like a category, so the biggest cost of the car is seen next to the rest.
+                            val rows = buildList {
+                                for (row in categoryTotals(expenses)) add(Triple(Texts.expenseCategoryName(row.category), row.total, false))
+                                if (fuelTotal != null && fuelTotal.signum() > 0) add(Triple(Texts.EXPENSES_FUEL, fuelTotal, true))
+                            }.sortedByDescending { it.second }
+                            val top = rows.first().second.toFloat().coerceAtLeast(1f)
+                            rows.forEachIndexed { i, (label, total, isFuel) ->
                                 MeterRow(
-                                    Texts.expenseCategoryName(row.category),
-                                    TripsFormatting.money(row.total),
-                                    row.total.toFloat() / top,
-                                    Palette.Series[i % Palette.Series.size],
+                                    label,
+                                    TripsFormatting.money(total),
+                                    total.toFloat() / top,
+                                    if (isFuel) Palette.Orange else Palette.Series[i % Palette.Series.size],
                                 )
                             }
                         }
                     }
-                    val months = monthTotals(expenses).takeLast(12)
+                    val months = monthTotals(expenses, fuelByMonth).takeLast(12)
                     if (months.size > 1) {
                         item {
                             DashboardCard(Texts.EXPENSES_BY_MONTH, AppIcons.BarChart) {
@@ -133,6 +144,9 @@ fun ExpensesScreen(controller: ExpensesController, fuelTotal: BigDecimal?, onBac
                                 )
                             }
                         }
+                    }
+                    if (expenses.isEmpty()) {
+                        item { Text(Texts.EXPENSES_EMPTY, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     }
                     item { SectionHeader(AppIcons.History, Texts.EXPENSES_HISTORY) }
                     items(expenses, key = { it.id }) { expense ->

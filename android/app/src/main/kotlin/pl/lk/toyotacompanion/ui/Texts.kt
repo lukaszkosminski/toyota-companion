@@ -1228,7 +1228,7 @@ object Texts {
     val EXPENSES_FUEL: String get() = Lang.pick("Paliwo (z tras)", "Fuel (from trips)")
     val EXPENSES_OTHER: String get() = Lang.pick("Pozostałe wydatki", "Other expenses")
     val EXPENSES_BY_CATEGORY: String get() = Lang.pick("Według rodzaju", "By category")
-    val EXPENSES_BY_MONTH: String get() = Lang.pick("Według miesięcy", "By month")
+    val EXPENSES_BY_MONTH: String get() = Lang.pick("Według miesięcy (z paliwem)", "By month (with fuel)")
     val EXPENSES_HISTORY: String get() = Lang.pick("Historia", "History")
     val EXPENSE_AMOUNT_FIELD: String get() = Lang.pick("Kwota (zł)", "Amount (PLN)")
     val EXPENSE_NOTE_FIELD: String get() = Lang.pick("Opis (opcjonalnie)", "Note (optional)")

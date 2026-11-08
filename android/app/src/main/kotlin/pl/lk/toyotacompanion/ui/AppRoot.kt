@@ -252,6 +252,8 @@ fun AppRoot(
                     Screen.Expenses -> ExpensesScreen(
                         controller = expenses,
                         fuelTotal = consumptionState?.totalCost,
+                        fuelByMonth = consumptionState?.monthCosts.orEmpty()
+                            .mapNotNull { m -> m.costPln?.let { m.month to it } }.toMap(),
                         onBack = { screen = Screen.Status },
                     )
                     Screen.Year -> YearSummaryScreen(controller = yearSummary, onBack = { screen = Screen.Status })

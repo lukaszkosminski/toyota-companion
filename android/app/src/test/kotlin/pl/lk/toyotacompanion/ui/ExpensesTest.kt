@@ -77,4 +77,30 @@ class ExpensesTest {
         assertEquals(listOf(MonthKey(2026, 3), MonthKey(2026, 12), MonthKey(2027, 1)), totals.map { it.month })
         assertEquals(listOf("5.00", "250.50", "10.00"), totals.map { it.total.toPlainString() })
     }
+
+    @Test
+    fun `fuel is added to its month, and a month with only fuel still gets a bar`() {
+        val totals = monthTotals(
+            listOf(
+                expense("1", "2026-03-15", ExpenseCategory.OTHER, "5.00"),
+                expense("2", "2026-05-02", ExpenseCategory.SERVICE, "100.00"),
+            ),
+            mapOf(
+                MonthKey(2026, 5) to BigDecimal("250.40"),
+                MonthKey(2026, 4) to BigDecimal("80.10"),
+            ),
+        )
+        assertEquals(listOf(MonthKey(2026, 3), MonthKey(2026, 4), MonthKey(2026, 5)), totals.map { it.month })
+        assertEquals(listOf("5.00", "80.10", "350.40"), totals.map { it.total.toPlainString() })
+    }
+
+    @Test
+    fun `fuel alone gives the months of the fuel and no fuel changes nothing`() {
+        assertEquals(
+            listOf(MonthKey(2026, 1)),
+            monthTotals(emptyList(), mapOf(MonthKey(2026, 1) to BigDecimal("10.00"))).map { it.month },
+        )
+        val one = listOf(expense("1", "2026-03-15", ExpenseCategory.OTHER, "5.00"))
+        assertEquals(monthTotals(one), monthTotals(one, emptyMap()))
+    }
 }

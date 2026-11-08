@@ -27,7 +27,7 @@ data class Expense(
 /** Sum of one category. */
 data class CategoryTotal(val category: ExpenseCategory, val total: BigDecimal, val count: Int)
 
-/** Sum of one month of expenses (oldest first in the list [monthTotals] returns). */
+/** Sum of one month of expenses, with its fuel when [monthTotals] got it (oldest first in the list it returns). */
 data class MonthTotal(val month: MonthKey, val total: BigDecimal)
 
 /** Totals per category, biggest first; categories without an expense are left out. */
@@ -36,11 +36,16 @@ fun categoryTotals(expenses: List<Expense>): List<CategoryTotal> =
         .map { (category, rows) -> CategoryTotal(category, rows.fold(BigDecimal.ZERO) { a, e -> a + e.amount }, rows.size) }
         .sortedByDescending { it.total }
 
-/** Totals per calendar month, oldest first, for the bars. */
-fun monthTotals(expenses: List<Expense>): List<MonthTotal> =
-    expenses.groupBy { MonthKey(it.date.year, it.date.monthValue) }
-        .map { (month, rows) -> MonthTotal(month, rows.fold(BigDecimal.ZERO) { a, e -> a + e.amount }) }
-        .sortedBy { it.month }
+/**
+ * Totals per calendar month, oldest first, for the bars. [fuelByMonth] is the fuel money of the trips of each month
+ * (docs/SPEC.md §24); it is added to the month, and a month with fuel but no other expense still gets a bar.
+ */
+fun monthTotals(expenses: List<Expense>, fuelByMonth: Map<MonthKey, BigDecimal> = emptyMap()): List<MonthTotal> {
+    val other = expenses.groupBy { MonthKey(it.date.year, it.date.monthValue) }
+        .mapValues { (_, rows) -> rows.fold(BigDecimal.ZERO) { a, e -> a + e.amount } }
+    return (other.keys + fuelByMonth.keys).sorted()
+        .map { month -> MonthTotal(month, (other[month] ?: BigDecimal.ZERO) + (fuelByMonth[month] ?: BigDecimal.ZERO)) }
+}
 
 /** The amount as typed: `1 234,50`, `1234.5`, `350`; null when it is not a positive number with at most 2 decimals. */
 fun parseExpenseAmount(text: String): BigDecimal? {
