@@ -76,6 +76,33 @@ class SyncEngine(
 ) {
     private val mutex = Mutex()
 
+    /**
+     * One shared snapshot of [trips] (C22 Q6): after a synchronization the widget, the forecast, the consumption
+     * card, the weather and every open screen read the same list, so it is built once instead of once per reader.
+     * [tripsVersion] grows before and after every write of trips or costs ([writingTrips]); a snapshot is kept only
+     * when no write happened while it was read, so a reader never keeps a list from before a write. The repositories
+     * are written only by this engine (the app wires no other writer), which is what makes the snapshot safe.
+     */
+    private class TripsSnapshot(val vin: String, val version: Long, val trips: List<StoredTrip>)
+
+    private val tripsVersion = java.util.concurrent.atomic.AtomicLong()
+
+    @Volatile
+    private var tripsSnapshot: TripsSnapshot? = null
+    private val tripsReadLock = Mutex()
+
+    /** Runs a write of trips or costs; the snapshot is dropped before it starts and after it ends, also on failure. */
+    private suspend fun <T> writingTrips(write: suspend () -> T): T {
+        tripsVersion.incrementAndGet()
+        tripsSnapshot = null
+        try {
+            return write()
+        } finally {
+            tripsVersion.incrementAndGet()
+            tripsSnapshot = null
+        }
+    }
+
     /** Full pipeline. [SyncOutcome.Skipped] when another run holds the single flight. */
     suspend fun fullSync(): SyncOutcome = guarded { syncNow() }
 
@@ -99,7 +126,7 @@ class SyncEngine(
 
     /** Which vehicle to synchronize when the account has several (PRD §3). */
     suspend fun selectVehicle(vin: String) {
-        state.save(state.get().copy(vin = vin))
+        writingTrips { state.save(state.get().copy(vin = vin)) }
     }
 
     /** What the UI shows: local data plus “current / not current”. */
@@ -125,9 +152,20 @@ class SyncEngine(
      */
     suspend fun trips(): List<StoredTrip> {
         val vin = state.get().vin ?: return emptyList()
-        val costByTrip: Map<String, TripCost> = costs.all().associateBy { it.tripId }
-        return trips.all(vin).asReversed().map { it.withCost(costByTrip[it.id]) }
+        currentSnapshot(vin)?.let { return it }
+        // Readers that arrive together wait for one read instead of each reading the whole archive.
+        return tripsReadLock.withLock {
+            currentSnapshot(vin)?.let { return@withLock it }
+            val version = tripsVersion.get()
+            val costByTrip: Map<String, TripCost> = costs.all().associateBy { it.tripId }
+            val read = trips.all(vin).asReversed().map { it.withCost(costByTrip[it.id]) }
+            if (tripsVersion.get() == version) tripsSnapshot = TripsSnapshot(vin, version, read)
+            read
+        }
     }
+
+    private fun currentSnapshot(vin: String): List<StoredTrip>? =
+        tripsSnapshot?.takeIf { it.vin == vin && it.version == tripsVersion.get() }?.trips
 
     /**
      * Refuels of the selected vehicle that wait for a price, newest first
@@ -309,7 +347,7 @@ class SyncEngine(
             for ((vin, records) in snapshot.trips.groupBy { it.vin }) {
                 val known = trips.all(vin).mapTo(HashSet()) { it.id }
                 val fresh = records.filter { it.id !in known }.distinctBy { it.id }
-                if (fresh.isNotEmpty()) tripsAdded += trips.upsertAll(fresh)
+                if (fresh.isNotEmpty()) tripsAdded += writingTrips { trips.upsertAll(fresh) }
             }
 
             var refuelsAdded = 0
@@ -429,7 +467,7 @@ class SyncEngine(
         } catch (e: Exception) {
             return failAt(startedAt, classify(e))
         }
-        val tripsAdded = trips.upsertAll(fetched)
+        val tripsAdded = writingTrips { trips.upsertAll(fetched) }
 
         // 4. Costs (docs/SPEC.md §4, §5).
         val tripsCosted: Int = try {
@@ -469,7 +507,7 @@ class SyncEngine(
         // The price is read per recompute, inside the mutex (docs/SPEC.md §12.1):
         // one read for the whole archive, never one per trip.
         val computed = recomputeCosts(tripList, refuelList, defaultPriceProvider(), config.tankCapacityL)
-        costs.saveAll(computed)
+        writingTrips { costs.saveAll(computed) }
         return computed.size
     }
 

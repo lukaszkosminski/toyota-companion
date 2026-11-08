@@ -243,6 +243,10 @@ API Toyoty, w tym `refresh_status()` (§9 wstęp, AGENTS.md).
 - Taki sam charakter odczytu jak `status()` (§8.5): bez sieci, bez `mutex` synchronizacji, bez `SyncOutcome`
   (wyjątek idzie do warstwy UI). Skutek braku blokady: lista odczytana w trakcie synchronizacji może nie mieć
   jeszcze kosztów przeliczonych w kroku 5 (§8.3) – UI pokazuje je po następnym wejściu na ekran.
+- Jedna wspólna kopia listy (C22 Q6): po synchronizacji widżet, prognoza, karta spalania, pogoda i otwarte ekrany dostają tę samą listę,
+  czytaną z bazy raz; czytelnicy, którzy przyjdą razem, czekają na jeden odczyt. Kopia jest porzucana przed i po każdym zapisie tras albo kosztów
+  w `SyncEngine` (synchronizacja, import archiwum, przeliczenie kosztów po cenie, poprawce albo zmianie ceny domyślnej, wybór pojazdu) – także gdy zapis
+  się nie uda – i nie jest zachowywana, gdy zapis zdarzył się w trakcie odczytu. Jedynym zapisującym trasy i koszty jest `SyncEngine`.
 - Bez zmian w schemacie Room (brak migracji) i bez nowych metod w interfejsach repozytoriów.
 
 ### §10.2 Grupowanie i formatowanie (warstwa `app`, funkcje czyste, bez Compose)
