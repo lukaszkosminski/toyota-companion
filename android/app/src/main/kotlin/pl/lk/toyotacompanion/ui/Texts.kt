@@ -237,13 +237,13 @@ object Texts {
     /** Title of the default price screen. */
     val DEFAULT_PRICE_TITLE: String get() = Lang.pick("Cena domyślna", "Default price")
 
-    /** Status-screen button when no default price is stored yet. */
     /** Under the title of the card in "Opcje": what the price is for (docs/SPEC.md §12). */
     val DEFAULT_PRICE_EXPLAINED: String get() = Lang.pick(
         "Cena za litr dla tras sprzed pierwszego potwierdzonego tankowania. Gdy potwierdzisz cenę tankowania, koszt tras liczy się z ceny z baku.",
         "Price per liter for trips before the first confirmed refuel. Once you confirm a refuel price, trip costs use the price of the fuel in the tank.",
     )
 
+    /** Status-screen button when no default price is stored yet. */
     val DEFAULT_PRICE_PROMPT_UNSET: String get() = Lang.pick("Ustaw cenę domyślną paliwa", "Set default fuel price")
 
     /**
@@ -711,13 +711,13 @@ object Texts {
         "l/100 km: $values ($change %). Outside winter, it is worth checking tire pressure. This is only a hint, the app does not diagnose.",
     )
 
-    // Cele eco (PRD F39, docs/SPEC.md §40).
     // Autostrada i przekroczenia prędkości (PRD F40, docs/SPEC.md §41).
 
     fun driveHighway(km: String): String = Lang.pick("autostrada $km km", "motorway $km km")
     fun driveOverspeed(km: String, sharePct: String): String =
         Lang.pick("przekroczenia $km km ($sharePct %)", "speeding $km km ($sharePct %)")
 
+    // Cele eco (PRD F39, docs/SPEC.md §40).
 
     val ECO_TITLE: String get() = Lang.pick("Cel miesiąca", "Monthly goal")
     val ECO_SET: String get() = Lang.pick("Ustaw cel", "Set a goal")
