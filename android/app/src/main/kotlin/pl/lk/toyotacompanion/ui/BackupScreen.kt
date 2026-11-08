@@ -98,7 +98,7 @@ fun BackupScreen(
 
                 if (state.busy) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 state.error?.let { Box { ErrorCard(it) } }
-                state.message?.let { Text("ℹ️ " + it, style = MaterialTheme.typography.bodyMedium, color = readable(Palette.Blue)) }
+                state.message?.let { IconText(AppIcons.Info, it, style = MaterialTheme.typography.bodyMedium, color = readable(Palette.Blue)) }
 
                 Button(
                     onClick = { warnsBeforeExport = true },
@@ -137,7 +137,7 @@ fun BackupScreen(
                     IconLabel(AppIcons.CloudUpload, Texts.BACKUP_CLOUD_NOW)
                 }
                 if (state.cloudRequested) {
-                    Text("ℹ️ " + Texts.BACKUP_CLOUD_REQUESTED, style = MaterialTheme.typography.bodyMedium, color = readable(Palette.Blue))
+                    IconText(AppIcons.Info, Texts.BACKUP_CLOUD_REQUESTED, style = MaterialTheme.typography.bodyMedium, color = readable(Palette.Blue))
                 }
                 state.cloudError?.let { Box { ErrorCard(it) } }
                 IconText(

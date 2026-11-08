@@ -116,7 +116,7 @@ private val HUNDRED = BigDecimal(100)
 
 /**
  * The kind of drive of a trip for its row in the list (docs/SPEC.md §10.3): the speed band of §22 with the average speed,
- * e.g. `🚦 wolna jazda · 12 km/h`, `🛣️ trasa · 52 km/h`. A trip under [TRAFFIC_MIN_KM] is `krótki odcinek` (its average
+ * e.g. `wolna jazda · 12 km/h`, `trasa · 52 km/h`. A trip under [TRAFFIC_MIN_KM] is `krótki odcinek` (its average
  * says little), one without a usable speed has no line. Whole km/h, HALF_UP; indirect, like the bands themselves.
  */
 fun drivingTypeLine(stored: StoredTrip): String? {

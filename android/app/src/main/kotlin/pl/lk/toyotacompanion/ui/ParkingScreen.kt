@@ -171,8 +171,9 @@ fun ParkingScreen(
                 }
 
                 item {
-                    Text(
-                        "ℹ️ " + Texts.parkingSkipped(log.unmatched, log.longGaps),
+                    IconText(
+                        AppIcons.Info,
+                        Texts.parkingSkipped(log.unmatched, log.longGaps),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 4.dp),
