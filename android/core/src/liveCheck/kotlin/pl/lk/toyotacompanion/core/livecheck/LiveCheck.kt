@@ -26,6 +26,9 @@ import pl.lk.toyotacompanion.core.toyota.ToyotaNetworkException
  *
  * Reads only (no refresh_status, no commands). Prints no password, token, full
  * VIN or GPS position. Never part of CI.
+ *
+ * With `TOYOTA_PROBE=structure` it prints instead the SHAPE of the other read endpoints (service history, notifications,
+ * vehicle status, health, location, trip fields): field names and types, no values except true/false (Probe.kt).
  */
 fun main() {
     val username = System.getenv("TOYOTA_USERNAME").orEmpty()
@@ -36,7 +39,13 @@ fun main() {
     }
     val http = OkHttpClient.Builder().callTimeout(60, TimeUnit.SECONDS).build()
     val code = try {
-        runBlocking { check(ToyotaApi(ToyotaController(username, password, http))) }
+        val controller = ToyotaController(username, password, http)
+        // TOYOTA_PROBE=structure: the shape of every read endpoint instead of the summary (Probe.kt).
+        if (System.getenv("TOYOTA_PROBE") == "structure") {
+            runBlocking { probeStructure(controller) }
+        } else {
+            runBlocking { check(ToyotaApi(controller)) }
+        }
         0
     } catch (e: ToyotaInvalidUsernameException) {
         println("BLAD logowania: Toyota nie zna tego loginu.")

@@ -153,6 +153,12 @@ export TOYOTA_USERNAME TOYOTA_PASSWORD
 unset TOYOTA_USERNAME TOYOTA_PASSWORD
 ```
 
+Sonda struktury (jakie pola zwracają pozostałe odczyty: historia serwisowa, powiadomienia, stan pojazdu, stan techniczny, lokalizacja, pola tras): to samo logowanie, ale z `TOYOTA_PROBE=structure`.
+Wypisuje tylko nazwy pól, typy i `true`/`false`, bez VIN, pozycji i innych wartości, więc wynik można wkleić do rozmowy. Tylko odczyty (bez `refresh_status`, budzenia, komend).
+```bash
+TOYOTA_PROBE=structure ./gradlew -q :core:liveCheck
+```
+
 Program tylko czyta (bez `refresh_status`), pokazuje VIN z maską i nie wypisuje pozycji GPS ani tokenów.
 Sprawdzone 2026-10-29: fikcyjny login dostaje od prawdziwego serwera Toyoty „User Not Found”,
 czyli pierwszy etap logowania działa z prawdziwym API.
