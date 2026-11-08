@@ -140,3 +140,10 @@ Decyzja właściciela produktu (wybór funkcji F38). ADR-018 zostawił wydatki w
 (koszt paliwa, km, suma wydatków, miesiące), więc domena nie zna `ExpenseEntity` ani Room, a `ExpensesController` dalej działa wprost na `ExpenseDao` (ADR-018 bez zmian).
 Średnia na miesiąc liczona od pierwszego miesiąca z trasą albo wydatkiem w roku, nie od stycznia (auto kupione w ciągu roku). Paliwo tylko z tras z ceną, bez szacowania
 brakującej ceny. Odrzucone: koszt na km tylko z km tras z ceną (wydatki nie zależą od ceny paliwa), szacunek brakujących tras ceną domyślną (ukrywa brak danych).
+
+## ADR-021 Pola autostrady i przekroczeń prędkości w archiwum tras, bez zdarzeń jazdy (2026-11-08)
+Do archiwum dodajemy cztery pola, które Toyota już zwraca w podsumowaniu każdej trasy (`lengthOverspeed`, `durationOverspeed`, `lengthHighway`, `durationHighway`; F40, SPEC §41). Są tanie (bez nowych żądań, cztery nullable kolumny, auto-migracja 5 → 6), a Toyota kasuje trasy po ok. 12 miesiącach,
+więc to, czego nie zapiszemy teraz, przepadnie. Trasy sprzed migracji mają `null`; nie ma uzupełniania wstecz, bo wymagałoby dodatkowych żądań o stare trasy. Pola zostają w `TripRecord`, nie w domenie `Trip`, bo nie biorą udziału w kosztach (brak lustra w Pythonie, jak `hdc`).
+Odrzucone na razie: zdarzenia jazdy (`behaviours`). W fixturach pytoyoda mają one pola `good` (zdarzenia dobre i złe), `severity`, `coachingMsg` i współrzędne, więc licznik „wszystkich zdarzeń” byłby błędny, a pozycje to osobna decyzja o prywatności. Nie wiadomo też, czy lista tras ich dziś w ogóle zwraca.
+Wrócimy do tego po wyniku sondy struktury odpowiedzi (`TOYOTA_PROBE=structure`, HANDOFF), jeśli konto je zwraca. Ryzyko: wartości przekroczeń to dane Toyoty o niejasnej metodzie (limity z map); pokazujemy je tak, jak je podaje, bez własnej oceny.
+

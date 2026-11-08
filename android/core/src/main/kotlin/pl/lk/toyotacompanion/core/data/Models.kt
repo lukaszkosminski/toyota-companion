@@ -55,6 +55,11 @@ data class TripRecord(
     val hdcChargeDistM: Long? = null,
     val hdcChargeTimeS: Long? = null,
     val syncedAt: Instant? = null,
+    /** Metres and seconds of the trip over the speed limit and on motorways, as Toyota reports them (docs/SPEC.md §41); `null` = not reported. */
+    val overspeedLengthM: Long? = null,
+    val overspeedDurationS: Long? = null,
+    val highwayLengthM: Long? = null,
+    val highwayDurationS: Long? = null,
 ) {
     val id: String get() = trip.id
 

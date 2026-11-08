@@ -24,7 +24,7 @@ import pl.lk.toyotacompanion.core.domain.LitersSource
 import pl.lk.toyotacompanion.core.domain.RefuelStatus
 
 private const val SCHEMA_DIR = "schemas/pl.lk.toyotacompanion.data.db.AppDatabase"
-private const val CURRENT_VERSION = 5
+private const val CURRENT_VERSION = 6
 
 /**
  * The archive cannot be fetched from Toyota again once it is older than ~12 months, so every committed schema
@@ -32,8 +32,8 @@ private const val CURRENT_VERSION = 5
  *
  * Each test builds the database of version N the way Room 3 would have left it - the `createSql` of every entity and index
  * and the `setupQueries` (room_master_table with the identity hash) of that schema file, `PRAGMA user_version = N` - fills
- * the tables that exist in that version through plain SQL, and opens it with the current [AppDatabase] (the four
- * auto-migrations 1 -> 2 -> 3 -> 4 -> 5). Nothing in the app code is touched.
+ * the tables that exist in that version through plain SQL, and opens it with the current [AppDatabase] (the five
+ * auto-migrations 1 -> 2 -> 3 -> 4 -> 5 -> 6). Nothing in the app code is touched.
  */
 @RunWith(RobolectricTestRunner::class)
 class AppDatabaseMigrationTest {
@@ -62,14 +62,14 @@ class AppDatabaseMigrationTest {
     @Test
     fun `version 1 migrates to the current one and keeps its archive`() = runTest {
         val db = migrate(1)
-        assertArchiveKept(db)
+        assertArchiveKept(db, 1)
         assertNoLaterTables(db, hasWeather = false, hasRoutes = false)
     }
 
     @Test
     fun `version 2 keeps the weather rows and gives them no weather code`() = runTest {
         val db = migrate(2)
-        assertArchiveKept(db)
+        assertArchiveKept(db, 2)
         assertWeatherKept(db, expectedCode = null)
         assertNoLaterTables(db, hasWeather = true, hasRoutes = false)
     }
@@ -77,7 +77,7 @@ class AppDatabaseMigrationTest {
     @Test
     fun `version 3 keeps the stored routes`() = runTest {
         val db = migrate(3)
-        assertArchiveKept(db)
+        assertArchiveKept(db, 3)
         assertWeatherKept(db, expectedCode = null)
         assertRouteKept(db)
         assertNoLaterTables(db, hasWeather = true, hasRoutes = true)
@@ -86,16 +86,31 @@ class AppDatabaseMigrationTest {
     @Test
     fun `version 4 keeps the weather code and gets an empty expenses table`() = runTest {
         val db = migrate(4)
-        assertArchiveKept(db)
+        assertArchiveKept(db, 4)
         assertWeatherKept(db, expectedCode = 61)
         assertRouteKept(db)
         assertNoLaterTables(db, hasWeather = true, hasRoutes = true)
     }
 
     @Test
+    fun `version 5 gets the motorway and speeding columns, empty for the trips it already had`() = runTest {
+        val db = migrate(5)
+        assertArchiveKept(db, 5)
+        assertWeatherKept(db, expectedCode = 61)
+        assertRouteKept(db)
+        assertEquals(ExpenseEntity("e1", 20_000, "SERVICE", BigDecimal("250.50"), "oil"), db.expenseDao().all().single())
+        // A trip written after the migration keeps the new columns.
+        db.tripDao().upsertAll(listOf(assertNotNull(db.tripDao().byId("t1")).copy(id = "t3", overspeedLengthM = 10L, highwayDurationS = 20L)))
+        val written = assertNotNull(db.tripDao().byId("t3"))
+        assertEquals(10L, written.overspeedLengthM)
+        assertEquals(20L, written.highwayDurationS)
+        assertNull(written.overspeedDurationS)
+    }
+
+    @Test
     fun `the current version opens its own schema unchanged`() = runTest {
         val db = migrate(CURRENT_VERSION)
-        assertArchiveKept(db)
+        assertArchiveKept(db, 6)
         assertWeatherKept(db, expectedCode = 61)
         assertRouteKept(db)
         val expense = db.expenseDao().all().single()
@@ -150,6 +165,12 @@ class AppDatabaseMigrationTest {
         old.execSQL(
             "INSERT INTO trips (id, vin, start_ts, end_ts, distance_km, fuel_l) VALUES ('t2', 'VIN1', 3000, 4000, 0.0, '0')",
         )
+        if (version >= 6) {
+            old.execSQL(
+                "UPDATE trips SET overspeed_length_m = 1334, overspeed_duration_s = 57, highway_length_m = 4210, highway_duration_s = 190 " +
+                    "WHERE id = 't1'",
+            )
+        }
         old.execSQL(
             "INSERT INTO refuels (id, vin, ts, odometer_km, level_before, level_after, liters, price_per_liter, total_cost, status, " +
                 "liters_source, filled_to_full) VALUES ('r1', 'VIN1', 1500, 12345.6, 20, 80, '30.10', '6.49', '195.35', 'CONFIRMED', 'RECEIPT', 1)",
@@ -199,7 +220,7 @@ class AppDatabaseMigrationTest {
     // ---------------- checks after the migration ----------------
 
     /** The tables that exist since version 1, with the exact values written above. */
-    private suspend fun assertArchiveKept(db: AppDatabase) {
+    private suspend fun assertArchiveKept(db: AppDatabase, version: Int) {
         val trip = assertNotNull(db.tripDao().byId("t1"))
         assertEquals("VIN1", trip.vin)
         assertEquals(Instant.ofEpochMilli(1000), trip.start)
@@ -216,7 +237,20 @@ class AppDatabaseMigrationTest {
         assertEquals(2000L, trip.hdcEcoDistM)
         assertEquals(400L, trip.hdcChargeTimeS)
         assertEquals(Instant.ofEpochMilli(5000), trip.syncedAt)
+        // Schema 6 added the motorway and speeding columns: a trip of an older file has "not reported", never 0.
+        if (version >= 6) {
+            assertEquals(1_334L, trip.overspeedLengthM)
+            assertEquals(57L, trip.overspeedDurationS)
+            assertEquals(4_210L, trip.highwayLengthM)
+            assertEquals(190L, trip.highwayDurationS)
+        } else {
+            assertNull(trip.overspeedLengthM)
+            assertNull(trip.overspeedDurationS)
+            assertNull(trip.highwayLengthM)
+            assertNull(trip.highwayDurationS)
+        }
         val bare = assertNotNull(db.tripDao().byId("t2"))
+        assertNull(bare.overspeedLengthM)
         assertNull(bare.evDistanceKm)
         assertNull(bare.syncedAt)
         assertEquals(2, db.tripDao().count())

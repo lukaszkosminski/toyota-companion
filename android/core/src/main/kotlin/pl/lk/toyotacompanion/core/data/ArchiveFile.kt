@@ -187,6 +187,10 @@ private data class TripDto(
     val hdcChargeDistM: Long? = null,
     val hdcChargeTimeS: Long? = null,
     @Serializable(with = InstantText::class) val syncedAt: Instant? = null,
+    val overspeedLengthM: Long? = null,
+    val overspeedDurationS: Long? = null,
+    val highwayLengthM: Long? = null,
+    val highwayDurationS: Long? = null,
 )
 
 @Serializable
@@ -321,6 +325,10 @@ private fun TripRecord.toDto(): TripDto = TripDto(
     hdcChargeDistM = hdcChargeDistM,
     hdcChargeTimeS = hdcChargeTimeS,
     syncedAt = syncedAt,
+    overspeedLengthM = overspeedLengthM,
+    overspeedDurationS = overspeedDurationS,
+    highwayLengthM = highwayLengthM,
+    highwayDurationS = highwayDurationS,
 )
 
 private fun TripDto.toRecord(): TripRecord = TripRecord(
@@ -355,6 +363,10 @@ private fun TripDto.toRecord(): TripRecord = TripRecord(
     hdcChargeDistM = hdcChargeDistM,
     hdcChargeTimeS = hdcChargeTimeS,
     syncedAt = syncedAt,
+    overspeedLengthM = overspeedLengthM,
+    overspeedDurationS = overspeedDurationS,
+    highwayLengthM = highwayLengthM,
+    highwayDurationS = highwayDurationS,
 )
 
 private fun ArchiveRefuel.toDto(): RefuelDto = RefuelDto(

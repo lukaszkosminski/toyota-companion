@@ -1013,3 +1013,16 @@ Domena: `core/domain/OwnershipOps.kt` (`ownershipCost`, `ownershipMonths`, model
 - Teksty PL/EN w `Texts` (blok „Cele eco”); liczebniki odmieniane w tych tekstach nie występują (km i % są nieodmienne), więc `plPlural` nie jest potrzebne.
 - Bez sieci i bez API Toyoty; czyste funkcje i kontroler bez Compose. Testy: `EcoGoalsTest`, `EcoGoalsControllerTest`, `WidgetSnapshotTest`, `TextsTest`, `SettingsStoreTest`.
 
+## 41. Autostrada i przekroczenia prędkości w trasach (PRD F40, ADR-021)
+`core/toyota/dto/Dto.kt` (`TripSummaryDto`), `ToyotaMapper.toTripRecord`, `core/data/Models.kt` (`TripRecord`), `data/db` (`TripEntity`, schemat 6), `ArchiveFile`, `app/ui/TripDriveExtras.kt`.
+- Źródło: pola podsumowania trasy `lengthOverspeed`, `durationOverspeed`, `lengthHighway`, `durationHighway` (pytoyoda `trips.py`, fixtury testowe: metry i sekundy, jak `hdc`). To te same odpowiedzi, które synchronizacja już pobiera; **nie ma nowych żądań** ani `refresh_status`.
+  Nie wiemy, czy konto zwraca je dla każdej trasy: brak pola = „nie podano” (`null`), nigdy 0.
+- `TripRecord`: `overspeedLengthM`, `overspeedDurationS`, `highwayLengthM`, `highwayDurationS` (`Long?`, domyślnie `null`, na końcu konstruktora). Nie wchodzą do `Trip` (domeny kosztów), więc nie ma lustra w Pythonie.
+- Room: schemat **6**, auto-migracja 5 → 6, cztery kolumny `INTEGER` bez `NOT NULL` (`overspeed_length_m`, `overspeed_duration_s`, `highway_length_m`, `highway_duration_s`); trasy zapisane wcześniej mają `null`.
+  Dane sprzed tej wersji nie są uzupełniane: synchronizacja zapisuje trasy od znacznika z zakładką 2 dni (§8.3), więc pola mają tylko nowe trasy.
+- Archiwum (§14): cztery opcjonalne klucze w trasie (`overspeedLengthM`, `overspeedDurationS`, `highwayLengthM`, `highwayDurationS`), format nadal w wersji 1; plik bez nich wczytuje się z `null`. Nie ma ich w CSV (§14.4).
+- Wiersz trasy (§10.3): dodatkowa linia po rodzaju jazdy, `autostrada 4,2 km · przekroczenia 1,3 km (9 %)`: kilometry z jednym miejscem po przecinku (HALF_UP), udział przekroczeń to całe % dystansu trasy (nie więcej niż 100 %, przy niepoprawnym dystansie 0 %).
+  Części z `null` lub 0 są pomijane; bez żadnej części linii nie ma. EN: „motorway … km”, „speeding … km (…) %”.
+- Nie robimy (jeszcze): zdarzeń jazdy (`behaviours`: pole `good`, `severity`, współrzędne), sum miesięcznych ani wykresu – zależą od tego, co konto naprawdę zwraca (sonda struktury, HANDOFF).
+- Testy: `ToyotaMapperArchiveTest`, `ArchiveFileTest`, `AppDatabaseMigrationTest` (v5 → v6 i seed każdej wersji), `TripDriveExtrasTest`.
+

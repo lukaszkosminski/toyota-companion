@@ -22,9 +22,9 @@ import androidx.room3.ColumnTypeConverters
         TripRouteEntity::class,
         ExpenseEntity::class,
     ],
-    version = 5,
-    // 1 -> 2 adds the `weather` table (§23), 2 -> 3 the `trip_routes` table (§27), 3 -> 4 the `weather_code` column, 4 -> 5 the `expenses` table; the archive tables are untouched.
-    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3), AutoMigration(from = 3, to = 4), AutoMigration(from = 4, to = 5)],
+    version = 6,
+    // 1 -> 2 adds the `weather` table (§23), 2 -> 3 the `trip_routes` table (§27), 3 -> 4 the `weather_code` column, 4 -> 5 the `expenses` table, 5 -> 6 the overspeed and motorway columns of `trips` (docs/SPEC.md §41); the archive tables are untouched.
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3), AutoMigration(from = 3, to = 4), AutoMigration(from = 4, to = 5), AutoMigration(from = 5, to = 6)],
     exportSchema = true,
 )
 @ColumnTypeConverters(Converters::class)

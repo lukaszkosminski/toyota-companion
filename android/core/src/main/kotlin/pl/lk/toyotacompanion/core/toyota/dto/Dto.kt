@@ -119,6 +119,11 @@ data class TripSummaryDto(
     @SerialName("endLat") val endLat: Double? = null,
     @SerialName("endLon") val endLon: Double? = null,
     @SerialName("nightTrip") val nightTrip: Boolean? = null,
+    /** Metres and seconds over the speed limit and on motorways (pytoyoda trips.py:29-34); absent in older payloads. */
+    @SerialName("lengthOverspeed") val lengthOverspeed: Long? = null,
+    @SerialName("durationOverspeed") val durationOverspeed: Long? = null,
+    @SerialName("lengthHighway") val lengthHighway: Long? = null,
+    @SerialName("durationHighway") val durationHighway: Long? = null,
 )
 
 /** pytoyoda trips.py:102-109 (_ScoresModel) */

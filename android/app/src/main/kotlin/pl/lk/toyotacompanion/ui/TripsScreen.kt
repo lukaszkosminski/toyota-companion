@@ -238,6 +238,8 @@ private fun TripRow(stored: StoredTrip, zone: ZoneId, day: pl.lk.toyotacompanion
                 WeatherSymbols.line(day)?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                 // Kind of drive by average speed (§22): slow, city, flowing, route.
                 drivingTypeLine(stored)?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                // Motorway and speeding kilometres, when Toyota reported them (§41).
+                tripDriveExtrasLine(record)?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(

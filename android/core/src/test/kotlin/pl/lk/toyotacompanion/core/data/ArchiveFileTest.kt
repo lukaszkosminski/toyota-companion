@@ -78,6 +78,10 @@ private fun fullTrip(id: String, vin: String): TripRecord = TripRecord(
     hdcChargeDistM = 900L,
     hdcChargeTimeS = 210L,
     syncedAt = EXPORTED_AT,
+    overspeedLengthM = 1_334L,
+    overspeedDurationS = 57L,
+    highwayLengthM = 4_210L,
+    highwayDurationS = 190L,
 )
 
 private fun bareTrip(id: String, vin: String): TripRecord =
@@ -137,6 +141,21 @@ class ArchiveFileTest {
         val decoded = assertIs<ArchiveDecode.Ok>(decodeArchive(encodeArchive(original)))
 
         assertEquals(original, decoded.snapshot)
+    }
+
+    @Test
+    fun `a file written before the motorway and speeding columns reads them as not reported`() {
+        val text = String(encodeArchive(snapshot()), Charsets.UTF_8)
+        val old = text.replace(Regex(""","(overspeedLengthM|overspeedDurationS|highwayLengthM|highwayDurationS)":[0-9]+"""), "")
+        assertTrue(old != text, "the columns are in the file")
+
+        val decoded = assertIs<ArchiveDecode.Ok>(decodeArchive(old.toByteArray(Charsets.UTF_8)))
+        val trip = decoded.snapshot.trips.first { it.overspeedLengthM == null }
+
+        assertNull(trip.overspeedDurationS)
+        assertNull(trip.highwayLengthM)
+        assertNull(trip.highwayDurationS)
+        assertTrue(decoded.snapshot.trips.all { it.overspeedLengthM == null && it.highwayLengthM == null })
     }
 
     @Test

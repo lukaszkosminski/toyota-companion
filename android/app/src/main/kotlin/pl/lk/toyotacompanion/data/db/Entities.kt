@@ -53,6 +53,11 @@ data class TripEntity(
     @ColumnInfo(name = "hdc_charge_dist_m") val hdcChargeDistM: Long?,
     @ColumnInfo(name = "hdc_charge_time_s") val hdcChargeTimeS: Long?,
     @ColumnInfo(name = "synced_at") val syncedAt: Instant?,
+    // Since schema 6 (docs/SPEC.md §41): nullable, so a trip stored before has "not reported".
+    @ColumnInfo(name = "overspeed_length_m") val overspeedLengthM: Long? = null,
+    @ColumnInfo(name = "overspeed_duration_s") val overspeedDurationS: Long? = null,
+    @ColumnInfo(name = "highway_length_m") val highwayLengthM: Long? = null,
+    @ColumnInfo(name = "highway_duration_s") val highwayDurationS: Long? = null,
 ) {
     fun toRecord(): TripRecord = TripRecord(
         trip = Trip(id, start, end, distanceKm, fuelL, evDistanceKm),
@@ -79,6 +84,10 @@ data class TripEntity(
         hdcChargeDistM = hdcChargeDistM,
         hdcChargeTimeS = hdcChargeTimeS,
         syncedAt = syncedAt,
+        overspeedLengthM = overspeedLengthM,
+        overspeedDurationS = overspeedDurationS,
+        highwayLengthM = highwayLengthM,
+        highwayDurationS = highwayDurationS,
     )
 }
 
@@ -112,6 +121,10 @@ fun TripRecord.toEntity(): TripEntity = TripEntity(
     hdcChargeDistM = hdcChargeDistM,
     hdcChargeTimeS = hdcChargeTimeS,
     syncedAt = syncedAt,
+    overspeedLengthM = overspeedLengthM,
+    overspeedDurationS = overspeedDurationS,
+    highwayLengthM = highwayLengthM,
+    highwayDurationS = highwayDurationS,
 )
 
 @Entity(tableName = "refuels", indices = [Index(value = ["vin", "ts"])])

@@ -111,6 +111,10 @@ object ToyotaMapper {
             hdcChargeDistM = dto.hdc?.chargeDist,
             hdcChargeTimeS = dto.hdc?.chargeTime,
             syncedAt = syncedAt,
+            overspeedLengthM = summary.lengthOverspeed,
+            overspeedDurationS = summary.durationOverspeed,
+            highwayLengthM = summary.lengthHighway,
+            highwayDurationS = summary.durationHighway,
         )
     }
 

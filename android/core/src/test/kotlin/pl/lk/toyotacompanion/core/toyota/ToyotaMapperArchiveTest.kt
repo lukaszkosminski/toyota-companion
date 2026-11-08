@@ -33,6 +33,10 @@ private fun fullTripDto() = TripDto(
         endLat = 54.373,
         endLon = 18.618,
         nightTrip = false,
+        lengthOverspeed = 1_334L,
+        durationOverspeed = 57L,
+        lengthHighway = 4_210L,
+        durationHighway = 190L,
     ),
     scores = ScoresDto(global = 82, acceleration = 78, braking = 83, advice = 16, constantSpeed = 27),
     hdc = HdcDto(
@@ -83,6 +87,16 @@ class ToyotaMapperArchiveTest {
     }
 
     @Test
+    fun `toTripRecord_keeps_overspeed_and_motorway_lengths_and_durations`() {
+        val record = requireNotNull(ToyotaMapper.toTripRecord(fullTripDto(), VIN_FAKE, SYNCED))
+
+        assertEquals(1_334L, record.overspeedLengthM)
+        assertEquals(57L, record.overspeedDurationS)
+        assertEquals(4_210L, record.highwayLengthM)
+        assertEquals(190L, record.highwayDurationS)
+    }
+
+    @Test
     fun `toTripRecord_projection_equals_toDomainTrip`() {
         val dto = fullTripDto()
 
@@ -119,6 +133,8 @@ class ToyotaMapperArchiveTest {
 
         assertNull(record.scoreGlobal)
         assertNull(record.hdcEvDistanceM)
+        assertNull(record.overspeedLengthM)
+        assertNull(record.highwayDurationS)
         assertNull(record.startLat)
         assertEquals(Trip("trip-sparse", record.trip.start, record.trip.end, 1.0, BigDecimal("0.050"), null), record.toTrip())
     }

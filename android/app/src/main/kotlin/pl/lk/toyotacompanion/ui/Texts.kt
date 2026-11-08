@@ -712,6 +712,12 @@ object Texts {
     )
 
     // Cele eco (PRD F39, docs/SPEC.md §40).
+    // Autostrada i przekroczenia prędkości (PRD F40, docs/SPEC.md §41).
+
+    fun driveHighway(km: String): String = Lang.pick("autostrada $km km", "motorway $km km")
+    fun driveOverspeed(km: String, sharePct: String): String =
+        Lang.pick("przekroczenia $km km ($sharePct %)", "speeding $km km ($sharePct %)")
+
 
     val ECO_TITLE: String get() = Lang.pick("Cel miesiąca", "Monthly goal")
     val ECO_SET: String get() = Lang.pick("Ustaw cel", "Set a goal")
