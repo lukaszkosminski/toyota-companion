@@ -960,3 +960,17 @@ ekranie „Pogoda i spalanie” (§23).
 - Błędy: brak sieci, GitHub (HTTP ≠ 2xx, w tym limit 60 zapytań/h bez tokenu), brak repozytorium wydań (404 także na `GET /repos/<repo>`), nieczytelne wydanie lub plik, zapis pliku w telefonie (`STORAGE`, np. brak miejsca – nie „brak sieci”), plik nie tej aplikacji / innego klucza, błąd instalacji – tylko rodzaj, bez treści odpowiedzi.
 - Build release jest zminifikowany przez R8 (ADR-017, `proguard-rules.pro`): CI buduje `:app:assembleRelease` przy każdym pushu, więc błąd reguł wychodzi przed tagiem.
 - Stan nie zależy od logowania do MyToyota i nie jest czyszczony przy wylogowaniu. Brak sprawdzania w tle i powiadomień (decyzja właściciela).
+
+## 38. Wydatki poza paliwem (PRD F37, ADR-018)
+`app/ui/Expenses.kt` (`ExpenseCategory`, `Expense`, `parseExpenseAmount`, `categoryTotals`, `monthTotals`), `ExpensesController.kt`, `ExpensesScreen.kt`; tabela `expenses` w `data/db`.
+- Wejście: kafel „Wydatki” w menu ekranu statusu. Ekran nie dotyka API Toyoty, `refuel_status` ani synchronizacji; wszystko jest lokalne.
+- Kategorie (`ExpenseCategory`): serwis, przegląd, opony, ubezpieczenie, części, myjnia, opłaty, inne. Kategoria zapisana w bazie jako nazwa enuma; nieznana nazwa (np. z nowszej wersji) czyta się jako „inne”.
+- Formularz („Dodaj wydatek”): data (domyślnie dziś, dowolny dzień, także wstecz), kategoria, kwota, opis (opcjonalny, po `trim`; pusty = brak opisu). Kwota (`parseExpenseAmount`): po usunięciu wszystkich białych znaków (także twardej spacji `\u00A0`, którą aplikacja wstawia przy grupowaniu tysięcy), przecinek = kropka;
+  do 7 cyfr całkowitych i do 2 miejsc po przecinku, większa od zera. Akceptowane: „1 234,50”, „1234.5”, „350”; odrzucane: puste, `0`, `0,00`, ujemne, 8 cyfr, „1,234” (3 miejsca), tekst. Odrzucenie pokazuje „Podaj kwotę, np. 350 lub 1234,50.” i nic nie zapisuje.
+- Lista: od najnowszej daty (przy tej samej – po `id`); usunięcie jednym dotknięciem („Usuń”, opisane dla czytnika ekranu). Każdy zapis i usunięcie przeładowuje listę.
+- Sumy: „Paliwo i reszta” (paliwo z tras ze spalania §24 wobec sumy wydatków, pierścień z udziałem), „Według rodzaju” – sumy kategorii **malejąco**, bez kategorii bez wydatków (`categoryTotals`), „Według miesięcy” – słupki
+  miesięcy **od najstarszego** (`monthTotals`, ostatnie 12), pokazywane gdy jest więcej niż jeden miesiąc.
+- Dane: tabela `expenses (id, date_epoch_day, category, amount_pln TEXT, note)` w Room v5 (migracja 4 → 5, auto), indeks po dacie; kwota jako `BigDecimal` w tekście (§8.2). Wydatki są w eksporcie i imporcie archiwum (§14, import po `id`, bez duplikatów)
+  i w kopii Auto Backup (ADR-015). Wylogowanie czyści listę w pamięci ekranu, nie bazę.
+- Błędy: nieudany odczyt – „Nie udało się odczytać wydatków.”; nieudany zapis lub usunięcie – wiersze zostają jak były, stan oznaczony jako błąd, bez treści wyjątku. Brak wydatków – „Brak wydatków. Dodaj przegląd, opony, serwis – także z datą wstecz.”
+- Testy: `ExpensesTest` (parser, sumy), `ExpensesControllerTest` (kontroler na sztucznym `ExpenseDao`), `AppDatabaseMigrationTest` (migracja 4 → 5). Brak lustra w Pythonie: to prezentacja, nie domena (ADR-018).

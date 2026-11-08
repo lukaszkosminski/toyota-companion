@@ -44,7 +44,8 @@ fun monthTotals(expenses: List<Expense>): List<MonthTotal> =
 
 /** The amount as typed: `1 234,50`, `1234.5`, `350`; null when it is not a positive number with at most 2 decimals. */
 fun parseExpenseAmount(text: String): BigDecimal? {
-    val cleaned = text.trim().replace(" ", "").replace(" ", "").replace(',', '.')
+    // Every whitespace goes, including the non-breaking space the app itself puts between thousands (docs/SPEC.md §38).
+    val cleaned = text.filterNot { it.isWhitespace() }.replace(',', '.')
     if (!Regex("\\d{1,7}(\\.\\d{1,2})?").matches(cleaned)) return null
     return BigDecimal(cleaned).takeIf { it.signum() > 0 }
 }

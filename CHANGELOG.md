@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Wydatki poza paliwem opisane w PRD (F37), SPEC §38 i ADR-018, z testami; kwota przyjmuje też twardą spację między tysiącami
 - Konto Toyoty z kilkoma autami: komunikat mówi wprost, że aplikacja obsługuje jedno konto z jednym autem (ADR-019), zamiast obiecywać wybór
 - Token Toyoty odnawiany raz, gdy synchronizacja, mapa trasy i zapis przebiegów pytają równocześnie (jedno logowanie zamiast kilku na to samo konto)
 - Poprawna odmiana liczebników: „1 dzień”, „minęły 3 dni”, „1 trasa”, „3 trasy”, „1 przebieg” zamiast „1 dni”, „1 tras”
