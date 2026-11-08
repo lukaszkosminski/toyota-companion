@@ -238,6 +238,12 @@ object Texts {
     val DEFAULT_PRICE_TITLE: String get() = Lang.pick("Cena domyślna", "Default price")
 
     /** Status-screen button when no default price is stored yet. */
+    /** Under the title of the card in "Opcje": what the price is for (docs/SPEC.md §12). */
+    val DEFAULT_PRICE_EXPLAINED: String get() = Lang.pick(
+        "Cena za litr dla tras sprzed pierwszego potwierdzonego tankowania. Gdy potwierdzisz cenę tankowania, koszt tras liczy się z ceny z baku.",
+        "Price per liter for trips before the first confirmed refuel. Once you confirm a refuel price, trip costs use the price of the fuel in the tank.",
+    )
+
     val DEFAULT_PRICE_PROMPT_UNSET: String get() = Lang.pick("Ustaw cenę domyślną paliwa", "Set default fuel price")
 
     /**

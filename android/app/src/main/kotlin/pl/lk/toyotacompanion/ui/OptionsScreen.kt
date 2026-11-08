@@ -20,11 +20,18 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import java.math.BigDecimal
 
-/** "Opcje": settings of the app itself: the language, applied at once and remembered, and the app update (§37). */
+/** "Opcje": settings of the app itself: the language, applied at once and remembered, the default fuel price (§12.3) and the app update (§37). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OptionsScreen(update: UpdateController, onSetLanguage: (AppLanguage) -> Unit, onBack: () -> Unit) {
+fun OptionsScreen(
+    update: UpdateController,
+    onSetLanguage: (AppLanguage) -> Unit,
+    defaultPrice: BigDecimal?,
+    onShowDefaultPrice: () -> Unit,
+    onBack: () -> Unit,
+) {
     BackHandler(onBack = onBack)
     val updateState by update.state.collectAsState()
     Scaffold(
@@ -46,6 +53,11 @@ fun OptionsScreen(update: UpdateController, onSetLanguage: (AppLanguage) -> Unit
                         )
                     }
                 }
+            }
+            // A starting price for the trips before the first confirmed refuel; after that the tank price counts (docs/SPEC.md §12).
+            DashboardCard(Texts.DEFAULT_PRICE_TITLE, AppIcons.Payments) {
+                Text(Texts.DEFAULT_PRICE_EXPLAINED, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedButton(onClick = onShowDefaultPrice) { Text(Texts.defaultPricePrompt(defaultPrice)) }
             }
             DashboardCard(Texts.UPDATE_TITLE, AppIcons.SystemUpdate) {
                 UpdateCardContent(

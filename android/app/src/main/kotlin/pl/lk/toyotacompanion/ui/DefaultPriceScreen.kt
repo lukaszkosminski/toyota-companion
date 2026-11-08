@@ -40,16 +40,16 @@ import androidx.compose.ui.unit.dp
  * [DefaultPriceController] in the application scope, so leaving this screen during
  * a write does not cancel it.
  *
- * @param onBackToStatus back to the status screen, also after a write went through
+ * @param onBack back to the screen it was opened from ("Opcje"), also after a write went through
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DefaultPriceScreen(
     controller: DefaultPriceController,
     prices: StationPriceController,
-    onBackToStatus: () -> Unit,
+    onBack: () -> Unit,
 ) {
-    BackHandler(onBack = onBackToStatus)
+    BackHandler(onBack = onBack)
     val state by controller.state.collectAsState()
 
     // The field starts empty and is not prefilled: prefilling invites a typo that
@@ -60,7 +60,7 @@ fun DefaultPriceScreen(
     LaunchedEffect(Unit) { controller.open() }
     LaunchedEffect(state.saved) {
         if (state.saved) {
-            onBackToStatus()
+            onBack()
         }
     }
 
@@ -68,7 +68,7 @@ fun DefaultPriceScreen(
         topBar = {
             TopAppBar(
                 title = { Text(Texts.DEFAULT_PRICE_TITLE) },
-                navigationIcon = { TextButton(onClick = onBackToStatus) { Text(Texts.BACK) } },
+                navigationIcon = { TextButton(onClick = onBack) { Text(Texts.BACK) } },
             )
         },
     ) { innerPadding ->

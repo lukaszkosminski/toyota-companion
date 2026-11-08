@@ -299,7 +299,7 @@ Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – �
   (jasny, ciemny i dynamiczny). Spalanie: duża liczba „4,13 l/100 km” z podpisem, trend jako kolorowa pigułka (rosnący – kolor błędu, malejący – kolor główny, stabilny – neutralny),
   słupki z zaokrąglonymi górami. Koszty: duża suma „1 182,89 zł”, słupki od zera, trzy najnowsze miesiące w szczegółach, reszta za „Pokaż wszystkie miesiące (N)”.
 - Menu to kafelki po dwa w rzędzie, o równej wysokości w rzędzie, z ikoną nad etykietą, każdy kafelek co najmniej 88 dp wysoki: Trasy, Dziennik tankowań, Statystyki, Styl jazdy,
-  Podsumowanie roku, Pogoda i spalanie, Postoje, cena domyślna (z wartością) i Kopia i eksport. Przypomnienie o kopii zostaje pod menu.
+  Podsumowanie roku, Pogoda i spalanie, Wydatki, Postoje, Kopia i eksport oraz Opcje. Cena domyślna nie ma kafelka: to cena startowa dla tras sprzed pierwszego potwierdzonego tankowania, więc jest w „Opcjach” (§12.3). Przypomnienie o kopii zostaje pod menu.
 - Liczby do wyświetlania grupują tysiące twardą spacją („1 182,89 zł”, „4 625,9 km”), żeby długa kwota nie łamała się w środku; eksport CSV i formy `plain` nie grupują.
 - Kontrast (WCAG AA): tekst w kolorze palety (`Palette` w `ui/ChartKit.kt`: wartości `StatTile`, `MeterRow`, tytuł `SectionHeader`, etykieta `MenuTile`, treść `Pill`, kolorowe wiersze
   ekranów) idzie przez `readable` z `ui/Contrast.kt`: ta sama barwa przyciemniana (jasny motyw) albo rozjaśniana (ciemny) aż do 4,5:1 względem `surfaceContainerHigh`, z tłem kafelka
@@ -424,10 +424,11 @@ Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – �
   `DefaultPriceController` w scope'ie aplikacji.
 
 ### §12.3 Ekran „Cena domyślna” (kryteria akceptacji)
-- Wejście: `OutlinedButton` na ekranie statusu, widoczny zawsze, z aktualną wartością w etykiecie
+- Wejście: karta „Cena domyślna” w „Opcjach” (nie na ekranie statusu: to cena startowa dla tras sprzed pierwszego potwierdzonego
+  tankowania, potem liczy się cena z baku) z jednozdaniowym wyjaśnieniem i `OutlinedButton` z aktualną wartością w etykiecie
   (`Cena domyślna paliwa: 6,19 zł/l`) albo bez niej (`Ustaw cenę domyślną paliwa`). Nie jest blokowany na czas
-  synchronizacji — przeliczenie czeka na `mutex` (§12.1). Wyjście: `TextButton` „Wstecz” i `BackHandler` (jak §10.3);
-  powrót na status woła `session.reload()`, więc liczniki się odświeżą.
+  synchronizacji — przeliczenie czeka na `mutex` (§12.1). Wyjście: `TextButton` „Wstecz” i `BackHandler` (jak §10.3) wracają do „Opcji”;
+  powrót woła `session.reload()`, więc liczniki statusu się odświeżą.
 - Enum `Screen` rozszerzony o `DefaultPrice`. Stan trzyma `DefaultPriceController` (wzorzec §11.3: `StateFlow`,
   scope aplikacji, wstrzykiwane `io`, `reset()` przy wylogowaniu, licznik generacji odrzuca późne wyniki).
   Cenę czytamy przez `DefaultPriceController.ensureLoaded()` w `LaunchedEffect(loggedIn)` (dla zalogowanego

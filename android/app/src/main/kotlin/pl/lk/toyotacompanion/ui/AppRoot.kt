@@ -222,8 +222,6 @@ fun AppRoot(
                             screen = Screen.Expenses
                         },
                         onShowOptions = { screen = Screen.Options },
-                        defaultPrice = priceState.price,
-                        onShowDefaultPrice = { screen = Screen.DefaultPrice },
                         // Until the date is read there is no reminder: an unknown date is not "never".
                         backupReminder = if (backupState.loaded) {
                             backupReminder(backupState.lastExport, Instant.now(), current.status?.tripsStored ?: 0)
@@ -244,7 +242,13 @@ fun AppRoot(
                         askNotificationPermission = askNotificationPermission,
                     )
 
-                    Screen.Options -> OptionsScreen(update = update, onSetLanguage = onSetLanguage, onBack = { screen = Screen.Status })
+                    Screen.Options -> OptionsScreen(
+                        update = update,
+                        onSetLanguage = onSetLanguage,
+                        defaultPrice = priceState.price,
+                        onShowDefaultPrice = { screen = Screen.DefaultPrice },
+                        onBack = { screen = Screen.Status },
+                    )
                     Screen.Expenses -> ExpensesScreen(
                         controller = expenses,
                         fuelTotal = consumptionState?.totalCost,
@@ -343,8 +347,9 @@ fun AppRoot(
                     Screen.DefaultPrice -> DefaultPriceScreen(
                         controller = defaultPrice,
                         prices = stationPrices,
-                        onBackToStatus = {
-                            screen = Screen.Status
+                        // The price is set from "Opcje" (docs/SPEC.md §12.3), so back goes there; the status counters follow on leaving it.
+                        onBack = {
+                            screen = Screen.Options
                             session.reload()
                         },
                     )

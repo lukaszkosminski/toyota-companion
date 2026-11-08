@@ -43,7 +43,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import java.math.BigDecimal
 import pl.lk.toyotacompanion.core.data.SyncErrorKind
 import pl.lk.toyotacompanion.core.data.SyncStatus
 
@@ -75,8 +74,6 @@ fun StatusScreen(
     onShowYear: () -> Unit,
     onShowExpenses: () -> Unit,
     onShowOptions: () -> Unit,
-    defaultPrice: BigDecimal?,
-    onShowDefaultPrice: () -> Unit,
     backupReminder: BackupReminder,
     lastBackupLine: String,
     forecastLine: String?,
@@ -189,7 +186,6 @@ fun StatusScreen(
                         Triple(AppIcons.PartlyCloudyDay, Texts.WEATHER_TITLE, onShowWeather),
                         Triple(AppIcons.ReceiptLong, Texts.EXPENSES_TITLE, onShowExpenses),
                         Triple(AppIcons.LocalParking, Texts.PARKING_TITLE, onShowParking),
-                        Triple(AppIcons.Payments, Texts.defaultPricePrompt(defaultPrice), onShowDefaultPrice),
                         Triple(AppIcons.Save, Texts.BACKUP_TITLE, onShowBackup),
                         Triple(AppIcons.Settings, Texts.OPTIONS_TITLE, onShowOptions),
                     ),
