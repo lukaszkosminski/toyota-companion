@@ -49,8 +49,8 @@ object Texts {
         SyncErrorKind.NO_CREDENTIALS -> Lang.pick("Brak danych logowania – zaloguj się.", "No login credentials – log in.")
         SyncErrorKind.LOGIN -> Lang.pick("Toyota odrzuciła logowanie – zaloguj się ponownie.", "Toyota rejected login – log in again.")
         SyncErrorKind.NO_VEHICLE -> Lang.pick(
-            "Brak pojazdu na koncie lub kilka pojazdów do wyboru.",
-            "No vehicle on the account or multiple vehicles to choose from.",
+            "Na koncie Toyoty nie ma pojazdu albo jest ich kilka – aplikacja obsługuje jedno konto z jednym autem.",
+            "The Toyota account has no vehicle or has several – the app supports one account with one car.",
         )
         SyncErrorKind.API -> Lang.pick("Serwis Toyoty niedostępny. Spróbuj później.", "Toyota service unavailable. Try again later.")
         SyncErrorKind.NETWORK -> Lang.pick("Brak internetu. Spróbuj później.", "No internet connection. Try again later.")

@@ -114,7 +114,9 @@ Zapis typów w Room (`android/app/.../data/db`, `AppDatabase` v1, schemat w `and
 ### §8.3 Kolejność kroków `fullSync()`
 1. Brak danych logowania -> `Failed(NO_CREDENTIALS)`.
 2. Pojazdy: zapis wszystkich; wybrany VIN = zapisany (jeśli nadal na koncie) albo jedyny; kilka i żaden
-   nie wybrany -> `Failed(NO_VEHICLE)`. Nic nie jest usuwane.
+   nie wybrany -> `Failed(NO_VEHICLE)`. Nic nie jest usuwane. Aplikacja obsługuje **jedno konto z jednym autem**
+   (ADR-019): UI nie ma wyboru pojazdu, więc konto z kilkoma pojazdami (i bez wcześniej zapisanego VIN) kończy się
+   trwałym `NO_VEHICLE`, a komunikat mówi to wprost.
 3. Telemetria: pierwszy odczyt tylko zapisywany; nowszy niż ostatni zapisany -> zapis + `detect_refuel`
    (§1) względem ostatniego zapisanego; nie nowszy (Toyota trzyma stary odczyt, gdy auto śpi) -> nic.
    Błąd telemetrii nie przerywa synchronizacji (`telemetryFailed = true`).
@@ -197,6 +199,8 @@ Ekran logowania MyToyota i ekran statusu synchronizacji. Wymaganie właściciela
 - Pokazuje z `SyncEngine.status()`: liczba tras, liczba odczytów, oczekujące tankowania,
   aktualne/nieaktualne (`isFresh`), data ostatniego sukcesu, rodzaj ostatniego błędu
   (tylko `SyncErrorKind` przełożony na polski tekst; `lastErrorMessage` NIE jest pokazywany).
+  `NO_VEHICLE`: „Na koncie Toyoty nie ma pojazdu albo jest ich kilka – aplikacja obsługuje jedno konto z jednym autem.”
+  (EN: „The Toyota account has no vehicle or has several – the app supports one account with one car.”) – bez obietnicy wyboru pojazdu (ADR-019).
 - „Synchronizuj teraz” – synchronizacja w procesie (`SyncRunner`), przycisk zablokowany
   na czas pracy; wynik `Failed` pokazuje rodzaj błędu, `Ok`/`Skipped` go kasuje; po pracy
   status jest odświeżany.
