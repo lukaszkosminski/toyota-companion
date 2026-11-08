@@ -137,6 +137,8 @@ class SyncEngine(
             tripsStored = trips.count(),
             readingsStored = readings.count(),
             pendingRefuels = refuels.pending(current.vin).size,
+            // One extra row: the odometer of the newest reading (docs/SPEC.md §9.3).
+            odometerKm = current.vin?.let { readings.latest(it)?.odometerKm },
         )
     }
 

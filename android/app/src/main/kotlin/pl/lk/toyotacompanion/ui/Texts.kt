@@ -96,6 +96,7 @@ object Texts {
     /** Stat cards show the number alone, the caption below says what it counts. */
     val STAT_TRIPS: String get() = Lang.pick("Trasy", "Trips")
     val STAT_FUEL_LEVEL: String get() = Lang.pick("Poziom paliwa", "Fuel level")
+    val STAT_ODOMETER: String get() = Lang.pick("Przebieg (km)", "Odometer (km)")
     val STAT_PENDING_REFUELS: String get() = Lang.pick("Oczekujące tankowania", "Pending refuels")
 
     /** The level of the newest reading, adjusted by the trips since then (docs/SPEC.md §10.4, §20.2). */
@@ -1217,7 +1218,11 @@ object Texts {
     )
 
     val LEVEL_CHART_TITLE: String get() = Lang.pick("Poziom paliwa w czasie", "Fuel level over time")
-    val LEVEL_CHART_HINT: String get() = Lang.pick("Pomarańczowe kropki to wykryte tankowania.", "Orange dots are detected refuels.")
+    /** Legend under the level chart: a dot, a tick on the time axis and how many refuels the chart marks (docs/SPEC.md §15.2). */
+    fun levelChartLegend(refuels: Int): String = Lang.pick(
+        "Pomarańczowe kropki i kreski na osi to tankowania w tym zakresie: $refuels.",
+        "Orange dots and ticks on the axis are refuels in this range: $refuels.",
+    )
 
     /** What a screen reader says for the tank level chart, which has no text of its own. */
     fun levelChartDescription(lowest: Int, highest: Int, last: Int, refuels: Int): String = Lang.pick(

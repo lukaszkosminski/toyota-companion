@@ -1,6 +1,7 @@
 package pl.lk.toyotacompanion.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,9 +10,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -101,6 +104,7 @@ fun RefuelLogScreen(
                             FuelLevelChart(
                                 points.map { it.ts.toEpochMilli() to it.levelPct },
                                 log.refuels.map { it.ts.toEpochMilli() },
+                                zone = zone,
                                 description = Texts.levelChartDescription(
                                     points.minOf { it.levelPct },
                                     points.maxOf { it.levelPct },
@@ -109,7 +113,15 @@ fun RefuelLogScreen(
                                     log.refuels.count { it.ts >= points.first().ts && it.ts <= points.last().ts },
                                 ),
                             )
-                            Text(Texts.LEVEL_CHART_HINT, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            val marked = log.refuels.count { it.ts >= points.first().ts && it.ts <= points.last().ts }
+                            Row(
+                                modifier = Modifier.padding(top = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Box(Modifier.size(10.dp).background(Palette.Orange, CircleShape))
+                                Text(Texts.levelChartLegend(marked), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
                     if (open != null) item(key = "open") { EconomyCard(open, title = Texts.LOG_CURRENT) }

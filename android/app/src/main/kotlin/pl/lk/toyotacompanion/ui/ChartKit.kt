@@ -28,8 +28,13 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import java.time.Instant
+import java.time.ZoneId
 
 /**
  * Colours that carry meaning on every screen, independent of the wallpaper palette: green = good / battery,
@@ -209,8 +214,9 @@ fun SectionHeader(icon: ImageVector, text: String, modifier: Modifier = Modifier
 
 /**
  * The tank level over time: a line of [levels] (percent, oldest first, any spacing) with a dot where a refuel happened
- * ([refuelTimes], epoch millis). The x axis is time, so gaps between readings look like gaps. [description] is what a
- * screen reader says for the whole chart (it has no text of its own).
+ * ([refuelTimes], epoch millis). Both axes are labelled (percent on the left, dates under the line) and every refuel
+ * gets a dot on the line plus a short tick on the time axis. The x axis is time, so gaps between readings look like
+ * gaps. [description] is what a screen reader says for the whole chart (it has no text of its own).
  */
 @Composable
 fun FuelLevelChart(
@@ -219,19 +225,36 @@ fun FuelLevelChart(
     modifier: Modifier = Modifier,
     color: Color = Palette.Blue,
     dot: Color = Palette.Orange,
-    height: androidx.compose.ui.unit.Dp = 140.dp,
+    height: androidx.compose.ui.unit.Dp = 160.dp,
     description: String? = null,
+    zone: ZoneId = ZoneId.systemDefault(),
 ) {
     if (levels.size < 2) return
     val grid = MaterialTheme.colorScheme.outlineVariant
+    val labelStyle = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
+    val measurer = rememberTextMeasurer()
     val t0 = levels.first().first
-    val span = (levels.last().first - t0).coerceAtLeast(1L).toFloat()
+    val t1 = levels.last().first
+    val span = (t1 - t0).coerceAtLeast(1L).toFloat()
     val described = if (description == null) modifier else modifier.semantics { contentDescription = description }
     Canvas(modifier = described.fillMaxWidth().height(height)) {
-        val pad = 10f
-        fun x(t: Long) = pad + (size.width - 2 * pad) * ((t - t0) / span).coerceIn(0f, 1f)
-        fun y(pct: Int) = pad + (size.height - 2 * pad) * (1f - pct.coerceIn(0, 100) / 100f)
-        for (g in listOf(0, 25, 50, 75, 100)) drawLine(grid, Offset(pad, y(g)), Offset(size.width - pad, y(g)), strokeWidth = if (g == 0) 2f else 1f)
+        val leftPad = 30f
+        val rightPad = 8f
+        val topPad = 8f
+        val bottomPad = 18f
+        fun x(t: Long) = leftPad + (size.width - leftPad - rightPad) * ((t - t0) / span).coerceIn(0f, 1f)
+        fun y(pct: Int) = topPad + (size.height - topPad - bottomPad) * (1f - pct.coerceIn(0, 100) / 100f)
+        for (g in listOf(0, 25, 50, 75, 100)) {
+            drawLine(grid, Offset(leftPad, y(g)), Offset(size.width - rightPad, y(g)), strokeWidth = if (g == 0) 2f else 1f)
+            val label = measurer.measure("$g%", labelStyle)
+            drawText(label, topLeft = Offset(leftPad - label.size.width - 4f, y(g) - label.size.height / 2f))
+        }
+        // Three dates under the line: the first reading, the middle of the span, the last reading.
+        for (t in listOf(t0, t0 + (t1 - t0) / 2, t1)) {
+            val label = measurer.measure(TripsFormatting.dayMonth(Instant.ofEpochMilli(t), zone), labelStyle)
+            val left = (x(t) - label.size.width / 2f).coerceIn(0f, size.width - label.size.width)
+            drawText(label, topLeft = Offset(left, size.height - bottomPad + 3f))
+        }
         val line = Path().apply { levels.forEachIndexed { i, (t, pct) -> if (i == 0) moveTo(x(t), y(pct)) else lineTo(x(t), y(pct)) } }
         val fill = Path().apply {
             addPath(line)
@@ -242,11 +265,13 @@ fun FuelLevelChart(
         drawPath(fill, Brush.verticalGradient(listOf(color.copy(alpha = 0.28f), color.copy(alpha = 0f))))
         drawPath(line, color, style = Stroke(width = 4f, cap = StrokeCap.Round))
         for (t in refuelTimes) {
-            if (t < t0 || t > levels.last().first) continue
-            // The dot sits on the line: the first reading at or after the refuel.
+            if (t < t0 || t > t1) continue
+            // The dot sits on the line: the first reading at or after the refuel. A tick on the time axis marks it too.
             val reading = levels.firstOrNull { it.first >= t } ?: levels.last()
-            drawCircle(Color.White, radius = 12f, center = Offset(x(t), y(reading.second)))
-            drawCircle(dot, radius = 8f, center = Offset(x(t), y(reading.second)))
+            val cx = x(t)
+            drawLine(dot.copy(alpha = 0.55f), Offset(cx, size.height - bottomPad), Offset(cx, size.height - bottomPad + 3f), strokeWidth = 3f)
+            drawCircle(Color.White, radius = 12f, center = Offset(cx, y(reading.second)))
+            drawCircle(dot, radius = 8f, center = Offset(cx, y(reading.second)))
         }
     }
 }

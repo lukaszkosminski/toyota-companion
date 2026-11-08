@@ -196,24 +196,27 @@ Ekran logowania MyToyota i ekran statusu synchronizacji. Wymaganie właściciela
 - Odmowa zapisu w Keystore po udanej weryfikacji (np. `ProviderException`) nie rozbija aplikacji: wyczyszczenie tego, co udało się zapisać (best-effort), brak planowania pracy, komunikat o niedostępnym serwisie.
 
 ### §9.3 Ekran statusu (kryteria akceptacji)
-- Pokazuje z `SyncEngine.status()`: liczba tras, liczba odczytów, oczekujące tankowania,
-  aktualne/nieaktualne (`isFresh`), data ostatniego sukcesu, rodzaj ostatniego błędu
-  (tylko `SyncErrorKind` przełożony na polski tekst; `lastErrorMessage` NIE jest pokazywany).
+- Pokazuje z `SyncEngine.status()`: liczba tras, poziom paliwa, przebieg (km z najnowszego odczytu telemetrii), oczekujące tankowania, liczba odczytów
+  (linia diagnostyczna „Telemetria: N odczytów”), aktualne/nieaktualne (`isFresh`), data ostatniego sukcesu,
+  rodzaj ostatniego błędu (tylko `SyncErrorKind` przełożony na polski tekst; `lastErrorMessage` NIE jest pokazywany).
+  Poziom paliwa to „paliwo teraz” z prognozy (§20.2): ostatni odczyt × pojemność minus paliwo tras po nim;
+  bez odczytu kafelek pokazuje „–”.
   `NO_VEHICLE`: „Na koncie Toyoty nie ma pojazdu albo jest ich kilka – aplikacja obsługuje jedno konto z jednym autem.”
   (EN: „The Toyota account has no vehicle or has several – the app supports one account with one car.”) – bez obietnicy wyboru pojazdu (ADR-019).
 - „Synchronizuj teraz” – synchronizacja w procesie (`SyncRunner`), przycisk zablokowany
   na czas pracy; wynik `Failed` pokazuje rodzaj błędu, `Ok`/`Skipped` go kasuje; po pracy
   status jest odświeżany.
 - Gdy `status.state.needsLogin` -> komunikat „Zaloguj się ponownie” obok przycisku Wyloguj.
-- Odświeżanie bez sieci: `PullToRefreshBox` (gest przeciągnięcia w dół) i przycisk „Odśwież” wołają
-  `SessionController.reload()`, który powtarza ODCZYT lokalnej bazy (`SyncEngine.status()`) – nie woła
-  żadnego API Toyoty, w tym `refresh_status()` (SPEC §9 wstęp). Ignorowane, gdy synchronizacja trwa.
-  Ten sam odczyt idzie automatycznie po każdym przebiegu `SyncRunner` (także `SyncWorker` w tle, gdy ekran
-  jest otwarty) i przy powrocie aplikacji na pierwszy plan (`MainActivity.onResume`).
+- Odświeżanie: `PullToRefreshBox` (gest przeciągnięcia w dół) woła `SessionController.syncNow()` – tę samą
+  normalną synchronizację (`SyncRunner`) co przycisk „Synchronizuj teraz”, więc pociągnięcie naprawdę pobiera
+  dane z Toyoty, nadal bez `refresh_status()` (SPEC §9 wstęp). Ignorowane, gdy synchronizacja trwa (spinner gestu
+  to `state.syncing`); przycisku „Odśwież” nie ma. Sam ODCZYT lokalnej bazy (`SyncEngine.status()`) idzie
+  automatycznie po każdym przebiegu `SyncRunner` (także `SyncWorker` w tle, gdy ekran jest otwarty) i przy powrocie
+  aplikacji na pierwszy plan (`MainActivity.onResume`), więc osobny przycisk nie jest potrzebny.
 - Wygląd (C1b): `Scaffold` z `TopAppBar` (tytuł + „Wyloguj” jako przycisk tekstowy w `actions`),
-  liczniki w jednej karcie (Trasy / Odczyty paliwa / Oczekujące tankowania – liczba + podpis),
+  liczniki w jednej karcie, dwa rzędy po dwa (Trasy / Poziom paliwa / Przebieg / Oczekujące tankowania – liczba + podpis),
   chip stanu (`aktualne`/`nieaktualne`/`brak synchronizacji`/`wymaga logowania`), czas ostatniego
-  sukcesu i `HorizontalDivider`; „Wyloguj” najpierw pokazuje `AlertDialog` z potwierdzeniem
+  sukcesu, linia „Telemetria: N odczytów” i `HorizontalDivider`; „Wyloguj” najpierw pokazuje `AlertDialog` z potwierdzeniem
   (archiwum Room zostaje), dopiero „Wyloguj” w oknie wykonuje wylogowanie.
 - Wynik „Synchronizuj teraz” jest stosowany tylko, gdy ekran nadal pokazuje status – spóźniony wynik po „Wyloguj” nie przywraca ekranu statusu.
 - „Synchronizuj teraz” nigdy nie zostaje w stanie „synchronizuję”: wyjątek z `SyncRunner` kończy się jak błąd
@@ -293,8 +296,10 @@ Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – �
 - Wiersz trasy pokazuje też rodzaj jazdy wg średniej prędkości trasy (pasma z §22): „wolna jazda · 12 km/h” (< 15), „miasto · 19 km/h” (15–25), „płynnie · 32 km/h” (25–40), „trasa · 52 km/h” (≥ 40); trasa poniżej 2 km to „krótki odcinek”, bez prędkości – brak linii. To miara pośrednia (wolna jazda to też sygnalizacja i krótkie odcinki, nie tylko korek), więc etykieta mówi „wolna jazda”, a nie „korek”.
 
 ### §10.4 Układ ekranu statusu (czytelność)
-- Kolejność: stan (chip świeżości, godzina ostatniej synchronizacji), liczniki, błąd synchronizacji (jeśli jest), przycisk ceny oczekującego tankowania (jeśli jest),
-  w jednym rzędzie „Synchronizuj teraz” i „Odśwież”, potem karty: „Prognoza” (🔮), „Spalanie” (⛽) i „Koszty miesięczne” (💰), na końcu menu.
+- Kolejność: stan (chip świeżości, godzina ostatniej synchronizacji, linia „Telemetria: N odczytów”), liczniki w dwóch rzędach po dwa
+  (Trasy / Poziom paliwa / Przebieg / Oczekujące tankowania),
+  błąd synchronizacji (jeśli jest), przycisk ceny oczekującego tankowania (jeśli jest), przycisk „Synchronizuj teraz” na pełną szerokość
+  (gest przeciągnięcia w dół robi to samo), potem karty: „Prognoza” (🔮), „Spalanie” (⛽) i „Koszty miesięczne” (💰), na końcu menu.
 - Karta to zaokrąglony kontener z ikoną i tytułem, jedno miejsce na odstępy, kształty i typografię (`DashboardCard`, `Headline`, `Pill`, `MenuTile` w `ui/Dashboard.kt`); kolory z motywu
   (jasny, ciemny i dynamiczny). Spalanie: duża liczba „4,13 l/100 km” z podpisem, trend jako kolorowa pigułka (rosnący – kolor błędu, malejący – kolor główny, stabilny – neutralny),
   słupki z zaokrąglonymi górami. Koszty: duża suma „1 182,89 zł”, słupki od zera, trzy najnowsze miesiące w szczegółach, reszta za „Pokaż wszystkie miesiące (N)”.
@@ -642,6 +647,10 @@ Arkusz tras w CSV (F6) – §14.4.
   70,3 km”. Odcinek otwarty jako pierwsza karta „Bieżący odcinek”. Pusty stan z podpowiedzią „Do pełna” + paragon.
   Liczby przez `TripsFormatting.plain`, bez `Locale`; różnica ze znakiem (`+`, `−`). Bez VIN i GPS.
 - Każde potwierdzone tankowanie ma przycisk „Popraw litry” (§15.3).
+- Wykres „Poziom paliwa w czasie” nad dziennikiem (gdy są ≥ 2 odczyty): oś pionowa ma podziałkę 0/25/50/75/100 % z podpisami,
+  oś pozioma trzy daty (`dd.MM`: pierwszy odczyt, środek zakresu, ostatni odczyt). Tankowania mają pomarańczową kropkę na linii
+  i krótką kreskę na osi czasu; pod wykresem legenda z liczbą tankowań w zakresie (`Texts.levelChartLegend`). Rysowanych jest
+  400 najnowszych odczytów; opis dla czytnika ekranu zostaje (`Texts.levelChartDescription`).
 
 ### §15.3 Poprawka potwierdzonego tankowania (C9.1)
 - `SyncEngine.amendRefuel(id, liters, totalCost?, filledToFull)` – tylko dla `CONFIRMED` (inaczej `NotConfirmed`:

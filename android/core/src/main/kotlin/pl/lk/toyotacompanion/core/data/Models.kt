@@ -156,6 +156,8 @@ data class SyncStatus(
     val tripsStored: Int,
     val readingsStored: Int,
     val pendingRefuels: Int,
+    /** Odometer of the newest telemetry reading, or null before the first one (docs/SPEC.md §9.3). */
+    val odometerKm: Double? = null,
 ) {
     val isFresh: Boolean get() = !state.isStale
 }

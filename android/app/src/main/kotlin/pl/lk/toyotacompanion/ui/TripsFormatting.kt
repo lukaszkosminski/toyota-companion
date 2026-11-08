@@ -93,6 +93,15 @@ object TripsFormatting {
      */
     fun monthLabel(month: MonthKey): String = "${MONTHS_NOMINATIVE[month.month - 1]} ${month.year}"
 
+    /** `29.10` – the date under the x axis of a chart (docs/SPEC.md §15.2). */
+    fun dayMonth(instant: Instant, zone: ZoneId): String {
+        val date = instant.atZone(zone).toLocalDate()
+        return "${two(date.dayOfMonth)}.${two(date.monthValue)}"
+    }
+
+    /** `123 456` – the odometer as whole kilometres, grouped with a no-break space (docs/SPEC.md §9.3). */
+    fun odometer(km: Double): String = fixed(BigDecimal(km).setScale(0, RoundingMode.HALF_UP), 0)
+
     /** All month names — the test checks that there are twelve and that they differ. */
     fun monthNames(): List<String> = MONTHS_NOMINATIVE
 

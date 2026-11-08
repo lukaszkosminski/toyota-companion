@@ -247,7 +247,7 @@ private fun StatusChip(status: SyncStatus, failure: SyncErrorKind?) {
     )
 }
 
-/** The counts as numbers with a caption; the card makes the row readable as one block. */
+/** The counts as numbers with a caption; the card makes the row readable as one block. Two rows of two, so four tiles fit a phone. */
 @Composable
 private fun StatRow(status: SyncStatus, fuelLevelPct: Int?) {
     Card(
@@ -255,13 +255,21 @@ private fun StatRow(status: SyncStatus, fuelLevelPct: Int?) {
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            StatTile(status.tripsStored.toString(), Texts.STAT_TRIPS, Palette.Blue, Modifier.weight(1f))
-            StatTile(fuelLevelPct?.let { Texts.fuelLevel(it) } ?: "–", Texts.STAT_FUEL_LEVEL, Palette.Teal, Modifier.weight(1f))
-            StatTile(status.pendingRefuels.toString(), Texts.STAT_PENDING_REFUELS, if (status.pendingRefuels > 0) Palette.Orange else Palette.Green, Modifier.weight(1f))
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                StatTile(status.tripsStored.toString(), Texts.STAT_TRIPS, Palette.Blue, Modifier.weight(1f))
+                StatTile(fuelLevelPct?.let { Texts.fuelLevel(it) } ?: "–", Texts.STAT_FUEL_LEVEL, Palette.Teal, Modifier.weight(1f))
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                StatTile(status.odometerKm?.let { TripsFormatting.odometer(it) } ?: "–", Texts.STAT_ODOMETER, Palette.Violet, Modifier.weight(1f))
+                StatTile(status.pendingRefuels.toString(), Texts.STAT_PENDING_REFUELS, if (status.pendingRefuels > 0) Palette.Orange else Palette.Green, Modifier.weight(1f))
+            }
         }
     }
 }

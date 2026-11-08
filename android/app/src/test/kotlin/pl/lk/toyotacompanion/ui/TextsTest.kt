@@ -89,7 +89,7 @@ class TextsTest {
         val all = LoginError.entries.map { Texts.loginError(it) } +
             SyncErrorKind.entries.map { Texts.syncError(it) } +
             listOf(Texts.freshness(status(true)), Texts.STATE_NEVER, Texts.STATE_NEEDS_RELOGIN) +
-            listOf(Texts.STAT_TRIPS, Texts.STAT_FUEL_LEVEL, Texts.STAT_PENDING_REFUELS, Texts.fuelLevel(62), Texts.telemetryReadings(1234)) +
+            listOf(Texts.STAT_TRIPS, Texts.STAT_FUEL_LEVEL, Texts.STAT_ODOMETER, Texts.STAT_PENDING_REFUELS, Texts.fuelLevel(62), Texts.telemetryReadings(1234), Texts.levelChartLegend(3)) +
             listOf(Texts.APP_NAME, Texts.LOADING, Texts.SYNC_NOW_BUTTON, Texts.LOGOUT_CONFIRM_BODY) +
             listOf(Texts.lastSuccess(status(true), ZONE), Texts.lastSuccess(status(false), ZONE)) +
             // Lista tras (docs/SPEC.md §10): tu trafia kazdy nowy tekst i kazda formatowana wartosc.
@@ -381,14 +381,18 @@ class TextsTest {
         assertEquals("Telemetria: 22 odczyty", Texts.telemetryReadings(22))
         assertEquals("Telemetria: 1234 odczyty", Texts.telemetryReadings(1234))
         assertEquals("Telemetria: 1235 odczytów", Texts.telemetryReadings(1235))
-        val polish = listOf(Texts.fuelLevel(62), Texts.telemetryReadings(3), Texts.STAT_FUEL_LEVEL)
+        // The odometer is whole kilometres grouped with a no-break space; the chart axis says the day and month.
+        assertEquals("123\u00A0456", TripsFormatting.odometer(123456.4))
+        assertEquals("0", TripsFormatting.odometer(0.4))
+        assertEquals("29.10", TripsFormatting.dayMonth(Instant.parse("2026-10-29T10:00:00Z"), ZONE))
+        val polish = listOf(Texts.fuelLevel(62), Texts.telemetryReadings(3), Texts.STAT_FUEL_LEVEL, Texts.STAT_ODOMETER)
         Lang.current = AppLanguage.EN
         val english = try {
-            listOf(Texts.fuelLevel(62), Texts.telemetryReadings(3), Texts.STAT_FUEL_LEVEL)
+            listOf(Texts.fuelLevel(62), Texts.telemetryReadings(3), Texts.STAT_FUEL_LEVEL, Texts.STAT_ODOMETER)
         } finally {
             Lang.current = AppLanguage.PL
         }
-        assertEquals(listOf("62%", "Telemetry: 3 readings", "Fuel level"), english)
+        assertEquals(listOf("62%", "Telemetry: 3 readings", "Fuel level", "Odometer (km)"), english)
         assertTrue(polish.zip(english).all { (pl, en) -> pl != en }, "untranslated: $polish")
     }
 
