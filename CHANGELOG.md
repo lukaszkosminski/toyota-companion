@@ -6,9 +6,6 @@
 - Token Toyoty odnawiany raz, gdy synchronizacja, mapa trasy i zapis przebiegów pytają równocześnie (jedno logowanie zamiast kilku na to samo konto)
 - Poprawna odmiana liczebników: „1 dzień”, „minęły 3 dni”, „1 trasa”, „3 trasy”, „1 przebieg” zamiast „1 dni”, „1 tras”
 - Ekran statusu odświeża liczniki i czas ostatniej synchronizacji po synchronizacji w tle i po powrocie do aplikacji (SPEC §9.3)
-- Wydatki poza paliwem mają wreszcie opis: PRD F37, SPEC §38 i ADR-018, oraz testy parsera kwoty, sum i kontrolera; kwota z twardą spacją (taką wstawia samo grupowanie tysięcy) też jest czytana
-- Jeden wspólny `ToyotaController` na konto i jedno odświeżenie tokenu, gdy synchronizacja, trasa i zapis przebiegów idą równolegle; wylogowanie porzuca też token trzymany w pamięci (SPEC §8, SECURITY)
-- Komunikat `NO_VEHICLE` mówi wprost, że aplikacja obsługuje jedno konto z jednym autem, zamiast obiecywać wybór pojazdu (ADR-019, SPEC §8.3, §9.3)
 
 ## 0.2.1 (2026-11-08)
 - Ikony Material Symbols zamiast emoji na kartach, kafelkach, przyciskach i w wierszach (SPEC §10.4); emoji zostają tylko przy symbolach pogody
