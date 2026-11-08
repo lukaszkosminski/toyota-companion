@@ -948,4 +948,5 @@ ekranie „Pogoda i spalanie” (§23).
   W czasie instalacji przycisk „Pobierz i zainstaluj” zostaje dostępny: gdy okno systemu się nie pokaże (Android blokuje start okna z tła), dotknięcie zaczyna od nowa.
   Plik jest usuwany po każdym wyniku. Po udanej instalacji system zastępuje proces; dane (Room, ustawienia, sekrety) zostają, bo klucz podpisu jest ten sam.
 - Błędy: brak sieci, GitHub (HTTP ≠ 2xx, w tym limit 60 zapytań/h bez tokenu), brak repozytorium wydań (404 także na `GET /repos/<repo>`), nieczytelne wydanie lub plik, zapis pliku w telefonie (`STORAGE`, np. brak miejsca – nie „brak sieci”), plik nie tej aplikacji / innego klucza, błąd instalacji – tylko rodzaj, bez treści odpowiedzi.
+- Build release jest zminifikowany przez R8 (ADR-017, `proguard-rules.pro`): CI buduje `:app:assembleRelease` przy każdym pushu, więc błąd reguł wychodzi przed tagiem.
 - Stan nie zależy od logowania do MyToyota i nie jest czyszczony przy wylogowaniu. Brak sprawdzania w tle i powiadomień (decyzja właściciela).

@@ -58,6 +58,10 @@ jobs:
       - name: Core + app unit tests, debug APK
         run: ./gradlew --no-daemon :core:test :app:testDebugUnitTest :app:assembleDebug
 
+      # The release build is minified by R8 (ADR-017); a broken keep rule must fail here, not on the tag.
+      - name: Release build (R8)
+        run: ./gradlew --no-daemon :app:assembleRelease
+
       # Android lint: API-level regressions (NewApi) and missing runtime permissions (MissingPermission)
       # are errors here; without this step they only show up on the owner's phone.
       - name: Android lint

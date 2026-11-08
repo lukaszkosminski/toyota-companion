@@ -42,6 +42,10 @@ android {
         release {
             // Without the key a release build stays unsigned and cannot be installed; CI fails on it before publishing.
             if (releaseKeystore != null) signingConfig = signingConfigs.getByName("release")
+            // R8 shrinks and optimizes code and drops unused resources (ADR-017); rules in proguard-rules.pro.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 
