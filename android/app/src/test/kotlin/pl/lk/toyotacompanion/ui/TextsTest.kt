@@ -89,8 +89,8 @@ class TextsTest {
         val all = LoginError.entries.map { Texts.loginError(it) } +
             SyncErrorKind.entries.map { Texts.syncError(it) } +
             listOf(Texts.freshness(status(true)), Texts.STATE_NEVER, Texts.STATE_NEEDS_RELOGIN) +
-            listOf(Texts.STAT_TRIPS, Texts.STAT_READINGS, Texts.STAT_PENDING_REFUELS) +
-            listOf(Texts.APP_NAME, Texts.LOADING, Texts.REFRESH_BUTTON, Texts.LOGOUT_CONFIRM_BODY) +
+            listOf(Texts.STAT_TRIPS, Texts.STAT_FUEL_LEVEL, Texts.STAT_PENDING_REFUELS, Texts.fuelLevel(62), Texts.telemetryReadings(1234)) +
+            listOf(Texts.APP_NAME, Texts.LOADING, Texts.SYNC_NOW_BUTTON, Texts.LOGOUT_CONFIRM_BODY) +
             listOf(Texts.lastSuccess(status(true), ZONE), Texts.lastSuccess(status(false), ZONE)) +
             // Lista tras (docs/SPEC.md §10): tu trafia kazdy nowy tekst i kazda formatowana wartosc.
             listOf(
@@ -370,6 +370,26 @@ class TextsTest {
             assertTrue(text.isNotBlank(), text)
             assertTrue(text.first().isUpperCase(), text)
         }
+    }
+
+    @Test
+    fun `the status tiles read fuel level and telemetry counts`() {
+        assertEquals("62 %", Texts.fuelLevel(62))
+        assertEquals("Telemetria: 1 odczyt", Texts.telemetryReadings(1))
+        assertEquals("Telemetria: 3 odczyty", Texts.telemetryReadings(3))
+        assertEquals("Telemetria: 12 odczytów", Texts.telemetryReadings(12))
+        assertEquals("Telemetria: 22 odczyty", Texts.telemetryReadings(22))
+        assertEquals("Telemetria: 1234 odczyty", Texts.telemetryReadings(1234))
+        assertEquals("Telemetria: 1235 odczytów", Texts.telemetryReadings(1235))
+        val polish = listOf(Texts.fuelLevel(62), Texts.telemetryReadings(3), Texts.STAT_FUEL_LEVEL)
+        Lang.current = AppLanguage.EN
+        val english = try {
+            listOf(Texts.fuelLevel(62), Texts.telemetryReadings(3), Texts.STAT_FUEL_LEVEL)
+        } finally {
+            Lang.current = AppLanguage.PL
+        }
+        assertEquals(listOf("62%", "Telemetry: 3 readings", "Fuel level"), english)
+        assertTrue(polish.zip(english).all { (pl, en) -> pl != en }, "untranslated: $polish")
     }
 
     @Test
