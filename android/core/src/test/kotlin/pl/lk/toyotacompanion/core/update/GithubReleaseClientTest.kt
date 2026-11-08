@@ -1,6 +1,7 @@
 package pl.lk.toyotacompanion.core.update
 
 import java.io.File
+import java.io.IOException
 import java.nio.file.Files
 import java.security.MessageDigest
 import kotlin.test.Test
@@ -12,7 +13,11 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
+import okhttp3.Protocol
+import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
 
 private const val REPO = "owner/app"
 private val APK = ByteArray(5000) { (it % 251).toByte() }
@@ -61,6 +66,7 @@ class GithubReleaseClientTest {
             val release = requireNotNull(client(server).latest())
 
             assertEquals(AppRelease("0.2.0", 200L, url, APK.size.toLong(), APK_SHA), release)
+            assertEquals(1, server.requestCount, "a found release is one request")
             val request = server.takeRequest()
             assertEquals("/api/repos/$REPO/releases/latest", request.url.encodedPath)
             assertEquals("toyota-companion", request.headers["User-Agent"])
@@ -68,10 +74,44 @@ class GithubReleaseClientTest {
     }
 
     @Test
-    fun `no release yet is not an error`() = runBlocking {
+    fun `404 on the release list asks the repository once and means no release`() = runBlocking {
         MockWebServer().apply { start() }.use { server ->
             server.enqueue(MockResponse.Builder().code(404).body("""{"message":"Not Found"}""").build())
+            server.enqueue(MockResponse.Builder().code(200).body("""{"full_name":"$REPO"}""").build())
+
             assertNull(client(server).latest())
+
+            assertEquals(2, server.requestCount)
+            assertEquals("/api/repos/$REPO/releases/latest", server.takeRequest().url.encodedPath)
+            val repository = server.takeRequest()
+            assertEquals("/api/repos/$REPO", repository.url.encodedPath)
+            assertEquals("toyota-companion", repository.headers["User-Agent"])
+            assertEquals("application/vnd.github+json", repository.headers["Accept"])
+        }
+    }
+
+    @Test
+    fun `404 on the release list and on the repository is a missing repository`() = runBlocking {
+        MockWebServer().apply { start() }.use { server ->
+            server.enqueue(MockResponse.Builder().code(404).body("""{"message":"Not Found"}""").build())
+            server.enqueue(MockResponse.Builder().code(404).body("""{"message":"Not Found"}""").build())
+
+            val e = assertFailsWith<AppUpdateException> { client(server).latest() }
+
+            assertEquals(UpdateErrorKind.NO_REPOSITORY, e.kind)
+            assertEquals(2, server.requestCount)
+        }
+    }
+
+    @Test
+    fun `404 on the release list and a failing repository check is an api error`() = runBlocking {
+        MockWebServer().apply { start() }.use { server ->
+            server.enqueue(MockResponse.Builder().code(404).body("""{"message":"Not Found"}""").build())
+            server.enqueue(MockResponse.Builder().code(500).body("boom").build())
+
+            val e = assertFailsWith<AppUpdateException> { client(server).latest() }
+
+            assertEquals(UpdateErrorKind.API, e.kind)
         }
     }
 
@@ -83,6 +123,41 @@ class GithubReleaseClientTest {
             assertEquals(UpdateErrorKind.API, e.kind)
             assertFalse(e.message!!.contains("SECRET-BODY"))
         }
+    }
+
+    /** Answers the first call with 404 and the second with [second] (or drops it when [second] is null). */
+    private fun scripted(second: Int?): OkHttpClient {
+        var calls = 0
+        return OkHttpClient.Builder().addInterceptor { chain ->
+            calls++
+            when {
+                calls == 1 -> response(chain, 404)
+                second == null -> throw IOException("connection reset")
+                else -> response(chain, second)
+            }
+        }.build()
+    }
+
+    private fun response(chain: Interceptor.Chain, code: Int): Response = Response.Builder()
+        .request(chain.request())
+        .protocol(Protocol.HTTP_1_1)
+        .code(code)
+        .message("scripted")
+        .body("{}".toResponseBody(null))
+        .build()
+
+    @Test
+    fun `404 on the release list and a dropped repository check is a network error`() = runBlocking {
+        val e = assertFailsWith<AppUpdateException> { GithubReleaseClient(scripted(null), repo = REPO).latest() }
+
+        assertEquals(UpdateErrorKind.NETWORK, e.kind)
+    }
+
+    @Test
+    fun `404 on the release list and a rate limit on the repository check is an api error`() = runBlocking {
+        val e = assertFailsWith<AppUpdateException> { GithubReleaseClient(scripted(403), repo = REPO).latest() }
+
+        assertEquals(UpdateErrorKind.API, e.kind)
     }
 
     @Test

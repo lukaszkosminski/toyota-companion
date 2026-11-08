@@ -45,8 +45,12 @@ data class AppRelease(
     val sha256: String?,
 )
 
-/** STORAGE: the phone could not write the APK (full disk, no cache dir) – retrying the network does not help. */
-enum class UpdateErrorKind { NETWORK, API, DATA, STORAGE }
+/**
+ * STORAGE: the phone could not write the APK (full disk, no cache dir) – retrying the network does not help.
+ * NO_REPOSITORY: GitHub has no such repository (private, deleted or renamed) – there is nothing to update from,
+ * so this is **not** "you have the latest version".
+ */
+enum class UpdateErrorKind { NETWORK, API, DATA, STORAGE, NO_REPOSITORY }
 
 /** A failed check or download. SECURITY: only the kind and the HTTP status, never the response body. */
 class AppUpdateException(val kind: UpdateErrorKind, message: String) : RuntimeException(message)
@@ -62,8 +66,9 @@ interface AppUpdateGateway {
 
 /**
  * Releases of the public repository on GitHub (docs/SPEC.md §37). Two plain requests, both only after a tap:
- * `GET /repos/{repo}/releases/latest` and the APK asset. Nothing about the owner, the car or the account is sent;
- * GitHub sees the IP address and the "toyota-companion" User-Agent. The APK is accepted only from
+ * `GET /repos/{repo}/releases/latest` and the APK asset; when the release list answers 404, one more
+ * `GET /repos/{repo}` tells "no release yet" from "no repository at all". Nothing about the owner, the car or the
+ * account is sent; GitHub sees the IP address and the "toyota-companion" User-Agent. The APK is accepted only from
  * `https://github.com/{repo}/releases/download/`; GitHub redirects it to its asset host, never to plain HTTP.
  */
 class GithubReleaseClient(
@@ -75,21 +80,46 @@ class GithubReleaseClient(
     private val json = Json { ignoreUnknownKeys = true }
 
     override suspend fun latest(): AppRelease? {
-        val request = Request.Builder()
-            .url("$apiBase/repos/$repo/releases/latest")
-            .header("Accept", "application/vnd.github+json")
-            .header("User-Agent", USER_AGENT)
-            .get()
-            .build()
+        val request = apiRequest("/repos/$repo/releases/latest")
         val (status, body) = try {
             withContext(Dispatchers.IO) { http.newCall(request).execute().use { it.code to it.body.string() } }
         } catch (e: IOException) {
             throw AppUpdateException(UpdateErrorKind.NETWORK, "Release check failed: ${e.javaClass.simpleName}")
         }
-        if (status == HTTP_NOT_FOUND) return null
+        if (status == HTTP_NOT_FOUND) {
+            // GitHub answers 404 here both for "no release yet" and for a private/deleted/renamed repository.
+            ensureRepositoryExists()
+            return null
+        }
         if (status !in 200..299) throw AppUpdateException(UpdateErrorKind.API, "Release check failed (HTTP $status)")
         return parse(body)
     }
+
+    /**
+     * Tells "no release yet" from "no repository at all": one plain `GET /repos/{repo}` with the same headers and
+     * no token. 200 means the repository exists, so the caller may report "you have the latest version"; 404 means
+     * updates from the app cannot work at all ([UpdateErrorKind.NO_REPOSITORY]); anything else is [UpdateErrorKind.API].
+     */
+    private suspend fun ensureRepositoryExists() {
+        val request = apiRequest("/repos/$repo")
+        val status = try {
+            withContext(Dispatchers.IO) { http.newCall(request).execute().use { it.code } }
+        } catch (e: IOException) {
+            throw AppUpdateException(UpdateErrorKind.NETWORK, "Repository check failed: ${e.javaClass.simpleName}")
+        }
+        if (status == HTTP_NOT_FOUND) {
+            throw AppUpdateException(UpdateErrorKind.NO_REPOSITORY, "No repository $repo to update from")
+        }
+        if (status !in 200..299) throw AppUpdateException(UpdateErrorKind.API, "Repository check failed (HTTP $status)")
+    }
+
+    /** The plain GET both checks use: same headers everywhere, no token, no query. */
+    private fun apiRequest(path: String): Request = Request.Builder()
+        .url("$apiBase$path")
+        .header("Accept", "application/vnd.github+json")
+        .header("User-Agent", USER_AGENT)
+        .get()
+        .build()
 
     /** Pure, so the response shape can be tested on a fixture. */
     fun parse(body: String): AppRelease {

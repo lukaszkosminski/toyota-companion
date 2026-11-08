@@ -1179,6 +1179,10 @@ object Texts {
         UpdateFailure.API -> Lang.pick("GitHub nie odpowiada albo ogranicza zapytania. Spróbuj później.", "GitHub is not responding or limits requests. Try again later.")
         UpdateFailure.DATA -> Lang.pick("Nieczytelne wydanie na GitHubie albo uszkodzony plik.", "Unreadable release on GitHub or a damaged file.")
         UpdateFailure.STORAGE -> Lang.pick("Nie udało się zapisać pliku – zwolnij miejsce w telefonie.", "Could not save the file – free up space on the phone.")
+        UpdateFailure.NO_REPOSITORY -> Lang.pick(
+            "Nie znaleziono repozytorium wydań na GitHubie – aktualizacje z aplikacji nie działają, zajrzyj na stronę projektu.",
+            "The release repository was not found on GitHub – in-app updates do not work, check the project page.",
+        )
         UpdateFailure.BAD_APK -> Lang.pick(
             "Pobrany plik nie jest tą aplikacją albo jest podpisany innym kluczem – nie został zainstalowany.",
             "The downloaded file is not this app or is signed with another key – it was not installed.",

@@ -213,6 +213,17 @@ class UpdateControllerTest {
     }
 
     @Test
+    fun `missing repository is not reported as up to date`() = runTest {
+        gateway.checkFailure = AppUpdateException(UpdateErrorKind.NO_REPOSITORY, "x")
+        val c = controller()
+        c.check()
+        advanceUntilIdle()
+        assertEquals(UpdatePhase.FAILED, c.state.value.phase)
+        assertEquals(UpdateFailure.NO_REPOSITORY, c.state.value.failure)
+        assertNull(c.state.value.release)
+    }
+
+    @Test
     fun `install can start over when the system confirmation never showed up`() = runTest {
         val c = controller()
         c.check()
