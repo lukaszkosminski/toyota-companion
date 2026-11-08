@@ -32,18 +32,40 @@
 - Statystyki: jazda na prądzie i ranking tras, lata, pory roku, rok do roku (SPEC §16–§17, F10, F11); „Postoje” (SPEC §18, F17)
 - Styl jazdy: wynik eco po miesiącach, ten sam odcinek, anomalie spalania (SPEC §19, F12, F13)
 - Prognoza dnia tankowania na ekranie statusu (SPEC §20, F14) i typy tras z automatycznym Dom/Praca (SPEC §21, F16)
+- Pogoda i spalanie z Open-Meteo (F15, SPEC §23), tempo jazdy a spalanie (F19, §22), prędkość × temperatura (F24, §28),
+  pogoda i rodzaj jazdy przy trasie (F25, F27)
+- Spalanie i koszty miesięczne na statusie (F20, F26, §24), spalanie deklarowane (F29, §30), alert o rosnącym spalaniu (F30, §31)
+- Mapa trasy i postojów na kafelkach OSM, przebieg trasy z GPS Toyoty, zapis przebiegów, mapa ciepła (F21, F23, F32, F33, §26–§27, §33–§34);
+  ceny 95 z trojmiasto.pl (F22, §25)
+- Podsumowanie roku (F28, §29), widżet (F31, §32), Android Auto tylko do odczytu (F34, §35), jazda na prądzie w tygodniach (F35, §36)
+- Wydania na GitHub Releases i aktualizacja w „Opcjach” (F36, §37, ADR-016): v0.2.0 (2026-11-06), v0.2.1 (R8 – APK 4,3 MB,
+  ikony Material Symbols, kontrast; ADR-017), v0.2.2 (przegląd jakości C22: odświeżanie statusu, liczebniki, jedno
+  odnowienie tokenu, testy migracji Room, ADR-019 jedno konto = jedno auto)
+- Wydatki poza paliwem (F37, §38, ADR-018), koszt całkowity auta (F38, §39, ADR-020), cele eco (F39, §40)
+- Jakość (C22): wspólna kopia listy tras po synchronizacji zamiast kilku pełnych odczytów (§10.1)
 
 ## NOW
-- Test klienta Toyoty na prawdziwym koncie: `./gradlew -q :core:liveCheck` (uruchamia właściciel, docs/HANDOFF.md)
+- W toku (2026-11-08, agenci): pola autostrady i przekroczeń prędkości w archiwum tras (PRD F40, Room v6) oraz ekrany
+  tylko do odczytu „Stan pojazdu”, „Lokalizacja”, „Stan techniczny” z chmury Toyoty, bez budzenia auta (SPEC §42–§44)
+- Właściciel: test klienta na prawdziwym koncie `./gradlew -q :core:liveCheck` (docs/HANDOFF.md); przejście telefonu z wersji
+  debug na wydanie (eksport archiwum → odinstalowanie → instalacja → logowanie → import)
 
 ## NEXT
-- Gotowe 2026-11-01 (także F28–F34: podsumowanie roku, spalanie deklarowane, alert, widżet, zapis przebiegów, mapa ciepła, Android Auto): F14 prognoza tankowania, F15 pogoda, F16 typy tras, F19 tempo jazdy a spalanie, „Otwórz w mapie” (Postoje, trasy)
+- Drobne z przeglądu C22 (briefs/toyota-companion/C22-quality-review.md): D2–D14 – m.in. wyścig przeładowań w wydatkach
+  i pogodzie, data zależna od ustawień regionalnych, `collectAsState` bez cyklu życia, limit rozmiaru strony cen, testy stylu jazdy
+- Wydanie v0.2.3 po zakończeniu prac w toku
 
 ## LATER (kolejność wg wartości / kosztu)
+- Automatyczna kopia archiwum do wybranego folderu (rotacja), przypomnienia serwisowe (przebieg, przegląd, OC), ewidencja
+  przebiegu (kilometrówka) – propozycje z 2026-11-08, niewybrane
+- Przeniesienie logiki domenowej z `app/ui` do `core/domain` z lustrem w Pythonie przy okazji zmian (C22 D9), podział
+  największych plików (D10)
 
 ## DO ZBADANIA
-- F14 źródło cen paliw na stacjach (API/licencja)
-- F18 Android Auto (dozwolone kategorie aplikacji)
+- Wybór pojazdu dla konta z kilkoma autami – dziś świadomie nie (ADR-019)
+
+## ZAMKNIĘTE BADANIA
+- F14/F22 ceny na stacjach: strona trojmiasto.pl po dotknięciu (SPEC §25); F18 Android Auto: wersja ograniczona jako F34 (ADR-014)
 
 ## DEFERRED (brak danych w API)
 - Ukryta rezerwa paliwa, mapa zdarzeń hamowania, model akumulatora 12 V (potwierdzone 2026-11-01: napięcia 12 V i poziomu baterii hybrydowej nie ma w API dla tego auta – briefs/C16-battery.md)

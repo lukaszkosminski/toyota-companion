@@ -12,11 +12,13 @@ Tier 1 = wewnętrzny/niskie ryzyko (ADR-003). Kontrolki, które nie mają zastos
 - Zależności zadeklarowane i przypięte; akcje GitHub przypięte do SHA.
 - Dokumentacja aktualizowana w tym samym commicie co zachowanie.
 - Review: każda zmiana agenta przechodzi przegląd kodu przed commitem.
+- Android: `:core:test`, `:app:testDebugUnitTest`, `:app:lintDebug` (0 problemów) i `:app:assembleRelease` (R8) przechodzą lokalnie i w CI.
+- Wydanie: APK podpisany kluczem wydań, odcisk certyfikatu sprawdzany w workflow `Release` (ADR-016), mapping R8 zachowany jako artefakt.
 
 ## Nie dotyczy (tier 1) – z uzasadnieniem
 | Kontrolka DoD | Powód |
 |---|---|
-| SBOM, podpisywanie artefaktów | Brak dystrybucji artefaktów |
+| SBOM | APK trafia tylko do właściciela przez GitHub Releases; zależności przypięte w `libs.versions.toml`, licencje w THIRD_PARTY_LICENSES.md |
 | Testy obciążeniowe, autoskalowanie, SLO/error budget | Jeden użytkownik |
 | OpenTelemetry, dashboardy, alerty, telemetry smoke test | Brak środowiska produkcyjnego; zamiast tego logi strukturalne (planowane) |
 | Staging, pen-testy, Red/Blue Team | Projekt prywatny; wróci przy wystawieniu API publicznie |

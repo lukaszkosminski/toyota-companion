@@ -1,4 +1,17 @@
-# Stan prac (2026-10-30)
+# Stan prac (2026-11-08)
+
+## Skrót – 2026-11-08
+- Wydania na GitHub Releases: v0.2.0 (06.11), v0.2.1 i v0.2.2 (08.11); APK ok. 4,3 MB (R8, ADR-017), podpisany kluczem wydań,
+  mapping R8 jako artefakt workflow `Release`. Telefon: „Opcje” → „Sprawdź aktualizacje”.
+- PRD F1–F39 gotowe (w tym F37 wydatki, F38 koszt całkowity, F39 cele eco); w toku: F40 (autostrada i przekroczenia prędkości,
+  Room v6) i ekrany stanu pojazdu, lokalizacji i stanu technicznego (SPEC §42–§44) – patrz ROADMAP „NOW”.
+- Testy (main 1c05d4d): core 405, app 653, Python 171; lint 0 problemów; CI: ruff/mypy/pytest, testy Androida, build release z R8,
+  lint, gitleaks.
+- Przegląd jakości C22 (briefs/toyota-companion/C22-quality-review.md): zrobione Q1–Q7; zostały drobne D2–D14.
+- Emulator `toyota36` ma zalogowane konto właściciela, 585 tras i jedno oczekujące tankowanie z 08.11 10:42 (cena do podania
+  przez właściciela); ustawione przykładowe cele eco 4,5 l/100 km i 55 %. Kopia danych aplikacji z 08.11:
+  briefs/toyota-companion/emu-backup/2026-11-08/data.tar.
+
 
 ## Gotowe
 - Logika domeny (tankowania, koszt tras, ADR-005): Python `backend/` (specyfikacja, 76 testów) + Kotlin `android/core/.../domain` (76 testów, te same nazwy).
@@ -156,9 +169,14 @@ Lokalny podpisany build: `RELEASE_KEYSTORE_FILE=… RELEASE_KEYSTORE_PASSWORD=�
 - `source ~/Android/env.sh` – JDK 21, Android SDK 37, Gradle 9.8.2
 - `cd android && ./gradlew --no-daemon -q :core:test :app:testDebugUnitTest :app:assembleDebug`
 - `cd backend && .venv/bin/ruff format --check && .venv/bin/ruff check && .venv/bin/mypy && .venv/bin/python -m pytest -q`
-- Emulator: AVD `toyota36` (API 36, x86_64); brakujące biblioteki systemowe rozpakowane bez sudo do `~/Android/emulator-libs`:
-  `LD_LIBRARY_PATH=~/Android/emulator-libs/usr/lib/x86_64-linux-gnu $ANDROID_HOME/emulator/emulator -avd toyota36 -gpu swiftshader_indirect -no-audio &`
-  potem `./gradlew -q :app:installDebug`
+- Lint i release: `./gradlew --no-daemon -q :app:lintDebug :app:assembleRelease` (bez klucza APK niepodpisany).
+- Emulator: AVD `toyota36` (API 36, x86_64); brakujące biblioteki systemowe rozpakowane bez sudo do `~/Android/emulator-libs`.
+  Uruchamiać w osobnym panelu herdr (proces startowany z `nohup`/`setsid` z narzędzia bash ginie):
+  `LD_LIBRARY_PATH=~/Android/emulator-libs/usr/lib/x86_64-linux-gnu $ANDROID_HOME/emulator/emulator -avd toyota36 -gpu swiftshader_indirect -no-audio -no-window`
+  potem `./gradlew -q :app:installDebug` albo `adb install -r app/build/outputs/apk/debug/app-debug.apk`.
+- Test zminifikowanej wersji bez utraty logowania na emulatorze: `zipalign` niepodpisanego `app-release-unsigned.apk`, podpis
+  kluczem debug (`apksigner sign --ks ~/.android/debug.keystore …`) i `adb install -r` na wersję debug (ta sama `versionCode`);
+  potem z powrotem `app-debug.apk`.
 - Referencja API: `/home/lk/projekty/pytoyoda-ref` (pytoyoda v6.0.0)
 - gitleaks lokalnie: `~/Android/tools/gitleaks git . --log-opts="--all"`
 
@@ -174,3 +192,7 @@ Znany szum testów: `:app:testDebugUnitTest` czasem wypisuje na stderr ślad sto
 błąd. Nie dodawać `CloseGuardRule` (zamieniłby szum w porażki). Odtworzenie: `--tests '*SyncWorkerTest' --tests
 '*SessionControllerTest' --rerun-tasks -i`.
 Niezacommitowane zmiany nieznanego autora: najpierw review i testy, dopiero potem praca na nich.
+Od 2026-11-08 w jednym drzewie pracuje równolegle kilku agentów (panele `w8:p1`, `w8:p8`, `w8:pB`). Zasady: Gradle tylko przez
+`flock /tmp/tc-gradle.lock`; do commita dodawać wyłącznie własne pliki (nigdy `git add -A`), a commit sprawdzać w osobnym
+worktree (`git worktree add`), bo cudza niedokończona zmiana w drzewie potrafi przejść przez lokalne testy i wywrócić CI;
+większe zmiany robić na gałęzi w osobnym worktree i wypychać po `git rebase origin/main`.
