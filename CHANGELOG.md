@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.4 (2026-11-08)
 - Koszt tras po pierwszym potwierdzonym tankowaniu: paliwo, które zostało w baku, ma cenę domyślną, więc cena w baku to średnia ważona z nią (np. 6,175 zamiast 5,92 zł/l), a nie sama cena tankowania (poprawka ADR-005, SPEC §4, §6)
 
 ## 0.2.3 (2026-11-08)
