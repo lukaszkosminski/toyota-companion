@@ -498,6 +498,26 @@ class SessionControllerTest {
     }
 
     @Test
+    fun `a runner that reloads the screen itself still ends the manual sync with the fresh status`() = runTest {
+        // AppContainer.syncRunner calls session.reload() after every run, also inside "Synchronizuj teraz".
+        credentials.save(Credentials(LOGIN, PASSWORD))
+        var reads = 0
+        lateinit var controller: SessionController
+        val reloading = SyncRunner { controller.reload(); SyncOutcome.Ok(1, 1, 0, 1, false, SyncState()) }
+        controller = session(StandardTestDispatcher(testScheduler), runner = reloading, status = { reads++; STATUS })
+        controller.start()
+        advanceUntilIdle()
+
+        controller.syncNow()
+        advanceUntilIdle()
+
+        val shown = controller.state.value as UiState.LoggedIn
+        assertFalse(shown.syncing)
+        assertEquals(STATUS, shown.status)
+        assertEquals(2, reads) // start + the end of syncNow; the reload inside the run was ignored
+    }
+
+    @Test
     fun `reload is ignored while synchronizing or logged out`() = runTest {
         val gate = CompletableDeferred<Unit>()
         val controller = session(StandardTestDispatcher(testScheduler), runner = WaitingRunner(gate))

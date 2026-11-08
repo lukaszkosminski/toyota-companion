@@ -204,6 +204,8 @@ Ekran logowania MyToyota i ekran statusu synchronizacji. Wymaganie właściciela
 - Odświeżanie bez sieci: `PullToRefreshBox` (gest przeciągnięcia w dół) i przycisk „Odśwież” wołają
   `SessionController.reload()`, który powtarza ODCZYT lokalnej bazy (`SyncEngine.status()`) – nie woła
   żadnego API Toyoty, w tym `refresh_status()` (SPEC §9 wstęp). Ignorowane, gdy synchronizacja trwa.
+  Ten sam odczyt idzie automatycznie po każdym przebiegu `SyncRunner` (także `SyncWorker` w tle, gdy ekran
+  jest otwarty) i przy powrocie aplikacji na pierwszy plan (`MainActivity.onResume`).
 - Wygląd (C1b): `Scaffold` z `TopAppBar` (tytuł + „Wyloguj” jako przycisk tekstowy w `actions`),
   liczniki w jednej karcie (Trasy / Odczyty paliwa / Oczekujące tankowania – liczba + podpis),
   chip stanu (`aktualne`/`nieaktualne`/`brak synchronizacji`/`wymaga logowania`), czas ostatniego

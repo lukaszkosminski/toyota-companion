@@ -225,6 +225,9 @@ class AppContainer(
                 // New trips get their weather without a tap (docs/SPEC.md §23).
                 weatherController.autoFetch()
             }
+            // A run of SyncWorker must reach an open status screen too (docs/SPEC.md §9.3);
+            // during "Synchronizuj teraz" reload() is ignored and syncNow() refreshes itself.
+            session.reload()
             outcome
         }
     }

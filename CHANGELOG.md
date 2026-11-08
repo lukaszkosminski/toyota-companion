@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+- Ekran statusu odświeża liczniki i czas ostatniej synchronizacji po synchronizacji w tle i po powrocie do aplikacji (SPEC §9.3)
+
 ## 0.2.1 (2026-11-08)
 - Ikony Material Symbols zamiast emoji na kartach, kafelkach, przyciskach i w wierszach (SPEC §10.4); emoji zostają tylko przy symbolach pogody
 - Jasny motyw: czerwień Toyoty przyciemniona do `#C8001A` dla tekstów i przycisków, żeby kontrast wynosił co najmniej 4,5:1 (SPEC §10.4)

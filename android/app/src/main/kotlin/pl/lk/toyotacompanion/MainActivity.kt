@@ -70,6 +70,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** Back from the background: the counters and the last sync time may be stale (docs/SPEC.md §9.3). */
+    override fun onResume() {
+        super.onResume()
+        (application as ToyotaApp).container.session.reload()
+    }
+
     /** The app was already running: the notification of [EXTRA_REFUEL_ID] asks for the price form. */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
