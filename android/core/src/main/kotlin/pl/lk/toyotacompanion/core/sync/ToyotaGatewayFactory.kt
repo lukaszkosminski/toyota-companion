@@ -6,6 +6,8 @@ import pl.lk.toyotacompanion.core.toyota.InMemoryTokenStore
 import pl.lk.toyotacompanion.core.toyota.TokenStore
 import pl.lk.toyotacompanion.core.toyota.ToyotaApi
 import pl.lk.toyotacompanion.core.toyota.ToyotaController
+import pl.lk.toyotacompanion.core.vehicle.ToyotaVehicleDataGateway
+import pl.lk.toyotacompanion.core.vehicle.VehicleDataGateway
 
 /**
  * Builds the real [ToyotaGateway] without exposing OkHttp to the app module
@@ -34,6 +36,13 @@ object ToyotaGatewayFactory {
 
     fun createRoutes(username: String, password: String, tokenStore: TokenStore): pl.lk.toyotacompanion.core.routes.TripRouteGateway =
         createRoutes(controller(username, password, tokenStore))
+
+    /**
+     * Vehicle status, last known position and vehicle health (docs/SPEC.md §42-§44): read-only cloud
+     * cache on the same controller as [create], so the token is renewed once for every reader.
+     */
+    fun vehicleData(controller: ToyotaController): VehicleDataGateway =
+        ToyotaVehicleDataGateway(ToyotaApi(controller))
 
     /**
      * Checks typed credentials against the real account before anything is

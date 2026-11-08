@@ -2,6 +2,9 @@ package pl.lk.toyotacompanion.core.toyota
 
 import kotlinx.serialization.json.Json
 import java.time.LocalDate
+import pl.lk.toyotacompanion.core.toyota.dto.LocationDto
+import pl.lk.toyotacompanion.core.toyota.dto.LocationResponse
+import pl.lk.toyotacompanion.core.toyota.dto.RemoteStatusDto
 import pl.lk.toyotacompanion.core.toyota.dto.TelemetryDto
 import pl.lk.toyotacompanion.core.toyota.dto.TelemetryResponse
 import pl.lk.toyotacompanion.core.toyota.dto.TripDetailResponse
@@ -9,6 +12,9 @@ import pl.lk.toyotacompanion.core.toyota.dto.TripDto
 import pl.lk.toyotacompanion.core.toyota.dto.TripsPayloadDto
 import pl.lk.toyotacompanion.core.toyota.dto.TripsResponse
 import pl.lk.toyotacompanion.core.toyota.dto.VehicleDto
+import pl.lk.toyotacompanion.core.toyota.dto.VehicleHealthDto
+import pl.lk.toyotacompanion.core.toyota.dto.VehicleHealthResponse
+import pl.lk.toyotacompanion.core.toyota.dto.VehicleStatusResponse
 import pl.lk.toyotacompanion.core.toyota.dto.VehiclesResponse
 
 /**
@@ -90,6 +96,21 @@ class ToyotaApi(private val controller: ToyotaController) {
             ToyotaConst.TRIP_DETAIL_ENDPOINT.replace("{trip_id}", tripId),
             vin = vin,
         ).payload ?: throw ToyotaDataException("Trip detail payload missing")
+
+    /**
+     * pytoyoda api.py:199-207 — GET /v1/vehicle/status. Read-only cloud cache (per-door lock/open,
+     * per-window open, warning count); never wakes the car. A missing payload is null, not an error.
+     */
+    suspend fun getVehicleStatus(vin: String): RemoteStatusDto? =
+        decode<VehicleStatusResponse>(ToyotaConst.VEHICLE_STATUS_ENDPOINT, vin = vin).payload
+
+    /** pytoyoda api.py:166-180 — GET /v1/location: the last known position, updated when the car parks. */
+    suspend fun getLocation(vin: String): LocationDto? =
+        decode<LocationResponse>(ToyotaConst.VEHICLE_LOCATION_ENDPOINT, vin = vin).payload
+
+    /** pytoyoda api.py:185-197 — GET /v1/vehiclehealth/status: warning entries and engine oil. */
+    suspend fun getVehicleHealth(vin: String): VehicleHealthDto? =
+        decode<VehicleHealthResponse>(ToyotaConst.VEHICLE_HEALTH_ENDPOINT, vin = vin).payload
 
     private suspend inline fun <reified T> decode(endpoint: String, vin: String?): T {
         val body = controller.request("GET", endpoint, vin)

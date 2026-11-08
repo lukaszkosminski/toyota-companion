@@ -1035,3 +1035,31 @@ Domena: `core/domain/OwnershipOps.kt` (`ownershipCost`, `ownershipMonths`, model
 - Nie robimy (jeszcze): zdarzeń jazdy (`behaviours`: pole `good`, `severity`, współrzędne), sum miesięcznych ani wykresu – zależą od tego, co konto naprawdę zwraca (sonda struktury, HANDOFF).
 - Testy: `ToyotaMapperArchiveTest`, `ArchiveFileTest`, `AppDatabaseMigrationTest` (v5 → v6 i seed każdej wersji), `TripDriveExtrasTest`.
 
+
+## §42 Stan pojazdu (PRD F41)
+`core/toyota/dto/RemoteDto.kt` (`VehicleStatusResponse`, `RemoteStatusDto`), `core/toyota/VehicleDataMapper.kt`, `core/domain/VehicleData.kt`, `core/vehicle/VehicleDataGateway.kt`, `app/ui/RemoteDataController.kt`, `RemoteDataScreens.kt`, `VehicleDataFormatting.kt`.
+- Źródło: `GET /v1/vehicle/status` (pytoyoda `status.py:59-95`) – odczyt **cache w chmurze Toyoty**, bez `refresh_status()` i bez komend; auto nie jest budzone (AGENTS.md, PRD §6).
+  Pola: `doors` (driver/passenger/rearLeft/rearRight/rearBack/hood) z `lockStatus`/`openStatus`, `windows` (4), `overallWarningCounts`, `lastUpdateTimestamp`.
+- Ekran z kafelka „Stan pojazdu” w menu statusu: odczyt **raz przy każdym otwarciu** (zwykły GET po dotknięciu), bez odpytywania w tle i bez `LaunchedEffect` z pętlą.
+  Karty: „Stan z …” + „Aktywne ostrzeżenia: N”, „Drzwi i maska”, „Okna”; części, których Toyota nie przysłała, po prostu nie ma na liście.
+- Wartości: `status` `open`/`close` → „otwarte”/„zamknięte”, `locked`/`unlocked` → „zablokowane”/„odblokowane”; nieznana wartość i brak części = „brak danych”,
+  nigdy zgadywanie. Maska raportuje tylko otwarcie (bez zamka). Kolejność drzwi i okien stała, niezależna od kolejności w JSON.
+- Błędy: 403/404 → „Toyota nie udostępnia tych danych dla tego auta.”; inny błąd → komunikat odczytu + „Spróbuj ponownie”; 200 bez payloadu → „Toyota nie przysłała tych danych.”.
+- Zawartość pól jest **niezweryfikowana** na żywym koncie (sonda struktury, HANDOFF). Światła, o których mówi opis endpointu w pytoyoda, nie są mapowane, bo model ich nie ma – nic nie jest zgadywane.
+- Prywatność: same stany (bez pozycji); nic nie trafia do bazy, archiwum ani kopii.
+
+## §43 Lokalizacja (PRD F42, ADR-022)
+- Źródło: `GET /v1/location` (pytoyoda `location.py`) – ostatnia znana pozycja, aktualizowana przez Toyotę po zaparkowaniu; cache w chmurze, bez budzenia auta.
+- Ekran: nazwa miejsca (`displayName`, np. adres), **dokładne** współrzędne `54.36850, 18.61420` (kropka dziesiętna, 5 miejsc ≈ 1 m; `BigDecimal.valueOf` + HALF_UP,
+  więc 54.3685 daje 54.36850, bez artefaktów binarnych), „Pozycja z …”, „Ostatnia aktualizacja …” i przycisk „Pokaż na mapie” (jedna dokładna pozycja, tylko po dotknięciu).
+- Dokładna pozycja to **świadomy wyjątek** od §18 (Postoje pokazują zaokrąglenie do ok. 100 m): decyzja właściciela 2026-11-08 (ADR-022).
+  Pozycja i adres są **tylko w pamięci**: bez bazy, eksportu archiwum, CSV, `rememberSaveable`/zapisanego stanu, logów i komunikatów błędów; `reset()` przy wyjściu z ekranu i przy wylogowaniu.
+  Mapa lub intent `geo:` tylko po dotknięciu – serwer kafelków OSM widzi oglądaną okolicę (SECURITY.md).
+- Odczyt przy każdym otwarciu ekranu (świeża pozycja); błędy jak w §42. Brak współrzędnych = „Toyota nie przysłała tych danych.”, bez mapy.
+
+## §44 Stan techniczny (PRD F43)
+- Źródło: `GET /v1/vehiclehealth/status` (pytoyoda `vehicle_health.py`) – ostrzeżenia i dane o oleju silnika z chmury Toyoty; bez budzenia auta.
+- Ekran z kafelka „Stan techniczny”: „Aktywne ostrzeżenia: N”, informacja, czy Toyota przysłała dane o oleju, „Ostrzeżenia z …”, podpowiedź o granicach danych.
+- Payload ma `warning` i `quantityOfEngOilIcon` jako `list[Any]` w referencji, więc aplikacja **liczy wpisy i nie interpretuje ich treści** (nie zgaduje kodów ani ikon).
+  Znaczenie i dostępność pól zależą od sondy struktury odpowiedzi (HANDOFF); brak listy = brak danych, nie 0.
+- Błędy jak w §42; nic nie jest zapisywane w bazie ani w kopii.

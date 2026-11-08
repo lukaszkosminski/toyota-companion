@@ -129,6 +129,9 @@ class SyncEngine(
         writingTrips { state.save(state.get().copy(vin = vin)) }
     }
 
+    /** The vehicle every read is about; null before the first synchronization (docs/SPEC.md §42-§44). */
+    suspend fun selectedVin(): String? = state.get().vin
+
     /** What the UI shows: local data plus “current / not current”. */
     suspend fun status(): SyncStatus {
         val current = state.get()

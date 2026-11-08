@@ -54,6 +54,15 @@ object ToyotaConst {
     /** pytoyoda const.py:66 */
     const val TRIP_DETAIL_ENDPOINT = "/v1/trips/{trip_id}"
 
+    /** pytoyoda const.py:37 — last known position; updated when the car parks (read-only). */
+    const val VEHICLE_LOCATION_ENDPOINT = "/v1/location"
+
+    /** pytoyoda const.py:38 — warning lights and engine oil (read-only). */
+    const val VEHICLE_HEALTH_ENDPOINT = "/v1/vehiclehealth/status"
+
+    /** pytoyoda const.py:42 — per-door/window state and warning count (read-only, cloud cache). */
+    const val VEHICLE_STATUS_ENDPOINT = "/v1/vehicle/status"
+
     /** pytoyoda const.py:84 — ml -> l divisor */
     const val ML_TO_L_FACTOR = 1000.0
 

@@ -81,6 +81,15 @@ enum class Screen {
     /** Places and recent stops of the car (docs/SPEC.md §18). */
     Parking,
 
+    /** Doors, windows and the warning count from Toyota's cloud (PRD F41, docs/SPEC.md §42). */
+    VehicleStatus,
+
+    /** The last known position of the car, kept in memory only (PRD F42, docs/SPEC.md §43). */
+    Location,
+
+    /** Warning lights and engine oil from Toyota's cloud (PRD F43, docs/SPEC.md §44). */
+    VehicleHealth,
+
     /** Eco score, repeated routes and fuel anomalies (docs/SPEC.md §19). */
     DrivingStyle,
 

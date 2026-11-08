@@ -1304,4 +1304,94 @@ object Texts {
         ExpenseCategory.FEES -> Lang.pick("Parkingi i opłaty", "Parking and fees")
         ExpenseCategory.OTHER -> Lang.pick("Inne", "Other")
     }
+
+    // ---------------- Stan pojazdu, lokalizacja i stan techniczny (PRD F41-F43, docs/SPEC.md §42-§44) ----------------
+
+    /** Toyota refused the endpoint (403/404): retired or not supported for this car — not a retryable error. */
+    val REMOTE_UNAVAILABLE: String get() = Lang.pick(
+        "Toyota nie udostępnia tych danych dla tego auta.",
+        "Toyota does not share this data for this car.",
+    )
+
+    /** The call broke; the screen offers a retry. */
+    val RETRY: String get() = Lang.pick("Spróbuj ponownie", "Try again")
+
+    /** Toyota answered but without a payload. */
+    val REMOTE_EMPTY: String get() = Lang.pick("Toyota nie przysłała tych danych.", "Toyota sent no such data.")
+
+    val SHOW_ON_MAP: String get() = Lang.pick("Pokaż na mapie", "Show on map")
+
+    val VEHICLE_STATUS_TITLE: String get() = Lang.pick("Stan pojazdu", "Vehicle status")
+
+    /** What the screen shows and why it can be old: the cloud cache, never a wake-up call. */
+    val VEHICLE_STATUS_HINT: String get() = Lang.pick(
+        "Ostatni stan zapisany w chmurze Toyoty: drzwi, okna i liczba ostrzeżeń. Aplikacja nie budzi auta (bez refresh_status).",
+        "The last state Toyota's cloud has: doors, windows and the warning count. The app does not wake the car (no refresh_status).",
+    )
+    val VEHICLE_STATUS_EMPTY: String get() = Lang.pick("Toyota nie udostępniła stanu pojazdu.", "Toyota did not share the vehicle status.")
+    val VEHICLE_STATUS_READ_ERROR: String get() = Lang.pick("Nie udało się odczytać stanu pojazdu.", "Could not read the vehicle status.")
+    val VEHICLE_DOORS_TITLE: String get() = Lang.pick("Drzwi i maska", "Doors and hood")
+    val VEHICLE_WINDOWS_TITLE: String get() = Lang.pick("Okna", "Windows")
+
+    fun vehicleWarnings(count: Int): String = Lang.pick(
+        "Aktywne ostrzeżenia: $count",
+        "Active warnings: $count",
+    )
+
+    fun vehicleUpdated(at: String): String = Lang.pick("Stan z $at", "State from $at")
+
+    /** One component as Toyota reports it: open/closed and/or locked/unlocked; nothing known otherwise. */
+    val COMPONENT_UNKNOWN: String get() = Lang.pick("brak danych", "no data")
+
+    fun componentOpen(open: Boolean): String = if (open) Lang.pick("otwarte", "open") else Lang.pick("zamknięte", "closed")
+
+    fun componentLocked(locked: Boolean): String = if (locked) Lang.pick("zablokowane", "locked") else Lang.pick("odblokowane", "unlocked")
+
+    fun doorName(position: pl.lk.toyotacompanion.core.domain.DoorPosition): String = when (position) {
+        pl.lk.toyotacompanion.core.domain.DoorPosition.DRIVER -> Lang.pick("Kierowca", "Driver")
+        pl.lk.toyotacompanion.core.domain.DoorPosition.PASSENGER -> Lang.pick("Pasażer", "Passenger")
+        pl.lk.toyotacompanion.core.domain.DoorPosition.REAR_LEFT -> Lang.pick("Tył lewy", "Rear left")
+        pl.lk.toyotacompanion.core.domain.DoorPosition.REAR_RIGHT -> Lang.pick("Tył prawy", "Rear right")
+        pl.lk.toyotacompanion.core.domain.DoorPosition.REAR_BACK -> Lang.pick("Bagażnik", "Trunk")
+        pl.lk.toyotacompanion.core.domain.DoorPosition.HOOD -> Lang.pick("Maska", "Hood")
+    }
+
+    fun windowName(position: pl.lk.toyotacompanion.core.domain.WindowPosition): String = when (position) {
+        pl.lk.toyotacompanion.core.domain.WindowPosition.DRIVER -> Lang.pick("Kierowca", "Driver")
+        pl.lk.toyotacompanion.core.domain.WindowPosition.PASSENGER -> Lang.pick("Pasażer", "Passenger")
+        pl.lk.toyotacompanion.core.domain.WindowPosition.REAR_LEFT -> Lang.pick("Tył lewy", "Rear left")
+        pl.lk.toyotacompanion.core.domain.WindowPosition.REAR_RIGHT -> Lang.pick("Tył prawy", "Rear right")
+    }
+
+    val LOCATION_TITLE: String get() = Lang.pick("Lokalizacja", "Location")
+
+    /** Memory-only: the position is shown, never stored in the database, the archive or a log (docs/SECURITY.md). */
+    val LOCATION_HINT: String get() = Lang.pick(
+        "Ostatnia znana pozycja auta z chmury Toyoty, aktualizowana po zaparkowaniu. Trzymana tylko w pamięci – nie trafia do bazy, kopii ani logów.",
+        "The car's last known position from Toyota's cloud, updated when it parks. Kept in memory only – never in the database, a backup or a log.",
+    )
+    val LOCATION_EMPTY: String get() = Lang.pick("Toyota nie udostępniła pozycji auta.", "Toyota did not share the car's position.")
+    val LOCATION_READ_ERROR: String get() = Lang.pick("Nie udało się odczytać pozycji auta.", "Could not read the car's position.")
+    val LOCATION_COORDS_TITLE: String get() = Lang.pick("Współrzędne", "Coordinates")
+    val LOCATION_PLACE_TITLE: String get() = Lang.pick("Miejsce", "Place")
+
+    fun locationCoords(lat: String, lon: String): String = "$lat, $lon"
+
+    fun locationAcquired(at: String): String = Lang.pick("Pozycja z $at", "Position from $at")
+
+    fun locationLastUpdate(at: String): String = Lang.pick("Ostatnia aktualizacja $at", "Last update $at")
+
+    val HEALTH_TITLE: String get() = Lang.pick("Stan techniczny", "Vehicle health")
+
+    /** The payload is untyped in the reference, so the screen shows the count and says what it does not know. */
+    val HEALTH_HINT: String get() = Lang.pick(
+        "Ostrzeżenia i dane o oleju z chmury Toyoty, bez budzenia auta. Szczegóły zależą od tego, co przysyła backend – aplikacja nie zgaduje ich treści.",
+        "Warnings and engine oil data from Toyota's cloud, without waking the car. The details depend on what the backend sends – the app does not guess them.",
+    )
+    val HEALTH_EMPTY: String get() = Lang.pick("Toyota nie udostępniła stanu technicznego.", "Toyota did not share the vehicle health.")
+    val HEALTH_READ_ERROR: String get() = Lang.pick("Nie udało się odczytać stanu technicznego.", "Could not read the vehicle health.")
+    val HEALTH_OIL_YES: String get() = Lang.pick("Toyota przysłała dane o oleju silnika.", "Toyota sent engine oil data.")
+    val HEALTH_OIL_NO: String get() = Lang.pick("Toyota nie przysłała danych o oleju silnika.", "Toyota sent no engine oil data.")
+
+    fun healthUpdated(at: String): String = Lang.pick("Ostrzeżenia z $at", "Warnings from $at")
 }

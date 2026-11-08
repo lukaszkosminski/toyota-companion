@@ -55,6 +55,9 @@ fun AppRoot(
     backfill: RouteBackfillController,
     heat: RouteHeatController,
     expenses: ExpensesController,
+    vehicleStatus: RemoteDataController<pl.lk.toyotacompanion.core.domain.VehicleStatus>,
+    location: RemoteDataController<pl.lk.toyotacompanion.core.domain.VehicleLocation>,
+    vehicleHealth: RemoteDataController<pl.lk.toyotacompanion.core.domain.VehicleHealth>,
     update: UpdateController,
     onSetLanguage: (AppLanguage) -> Unit,
     askNotificationPermission: suspend () -> Boolean,
@@ -76,10 +79,19 @@ fun AppRoot(
     // The map in the app (docs/SPEC.md §26): [origin ordinal, then per point: label index, lat, lon] with the positions
     // already rounded, so no raw coordinate lands in the saved state.
     var mapData by rememberSaveable { mutableStateOf<DoubleArray?>(null) }
-    fun showMap(origin: Screen, points: List<MapPoint>, tripId: String?) {
+    // The exact position of the car (docs/SPEC.md §43, ADR-022) is never saved: it lives in this plain `remember` state only, so a
+    // process death forgets it (the map then falls back to the status screen) and no exact coordinate reaches the saved state.
+    var exactMap by remember { mutableStateOf<Pair<Screen, List<MapPoint>>?>(null) }
+    fun showMap(origin: Screen, points: List<MapPoint>, tripId: String?, exact: Boolean = false) {
         tripRoute.open(tripId)
-        mapData = doubleArrayOf(origin.ordinal.toDouble()) +
-            points.flatMap { listOf(MAP_LABELS.indexOf(it.label).toDouble(), it.lat, it.lon) }
+        if (exact) {
+            mapData = null
+            exactMap = origin to points
+        } else {
+            exactMap = null
+            mapData = doubleArrayOf(origin.ordinal.toDouble()) +
+                points.flatMap { listOf(MAP_LABELS.indexOf(it.label).toDouble(), it.lat, it.lon) }
+        }
         screen = Screen.Map
     }
     // Which entry the price form edits; an id is not a secret (docs/SECURITY.md).
@@ -115,6 +127,10 @@ fun AppRoot(
             tripRoute.close()
             yearSummary.reset()
             expenses.reset()
+            exactMap = null
+            vehicleStatus.reset()
+            location.reset()
+            vehicleHealth.reset()
             backfill.reset()
             heat.close()
             // The widget must not keep an account's numbers after logout (docs/SPEC.md §32).
@@ -205,6 +221,9 @@ fun AppRoot(
                             parking.load()
                             screen = Screen.Parking
                         },
+                        onShowVehicleStatus = { screen = Screen.VehicleStatus },
+                        onShowLocation = { screen = Screen.Location },
+                        onShowVehicleHealth = { screen = Screen.VehicleHealth },
                         onShowDrivingStyle = {
                             drivingStyle.load()
                             screen = Screen.DrivingStyle
@@ -283,6 +302,23 @@ fun AppRoot(
                         onBack = { screen = Screen.Status },
                     )
 
+                    Screen.VehicleStatus -> VehicleStatusScreen(
+                        controller = vehicleStatus,
+                        onBack = { screen = Screen.Status },
+                    )
+
+                    Screen.Location -> LocationScreen(
+                        controller = location,
+                        // The map opens only after a tap, with this one exact point (docs/SECURITY.md).
+                        onShowMap = { points -> showMap(Screen.Location, points, null, exact = true) },
+                        onBack = { screen = Screen.Status },
+                    )
+
+                    Screen.VehicleHealth -> VehicleHealthScreen(
+                        controller = vehicleHealth,
+                        onBack = { screen = Screen.Status },
+                    )
+
                     Screen.Stats -> StatsScreen(
                         controller = stats,
                         onBack = { screen = Screen.Status },
@@ -313,20 +349,27 @@ fun AppRoot(
 
                     Screen.Map -> {
                         val data = mapData
-                        if (data == null || data.size < 4) {
-                            LaunchedEffect(Unit) { screen = Screen.Status }
-                        } else {
-                            val points = (1 until data.size step 3).mapNotNull { i ->
+                        val exact = exactMap
+                        val shown: Pair<Screen, List<MapPoint>>? = when {
+                            exact != null -> exact
+                            data != null && data.size >= 4 -> Screen.entries[data[0].toInt()] to (1 until data.size step 3).mapNotNull { i ->
                                 val label = MAP_LABELS.getOrNull(data[i].toInt()) ?: return@mapNotNull null
                                 if (i + 2 < data.size) MapPoint(label, data[i + 1], data[i + 2]) else null
                             }
+                            else -> null
+                        }
+                        if (shown == null) {
+                            LaunchedEffect(Unit) { screen = Screen.Status }
+                        } else {
+                            val (origin, points) = shown
                             MapScreen(
                                 title = if (points.size == 1) Texts.MAP_TITLE_PLACE else Texts.MAP_TITLE_TRIP,
                                 points = points,
                                 route = routeState,
                                 onBack = {
                                     tripRoute.close()
-                                    screen = Screen.entries[data[0].toInt()]
+                                    exactMap = null
+                                    screen = origin
                                 },
                             )
                         }

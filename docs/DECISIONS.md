@@ -147,3 +147,9 @@ więc to, czego nie zapiszemy teraz, przepadnie. Trasy sprzed migracji mają `nu
 Odrzucone na razie: zdarzenia jazdy (`behaviours`). W fixturach pytoyoda mają one pola `good` (zdarzenia dobre i złe), `severity`, `coachingMsg` i współrzędne, więc licznik „wszystkich zdarzeń” byłby błędny, a pozycje to osobna decyzja o prywatności. Nie wiadomo też, czy lista tras ich dziś w ogóle zwraca.
 Wrócimy do tego po wyniku sondy struktury odpowiedzi (`TOYOTA_PROBE=structure`, HANDOFF), jeśli konto je zwraca. Ryzyko: wartości przekroczeń to dane Toyoty o niejasnej metodzie (limity z map); pokazujemy je tak, jak je podaje, bez własnej oceny.
 
+
+## ADR-022 Dokładna lokalizacja auta na ekranie „Lokalizacja”, tylko w pamięci (2026-11-08)
+Decyzja właściciela produktu. Ekran „Lokalizacja” (F42, SPEC §43) pokazuje **dokładną** ostatnią pozycję auta z chmury Toyoty (`GET /v1/location`, odczyt cache – bez `refresh_status`) i adres z `displayName`, zamiast zaokrąglenia do 0,001° (ok. 100 m) stosowanego w „Postojach” (§18).
+Współrzędne idą z kropką dziesiętną i 5 miejscami (ok. 1 m), liczone przez `BigDecimal.valueOf` + HALF_UP, żeby `Double` nie wprowadzał artefaktów binarnych. Granice, które zostają: pozycja i adres **tylko w pamięci** (bez bazy, eksportu archiwum, CSV, `rememberSaveable`/zapisanego stanu, logów i komunikatów błędów), `reset()` przy wyjściu z ekranu i przy wylogowaniu,
+a mapa albo intent `geo:` dopiero po dotknięciu – serwer kafelków OSM widzi wtedy oglądaną okolicę (SECURITY.md).
+Ryzyko zaakceptowane: dokładne położenie właściciela jest widoczne na ekranie i może opuścić telefon po jego dotknięciu. Odrzucone: zaokrąglenie do ~100 m jak w §18 (mniej użyteczne, właściciel chce dokładną pozycję), zapis w bazie (GPS poza trasami trafiłby do archiwum i kopii), automatyczne odświeżanie w tle (zbyteczne żądania do Toyoty).

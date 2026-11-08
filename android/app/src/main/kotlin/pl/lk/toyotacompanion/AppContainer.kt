@@ -22,6 +22,9 @@ import pl.lk.toyotacompanion.core.data.StoredTrip
 import pl.lk.toyotacompanion.core.data.TripRecord
 import pl.lk.toyotacompanion.core.data.VehicleRecord
 import pl.lk.toyotacompanion.core.domain.FuelReading
+import pl.lk.toyotacompanion.core.domain.VehicleHealth
+import pl.lk.toyotacompanion.core.domain.VehicleLocation
+import pl.lk.toyotacompanion.core.domain.VehicleStatus
 import pl.lk.toyotacompanion.core.sync.NoCredentialsException
 import pl.lk.toyotacompanion.core.sync.SyncEngine
 import pl.lk.toyotacompanion.core.sync.SyncOutcome
@@ -30,6 +33,7 @@ import pl.lk.toyotacompanion.core.sync.ToyotaGatewayFactory
 import pl.lk.toyotacompanion.core.toyota.TokenInfo
 import pl.lk.toyotacompanion.core.toyota.TokenStore
 import pl.lk.toyotacompanion.core.toyota.ToyotaController
+import pl.lk.toyotacompanion.core.vehicle.VehicleDataGateway
 import pl.lk.toyotacompanion.data.db.AppDatabase
 import pl.lk.toyotacompanion.data.db.RoomCostRepository
 import pl.lk.toyotacompanion.data.db.RoomFuelReadingRepository
@@ -105,6 +109,48 @@ class AppContainer(
 
     val expensesController: pl.lk.toyotacompanion.ui.ExpensesController by lazy {
         pl.lk.toyotacompanion.ui.ExpensesController(database.expenseDao(), uiScope, Dispatchers.IO)
+    }
+
+    /**
+     * Read-only Toyota data outside the archive (PRD F41-F43, docs/SPEC.md §42-§44): vehicle status,
+     * the last known position and vehicle health. Each screen reads once when it opens; the position is
+     * kept in memory only (docs/SECURITY.md). The shared controller renews the token once for every call.
+     */
+    private val vehicleData: VehicleDataGateway = object : VehicleDataGateway {
+        override suspend fun status(vin: String): VehicleStatus? =
+            ToyotaGatewayFactory.vehicleData(sharedController()).status(vin)
+
+        override suspend fun location(vin: String): VehicleLocation? =
+            ToyotaGatewayFactory.vehicleData(sharedController()).location(vin)
+
+        override suspend fun health(vin: String): VehicleHealth? =
+            ToyotaGatewayFactory.vehicleData(sharedController()).health(vin)
+    }
+
+    private suspend fun selectedVin(): String? = syncEngine.selectedVin()
+
+    val vehicleStatusController: pl.lk.toyotacompanion.ui.RemoteDataController<VehicleStatus> by lazy {
+        pl.lk.toyotacompanion.ui.RemoteDataController(
+            read = { selectedVin()?.let { vehicleData.status(it) } },
+            scope = uiScope,
+            io = Dispatchers.IO,
+        )
+    }
+
+    val locationController: pl.lk.toyotacompanion.ui.RemoteDataController<VehicleLocation> by lazy {
+        pl.lk.toyotacompanion.ui.RemoteDataController(
+            read = { selectedVin()?.let { vehicleData.location(it) } },
+            scope = uiScope,
+            io = Dispatchers.IO,
+        )
+    }
+
+    val vehicleHealthController: pl.lk.toyotacompanion.ui.RemoteDataController<VehicleHealth> by lazy {
+        pl.lk.toyotacompanion.ui.RemoteDataController(
+            read = { selectedVin()?.let { vehicleData.health(it) } },
+            scope = uiScope,
+            io = Dispatchers.IO,
+        )
     }
 
     /** App update from GitHub Releases, only after a tap in "Opcje" (PRD F36, docs/SPEC.md §37, ADR-016). */

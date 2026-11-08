@@ -109,3 +109,6 @@ Jeden właściciel pojazdu (właściciel projektu). Brak użytkowników zewnętr
 
 ## 8. Otwarte pytania
 Brak.
+| F41 | Stan pojazdu | Kafelek „Stan pojazdu” w menu: drzwi, maska i okna (otwarte/zamknięte, zablokowane/odblokowane) oraz liczba aktywnych ostrzeżeń z chmury Toyoty, z czasem stanu; odczyt tylko po dotknięciu, bez budzenia auta (SPEC §42) |
+| F42 | Lokalizacja | Kafelek „Lokalizacja”: ostatnia znana pozycja auta z chmury Toyoty – nazwa miejsca i dokładne współrzędne, z czasem; „Pokaż na mapie” po dotknięciu; pozycja tylko w pamięci, bez bazy i archiwum (SPEC §43, ADR-022) |
+| F43 | Stan techniczny | Kafelek „Stan techniczny”: liczba ostrzeżeń i informacja o danych oleju silnika z chmury Toyoty, z czasem; treści wpisów nieinterpretowane, zależne od tego, co zwraca backend (SPEC §44) |
