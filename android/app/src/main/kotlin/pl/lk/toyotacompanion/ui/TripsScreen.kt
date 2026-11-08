@@ -181,7 +181,7 @@ private fun MonthHeader(group: MonthGroup) {
             modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Text("🗓️ " + TripsFormatting.monthLabel(group.month), style = MaterialTheme.typography.titleMedium)
+            Text(TripsFormatting.monthLabel(group.month), style = MaterialTheme.typography.titleMedium)
             Text(
                 TripsFormatting.kilometers(group.totalKm) +
                     Texts.SEPARATOR + TripsFormatting.liters(group.totalLiters) +
@@ -215,21 +215,21 @@ private fun TripRow(stored: StoredTrip, zone: ZoneId, day: pl.lk.toyotacompanion
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            EmojiBadge(if (points.isNotEmpty()) "🚗" else "🚙", Palette.Blue)
+            IconBadge(if (points.isNotEmpty()) AppIcons.DirectionsCar else AppIcons.DirectionsCar, Palette.Blue)
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(TripsFormatting.startDateTime(trip.start, zone), style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    "📏 " + TripsFormatting.kilometers(trip.distanceKm) + Texts.SEPARATOR + "⛽ " + TripsFormatting.liters(trip.fuelL),
+                    TripsFormatting.kilometers(trip.distanceKm) + Texts.SEPARATOR + TripsFormatting.liters(trip.fuelL),
                     style = MaterialTheme.typography.bodySmall,
                     color = readable(Palette.Blue),
                 )
                 // Consumption of the trip itself, l/100 km; a very short drive says nothing, so it is left out under 1 km.
                 tripConsumption(trip.distanceKm, trip.fuelL)?.let { value ->
                     Text(
-                        "📉 " + RefuelLogFormatting.consumption(value),
+                        RefuelLogFormatting.consumption(value),
                         style = MaterialTheme.typography.bodySmall,
                         color = readable(if (value.toFloat() <= 5f) Palette.Green else if (value.toFloat() <= 7f) Palette.Amber else Palette.Red),
                     )

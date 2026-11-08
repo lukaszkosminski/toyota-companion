@@ -4,15 +4,15 @@ import java.math.BigDecimal
 import java.time.LocalDate
 
 /** What an expense that is not fuel was for. Fuel stays in the refuel log; these are everything else the car costs. */
-enum class ExpenseCategory(val emoji: String) {
-    SERVICE("🔧"),
-    INSPECTION("📋"),
-    TYRES("🛞"),
-    INSURANCE("🛡️"),
-    PARTS("⚙️"),
-    WASH("🧽"),
-    FEES("🅿️"),
-    OTHER("🧾"),
+enum class ExpenseCategory {
+    SERVICE,
+    INSPECTION,
+    TYRES,
+    INSURANCE,
+    PARTS,
+    WASH,
+    FEES,
+    OTHER,
 }
 
 /** One non-fuel expense; [date] may be any day, so past ones can be entered later. */

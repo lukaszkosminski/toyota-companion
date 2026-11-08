@@ -82,14 +82,15 @@ fun BackupScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            DashboardCard(Texts.BACKUP_TITLE, "💾") {
+            DashboardCard(Texts.BACKUP_TITLE, AppIcons.Save) {
                 Text(Texts.BACKUP_EXPLANATION, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 val last = state.lastExport
                 if (last != null) {
                     StatTile(backupDate(last, zone), Texts.BACKUP_TITLE, Palette.Green)
                 } else {
-                    Text(
-                        "🕓️ " + Texts.BACKUP_NONE_YET,
+                    IconText(
+                        AppIcons.History,
+                        Texts.BACKUP_NONE_YET,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -104,43 +105,44 @@ fun BackupScreen(
                     enabled = !state.busy,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("📤 " + Texts.BACKUP_EXPORT)
+                    IconLabel(AppIcons.Upload, Texts.BACKUP_EXPORT)
                 }
                 OutlinedButton(
                     onClick = { openFile.launch(ARCHIVE_MIME_TYPES) },
                     enabled = !state.busy,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("📥 " + Texts.BACKUP_IMPORT)
+                    IconLabel(AppIcons.Download, Texts.BACKUP_IMPORT)
                 }
             }
 
-            DashboardCard(Texts.CSV_SECTION, "📊") {
+            DashboardCard(Texts.CSV_SECTION, AppIcons.BarChart) {
                 Text(Texts.CSV_EXPLANATION, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Button(
                     onClick = { createCsv.launch(tripsCsvFileName(LocalDate.now(zone))) },
                     enabled = hasTrips && !state.busy,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("📑 " + Texts.CSV_EXPORT)
+                    IconLabel(AppIcons.Description, Texts.CSV_EXPORT)
                 }
             }
 
             // Auto Backup to the owner's Google Drive (ADR-015, docs/SPEC.md §14.2).
-            DashboardCard(Texts.BACKUP_CLOUD_SECTION, "☁️") {
+            DashboardCard(Texts.BACKUP_CLOUD_SECTION, AppIcons.Cloud) {
                 Text(Texts.BACKUP_CLOUD_EXPLANATION, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Button(
                     onClick = { controller.requestCloudBackup() },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("☁️ " + Texts.BACKUP_CLOUD_NOW)
+                    IconLabel(AppIcons.CloudUpload, Texts.BACKUP_CLOUD_NOW)
                 }
                 if (state.cloudRequested) {
                     Text("ℹ️ " + Texts.BACKUP_CLOUD_REQUESTED, style = MaterialTheme.typography.bodyMedium, color = readable(Palette.Blue))
                 }
                 state.cloudError?.let { Box { ErrorCard(it) } }
-                Text(
-                    "📱 " + Texts.BACKUP_CLOUD_HINT,
+                IconText(
+                    AppIcons.Smartphone,
+                    Texts.BACKUP_CLOUD_HINT,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

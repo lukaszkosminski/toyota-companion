@@ -25,6 +25,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import java.math.BigDecimal
@@ -84,7 +85,7 @@ fun WeatherScreen(controller: WeatherController, onBack: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item {
-                    DashboardCard(Texts.WEATHER_TITLE, "🌦️") {
+                    DashboardCard(Texts.WEATHER_TITLE, AppIcons.PartlyCloudyDay) {
                         Text(
                             Texts.WEATHER_HINT,
                             style = MaterialTheme.typography.bodySmall,
@@ -99,7 +100,7 @@ fun WeatherScreen(controller: WeatherController, onBack: () -> Unit) {
                             enabled = !state.fetching && view.plannedRequests > 0,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text(if (state.fetching) Texts.WEATHER_FETCHING else "📥 " + Texts.WEATHER_FETCH)
+                            if (state.fetching) Text(Texts.WEATHER_FETCHING) else IconLabel(AppIcons.Download, Texts.WEATHER_FETCH)
                         }
                         Text(
                             Texts.weatherPending(view.plannedRequests, view.requestsLeft, view.cachedDays),
@@ -108,18 +109,19 @@ fun WeatherScreen(controller: WeatherController, onBack: () -> Unit) {
                         // The outcome of the last tap: a pill, green when it worked and red when it did not.
                         state.lastFetch?.let { result ->
                             val tint = fetchColor(result)
-                            Pill(fetchMark(result) + Texts.weatherFetchResult(result), tint.copy(alpha = 0.18f), tint)
+                            Pill(Texts.weatherFetchResult(result), tint.copy(alpha = 0.18f), tint, icon = fetchIcon(result))
                         }
                     }
                 }
 
-                item { ImpactCard(Texts.WEATHER_BY_TEMPERATURE, "🌡️", view.temperature) }
-                item { ImpactCard(Texts.WEATHER_BY_RAIN, "🌧️", view.precipitation) }
+                item { ImpactCard(Texts.WEATHER_BY_TEMPERATURE, AppIcons.Thermostat, view.temperature) }
+                item { ImpactCard(Texts.WEATHER_BY_RAIN, AppIcons.Rainy, view.precipitation) }
                 item { MatrixCard(view.matrix) }
 
                 item {
-                    Text(
-                        "⚠️ " + Texts.WEATHER_CAVEAT,
+                    IconText(
+                        AppIcons.Warning,
+                        Texts.WEATHER_CAVEAT,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -134,8 +136,8 @@ fun WeatherScreen(controller: WeatherController, onBack: () -> Unit) {
  * its badge, and a meter of the share of the battery the bucket allowed (docs/SPEC.md §10.4, §16).
  */
 @Composable
-private fun ImpactCard(title: String, emoji: String, impact: WeatherImpact) {
-    DashboardCard(title, emoji) {
+private fun ImpactCard(title: String, icon: ImageVector, impact: WeatherImpact) {
+    DashboardCard(title, icon) {
         val bars = impact.buckets.mapNotNull { bucket ->
             val litres = bucket.lPer100Km ?: return@mapNotNull null
             ChartBar(litres.toFloat(), bucketEmoji(bucket.bucket), TripsFormatting.plain(litres, 2), bucketColor(bucket.bucket))
@@ -176,7 +178,7 @@ private fun BucketRow(bucket: WeatherBucketStats) {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            EmojiBadge(bucketEmoji(bucket.bucket), color)
+            IconBadge(bucketIcon(bucket.bucket), color)
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(Texts.weatherBucketName(bucket.bucket), style = MaterialTheme.typography.titleSmall)
                 Text(WeatherFormatting.bucketLine(bucket), style = MaterialTheme.typography.bodyMedium)
@@ -200,7 +202,7 @@ private fun BucketRow(bucket: WeatherBucketStats) {
 /** The speed × temperature table (docs/SPEC.md §28): a band, its bars per bucket of temperature and its exact line. */
 @Composable
 private fun MatrixCard(rows: List<MatrixRow>) {
-    DashboardCard(Texts.MATRIX_TITLE, "🛣️") {
+    DashboardCard(Texts.MATRIX_TITLE, AppIcons.Route) {
         Text(Texts.MATRIX_HINT, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (rows.isEmpty()) Text(Texts.MATRIX_EMPTY)
         for (row in rows) {
@@ -210,7 +212,7 @@ private fun MatrixCard(rows: List<MatrixRow>) {
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    EmojiBadge(trafficEmoji(row.speed), trafficColor(row.speed))
+                    IconBadge(trafficIcon(row.speed), trafficColor(row.speed))
                     Text(Texts.trafficClassName(row.speed), style = MaterialTheme.typography.titleSmall)
                 }
                 // A cell below the minimum gets a grey bar: it counts, but it proves nothing (§28).
@@ -227,7 +229,7 @@ private fun MatrixCard(rows: List<MatrixRow>) {
                 if (bars.size > 1) BarChart(bars, height = 64.dp)
                 Text(WeatherFormatting.rowText(row), style = MaterialTheme.typography.bodyMedium)
                 WeatherFormatting.frostLine(row)?.let {
-                    Text("❄️ " + it, style = MaterialTheme.typography.bodySmall, color = readable(Palette.Red))
+                    IconText(AppIcons.AcUnit, it, style = MaterialTheme.typography.bodySmall, color = readable(Palette.Red))
                 }
             }
         }
@@ -235,6 +237,18 @@ private fun MatrixCard(rows: List<MatrixRow>) {
 }
 
 /** The symbol of a weather bucket, from the same set the list of trips uses (docs/SPEC.md §10.3). */
+/** The badge of a weather bucket row; the bars keep [bucketEmoji] as their short text label. */
+private fun bucketIcon(bucket: String): ImageVector = when (bucket) {
+    "deep_frost" -> AppIcons.SevereCold
+    "frost" -> AppIcons.AcUnit
+    "cold" -> AppIcons.Foggy
+    "mild" -> AppIcons.PartlyCloudyDay
+    "warm" -> AppIcons.Sunny
+    "dry" -> AppIcons.HumidityLow
+    "wet" -> AppIcons.Rainy
+    else -> AppIcons.Thermostat
+}
+
 private fun bucketEmoji(bucket: String): String = when (bucket) {
     "deep_frost" -> "🥶"
     "frost" -> "❄️"
@@ -259,11 +273,11 @@ private fun bucketColor(bucket: String): Color = when (bucket) {
 }
 
 /** The symbol of a speed band, the same as the kind of drive of a trip (docs/SPEC.md §27). */
-private fun trafficEmoji(cls: TrafficClass): String = when (cls) {
-    TrafficClass.SLOW -> "🚦"
-    TrafficClass.CITY -> "🏙️"
-    TrafficClass.FLOWING -> "🚗"
-    TrafficClass.HIGHWAY -> "🛣️"
+private fun trafficIcon(cls: TrafficClass): ImageVector = when (cls) {
+    TrafficClass.SLOW -> AppIcons.Traffic
+    TrafficClass.CITY -> AppIcons.LocationCity
+    TrafficClass.FLOWING -> AppIcons.DirectionsCar
+    TrafficClass.HIGHWAY -> AppIcons.Speed
 }
 
 /** Slow driving is the bad news and an open road the good one - the colours of "Statystyki". */
@@ -275,11 +289,11 @@ private fun trafficColor(cls: TrafficClass): Color = when (cls) {
 }
 
 /** The mark of the last tap on fetch: a check, a warning, nothing to say or a cross. */
-private fun fetchMark(result: WeatherFetchResult): String = when (result) {
-    WeatherFetchResult.DONE -> "✅ "
-    WeatherFetchResult.PARTIAL -> "⚠️ "
-    WeatherFetchResult.NOTHING_TO_FETCH -> ""
-    else -> "❌ "
+private fun fetchIcon(result: WeatherFetchResult): ImageVector? = when (result) {
+    WeatherFetchResult.DONE -> AppIcons.CheckCircle
+    WeatherFetchResult.PARTIAL -> AppIcons.Warning
+    WeatherFetchResult.NOTHING_TO_FETCH -> null
+    else -> AppIcons.Cancel
 }
 
 /** The colour of that mark: green when it worked, amber when it worked partly, red when it did not. */

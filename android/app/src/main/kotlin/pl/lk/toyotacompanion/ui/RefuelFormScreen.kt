@@ -17,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -124,7 +125,7 @@ fun RefuelFormScreen(
                 // text first, and a focus asked for before the field is composed is lost for good.
                 if (focusPriceOnOpen) ShowKeyboardOnFocus(priceFocus, id)
 
-                DashboardCard(Texts.REFUEL_FORM_TITLE, "⛽") {
+                DashboardCard(Texts.REFUEL_FORM_TITLE, AppIcons.LocalGasStation) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -132,14 +133,15 @@ fun RefuelFormScreen(
                         StatTile(RefuelFormatting.levelJump(entry.levelBefore, entry.levelAfter), Texts.REFUELS_TITLE, Palette.Orange, Modifier.weight(1f))
                         StatTile(RefuelFormatting.odometer(entry.odometerKm), Texts.STAT_TRIPS, Palette.Blue, Modifier.weight(1f))
                     }
-                    Text(
-                        "🕒 " + RefuelFormatting.time(entry.ts, zone),
+                    IconText(
+                        AppIcons.Schedule,
+                        RefuelFormatting.time(entry.ts, zone),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
 
-                DashboardCard(Texts.REFUEL_FIELD_TOTAL, "🧾") {
+                DashboardCard(Texts.REFUEL_FIELD_TOTAL, AppIcons.ReceiptLong) {
                     state.formError?.let { ErrorCard(it) }
 
                     StationPricePicker(
@@ -151,7 +153,7 @@ fun RefuelFormScreen(
                         value = priceText,
                         onValueChange = { priceText = it },
                         label = { Text(Texts.REFUEL_FIELD_PRICE) },
-                        leadingIcon = { Text("⛽") },
+                        leadingIcon = { Icon(AppIcons.LocalGasStation, contentDescription = null) },
                         supportingText = { FieldNote(state, RefuelField.Price) },
                         isError = state.formFieldErrors.any { it.field == RefuelField.Price },
                         singleLine = true,
@@ -167,7 +169,7 @@ fun RefuelFormScreen(
                             litersFromEstimate = false
                         },
                         label = { Text(Texts.REFUEL_FIELD_LITERS) },
-                        leadingIcon = { Text("🧪") },
+                        leadingIcon = { Icon(AppIcons.WaterDrop, contentDescription = null) },
                         supportingText = { FieldNote(state, RefuelField.Liters) },
                         isError = state.formFieldErrors.any { it.field == RefuelField.Liters },
                         singleLine = true,
@@ -193,7 +195,7 @@ fun RefuelFormScreen(
                             if (litersFromEstimate) {
                                 // The same number, read off the receipt: drop the mark, keep the value (D7).
                                 TextButton(onClick = { litersFromEstimate = false }, enabled = !busy) {
-                                    Text("🧾 " + Texts.REFUEL_LITERS_FROM_RECEIPT)
+                                    IconLabel(AppIcons.ReceiptLong, Texts.REFUEL_LITERS_FROM_RECEIPT)
                                 }
                             } else {
                                 TextButton(
@@ -203,7 +205,7 @@ fun RefuelFormScreen(
                                     },
                                     enabled = !busy,
                                 ) {
-                                    Text("📊 " + Texts.REFUEL_USE_ESTIMATE)
+                                    IconLabel(AppIcons.BarChart, Texts.REFUEL_USE_ESTIMATE)
                                 }
                             }
                         }
@@ -212,7 +214,7 @@ fun RefuelFormScreen(
                         value = totalText,
                         onValueChange = { totalText = it },
                         label = { Text(Texts.REFUEL_FIELD_TOTAL) },
-                        leadingIcon = { Text("💰") },
+                        leadingIcon = { Icon(AppIcons.Payments, contentDescription = null) },
                         supportingText = { FieldNote(state, RefuelField.Total) },
                         isError = state.formFieldErrors.any { it.field == RefuelField.Total },
                         singleLine = true,
@@ -227,7 +229,7 @@ fun RefuelFormScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("⛽ " + Texts.REFUEL_FILLED_FULL, style = MaterialTheme.typography.bodyLarge)
+                            IconText(AppIcons.LocalGasStation, Texts.REFUEL_FILLED_FULL, style = MaterialTheme.typography.bodyLarge)
                         }
                         // "Do pełna" without liters is what the domain refuses (docs/SPEC.md §2).
                         Switch(
@@ -244,14 +246,14 @@ fun RefuelFormScreen(
                         enabled = !busy,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text("💾 " + Texts.REFUEL_SAVE)
+                        IconLabel(AppIcons.Save, Texts.REFUEL_SAVE)
                     }
                     OutlinedButton(
                         onClick = { asksAboutDismissing = true },
                         enabled = !busy,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text("❌ " + Texts.REFUEL_DISMISS)
+                        IconLabel(AppIcons.Cancel, Texts.REFUEL_DISMISS)
                     }
                 }
             }

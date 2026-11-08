@@ -81,7 +81,7 @@ fun DefaultPriceScreen(
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            DashboardCard(Texts.DEFAULT_PRICE_TITLE, "⛽") {
+            DashboardCard(Texts.DEFAULT_PRICE_TITLE, AppIcons.LocalGasStation) {
                 val currentPrice = state.price
                 if (currentPrice != null) {
                     Headline(
@@ -91,8 +91,9 @@ fun DefaultPriceScreen(
                     )
                 } else {
                     // Without a stored price the card says what is missing, in the colour of a hint.
-                    Text(
-                        "🛢️ " + Texts.DEFAULT_PRICE_PROMPT_UNSET,
+                    IconText(
+                        AppIcons.LocalGasStation,
+                        Texts.DEFAULT_PRICE_PROMPT_UNSET,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -123,7 +124,7 @@ fun DefaultPriceScreen(
                     enabled = !state.busy,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("💾 " + Texts.REFUEL_SAVE)
+                    IconLabel(AppIcons.Save, Texts.REFUEL_SAVE)
                 }
                 // Removing has its own button: an empty field is a typo, not a request to remove.
                 OutlinedButton(
@@ -131,7 +132,7 @@ fun DefaultPriceScreen(
                     enabled = !state.busy && state.price != null,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("🗑️ " + Texts.DEFAULT_PRICE_REMOVE)
+                    IconLabel(AppIcons.Delete, Texts.DEFAULT_PRICE_REMOVE)
                 }
             }
         }

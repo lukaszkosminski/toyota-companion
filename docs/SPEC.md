@@ -280,22 +280,26 @@ Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – �
   współrzędne, zaokrąglonymi jak w §18 (ok. 100 m). Trasa bez żadnego położenia nie reaguje na dotknięcie. Archiwum nie ma przebiegu
   trasy, więc mapa łączy początek z końcem prostą przerywaną linią.
 - Wiersz trasy pokazuje pogodę dnia i miejsca startu (§23), gdy jest w pamięci: symbol, słowo i średnią temperaturę w pełnych stopniach, np. „🌧️ deszcz · 8 °C”, „☀️ słonecznie · 12 °C”, „❄️ śnieg · -2 °C”. Symbol i słowo z kodu pogody WMO dnia (`weather_code`: bezchmurnie, zachmurzenie, mgła, mżawka, deszcz, śnieg, burza); bez kodu tylko temperatura, bez pogody nic. Otwarcie listy uruchamia pobieranie brakujących dni (§23), a lista dociąga je w miarę ich pojawiania się. Dni zapisane przed dodaniem kodu są pobierane jeszcze raz (raz).
-- Wiersz trasy pokazuje też rodzaj jazdy wg średniej prędkości trasy (pasma z §22): „🚦 wolna jazda · 12 km/h” (< 15), „🏙️ miasto · 19 km/h” (15–25), „🚗 płynnie · 32 km/h” (25–40), „🛣️ trasa · 52 km/h” (≥ 40); trasa poniżej 2 km to „📏 krótki odcinek”, bez prędkości – brak linii. To miara pośrednia (wolna jazda to też sygnalizacja i krótkie odcinki, nie tylko korek), więc etykieta mówi „wolna jazda”, a nie „korek”.
+- Wiersz trasy pokazuje też rodzaj jazdy wg średniej prędkości trasy (pasma z §22): „wolna jazda · 12 km/h” (< 15), „miasto · 19 km/h” (15–25), „płynnie · 32 km/h” (25–40), „trasa · 52 km/h” (≥ 40); trasa poniżej 2 km to „krótki odcinek”, bez prędkości – brak linii. To miara pośrednia (wolna jazda to też sygnalizacja i krótkie odcinki, nie tylko korek), więc etykieta mówi „wolna jazda”, a nie „korek”.
 
 ### §10.4 Układ ekranu statusu (czytelność)
 - Kolejność: stan (chip świeżości, godzina ostatniej synchronizacji), liczniki, błąd synchronizacji (jeśli jest), przycisk ceny oczekującego tankowania (jeśli jest),
   w jednym rzędzie „Synchronizuj teraz” i „Odśwież”, potem karty: „Prognoza” (🔮), „Spalanie” (⛽) i „Koszty miesięczne” (💰), na końcu menu.
-- Karta to zaokrąglony kontener z emoji i tytułem, jedno miejsce na odstępy, kształty i typografię (`DashboardCard`, `Headline`, `Pill`, `MenuTile` w `ui/Dashboard.kt`); kolory z motywu
+- Karta to zaokrąglony kontener z ikoną i tytułem, jedno miejsce na odstępy, kształty i typografię (`DashboardCard`, `Headline`, `Pill`, `MenuTile` w `ui/Dashboard.kt`); kolory z motywu
   (jasny, ciemny i dynamiczny). Spalanie: duża liczba „4,13 l/100 km” z podpisem, trend jako kolorowa pigułka (rosnący – kolor błędu, malejący – kolor główny, stabilny – neutralny),
   słupki z zaokrąglonymi górami. Koszty: duża suma „1 182,89 zł”, słupki od zera, trzy najnowsze miesiące w szczegółach, reszta za „Pokaż wszystkie miesiące (N)”.
-- Menu to kafelki po dwa w rzędzie, o równej wysokości w rzędzie, z emoji nad etykietą, każdy kafelek co najmniej 88 dp wysoki: Trasy, Dziennik tankowań, Statystyki, Styl jazdy,
+- Menu to kafelki po dwa w rzędzie, o równej wysokości w rzędzie, z ikoną nad etykietą, każdy kafelek co najmniej 88 dp wysoki: Trasy, Dziennik tankowań, Statystyki, Styl jazdy,
   Podsumowanie roku, Pogoda i spalanie, Postoje, cena domyślna (z wartością) i Kopia i eksport. Przypomnienie o kopii zostaje pod menu.
 - Liczby do wyświetlania grupują tysiące twardą spacją („1 182,89 zł”, „4 625,9 km”), żeby długa kwota nie łamała się w środku; eksport CSV i formy `plain` nie grupują.
 - Kontrast (WCAG AA): tekst w kolorze palety (`Palette` w `ui/ChartKit.kt`: wartości `StatTile`, `MeterRow`, tytuł `SectionHeader`, etykieta `MenuTile`, treść `Pill`, kolorowe wiersze
   ekranów) idzie przez `readable` z `ui/Contrast.kt`: ta sama barwa przyciemniana (jasny motyw) albo rozjaśniana (ciemny) aż do 4,5:1 względem `surfaceContainerHigh`, z tłem kafelka
-  lub pigułki nałożonym na kartę. Wypełnienia (słupki, pierścienie, paski) zostają w kolorach palety.
+  lub pigułki nałożonym na kartę. Wypełnienia (słupki, pierścienie, paski) zostają w kolorach palety. Kolor główny jasnego motywu to czerwień Toyoty przyciemniona do `#C8001A`
+  (≥ 4,5:1 na wszystkich tłach kart, także dla przycisków tekstowych; biały na niej 6:1); ikona aplikacji zostaje w `#EB0A1E`.
 - Słupki i paski: wartość 0 (miesiąc bez kosztu, 0 km) nie rysuje słupka, tylko linię bazową; dodatnia kwota w „Kosztach miesięcznych” ma co najmniej 3 % wysokości (`costBarShare`).
-- Czytnik ekranu: ozdobne emoji kart, kafelków i odznak są pomijane (czytany jest tytuł lub etykieta); kolumna słupka (wartość i miesiąc) czytana jako jedna pozycja; wykres poziomu
+- Ikony: Material Symbols Outlined (Apache 2.0) jako ścieżki w `ui/AppIcons.kt`, bez biblioteki ikon; karty, kafelki, odznaki wierszy, nagłówki sekcji, przyciski
+  (`IconLabel`), pola formularzy, pigułki i chip stanu mają ikonę zamiast emoji, a wiersze z liczbami (km, litry, liczniki) – sam tekst. Emoji zostają tylko jako symbole pogody
+  (`WeatherSymbols`, etykiety słupków pogody). Ranking jazdy na prądzie numeruje miejsca („1.”, „2.”), wybór języka bez flag.
+- Czytnik ekranu: ikony są ozdobne (bez opisu; czytany jest tytuł lub etykieta), poza przyciskiem usuwania wydatku („Usuń”); kolumna słupka (wartość i miesiąc) czytana jako jedna pozycja; wykres poziomu
   paliwa w „Dzienniku tankowań” ma opis (najniższy i najwyższy poziom, ostatni odczyt, liczba tankowań).
 
 ### §11.1 Operacje w `core`

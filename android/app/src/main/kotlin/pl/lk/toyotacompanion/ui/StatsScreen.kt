@@ -69,7 +69,7 @@ fun StatsScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 item {
-                    DashboardCard(Texts.STATS_EV_SECTION, "⚡") {
+                    DashboardCard(Texts.STATS_EV_SECTION, AppIcons.Bolt) {
                         val share = view.evShare
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             if (share != null) {
@@ -85,7 +85,7 @@ fun StatsScreen(
                                 val start = view.starts[row.tripId]
                                 Column {
                                     if (start != null) Text(RefuelFormatting.time(start, zone), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text(listOf("🥇", "🥈", "🥉").getOrElse(i) { "▫️" } + " " + StatsFormatting.rankingRow(row), style = MaterialTheme.typography.bodyMedium)
+                                    Text("${i + 1}. " + StatsFormatting.rankingRow(row), style = MaterialTheme.typography.bodyMedium)
                                 }
                             }
                         }
@@ -101,7 +101,7 @@ fun StatsScreen(
                 val end = view.windowEnd
                 if (yoy != null && end != null) {
                     item {
-                        DashboardCard(Texts.STATS_YEAR_OVER_YEAR, "📈") {
+                        DashboardCard(Texts.STATS_YEAR_OVER_YEAR, AppIcons.TrendingUp) {
                             Text(
                                 Texts.statsWindow(StatsFormatting.window(end), yoy.first.year, yoy.second.year),
                                 style = MaterialTheme.typography.bodySmall,
@@ -120,7 +120,7 @@ fun StatsScreen(
 
                 if (view.tripTypes.isNotEmpty()) {
                     item {
-                        DashboardCard(Texts.TRIP_TYPES_SECTION, "🧭") {
+                        DashboardCard(Texts.TRIP_TYPES_SECTION, AppIcons.Explore) {
                             Text(
                                 if (view.placesKnown) Texts.TRIP_TYPES_HINT else Texts.TRIP_TYPES_NO_PLACES,
                                 style = MaterialTheme.typography.bodySmall,
@@ -149,7 +149,7 @@ fun StatsScreen(
 
                 if (view.evWeeks.isNotEmpty()) {
                     item {
-                        DashboardCard(Texts.EV_WEEKS_SECTION, "🔋") {
+                        DashboardCard(Texts.EV_WEEKS_SECTION, AppIcons.BatteryChargingFull) {
                             EvWeeksBars(view.evWeeks)
                             Text(Texts.EV_WEEKS_HINT, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             view.evWeeks.asReversed().forEach { week ->
@@ -161,7 +161,7 @@ fun StatsScreen(
 
                 if (view.traffic.isNotEmpty()) {
                     item {
-                        DashboardCard(Texts.TRAFFIC_SECTION, "🚦") {
+                        DashboardCard(Texts.TRAFFIC_SECTION, AppIcons.Traffic) {
                             Text(Texts.TRAFFIC_HINT, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             if (view.trafficLeftOut > 0) {
                                 Text(Texts.statsLeftOutTrips(view.trafficLeftOut, view.tripTotal), style = MaterialTheme.typography.bodySmall)
@@ -205,7 +205,7 @@ fun StatsScreen(
                 }
 
                 item {
-                    DashboardCard(Texts.STATS_YEARS, "📅") {
+                    DashboardCard(Texts.STATS_YEARS, AppIcons.CalendarMonth) {
                         val years = view.years
                         BarChart(
                             years.map { ChartBar(it.distanceKm.toFloat(), it.year.toString(), TripsFormatting.plain(it.distanceKm, 0)) },
@@ -216,7 +216,7 @@ fun StatsScreen(
                 }
 
                 item {
-                    DashboardCard(Texts.STATS_SEASONS, "🍂") {
+                    DashboardCard(Texts.STATS_SEASONS, AppIcons.Thermostat) {
                         view.seasons.asReversed().forEach { PeriodRow(it) }
                     }
                 }

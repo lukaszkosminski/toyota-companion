@@ -22,6 +22,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -169,7 +170,7 @@ fun StatusScreen(
                 if (status != null) {
                     // Refuel forecast from the archive, never from the car (PRD F14, docs/SPEC.md §20).
                     forecastLine?.let { line ->
-                        DashboardCard(Texts.FORECAST_CARD_TITLE, "🔮") { Text(line, style = MaterialTheme.typography.bodyLarge) }
+                        DashboardCard(Texts.FORECAST_CARD_TITLE, AppIcons.EventUpcoming) { Text(line, style = MaterialTheme.typography.bodyLarge) }
                     }
                     // Average consumption of the whole archive and the monthly bars (docs/SPEC.md §24).
                     ConsumptionCard(consumption, declaredConsumption, onSetDeclared)
@@ -179,17 +180,17 @@ fun StatusScreen(
                 // The menu: one tile per screen (docs/SPEC.md §10.4). The default price shows its value, the others name the screen.
                 MenuGrid(
                     listOf(
-                        Triple("🛣️", Texts.TRIPS_TITLE, onShowTrips),
-                        Triple("⛽", Texts.LOG_TITLE, onShowRefuelLog),
-                        Triple("📊", Texts.STATS_TITLE, onShowStats),
-                        Triple("🌿", Texts.STYLE_TITLE, onShowDrivingStyle),
-                        Triple("📅", Texts.YEAR_TITLE, onShowYear),
-                        Triple("🌦️", Texts.WEATHER_TITLE, onShowWeather),
-                        Triple("🧾", Texts.EXPENSES_TITLE, onShowExpenses),
-                        Triple("🅿️", Texts.PARKING_TITLE, onShowParking),
-                        Triple("💰", Texts.defaultPricePrompt(defaultPrice), onShowDefaultPrice),
-                        Triple("💾", Texts.BACKUP_TITLE, onShowBackup),
-                        Triple("⚙️", Texts.OPTIONS_TITLE, onShowOptions),
+                        Triple(AppIcons.Route, Texts.TRIPS_TITLE, onShowTrips),
+                        Triple(AppIcons.LocalGasStation, Texts.LOG_TITLE, onShowRefuelLog),
+                        Triple(AppIcons.BarChart, Texts.STATS_TITLE, onShowStats),
+                        Triple(AppIcons.Eco, Texts.STYLE_TITLE, onShowDrivingStyle),
+                        Triple(AppIcons.CalendarMonth, Texts.YEAR_TITLE, onShowYear),
+                        Triple(AppIcons.PartlyCloudyDay, Texts.WEATHER_TITLE, onShowWeather),
+                        Triple(AppIcons.ReceiptLong, Texts.EXPENSES_TITLE, onShowExpenses),
+                        Triple(AppIcons.LocalParking, Texts.PARKING_TITLE, onShowParking),
+                        Triple(AppIcons.Payments, Texts.defaultPricePrompt(defaultPrice), onShowDefaultPrice),
+                        Triple(AppIcons.Save, Texts.BACKUP_TITLE, onShowBackup),
+                        Triple(AppIcons.Settings, Texts.OPTIONS_TITLE, onShowOptions),
                     ),
                 )
                 // The archive lives only on this phone (ADR-006); F8 asks for a copy (docs/SPEC.md §14.3).
@@ -237,7 +238,11 @@ private fun StatusChip(status: SyncStatus, failure: SyncErrorKind?) {
     }
     AssistChip(
         onClick = {},
-        label = { Text((if (status.isFresh && !status.state.needsLogin) "✅ " else if (status.state.needsLogin) "🔒 " else "🕒 ") + label) },
+        label = { Text(label) },
+        leadingIcon = {
+            val icon = if (status.isFresh && !status.state.needsLogin) AppIcons.CheckCircle else if (status.state.needsLogin) AppIcons.Lock else AppIcons.Schedule
+            Icon(icon, contentDescription = null, modifier = Modifier.size(AssistChipDefaults.IconSize))
+        },
         colors = AssistChipDefaults.assistChipColors(
             containerColor = container,
             labelColor = scheme.onSurface,
@@ -257,9 +262,9 @@ private fun StatRow(status: SyncStatus) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            StatTile("🛣️ " + status.tripsStored, Texts.STAT_TRIPS, Palette.Blue, Modifier.weight(1f))
-            StatTile("📡 " + status.readingsStored, Texts.STAT_READINGS, Palette.Teal, Modifier.weight(1f))
-            StatTile("⛽ " + status.pendingRefuels, Texts.STAT_PENDING_REFUELS, if (status.pendingRefuels > 0) Palette.Orange else Palette.Green, Modifier.weight(1f))
+            StatTile(status.tripsStored.toString(), Texts.STAT_TRIPS, Palette.Blue, Modifier.weight(1f))
+            StatTile(status.readingsStored.toString(), Texts.STAT_READINGS, Palette.Teal, Modifier.weight(1f))
+            StatTile(status.pendingRefuels.toString(), Texts.STAT_PENDING_REFUELS, if (status.pendingRefuels > 0) Palette.Orange else Palette.Green, Modifier.weight(1f))
         }
     }
 }

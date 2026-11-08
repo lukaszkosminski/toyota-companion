@@ -7,7 +7,9 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-private const val TOYOTA_RED = 0xFFEB0A1E
+// Toyota red #EB0A1E darkened so text and text buttons in it reach WCAG AA 4.5:1 on every card background
+// (3.45-3.97:1 before, docs/SPEC.md §10.4); white on it stays above 6:1. The launcher icon keeps #EB0A1E.
+private const val TOYOTA_RED = 0xFFC8001A
 private const val TOYOTA_RED_DARK = 0xFFFFB4AB
 
 /** Toyota red on white; the rest of the tones follow the Material 3 roles. */

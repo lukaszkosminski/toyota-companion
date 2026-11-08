@@ -121,17 +121,19 @@ fun MapScreen(title: String, points: List<MapPoint>, route: RouteState, onBack: 
             )
             DashboardCard(
                 title = title,
-                emoji = if (heat != HeatState.None) "🔥" else "🗺️",
+                icon = if (heat != HeatState.None) AppIcons.LocalFireDepartment else AppIcons.Map,
                 modifier = Modifier.padding(12.dp),
             ) {
                 val routeNote = if (heat != HeatState.None) Texts.heatNote(heat) else Texts.mapRouteNote(route)
-                Text(
-                    (if (heat != HeatState.None) "🔥 " else "🛣️ ") + routeNote,
+                IconText(
+                    if (heat != HeatState.None) AppIcons.LocalFireDepartment else AppIcons.Route,
+                    routeNote,
                     style = MaterialTheme.typography.bodyMedium,
                     color = readable(Palette.Blue),
                 )
-                Text(
-                    "🔒 " + Texts.MAP_NOTE,
+                IconText(
+                    AppIcons.Lock,
+                    Texts.MAP_NOTE,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -141,7 +143,7 @@ fun MapScreen(title: String, points: List<MapPoint>, route: RouteState, onBack: 
                             onClick = { openInMap(context, uri) },
                             modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                         ) {
-                            Text("🌐 " + Texts.MAP_OPEN_EXTERNAL)
+                            IconLabel(AppIcons.OpenInNew, Texts.MAP_OPEN_EXTERNAL)
                         }
                     }
                 }

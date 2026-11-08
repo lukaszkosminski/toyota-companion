@@ -43,7 +43,7 @@ fun ConsumptionCard(view: ConsumptionView?, declared: java.math.BigDecimal?, onS
     if (view?.overall == null) return
     var editing by remember { mutableStateOf(false) }
     if (editing) DeclaredDialog(onSave = onSetDeclared, onDismiss = { editing = false })
-    DashboardCard(Texts.CONSUMPTION_TITLE, "⛽") {
+    DashboardCard(Texts.CONSUMPTION_TITLE, AppIcons.LocalGasStation) {
         Headline(
             TripsFormatting.plain(view.overall, 2),
             "l/100 km",
@@ -57,7 +57,16 @@ fun ConsumptionCard(view: ConsumptionView?, declared: java.math.BigDecimal?, onS
                 ConsumptionTrend.FALLING -> Palette.Green.copy(alpha = 0.18f) to Palette.Green
                 else -> scheme.surfaceVariant to scheme.onSurfaceVariant
             }
-            Pill((if (view.trend == ConsumptionTrend.RISING) "📈 " else if (view.trend == ConsumptionTrend.FALLING) "📉 " else "➡️ ") + line.removePrefix("Trend: "), container, content)
+            Pill(
+                line.removePrefix("Trend: "),
+                container,
+                content,
+                icon = when (view.trend) {
+                    ConsumptionTrend.RISING -> AppIcons.TrendingUp
+                    ConsumptionTrend.FALLING -> AppIcons.TrendingDown
+                    else -> AppIcons.TrendingFlat
+                },
+            )
         }
         declaredComparison(view.overall, declared)?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
         TextButton(onClick = { editing = true }) {
@@ -82,7 +91,7 @@ fun ConsumptionCard(view: ConsumptionView?, declared: java.math.BigDecimal?, onS
 @Composable
 fun CostsCard(view: ConsumptionView?) {
     if (view == null || view.monthCosts.isEmpty()) return
-    DashboardCard(Texts.CONSUMPTION_COSTS_TITLE, "💰") {
+    DashboardCard(Texts.CONSUMPTION_COSTS_TITLE, AppIcons.Payments) {
         // The headline answers the title: money per month. The total of the whole archive is a line under it, with its period.
         view.averageMonthCost?.let {
             Headline(

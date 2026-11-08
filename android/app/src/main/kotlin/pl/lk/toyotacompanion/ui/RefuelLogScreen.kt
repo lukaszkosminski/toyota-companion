@@ -94,7 +94,7 @@ fun RefuelLogScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     if (state.levels.size >= 2) item(key = "levels") {
-                        DashboardCard(Texts.LEVEL_CHART_TITLE, "⛽") {
+                        DashboardCard(Texts.LEVEL_CHART_TITLE, AppIcons.LocalGasStation) {
                             val recent = state.levels.takeLast(LEVEL_CHART_MAX_POINTS)
                             val step = (recent.size / LEVEL_CHART_MAX_POINTS.toFloat()).coerceAtLeast(1f)
                             val points = recent.filterIndexed { i, _ -> i == recent.lastIndex || (i % step.toInt().coerceAtLeast(1)) == 0 }
@@ -227,7 +227,7 @@ private fun RefuelRow(refuel: Refuel, zone: ZoneId, busy: Boolean, onAmend: () -
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
     ) {
         Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            EmojiBadge("⛽", Palette.Orange)
+            IconBadge(AppIcons.LocalGasStation, Palette.Orange)
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     RefuelFormatting.time(refuel.ts, zone) + Texts.SEPARATOR +
@@ -239,8 +239,8 @@ private fun RefuelRow(refuel: Refuel, zone: ZoneId, busy: Boolean, onAmend: () -
                     refuel.pricePerLiter?.let { TripsFormatting.pricePerLiter(it) },
                     refuel.totalCost?.let { TripsFormatting.money(it) },
                 )
-                if (money.isNotEmpty()) Text("💰 " + money.joinToString(Texts.SEPARATOR), style = MaterialTheme.typography.bodyMedium, color = readable(Palette.Green))
-                TextButton(onClick = onAmend, enabled = !busy) { Text("✏️ " + Texts.AMEND_BUTTON) }
+                if (money.isNotEmpty()) IconText(AppIcons.Payments, money.joinToString(Texts.SEPARATOR), color = readable(Palette.Green))
+                TextButton(onClick = onAmend, enabled = !busy) { IconLabel(AppIcons.Edit, Texts.AMEND_BUTTON) }
             }
         }
     }
@@ -254,7 +254,7 @@ private fun EconomyCard(interval: EconomyInterval, title: String?) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            title?.let { Text("📉 " + it, style = MaterialTheme.typography.titleSmall) }
+            title?.let { Text(it, style = MaterialTheme.typography.titleSmall) }
             Text(RefuelLogFormatting.economyLine(interval), style = MaterialTheme.typography.bodyMedium)
             Text(RefuelLogFormatting.detailLine(interval), style = MaterialTheme.typography.bodySmall)
         }

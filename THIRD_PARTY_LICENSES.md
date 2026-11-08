@@ -21,6 +21,7 @@
 
 | androidx.car.app:app (Android for Cars App Library) | 1.7.0 | Apache-2.0 |
 | Leaflet (dołączony: `app/src/main/assets/map/`) | 1.9.4 | BSD-2-Clause — tekst w `app/src/main/assets/map/LEAFLET-LICENSE.txt` |
+| Material Symbols Outlined (ścieżki ikon w `app/.../ui/AppIcons.kt`, skopiowane z google/material-design-icons) | waga 400, 24 px; pobrane 2026-11 | Apache-2.0 — tekst w `app/src/main/assets/icons/APACHE-2.0.txt` |
 
 ## Dane
 | Dane | Licencja | Wymóg |

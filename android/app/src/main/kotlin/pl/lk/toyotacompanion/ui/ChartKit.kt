@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,7 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -169,13 +170,14 @@ fun MeterRow(label: String, value: String, fraction: Float, color: Color, modifi
     }
 }
 
-/** A coloured round badge with an emoji, for list rows. Decorative: a screen reader skips it, the row text says it all. */
+/** A coloured round badge with an icon, for list rows. Decorative: a screen reader skips it, the row text says it all. */
 @Composable
-fun EmojiBadge(emoji: String, color: Color, modifier: Modifier = Modifier) {
+fun IconBadge(icon: ImageVector, color: Color, modifier: Modifier = Modifier) {
+    val tint = color.copy(alpha = 0.18f)
     Box(
-        modifier = modifier.size(40.dp).background(color.copy(alpha = 0.18f), RoundedCornerShape(50)).clearAndSetSemantics {},
+        modifier = modifier.size(40.dp).background(tint, RoundedCornerShape(50)),
         contentAlignment = Alignment.Center,
-    ) { Text(emoji, style = MaterialTheme.typography.titleMedium) }
+    ) { Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp), tint = readable(color, tint = tint)) }
 }
 
 /** A small number tile: [value] big in a readable tone of [color] on its tint, [caption] under it. Put several in a [Row] with weight. */
@@ -192,15 +194,15 @@ fun StatTile(value: String, caption: String, color: Color, modifier: Modifier = 
     }
 }
 
-/** A tinted strip with a section title and an emoji, to open a group of rows inside a long list. */
+/** A tinted strip with a section title and an icon, to open a group of rows inside a long list. */
 @Composable
-fun SectionHeader(emoji: String, text: String, modifier: Modifier = Modifier, color: Color = MaterialTheme.colorScheme.primary) {
+fun SectionHeader(icon: ImageVector, text: String, modifier: Modifier = Modifier, color: Color = MaterialTheme.colorScheme.primary) {
     Row(
         modifier = modifier.fillMaxWidth().padding(top = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        EmojiBadge(emoji, color)
+        IconBadge(icon, color)
         Text(text, style = MaterialTheme.typography.titleMedium, color = readable(color))
     }
 }

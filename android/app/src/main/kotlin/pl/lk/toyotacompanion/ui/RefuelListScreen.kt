@@ -16,6 +16,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -95,7 +96,7 @@ fun RefuelListScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 item {
-                    DashboardCard(Texts.REFUELS_TITLE, "⛽") {
+                    DashboardCard(Texts.REFUELS_TITLE, AppIcons.LocalGasStation) {
                         StatTile("${state.refuels.size}", Texts.STAT_PENDING_REFUELS, Palette.Orange)
                     }
                 }
@@ -118,7 +119,7 @@ private fun RefuelRow(refuel: Refuel, zone: ZoneId, enabled: Boolean, onEdit: ()
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = enabled, onClick = onEdit),
+            .clickable(enabled = enabled, onClickLabel = Texts.REFUEL_EDIT_LABEL, onClick = onEdit),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
     ) {
@@ -127,20 +128,21 @@ private fun RefuelRow(refuel: Refuel, zone: ZoneId, enabled: Boolean, onEdit: ()
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            EmojiBadge("⛽", Palette.Orange)
+            IconBadge(AppIcons.LocalGasStation, Palette.Orange)
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(RefuelFormatting.time(refuel.ts, zone), style = MaterialTheme.typography.bodyLarge)
-                Text(
-                    "⛽ " + RefuelFormatting.levelJump(refuel.levelBefore, refuel.levelAfter),
+                IconText(
+                    AppIcons.LocalGasStation,
+                    RefuelFormatting.levelJump(refuel.levelBefore, refuel.levelAfter),
                     style = MaterialTheme.typography.bodySmall,
                     color = readable(Palette.Orange),
                 )
             }
-            Text("📏 " + RefuelFormatting.odometer(refuel.odometerKm), style = MaterialTheme.typography.bodySmall, color = readable(Palette.Blue))
-            Text("✏️", style = MaterialTheme.typography.bodyMedium)
+            IconText(AppIcons.Straighten, RefuelFormatting.odometer(refuel.odometerKm), style = MaterialTheme.typography.bodySmall, color = readable(Palette.Blue))
+            Icon(AppIcons.Edit, contentDescription = null)
         }
     }
 }

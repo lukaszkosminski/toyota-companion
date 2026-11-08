@@ -66,7 +66,7 @@ fun DrivingStyleScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 item {
-                    DashboardCard(Texts.STYLE_ECO_SECTION, "🌿") {
+                    DashboardCard(Texts.STYLE_ECO_SECTION, AppIcons.Eco) {
                         if (view.months.isEmpty()) {
                             Text(Texts.STYLE_ECO_NONE)
                         } else {
@@ -92,11 +92,11 @@ fun DrivingStyleScreen(
                 }
 
                 item {
-                    DashboardCard(Texts.STYLE_ROUTES_SECTION, "🛣️") {
+                    DashboardCard(Texts.STYLE_ROUTES_SECTION, AppIcons.Route) {
                         if (view.routes.isEmpty()) Text(Texts.styleRoutesNone(MIN_ROUTE_TRIPS))
                         view.routes.forEachIndexed { i, route ->
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                EmojiBadge("📍", Palette.Series[i % Palette.Series.size])
+                                IconBadge(AppIcons.LocationOn, Palette.Series[i % Palette.Series.size])
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(Texts.styleRoute(route.number), style = MaterialTheme.typography.titleSmall)
                                     Text(
@@ -109,16 +109,16 @@ fun DrivingStyleScreen(
                                     )
                                     if (facts.isNotEmpty()) Text(facts, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
-                                TextButton(onClick = { onShowHeat(route.tripIds) }) { Text("🗺️ " + Texts.HEAT_BUTTON) }
+                                TextButton(onClick = { onShowHeat(route.tripIds) }) { IconLabel(AppIcons.Map, Texts.HEAT_BUTTON) }
                             }
                         }
                     }
                 }
 
                 item {
-                    DashboardCard(Texts.STYLE_ANOMALIES_SECTION, "⚠️") {
+                    DashboardCard(Texts.STYLE_ANOMALIES_SECTION, AppIcons.Warning) {
                         Text(Texts.STYLE_ANOMALIES_HINT, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        if (view.anomalies.isEmpty()) Text("✅ " + Texts.STYLE_ANOMALIES_NONE)
+                        if (view.anomalies.isEmpty()) IconText(AppIcons.CheckCircle, Texts.STYLE_ANOMALIES_NONE)
                         view.anomalies.forEach { anomaly ->
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 Text(RefuelFormatting.time(anomaly.trip.record.trip.start, zone), style = MaterialTheme.typography.bodySmall)

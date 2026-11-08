@@ -30,24 +30,24 @@ fun OptionsScreen(update: UpdateController, onSetLanguage: (AppLanguage) -> Unit
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("⚙️ " + Texts.OPTIONS_TITLE) },
+                title = { Text(Texts.OPTIONS_TITLE) },
                 navigationIcon = { TextButton(onClick = onBack) { Text(Texts.BACK) } },
             )
         },
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            DashboardCard(Texts.LANGUAGE_TITLE, "🌐") {
+            DashboardCard(Texts.LANGUAGE_TITLE, AppIcons.Language) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     for (language in AppLanguage.entries) {
                         FilterChip(
                             selected = Lang.current == language,
                             onClick = { onSetLanguage(language) },
-                            label = { Text((if (language == AppLanguage.PL) "🇵🇱 " else "🇬🇧 ") + language.label) },
+                            label = { Text(language.label) },
                         )
                     }
                 }
             }
-            DashboardCard(Texts.UPDATE_TITLE, "⬇️") {
+            DashboardCard(Texts.UPDATE_TITLE, AppIcons.SystemUpdate) {
                 UpdateCardContent(
                     state = updateState,
                     onCheck = update::check,

@@ -1,5 +1,9 @@
 package pl.lk.toyotacompanion.ui
 
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.foundation.layout.size
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,6 +43,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import java.math.BigDecimal
@@ -62,12 +67,12 @@ fun ExpensesScreen(controller: ExpensesController, fuelTotal: BigDecimal?, onBac
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("🧾 " + Texts.EXPENSES_TITLE) },
+                title = { Text(Texts.EXPENSES_TITLE) },
                 navigationIcon = { TextButton(onClick = onBack) { Text(Texts.BACK) } },
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(onClick = { adding = true }) { Text("➕ " + Texts.EXPENSES_ADD) }
+            ExtendedFloatingActionButton(onClick = { adding = true }) { IconLabel(AppIcons.Add, Texts.EXPENSES_ADD) }
         },
     ) { innerPadding ->
         when {
@@ -87,7 +92,7 @@ fun ExpensesScreen(controller: ExpensesController, fuelTotal: BigDecimal?, onBac
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     item {
-                        DashboardCard(Texts.EXPENSES_FUEL_VS_OTHER, "⚖️") {
+                        DashboardCard(Texts.EXPENSES_FUEL_VS_OTHER, AppIcons.Balance) {
                             val fuel = fuelTotal ?: BigDecimal.ZERO
                             val sum = fuel + other
                             val otherShare = if (sum.signum() > 0) other.toFloat() / sum.toFloat() else 0f
@@ -105,12 +110,12 @@ fun ExpensesScreen(controller: ExpensesController, fuelTotal: BigDecimal?, onBac
                         }
                     }
                     item {
-                        DashboardCard(Texts.EXPENSES_BY_CATEGORY, "🧩") {
+                        DashboardCard(Texts.EXPENSES_BY_CATEGORY, AppIcons.Category) {
                             val totals = categoryTotals(expenses)
                             val top = totals.first().total.toFloat().coerceAtLeast(1f)
                             totals.forEachIndexed { i, row ->
                                 MeterRow(
-                                    row.category.emoji + " " + Texts.expenseCategoryName(row.category),
+                                    Texts.expenseCategoryName(row.category),
                                     TripsFormatting.money(row.total),
                                     row.total.toFloat() / top,
                                     Palette.Series[i % Palette.Series.size],
@@ -121,7 +126,7 @@ fun ExpensesScreen(controller: ExpensesController, fuelTotal: BigDecimal?, onBac
                     val months = monthTotals(expenses).takeLast(12)
                     if (months.size > 1) {
                         item {
-                            DashboardCard(Texts.EXPENSES_BY_MONTH, "📊") {
+                            DashboardCard(Texts.EXPENSES_BY_MONTH, AppIcons.BarChart) {
                                 BarChart(
                                     months.map { ChartBar(it.total.toFloat(), ConsumptionFormatting.monthShort(it.month), TripsFormatting.plain(it.total, 0)) },
                                     color = Palette.Violet,
@@ -129,14 +134,14 @@ fun ExpensesScreen(controller: ExpensesController, fuelTotal: BigDecimal?, onBac
                             }
                         }
                     }
-                    item { SectionHeader("🗂️", Texts.EXPENSES_HISTORY) }
+                    item { SectionHeader(AppIcons.History, Texts.EXPENSES_HISTORY) }
                     items(expenses, key = { it.id }) { expense ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            EmojiBadge(expense.category.emoji, Palette.Violet)
+                            IconBadge(categoryIcon(expense.category), Palette.Violet)
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(Texts.expenseCategoryName(expense.category), style = MaterialTheme.typography.titleSmall)
                                 Text(
@@ -146,7 +151,7 @@ fun ExpensesScreen(controller: ExpensesController, fuelTotal: BigDecimal?, onBac
                                 )
                             }
                             Text(TripsFormatting.money(expense.amount), style = MaterialTheme.typography.titleMedium, color = readable(Palette.Violet))
-                            TextButton(onClick = { controller.delete(expense.id) }) { Text("🗑️") }
+                            IconButton(onClick = { controller.delete(expense.id) }) { Icon(AppIcons.Delete, contentDescription = Texts.EXPENSE_DELETE) }
                         }
                     }
                 }
@@ -190,7 +195,8 @@ private fun AddExpenseDialog(
                         FilterChip(
                             selected = c == category,
                             onClick = { category = c },
-                            label = { Text(c.emoji + " " + Texts.expenseCategoryName(c)) },
+                            label = { Text(Texts.expenseCategoryName(c)) },
+                            leadingIcon = { Icon(categoryIcon(c), contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize)) },
                         )
                     }
                 }
@@ -210,7 +216,7 @@ private fun AddExpenseDialog(
                     singleLine = true,
                 )
                 OutlinedButton(onClick = { pickingDate = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text("📅 " + Texts.EXPENSE_DATE + ": " + LocalDate.ofEpochDay(epochDay))
+                    IconLabel(AppIcons.CalendarMonth, Texts.EXPENSE_DATE + ": " + LocalDate.ofEpochDay(epochDay))
                 }
             }
         },
@@ -235,4 +241,16 @@ private fun AddExpenseDialog(
             dismissButton = { TextButton(onClick = { pickingDate = false }) { Text(Texts.EXPENSE_CANCEL) } },
         ) { DatePicker(state = pickerState) }
     }
+}
+
+/** The icon of an expense category in the list and the category chips. */
+private fun categoryIcon(category: ExpenseCategory): ImageVector = when (category) {
+    ExpenseCategory.SERVICE -> AppIcons.Build
+    ExpenseCategory.INSPECTION -> AppIcons.FactCheck
+    ExpenseCategory.TYRES -> AppIcons.TireRepair
+    ExpenseCategory.INSURANCE -> AppIcons.Shield
+    ExpenseCategory.PARTS -> AppIcons.Construction
+    ExpenseCategory.WASH -> AppIcons.LocalCarWash
+    ExpenseCategory.FEES -> AppIcons.LocalParking
+    ExpenseCategory.OTHER -> AppIcons.ReceiptLong
 }

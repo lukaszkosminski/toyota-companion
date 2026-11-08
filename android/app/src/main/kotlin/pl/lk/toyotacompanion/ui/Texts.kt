@@ -439,12 +439,12 @@ object Texts {
 
     // Typy tras (PRD F16, docs/SPEC.md §21).
 
-    val DRIVING_SHORT: String get() = Lang.pick("📏 krótki odcinek", "📏 short trip")
+    val DRIVING_SHORT: String get() = Lang.pick("krótki odcinek", "short trip")
     fun drivingType(cls: TrafficClass, kmh: String): String = (when (cls) {
-        TrafficClass.SLOW -> Lang.pick("🚦 wolna jazda", "🚦 slow traffic")
-        TrafficClass.CITY -> Lang.pick("🏙️ miasto", "🏙️ city")
-        TrafficClass.FLOWING -> Lang.pick("🚗 płynnie", "🚗 flowing")
-        TrafficClass.HIGHWAY -> Lang.pick("🛣️ trasa", "🛣️ highway")
+        TrafficClass.SLOW -> Lang.pick("wolna jazda", "slow traffic")
+        TrafficClass.CITY -> Lang.pick("miasto", "city")
+        TrafficClass.FLOWING -> Lang.pick("płynnie", "flowing")
+        TrafficClass.HIGHWAY -> Lang.pick("trasa", "highway")
     }) + SEPARATOR + "$kmh km/h"
 
     val TRAFFIC_SECTION: String get() = Lang.pick("Tempo jazdy a spalanie", "Driving pace and consumption")
@@ -700,6 +700,7 @@ object Texts {
 
     val DECLARED_SET: String get() = Lang.pick("Ustaw spalanie deklarowane", "Set declared consumption")
     val DECLARED_EDIT: String get() = Lang.pick("Zmień deklarowane", "Edit declared")
+    val REFUEL_EDIT_LABEL: String get() = Lang.pick("Zmień tankowanie", "Edit refuel")
     val DECLARED_TITLE: String get() = Lang.pick("Spalanie deklarowane", "Declared consumption")
     val DECLARED_FIELD: String get() = Lang.pick("l/100 km (puste usuwa)", "l/100 km (empty removes)")
     val DECLARED_BODY: String get() = Lang.pick(

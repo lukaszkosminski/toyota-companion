@@ -79,12 +79,12 @@ fun YearSummaryScreen(
                         FilterChip(
                             selected = year == state.selected,
                             onClick = { controller.load(year) },
-                            label = { Text("📅 $year") },
+                            label = { Text("$year") },
                         )
                     }
                 }
 
-                DashboardCard(Texts.yearHeading(summary.year), "📅") {
+                DashboardCard(Texts.yearHeading(summary.year), AppIcons.CalendarMonth) {
                     val l = summary.lPer100
                     if (l != null) {
                         Headline(
@@ -122,12 +122,12 @@ fun YearSummaryScreen(
                     } else {
                         Text(Texts.yearNoCost, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Text("🗓️ " + Texts.yearDays(summary.daysDriven), style = MaterialTheme.typography.bodyMedium)
+                    IconText(AppIcons.Today, Texts.yearDays(summary.daysDriven))
                 }
 
                 val ev = summary.evSharePct
                 if (ev != null) {
-                    DashboardCard(Texts.STATS_EV_SECTION, "⚡") {
+                    DashboardCard(Texts.STATS_EV_SECTION, AppIcons.Bolt) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             RingGauge(ev.toFloat() / 100f, color = Palette.Green) {
                                 Text(TripsFormatting.plain(ev, 0) + "%", style = MaterialTheme.typography.titleMedium)
@@ -145,10 +145,11 @@ fun YearSummaryScreen(
                     summary.dearestMonth != null
 
                 if (hasHighlights) {
-                    DashboardCard(Texts.STATS_TITLE, "🏆") {
+                    DashboardCard(Texts.STATS_TITLE, AppIcons.EmojiEvents) {
                         if (longestKm != null && longestStart != null) {
-                            Text(
-                                "🛣️ " + Texts.yearLongest(TripsFormatting.plain(longestKm, 1), RefuelFormatting.time(longestStart, zone)),
+                            IconText(
+                                AppIcons.Route,
+                                Texts.yearLongest(TripsFormatting.plain(longestKm, 1), RefuelFormatting.time(longestStart, zone)),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                         }
@@ -163,23 +164,26 @@ fun YearSummaryScreen(
                         )
                         if (monthBars.size > 1) BarChart(monthBars)
                         summary.bestMonth?.let {
-                            Text(
-                                "🟢 " + Texts.yearBest(TripsFormatting.monthLabel(it.month), TripsFormatting.plain(it.lPer100, 2)),
+                            IconText(
+                                AppIcons.ThumbUp,
+                                Texts.yearBest(TripsFormatting.monthLabel(it.month), TripsFormatting.plain(it.lPer100, 2)),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = readable(Palette.Green),
                             )
                         }
                         summary.worstMonth?.takeIf { it.month != summary.bestMonth?.month }?.let {
-                            Text(
-                                "🔴 " + Texts.yearWorst(TripsFormatting.monthLabel(it.month), TripsFormatting.plain(it.lPer100, 2)),
+                            IconText(
+                                AppIcons.ThumbDown,
+                                Texts.yearWorst(TripsFormatting.monthLabel(it.month), TripsFormatting.plain(it.lPer100, 2)),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = readable(Palette.Red),
                             )
                         }
                         summary.dearestMonth?.let { dearest ->
                             dearest.costPln?.let { costVal ->
-                                Text(
-                                    "💰 " + Texts.yearDearest(TripsFormatting.monthLabel(dearest.month), TripsFormatting.money(costVal)),
+                                IconText(
+                                    AppIcons.Payments,
+                                    Texts.yearDearest(TripsFormatting.monthLabel(dearest.month), TripsFormatting.money(costVal)),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = readable(Palette.Violet),
                                 )
@@ -200,7 +204,7 @@ fun YearSummaryScreen(
 
                 val previous = state.previous
                 if (previous != null) {
-                    DashboardCard(Texts.STATS_YEAR_OVER_YEAR, "📈") {
+                    DashboardCard(Texts.STATS_YEAR_OVER_YEAR, AppIcons.TrendingUp) {
                         val kmBars = listOf(
                             ChartBar(previous.distanceKm.toFloat(), previous.year.toString(), TripsFormatting.plain(previous.distanceKm, 0), Palette.Series[0]),
                             ChartBar(summary.distanceKm.toFloat(), summary.year.toString(), TripsFormatting.plain(summary.distanceKm, 0), Palette.Blue),
@@ -228,7 +232,7 @@ fun YearSummaryScreen(
                     },
                     modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                 ) {
-                    Text("📤 " + Texts.YEAR_SHARE)
+                    IconLabel(AppIcons.Share, Texts.YEAR_SHARE)
                 }
 
                 Text(Texts.YEAR_NOTE, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

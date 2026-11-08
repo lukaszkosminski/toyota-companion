@@ -18,6 +18,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -70,12 +71,12 @@ fun LoginScreen(state: UiState.LoggedOut, onSubmit: (String, String) -> Unit) {
                     .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                DashboardCard(Texts.LOGIN_TITLE, "🚗") {
+                DashboardCard(Texts.LOGIN_TITLE, AppIcons.DirectionsCar) {
                     OutlinedTextField(
                         value = login,
                         onValueChange = { login = it },
                         label = { Text(Texts.LOGIN_FIELD) },
-                        leadingIcon = { Text("✉️") },
+                        leadingIcon = { Icon(AppIcons.Mail, contentDescription = null) },
                         enabled = enabled,
                         singleLine = true,
                         isError = fieldsInError && login.isBlank(),
@@ -92,7 +93,7 @@ fun LoginScreen(state: UiState.LoggedOut, onSubmit: (String, String) -> Unit) {
                         value = password,
                         onValueChange = { password = it },
                         label = { Text(Texts.PASSWORD_FIELD) },
-                        leadingIcon = { Text("🔑") },
+                        leadingIcon = { Icon(AppIcons.Key, contentDescription = null) },
                         enabled = enabled,
                         singleLine = true,
                         isError = fieldsInError && password.isBlank(),
@@ -110,7 +111,7 @@ fun LoginScreen(state: UiState.LoggedOut, onSubmit: (String, String) -> Unit) {
                         ),
                         trailingIcon = {
                             TextButton(onClick = { showPassword = !showPassword }) {
-                                Text(if (showPassword) "🙈 " + Texts.HIDE_PASSWORD else "👁️ " + Texts.SHOW_PASSWORD)
+                                Text(if (showPassword) Texts.HIDE_PASSWORD else Texts.SHOW_PASSWORD)
                             }
                         },
                         modifier = Modifier
@@ -134,7 +135,7 @@ fun LoginScreen(state: UiState.LoggedOut, onSubmit: (String, String) -> Unit) {
                                 strokeWidth = 2.dp,
                             )
                         } else {
-                            Text("🔓 " + Texts.LOGIN_BUTTON)
+                            IconLabel(AppIcons.Login, Texts.LOGIN_BUTTON)
                         }
                     }
                 }

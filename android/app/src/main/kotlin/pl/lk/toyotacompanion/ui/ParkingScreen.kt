@@ -74,7 +74,7 @@ fun ParkingScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 item {
-                    DashboardCard(Texts.PARKING_TITLE, "🅿️") {
+                    DashboardCard(Texts.PARKING_TITLE, AppIcons.LocalParking) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -82,8 +82,9 @@ fun ParkingScreen(
                             StatTile("${log.places.size}", Texts.PARKING_PLACES, Palette.Blue, Modifier.weight(1f))
                             StatTile("${log.stops.size}", Texts.PARKING_RECENT, Palette.Teal, Modifier.weight(1f))
                         }
-                        Text(
-                            "🔒 " + Texts.PARKING_PRIVACY,
+                        IconText(
+                            AppIcons.Lock,
+                            Texts.PARKING_PRIVACY,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -92,14 +93,14 @@ fun ParkingScreen(
 
                 // Stops without coordinates form no place: then the section is left out.
                 if (log.places.isNotEmpty()) {
-                    item { SectionHeader("📍", Texts.PARKING_PLACES, color = Palette.Blue) }
+                    item { SectionHeader(AppIcons.LocationOn, Texts.PARKING_PLACES, color = Palette.Blue) }
                     items(log.places, key = { "p-" + it.lat + "," + it.lon }) { place ->
                         val isHome = known?.home?.let { it.lat == place.lat && it.lon == place.lon } == true
                         val isWork = known?.work?.let { it.lat == place.lat && it.lon == place.lon } == true
-                        val emoji = when {
-                            isHome -> "🏠"
-                            isWork -> "🏢"
-                            else -> "📍"
+                        val icon = when {
+                            isHome -> AppIcons.Home
+                            isWork -> AppIcons.Apartment
+                            else -> AppIcons.LocationOn
                         }
                         val badgeColor = when {
                             isHome -> Palette.Green
@@ -118,7 +119,7 @@ fun ParkingScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                EmojiBadge(emoji, badgeColor)
+                                IconBadge(icon, badgeColor)
                                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                     val label = placeLabel(place, known)
                                     Text(label + ParkingFormatting.place(place.lat, place.lon), style = MaterialTheme.typography.titleSmall)
@@ -135,7 +136,7 @@ fun ParkingScreen(
                                     )
                                     if (placeMapPoints(place.lat, place.lon).isNotEmpty()) {
                                         TextButton(onClick = { onShowMap(placeMapPoints(place.lat, place.lon), null) }) {
-                                            Text("🗺️ " + Texts.PARKING_OPEN_MAP)
+                                            IconLabel(AppIcons.Map, Texts.PARKING_OPEN_MAP)
                                         }
                                     }
                                 }
@@ -144,7 +145,7 @@ fun ParkingScreen(
                     }
                 }
 
-                item { SectionHeader("⏱️", Texts.PARKING_RECENT, color = Palette.Teal) }
+                item { SectionHeader(AppIcons.Schedule, Texts.PARKING_RECENT, color = Palette.Teal) }
                 items(log.stops.take(RECENT_STOPS), key = { "s-" + it.from }) { stop ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -156,7 +157,7 @@ fun ParkingScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            EmojiBadge("🛑", Palette.Amber)
+                            IconBadge(AppIcons.LocalParking, Palette.Amber)
                             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Text(ParkingFormatting.stopLine(stop, zone), style = MaterialTheme.typography.bodyMedium)
                                 Text(
