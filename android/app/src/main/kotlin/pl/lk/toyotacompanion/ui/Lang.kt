@@ -27,3 +27,19 @@ object Lang {
     /** [pl] or [en] depending on the current language. */
     fun pick(pl: String, en: String): String = if (isEnglish) en else pl
 }
+
+/**
+ * The Polish noun form for [n]: [one] for 1 ("1 trasa"), [few] for 2–4 except 12–14 ("22 trasy"),
+ * [many] for the rest ("5 tras", "12 tras", "0 tras"). Only the word, the number is the caller's.
+ */
+fun plPlural(n: Long, one: String, few: String, many: String): String {
+    val abs = kotlin.math.abs(n)
+    return when {
+        abs == 1L -> one
+        abs % 10 in 2..4 && abs % 100 !in 12..14 -> few
+        else -> many
+    }
+}
+
+/** The English noun form for [n]: [one] only for exactly 1. */
+fun enPlural(n: Long, one: String, many: String): String = if (n == 1L) one else many

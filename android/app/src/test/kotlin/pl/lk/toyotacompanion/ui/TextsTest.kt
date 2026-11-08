@@ -373,6 +373,37 @@ class TextsTest {
     }
 
     @Test
+    fun `polish plural picks one, few and many like a native speaker`() {
+        val forms = listOf(0L, 1L, 2L, 4L, 5L, 11L, 12L, 14L, 21L, 22L, 25L, 102L, 112L, 1000L)
+            .map { plPlural(it, "trasa", "trasy", "tras") }
+        assertEquals(
+            listOf("tras", "trasa", "trasy", "trasy", "tras", "tras", "tras", "tras", "tras", "trasy", "tras", "trasy", "tras", "tras"),
+            forms,
+        )
+        assertEquals("trasa", plPlural(-1, "trasa", "trasy", "tras"))
+        assertEquals(listOf("trip", "trips", "trips"), listOf(1L, 0L, 2L).map { enPlural(it, "trip", "trips") })
+    }
+
+    @Test
+    fun `counted texts never say 1 dni or 1 tras`() {
+        assertEquals("Od ostatniej kopii archiwum minął 1 dzień – zrób nową.", Texts.backupReminderOverdue(1))
+        assertEquals("Od ostatniej kopii archiwum minęły 3 dni – zrób nową.", Texts.backupReminderOverdue(3))
+        assertEquals("Od ostatniej kopii archiwum minęło 31 dni – zrób nową.", Texts.backupReminderOverdue(31))
+        assertEquals("1 trasa – za mało", Texts.matrixTooFew(1))
+        assertEquals("3 trasy – za mało", Texts.matrixTooFew(3))
+        assertEquals("5 tras – za mało", Texts.matrixTooFew(5))
+        assertEquals("Tankowanie za ponad 1 dzień", Texts.forecastBeyond(1))
+        assertEquals("Tankowanie za ponad 60 dni", Texts.forecastBeyond(60))
+        assertTrue(Texts.backfillCounts(1, 1).endsWith("1 z 1 trasy"), Texts.backfillCounts(1, 1))
+        assertTrue(Texts.backfillCounts(2, 584).endsWith("2 z 584 tras"), Texts.backfillCounts(2, 584))
+        assertTrue(Texts.backfillResult(BackfillResult.PARTIAL, 1).startsWith("Zapisano 1 przebieg."))
+        assertTrue(Texts.backfillResult(BackfillResult.PARTIAL, 3).startsWith("Zapisano 3 przebiegi."))
+        assertTrue(Texts.backfillResult(BackfillResult.PARTIAL, 100).startsWith("Zapisano 100 przebiegów."))
+        assertTrue("0 z 1 trasy" in Texts.weatherWithout(0, 1), Texts.weatherWithout(0, 1))
+        assertTrue("1 z 7 tras" in Texts.statsLeftOutTrips(1, 7), Texts.statsLeftOutTrips(1, 7))
+    }
+
+    @Test
     fun `the backup messages say what was kept and the reminder counts days`() {
         assertEquals("Zapisano kopię archiwum (trasy: 3).", Texts.backupExported(3))
         assertEquals("Ostatnia kopia archiwum: 31.10.2026", Texts.lastBackup("31.10.2026"))

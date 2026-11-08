@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Poprawna odmiana liczebników: „1 dzień”, „minęły 3 dni”, „1 trasa”, „3 trasy”, „1 przebieg” zamiast „1 dni”, „1 tras”
 - Ekran statusu odświeża liczniki i czas ostatniej synchronizacji po synchronizacji w tle i po powrocie do aplikacji (SPEC §9.3)
 
 ## 0.2.1 (2026-11-08)

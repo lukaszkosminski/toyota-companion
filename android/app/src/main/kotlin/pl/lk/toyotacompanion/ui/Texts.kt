@@ -461,8 +461,8 @@ object Texts {
     fun trafficConsumption(litres: String): String = "$litres l/100 km"
     fun trafficCost(money: String): String = "$money/100 km"
     fun statsLeftOutTrips(left: Int, total: Int): String = Lang.pick(
-        "Poza zestawieniem: $left z $total tras (poniżej 2 km albo bez prędkości).",
-        "Excluded: $left of $total trips (under 2 km or without speed).",
+        "Poza zestawieniem: $left z $total ${plPlural(total.toLong(), "trasy", "tras", "tras")} (poniżej 2 km albo bez prędkości).",
+        "Excluded: $left of $total ${enPlural(total.toLong(), "trip", "trips")} (under 2 km or without speed).",
     )
     fun trafficSurcharge(litres: String, money: String?): String {
         val pl = "Wolna jazda wobec płynnej: $litres l/100 km" + (money?.let { " ($it/100 km)" } ?: "")
@@ -494,7 +494,10 @@ object Texts {
         1L -> Lang.pick("Tankowanie jutro ($date)", "Refuel tomorrow ($date)")
         else -> Lang.pick("Tankowanie za ok. $days dni (ok. $date)", "Refuel in approx. $days days (approx. $date)")
     }
-    fun forecastBeyond(days: Long): String = Lang.pick("Tankowanie za ponad $days dni", "Refuel in over $days days")
+    fun forecastBeyond(days: Long): String = Lang.pick(
+        "Tankowanie za ponad $days ${plPlural(days, "dzień", "dni", "dni")}",
+        "Refuel in over $days ${enPlural(days, "day", "days")}",
+    )
     fun forecastLeft(liters: String, level: String): String = Lang.pick("w baku ok. $liters ($level)", "approx. $liters in tank ($level)")
     fun forecastRange(km: String): String = Lang.pick("ok. $km do rezerwy", "approx. $km to reserve")
     val FORECAST_RESERVE: String get() = Lang.pick("Paliwo na rezerwie – zatankuj", "Fuel on reserve – refuel")
@@ -642,8 +645,8 @@ object Texts {
         "Toyota deletes trips after approx. 12 months. Routes saved on phone remain. One tap fetches up to 100 routes, from oldest.",
     )
     fun backfillCounts(stored: Int, total: Int): String = Lang.pick(
-        "Przebiegi zapisane na telefonie: $stored z $total tras",
-        "Routes saved on phone: $stored of $total trips",
+        "Przebiegi zapisane na telefonie: $stored z $total ${plPlural(total.toLong(), "trasy", "tras", "tras")}",
+        "Routes saved on phone: $stored of $total ${enPlural(total.toLong(), "trip", "trips")}",
     )
     fun backfillRunning(fetched: Int): String = Lang.pick(
         "Pobieram przebiegi z Toyoty… zapisano $fetched",
@@ -655,8 +658,8 @@ object Texts {
             "Saved routes ($fetched). All trips now have a route.",
         )
         BackfillResult.PARTIAL -> Lang.pick(
-            "Zapisano $fetched przebiegów. Dotknij ponownie, żeby pobrać resztę.",
-            "Saved $fetched routes. Tap again to fetch the rest.",
+            "Zapisano $fetched ${plPlural(fetched.toLong(), "przebieg", "przebiegi", "przebiegów")}. Dotknij ponownie, żeby pobrać resztę.",
+            "Saved $fetched ${enPlural(fetched.toLong(), "route", "routes")}. Tap again to fetch the rest.",
         )
         BackfillResult.NOTHING -> Lang.pick(
             "Wszystkie trasy mają już zapisany przebieg.",
@@ -793,7 +796,10 @@ object Texts {
         "No trips with weather and speed. Fetch weather.",
     )
     fun matrixCell(litres: String, trips: Int): String = "$litres l ($trips)"
-    fun matrixTooFew(trips: Int): String = Lang.pick("$trips tras – za mało", "$trips trips – too few")
+    fun matrixTooFew(trips: Int): String = Lang.pick(
+        "$trips ${plPlural(trips.toLong(), "trasa", "trasy", "tras")} – za mało",
+        "$trips ${enPlural(trips.toLong(), "trip", "trips")} – too few",
+    )
     fun matrixBucketShort(bucket: pl.lk.toyotacompanion.core.domain.TemperatureBucket): String = when (bucket) {
         pl.lk.toyotacompanion.core.domain.TemperatureBucket.DEEP_FROST -> Lang.pick("silny mróz", "deep frost")
         pl.lk.toyotacompanion.core.domain.TemperatureBucket.FROST -> Lang.pick("mróz", "frost")
@@ -932,8 +938,8 @@ object Texts {
     fun weatherEv(share: String): String = Lang.pick("na prądzie $share", "on battery $share")
     fun weatherWind(kmh: String): String = Lang.pick("wiatr do $kmh km/h", "wind up to $kmh km/h")
     fun weatherWithout(count: Int, total: Int): String = Lang.pick(
-        "Bez pogody w tym podziale: $count z $total tras (brak położenia lub danych dla dnia).",
-        "Without weather in this split: $count of $total trips (missing location or daily data).",
+        "Bez pogody w tym podziale: $count z $total ${plPlural(total.toLong(), "trasy", "tras", "tras")} (brak położenia lub danych dla dnia).",
+        "Without weather in this split: $count of $total ${enPlural(total.toLong(), "trip", "trips")} (missing location or daily data).",
     )
     fun weatherPending(requests: Int, left: Int, cachedDays: Int): String = when {
         requests == 0 -> Lang.pick(
@@ -1110,13 +1116,10 @@ object Texts {
         "Make an archive backup – trips older than a year are now only on this phone.",
     )
 
-    fun backupReminderOverdue(days: Long): String {
-        val daysWord = if (days == 1L) "day" else "days"
-        return Lang.pick(
-            "Od ostatniej kopii archiwum minęło $days dni – zrób nową.",
-            "It has been $days $daysWord since the last archive backup – make a new one.",
-        )
-    }
+    fun backupReminderOverdue(days: Long): String = Lang.pick(
+        "Od ostatniej kopii archiwum ${plPlural(days, "minął", "minęły", "minęło")} $days ${plPlural(days, "dzień", "dni", "dni")} – zrób nową.",
+        "It has been $days ${enPlural(days, "day", "days")} since the last archive backup – make a new one.",
+    )
 
     val LEVEL_CHART_TITLE: String get() = Lang.pick("Poziom paliwa w czasie", "Fuel level over time")
     val LEVEL_CHART_HINT: String get() = Lang.pick("Pomarańczowe kropki to wykryte tankowania.", "Orange dots are detected refuels.")

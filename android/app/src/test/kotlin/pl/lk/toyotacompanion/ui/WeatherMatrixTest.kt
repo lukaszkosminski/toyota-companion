@@ -45,7 +45,7 @@ class WeatherMatrixTest {
         val slow = speedWeatherMatrix(trips, weather).single()
         assertEquals(false, slow.cells.getValue(TemperatureBucket.FROST).enough)
         assertNull(slow.frostSurcharge())
-        assertEquals("4 tras – za mało", WeatherFormatting.cellText(slow.cells.getValue(TemperatureBucket.FROST)))
+        assertEquals("4 trasy – za mało", WeatherFormatting.cellText(slow.cells.getValue(TemperatureBucket.FROST)))
         assertEquals("5,00 l (6)", WeatherFormatting.cellText(slow.cells.getValue(TemperatureBucket.MILD)))
         assertEquals("–", WeatherFormatting.cellText(null))
     }
