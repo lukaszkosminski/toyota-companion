@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+- Koszt tras po pierwszym potwierdzonym tankowaniu: paliwo, które zostało w baku, ma cenę domyślną, więc cena w baku to średnia ważona z nią (np. 6,175 zamiast 5,92 zł/l), a nie sama cena tankowania (poprawka ADR-005, SPEC §4, §6)
+
 ## 0.2.3 (2026-11-08)
 - Stan pojazdu, lokalizacja i stan techniczny z chmury Toyoty, tylko do odczytu i bez budzenia auta (F41–F43, SPEC §42–§44); dokładna pozycja auta tylko w pamięci, na mapie i w linku `geo:` po dotknięciu (ADR-022)
 - Archiwum tras zapisuje jazdę autostradą i ponad dozwoloną prędkością podawaną przez Toyotę (F40, baza Room v6)

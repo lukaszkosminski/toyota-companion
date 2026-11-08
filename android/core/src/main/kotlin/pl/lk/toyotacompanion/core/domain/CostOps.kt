@@ -11,6 +11,10 @@ import java.math.BigDecimal
  * `trip.fuelL * tankPrice` rounded to 0.01 zl (HALF_UP), [CostSource.REFUEL].
  * With no usable refuel but a [defaultPrice], [CostSource.DEFAULT]. Otherwise
  * everything is null and [CostSource.NONE]. Pending/dismissed refuels are ignored.
+ *
+ * A positive [defaultPrice] is also the price of the fuel already in the tank before the first confirmed refuel
+ * (ADR-005 amendment 2026-11-08): the first refuel mixes with it like with any earlier refuel, instead of pricing the
+ * whole tank at its own price. An empty tank (`levelBefore` 0) still gives the refuel's own price.
  */
 fun computeTripCost(
     trip: Trip,
@@ -18,7 +22,9 @@ fun computeTripCost(
     defaultPrice: BigDecimal? = null,
     capacityL: BigDecimal = DEFAULT_TANK_CAPACITY_L,
 ): TripCost {
-    var tankPrice: BigDecimal? = null
+    // Zero or negative is no price, never a 0,00 zl trip (docs/SPEC.md §4, §12.2).
+    val default = defaultPrice?.takeIf { it.signum() > 0 }
+    var tankPrice: BigDecimal? = default
     var usedRefuel: Refuel? = null
     for (refuel in confirmedInOrder(refuels)) {
         if (refuel.ts.isAfter(trip.start)) break
@@ -41,11 +47,11 @@ fun computeTripCost(
         )
     }
 
-    if (defaultPrice != null) {
+    if (default != null) {
         return TripCost(
             tripId = trip.id,
-            costPln = roundMoney(trip.fuelL.multiply(defaultPrice)),
-            pricePerLiter = defaultPrice,
+            costPln = roundMoney(trip.fuelL.multiply(default)),
+            pricePerLiter = default,
             refuelId = null,
             source = CostSource.DEFAULT,
         )

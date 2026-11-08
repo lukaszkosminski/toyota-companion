@@ -243,8 +243,8 @@ object Texts {
 
     /** Under the title of the card in "Opcje": what the price is for (docs/SPEC.md §12). */
     val DEFAULT_PRICE_EXPLAINED: String get() = Lang.pick(
-        "Cena za litr dla tras sprzed pierwszego potwierdzonego tankowania. Gdy potwierdzisz cenę tankowania, koszt tras liczy się z ceny z baku.",
-        "Price per liter for trips before the first confirmed refuel. Once you confirm a refuel price, trip costs use the price of the fuel in the tank.",
+        "Cena za litr paliwa, które jest w baku przed pierwszym potwierdzonym tankowaniem – liczy trasy sprzed niego, a pierwsze tankowanie miesza się z nią średnią ważoną. Potem koszt tras liczy się z ceny z baku.",
+        "Price per liter of the fuel in the tank before the first confirmed refuel – it prices the trips before it, and the first refuel mixes with it as a weighted average. After that trip costs use the price of the fuel in the tank.",
     )
 
     /** Status-screen button when no default price is stored yet. */
@@ -261,10 +261,10 @@ object Texts {
             Lang.pick("Cena domyślna paliwa: $formatted", "Default fuel price: $formatted")
         }
 
-    /** Under the field: which trips the default price prices (docs/SPEC.md §4). */
+    /** Under the field: what the default price prices (docs/SPEC.md §4, ADR-005 amendment 2026-11-08). */
     val DEFAULT_PRICE_HINT: String get() = Lang.pick(
-        "Cena domyślna liczy trasy sprzed pierwszego potwierdzonego tankowania.",
-        "The default price calculates trips before the first confirmed refuel.",
+        "Cena paliwa w baku przed pierwszym potwierdzonym tankowaniem: liczy trasy sprzed niego i miesza się z ceną pierwszego tankowania.",
+        "The price of the fuel in the tank before the first confirmed refuel: it prices the trips before it and mixes with the first refuel's price.",
     )
 
     /** Removes the setting; an empty field never does that (docs/SPEC.md §12.3). */
@@ -272,8 +272,8 @@ object Texts {
 
     val DEFAULT_PRICE_REMOVE_TITLE: String get() = Lang.pick("Usunąć cenę domyślną?", "Remove default price?")
     val DEFAULT_PRICE_REMOVE_BODY: String get() = Lang.pick(
-        "Trasy bez potwierdzonego tankowania znów będą bez ceny.",
-        "Trips without a confirmed refuel will again have no price.",
+        "Trasy sprzed pierwszego potwierdzonego tankowania znów będą bez ceny, a pierwsze tankowanie będzie liczone tylko własną ceną.",
+        "Trips before the first confirmed refuel will again have no price, and the first refuel will count at its own price only.",
     )
     val DEFAULT_PRICE_REMOVE_YES: String get() = Lang.pick("Usuń", "Remove")
     val DEFAULT_PRICE_REMOVE_NO: String get() = Lang.pick("Anuluj", "Cancel")

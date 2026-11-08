@@ -55,6 +55,10 @@ Port w Kotlinie: `android/core/src/main/kotlin/pl/lk/toyotacompanion/core/domain
 - tankowania `status="confirmed"` do `trip.start` włącznie, w kolejności `(ts, id)` (deterministycznie)
 - każde potwierdzone tankowanie z ceną aktualizuje cenę paliwa w baku (§6);
   ostatnia taka cena jest użyta do kosztu
+- dodatnia `default_price` jest ceną paliwa w baku **przed pierwszym** potwierdzonym tankowaniem (poprawka ADR-005
+  z 2026-11-08): pierwsze tankowanie miesza się z nią w §6 jak z każdym wcześniejszym tankowaniem; bez ceny domyślnej
+  (albo przy `default_price <= 0`) pierwsze tankowanie ma własną cenę; `default_price <= 0` to brak ceny także dla tras
+  bez tankowania (`source="none"`, nigdy 0,00 zł)
 - koszt = `trip.fuel_l * cena` zaokrąglone do 0.01 (ROUND_HALF_UP), `source="refuel"`, `refuel_id` = użyte tankowanie
 - brak takiego tankowania, ale jest `default_price` -> `source="default"`
 - w ostateczności `cost_pln=None, price_per_liter=None, refuel_id=None, source="none"`
@@ -70,8 +74,12 @@ Port w Kotlinie: `android/core/src/main/kotlin/pl/lk/toyotacompanion/core/domain
   `added = estimate_refuel_liters(refuel, capacity_l)` (§2a)
 - `tank_price = (liters_before × previous_tank_price + added × refuel.price_per_liter) / (liters_before + added)`
   – wynik zawsze między starą a nową ceną
-- pierwsze tankowanie (brak poprzedniej ceny), `previous_tank_price <= 0` albo pusty bak przed tankowaniem
-  (`level_before = 0`) -> własna cena `refuel.price_per_liter`
+- `refuels` to tankowania jednego pojazdu (filtr po VIN robi wołający, `SyncEngine`); `level_before` pochodzi z czujnika Toyoty
+  i suma litrów nie jest przycinana do pojemności baku
+- brak poprzedniej ceny (pierwsze tankowanie bez ceny domyślnej, §4), `previous_tank_price <= 0` albo pusty bak przed
+  tankowaniem (`level_before = 0`) -> własna cena `refuel.price_per_liter`
+- przykład (telefon właściciela, 08.11.2026): cena domyślna 6,30, tankowanie 67 % → 100 % po 5,92 bez litrów
+  (szacunek 14,19 l): (28,81 × 6,30 + 14,19 × 5,92) / 43 = 6,175 zł/l, a nie 5,92
 - `None` gdy: `status != "confirmed"`, brak ceny, `level_before` poza 0..100, `level_after` poza 1..100,
   albo brak litrów i brak wzrostu poziomu
 - wynik zaokrąglony do 0.001 (ROUND_HALF_UP); `capacity_l <= 0` -> `ValueError`
@@ -304,7 +312,7 @@ Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – �
   (jasny, ciemny i dynamiczny). Spalanie: duża liczba „4,13 l/100 km” z podpisem, trend jako kolorowa pigułka (rosnący – kolor błędu, malejący – kolor główny, stabilny – neutralny),
   słupki z zaokrąglonymi górami. Koszty: duża suma „1 182,89 zł”, słupki od zera, trzy najnowsze miesiące w szczegółach, reszta za „Pokaż wszystkie miesiące (N)”.
 - Menu to kafelki po dwa w rzędzie, o równej wysokości w rzędzie, z ikoną nad etykietą, każdy kafelek co najmniej 88 dp wysoki: Trasy, Dziennik tankowań, Statystyki, Styl jazdy,
-  Podsumowanie roku, Pogoda i spalanie, Wydatki, Postoje, Kopia i eksport oraz Opcje. Cena domyślna nie ma kafelka: to cena startowa dla tras sprzed pierwszego potwierdzonego tankowania, więc jest w „Opcjach” (§12.3). Przypomnienie o kopii zostaje pod menu.
+  Podsumowanie roku, Pogoda i spalanie, Wydatki, Postoje, Kopia i eksport oraz Opcje. Cena domyślna nie ma kafelka: to cena paliwa w baku przed pierwszym potwierdzonym tankowaniem (trasy sprzed niego i mieszanie z pierwszym tankowaniem, §4), więc jest w „Opcjach” (§12.3). Przypomnienie o kopii zostaje pod menu.
 - Liczby do wyświetlania grupują tysiące twardą spacją („1 182,89 zł”, „4 625,9 km”), żeby długa kwota nie łamała się w środku; eksport CSV i formy `plain` nie grupują.
 - Kontrast (WCAG AA): tekst w kolorze palety (`Palette` w `ui/ChartKit.kt`: wartości `StatTile`, `MeterRow`, tytuł `SectionHeader`, etykieta `MenuTile`, treść `Pill`, kolorowe wiersze
   ekranów) idzie przez `readable` z `ui/Contrast.kt`: ta sama barwa przyciemniana (jasny motyw) albo rozjaśniana (ciemny) aż do 4,5:1 względem `surfaceContainerHigh`, z tłem kafelka
@@ -413,7 +421,7 @@ Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – �
 - Koszt uboczny: przeliczenie trzyma `mutex` na czas zapisu kosztów (jedno `costs.saveAll`, setki wierszy), więc
   `fullSync` startujący w tym momencie dostanie `Skipped` i wróci z WorkManagera; tak samo działa już
   potwierdzenie ceny tankowania (§11.1).
-- Bez zmian w `core/domain` (§4, §5), bez zmian w schemacie Room i bez nowych metod w interfejsach repozytoriów.
+- Bez zmian w schemacie Room i bez nowych metod w interfejsach repozytoriów. Od poprawki ADR-005 (2026-11-08) cena domyślna jest też ceną paliwa w baku przed pierwszym potwierdzonym tankowaniem (§4, §6), więc jej zmiana albo usunięcie przelicza również trasy po pierwszym tankowaniu.
 
 ### §12.2 Przechowywanie ceny (warstwa `app`)
 - `settings/SettingsStore.kt` trzyma cenę w SharedPreferences `settings` — nie w `secrets` (cena nie jest sekretem
@@ -429,8 +437,8 @@ Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – �
   `DefaultPriceController` w scope'ie aplikacji.
 
 ### §12.3 Ekran „Cena domyślna” (kryteria akceptacji)
-- Wejście: karta „Cena domyślna” w „Opcjach” (nie na ekranie statusu: to cena startowa dla tras sprzed pierwszego potwierdzonego
-  tankowania, potem liczy się cena z baku) z jednozdaniowym wyjaśnieniem i `OutlinedButton` z aktualną wartością w etykiecie
+- Wejście: karta „Cena domyślna” w „Opcjach” (nie na ekranie statusu: to cena paliwa w baku przed pierwszym potwierdzonym
+  tankowaniem – liczy trasy sprzed niego i miesza się z pierwszym tankowaniem, potem liczy się cena z baku, §4) z jednozdaniowym wyjaśnieniem i `OutlinedButton` z aktualną wartością w etykiecie
   (`Cena domyślna paliwa: 6,19 zł/l`) albo bez niej (`Ustaw cenę domyślną paliwa`). Nie jest blokowany na czas
   synchronizacji — przeliczenie czeka na `mutex` (§12.1). Wyjście: `TextButton` „Wstecz” i `BackHandler` (jak §10.3) wracają do „Opcji”;
   powrót woła `session.reload()`, więc liczniki statusu się odświeżą.
@@ -447,7 +455,7 @@ Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – �
   jest `internal`, więc reguła jest powtórzona w UI — świadomie, tak jak §11.2 powtarza dozwolone kombinacje;
   `DefaultPriceFormTest` przypina obie strony.
 - Formularz: jedno pole „Cena za litr” z `KeyboardType.Decimal`, wartość pola w `rememberSaveable`, notka pod polem
-  (cena dotyczy tras sprzed pierwszego potwierdzonego tankowania), „Zapisz” (blokada na czas zapisu, drugi klik
+  (cena paliwa w baku przed pierwszym potwierdzonym tankowaniem), „Zapisz” (blokada na czas zapisu, drugi klik
   ignorowany), „Usuń cenę domyślną” z `AlertDialog`, błąd w karcie `errorContainer`. Po sukcesie formularz wraca na
   status.
 - `CostRecompute.NoVehicle` jest traktowany jako sukces bez komunikatu: cena jest ustawiona, a koszty przeliczy

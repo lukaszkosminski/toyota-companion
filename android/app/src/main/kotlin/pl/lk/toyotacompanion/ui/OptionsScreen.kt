@@ -54,7 +54,7 @@ fun OptionsScreen(
                     }
                 }
             }
-            // A starting price for the trips before the first confirmed refuel; after that the tank price counts (docs/SPEC.md §12).
+            // The price of the fuel in the tank before the first confirmed refuel: it prices the trips before it and mixes into the first refuel (docs/SPEC.md §4, §12).
             DashboardCard(Texts.DEFAULT_PRICE_TITLE, AppIcons.Payments) {
                 Text(Texts.DEFAULT_PRICE_EXPLAINED, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedButton(onClick = onShowDefaultPrice) { Text(Texts.defaultPricePrompt(defaultPrice)) }

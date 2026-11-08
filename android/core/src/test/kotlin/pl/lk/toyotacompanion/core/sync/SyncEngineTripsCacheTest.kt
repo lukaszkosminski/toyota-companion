@@ -146,7 +146,9 @@ class SyncEngineTripsCacheTest {
         val after = assertNotNull(engine.trips().single().cost)
 
         assertEquals(0, BigDecimal("6.190").compareTo(assertNotNull(before).pricePerLiter))
-        assertEquals(0, BigDecimal("7.000").compareTo(after.pricePerLiter))
+        // The default 6,19 is the price of the 8,6 l (20 % of 43 l) already in the tank (ADR-005 amendment 2026-11-08):
+        // (8,6 x 6,19 + 30 x 7,00) / 38,6 = 263,234 / 38,6 = 6,8195 -> 6,820.
+        assertEquals(0, BigDecimal("6.820").compareTo(after.pricePerLiter))
         assertEquals(readsBefore + 2, counting.fullReads) // the recount itself and the next list
     }
 

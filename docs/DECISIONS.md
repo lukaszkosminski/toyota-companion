@@ -27,6 +27,11 @@ Szacunek z czujnika wystarcza do średniej ceny; do porównania spalania „komp
 wpisane (`receipt`) albo wyliczone z kwoty i ceny z paragonu (`derived`, decyzja właściciela 2026-10-31).
 Zaimplementowane w Pythonie i Kotlinie (SPEC §6, `tank_price_after_refuel`/`tankPriceAfterRefuel`).
 Pierwsze tankowanie albo brak poprzedniej ceny -> własna cena paliwa. Zastępuje ADR-002.
+**Poprawka 2026-11-08 (decyzja właściciela):** gdy jest ustawiona cena domyślna (> 0), to ona jest ceną paliwa w baku przed pierwszym
+potwierdzonym tankowaniem – trasy sprzed tankowania i tak były nią wyceniane, więc paliwo, które zostało w baku, ma tę cenę. Pierwsze
+tankowanie liczy się więc średnią ważoną z ceną domyślną (np. 67 % baku po 6,30 + dolane po 5,92 = 6,175 zł/l zamiast 5,92). Bez ceny
+domyślnej albo przy pustym baku przed tankowaniem – jak dotąd własna cena. Skutek: zmiana ceny domyślnej przelicza też koszty tras po
+pierwszym tankowaniu (wpływ maleje z każdym kolejnym tankowaniem). SPEC §4, §6.
 
 ## ADR-006 Aplikacja tylko na telefonie, klient Toyoty w Kotlinie (zastępuje ADR-001)
 Decyzja właściciela produktu (2026-10-28): całość działa na telefonie, bez backendu.

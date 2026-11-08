@@ -41,8 +41,16 @@ def compute_trip_cost(
     (ROUND_HALF_UP), ``source="refuel"``. With no usable refuel but a
     ``default_price``, ``source="default"``. Otherwise everything is ``None``
     and ``source="none"``. Pending/dismissed refuels are ignored.
+
+    A positive ``default_price`` is also the price of the fuel already in the tank
+    before the first confirmed refuel (ADR-005 amendment 2026-11-08): the first
+    refuel mixes with it like with any earlier refuel, instead of pricing the whole
+    tank at its own price.
     """
-    tank_price: Decimal | None = None
+    default = as_decimal(default_price) if default_price is not None else None
+    if default is not None and default <= 0:
+        default = None  # zero or negative is no price, never a 0,00 zl trip (SPEC §4, §12.2)
+    tank_price: Decimal | None = default
     used_refuel: Refuel | None = None
     for refuel in _confirmed_in_order(refuels):
         if refuel.ts > trip.start:
@@ -61,11 +69,11 @@ def compute_trip_cost(
             source="refuel",
         )
 
-    if default_price is not None:
+    if default is not None:
         return TripCost(
             trip_id=trip.id,
-            cost_pln=round_money(as_decimal(trip.fuel_l) * as_decimal(default_price)),
-            price_per_liter=as_decimal(default_price),
+            cost_pln=round_money(as_decimal(trip.fuel_l) * default),
+            price_per_liter=default,
             refuel_id=None,
             source="default",
         )

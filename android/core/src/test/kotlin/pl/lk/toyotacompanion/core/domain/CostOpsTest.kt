@@ -146,7 +146,9 @@ class CostOpsTest {
             val result = computeTripCost(trip(), listOf(estimate), defaultPrice = bd("6.00"))
             assertEquals(CostSource.REFUEL, result.source)
             assertEquals("estimate", result.refuelId)
-            assertBd("3.71", result.costPln, "cost_pln")
+            // 20 % of 43 l = 8,6 l at the default 6,00 + 25,8 l at 6,19 -> 211,302 / 34,4 = 6,1425 -> 6,143; 0,60 l -> 3,6858 -> 3,69
+            assertBd("6.143", result.pricePerLiter, "price_per_liter")
+            assertBd("3.69", result.costPln, "cost_pln")
         }
 
         @Test
@@ -173,8 +175,9 @@ class CostOpsTest {
             val result = computeTripCost(trip(), listOf(priceOnly), defaultPrice = bd("6.00"))
             assertEquals(CostSource.REFUEL, result.source)
             assertEquals("price-only", result.refuelId)
-            assertBd("6.190", result.pricePerLiter, "price_per_liter")
-            assertBd("3.71", result.costPln, "cost_pln")
+            // sensor liters 25,8 mixed with 8,6 l at the default 6,00: 6,143 as above; 0,60 l -> 3,6858 -> 3,69
+            assertBd("6.143", result.pricePerLiter, "price_per_liter")
+            assertBd("3.69", result.costPln, "cost_pln")
         }
 
         @Test
@@ -185,7 +188,104 @@ class CostOpsTest {
                 defaultPrice = bd("10.00"),
             )
             assertEquals(CostSource.REFUEL, result.source)
-            assertBd("3.71", result.costPln, "cost_pln")
+            assertEquals("r1", result.refuelId)
+            // the default is only the price of the 8,6 l already in the tank: (8,6 x 10,00 + 25,8 x 6,19) / 34,4 = 7,1425 -> 7,143; 0,60 l -> 4,2858 -> 4,29
+            assertBd("7.143", result.pricePerLiter, "price_per_liter")
+            assertBd("4.29", result.costPln, "cost_pln")
+        }
+    }
+
+    /** ADR-005 amendment 2026-11-08: the default price is the price of the fuel already in the tank, before the first confirmed refuel only. */
+    @Nested
+    inner class DefaultPriceInTank {
+        @Test
+        fun `default_price_is_the_tank_price_before_the_first_refuel`() {
+            // The owner's case: 67 % -> 100 % at 5,92 zl/l (price only, sensor liters 14,19 = 33 % of 43 l);
+            // the 28,81 l already in the tank were priced at the default 6,30.
+            val first = Refuel(
+                id = "r-08-11",
+                ts = Instant.parse("2026-11-08T10:42:00Z"),
+                odometerKm = 12000.0,
+                levelBefore = 67,
+                levelAfter = 100,
+                liters = null,
+                pricePerLiter = bd("5.92"),
+                totalCost = null,
+                status = RefuelStatus.CONFIRMED,
+                litersSource = null,
+            )
+            val result = computeTripCost(
+                trip(start = Instant.parse("2026-11-08T17:21:00Z"), fuel = "0.77"),
+                listOf(first),
+                defaultPrice = bd("6.30"),
+            )
+            assertEquals(CostSource.REFUEL, result.source)
+            assertEquals("r-08-11", result.refuelId)
+            // (28,81 x 6,30 + 14,19 x 5,92) / 43 = 265,5078 / 43 = 6,1746 -> 6,175; 0,77 l x 6,175 = 4,75475 -> 4,75
+            assertBd("6.175", result.pricePerLiter, "price_per_liter")
+            assertBd("4.75", result.costPln, "cost_pln")
+        }
+
+        @Test
+        fun `first_refuel_without_default_price_uses_its_own_price`() {
+            val result = computeTripCost(trip(), listOf(refuel(price = "6.19")))
+            assertBd("6.19", result.pricePerLiter, "price_per_liter")
+        }
+
+        @Test
+        fun `first_refuel_on_an_empty_tank_ignores_the_default_price`() {
+            // an empty tank (level_before 0) holds no old fuel, so nothing is mixed in
+            val empty = refuel(price = "6.19", levelBefore = 0, levelAfter = 60)
+            val result = computeTripCost(trip(), listOf(empty), defaultPrice = bd("10.00"))
+            assertBd("6.19", result.pricePerLiter, "price_per_liter")
+        }
+
+        @Test
+        fun `default_price_mixes_only_into_the_first_refuel`() {
+            val first = refuel(id = "r1", ts = Instant.parse("2026-10-01T12:00:00Z"), price = "6.19")
+            val second = refuel(id = "r2", ts = Instant.parse("2026-10-03T12:00:00Z"), price = "5.00")
+            val result = computeTripCost(trip(), listOf(first, second), defaultPrice = bd("10.00"))
+            // first: 7,143 (see refuel_beats_default_price); second: (8,6 x 7,143 + 25,8 x 5,00) / 34,4 = 5,5357 -> 5,536
+            assertEquals("r2", result.refuelId)
+            assertBd("5.536", result.pricePerLiter, "price_per_liter")
+        }
+
+        @Test
+        fun `zero_default_price_is_no_tank_price`() {
+            val result = computeTripCost(trip(), listOf(refuel(price = "6.19")), defaultPrice = bd("0"))
+            assertBd("6.19", result.pricePerLiter, "price_per_liter")
+        }
+
+        @Test
+        fun `zero_default_price_before_any_refuel_is_no_price`() {
+            // zero or negative is no price: never a trip for 0,00 zl
+            for (default in listOf("0", "-5")) {
+                val result = computeTripCost(trip(), emptyList(), defaultPrice = bd(default))
+                assertEquals(CostSource.NONE, result.source, default)
+                assertNull(result.costPln, default)
+            }
+        }
+
+        @Test
+        fun `changing_the_default_price_changes_the_first_refuel`() {
+            val trips = listOf(trip("a"))
+            val first = listOf(refuel(price = "6.19"))
+            val atTen = recomputeCosts(trips, first, defaultPrice = bd("10.00"))
+            val atSix = recomputeCosts(trips, first, defaultPrice = bd("6.00"))
+            val removed = recomputeCosts(trips, first)
+            // 8,6 l at the default + 25,8 l at 6,19: (86 + 159,702) / 34,4 = 7,1425 -> 7,143; (51,6 + 159,702) / 34,4 = 6,1425 -> 6,143; no default: 6,19
+            assertBd("7.143", atTen.single().pricePerLiter, "at ten")
+            assertBd("6.143", atSix.single().pricePerLiter, "at six")
+            assertBd("6.19", removed.single().pricePerLiter, "removed")
+        }
+
+        @Test
+        fun `a_refuel_with_unusable_levels_leaves_the_default_price`() {
+            // level_after 0 is not above level_before 20: the refuel gives no tank price, so the trip keeps the default
+            val broken = refuel(price = "6.19", levelBefore = 20, levelAfter = 0)
+            val result = computeTripCost(trip(), listOf(broken), defaultPrice = bd("6.30"))
+            assertEquals(CostSource.DEFAULT, result.source)
+            assertBd("6.30", result.pricePerLiter, "price_per_liter")
         }
     }
 
@@ -274,7 +374,8 @@ class CostOpsTest {
             }
             val after = recomputeCosts(trips, confirmed, defaultPrice = bd("6.00"))
             assertEquals(listOf(CostSource.REFUEL, CostSource.REFUEL), after.map { it.source })
-            for (c in after) assertBd("3.71", c.costPln, "cost_pln")
+            // the refuel mixes with the default 6,00 for the 8,6 l in the tank: 6,143 x 0,60 l = 3,6858 -> 3,69
+            for (c in after) assertBd("3.69", c.costPln, "cost_pln")
         }
 
         @Test

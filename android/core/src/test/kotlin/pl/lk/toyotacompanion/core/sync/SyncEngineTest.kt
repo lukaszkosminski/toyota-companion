@@ -781,7 +781,10 @@ class SyncEngineTest {
 
         val cost = requireNotNull(stores.costs.forTrip("t1"))
         assertEquals(CostSource.REFUEL, cost.source)
-        assertEquals(0, BigDecimal("3.71").compareTo(requireNotNull(cost.costPln)))
+        // ADR-005 amendment 2026-11-08: the provider price (10,00) is the price of the 8,6 l (20 % of 43 l) already in the tank:
+        // (8,6 x 10,00 + 25,8 x 6,19) / 34,4 = 7,1425 -> 7,143; 0,60 l x 7,143 = 4,2858 -> 4,29
+        assertEquals(0, BigDecimal("7.143").compareTo(requireNotNull(cost.pricePerLiter)))
+        assertEquals(0, BigDecimal("4.29").compareTo(requireNotNull(cost.costPln)))
     }
 
     @Test

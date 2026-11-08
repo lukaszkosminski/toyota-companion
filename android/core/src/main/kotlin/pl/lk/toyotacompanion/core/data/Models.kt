@@ -146,7 +146,7 @@ data class SyncConfig(
     /** docs/SPEC.md §4/§6 capacity (PRD §7: 43 l). */
     val tankCapacityL: BigDecimal = DEFAULT_TANK_CAPACITY_L,
 
-    /** docs/SPEC.md §4 fallback price for trips before the first refuel. */
+    /** docs/SPEC.md §4: price of the trips before the first confirmed refuel and of the fuel in the tank the first refuel mixes with. */
     val defaultPrice: BigDecimal? = null,
 )
 
