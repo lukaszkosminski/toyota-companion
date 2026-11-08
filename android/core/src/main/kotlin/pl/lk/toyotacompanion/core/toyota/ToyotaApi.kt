@@ -112,6 +112,10 @@ class ToyotaApi(private val controller: ToyotaController) {
     suspend fun getVehicleHealth(vin: String): VehicleHealthDto? =
         decode<VehicleHealthResponse>(ToyotaConst.VEHICLE_HEALTH_ENDPOINT, vin = vin).payload
 
+    /**
+     * SECURITY: the cause of a [ToyotaDataException] is a serialization error whose text can quote a piece of the answer, which for
+     * `/v1/location` may be a coordinate or an address. It must never reach a log, a message on the screen or a file (docs/SECURITY.md).
+     */
     private suspend inline fun <reified T> decode(endpoint: String, vin: String?): T {
         val body = controller.request("GET", endpoint, vin)
         return try {

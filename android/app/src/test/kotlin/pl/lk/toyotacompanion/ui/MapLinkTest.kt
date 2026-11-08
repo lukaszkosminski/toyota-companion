@@ -52,6 +52,22 @@ class MapLinkTest {
     }
 
     @Test
+    fun `the exact position of the car goes to the page with five decimals, only when the map is exact`() {
+        val point = listOf(MapPoint("Miejsce", 54.3685, 18.6142))
+        assertEquals("54.36850,18.61420,Miejsce", android.net.Uri.decode(mapPageUrl(point, exact = true).substringAfter('#')))
+        assertEquals("54.369,18.614,Miejsce", android.net.Uri.decode(mapPageUrl(point).substringAfter('#')))
+        assertEquals("54.36850", exactCoordinate(54.3685))
+        assertEquals("-0.00100", exactCoordinate(-0.001))
+    }
+
+    @Test
+    fun `the open in map link carries the exact value only for the exact map`() {
+        assertEquals("geo:54.36850,18.61420?q=54.36850,18.61420", ParkingFormatting.mapUri(54.3685, 18.6142, exact = true))
+        assertEquals("geo:54.369,18.614?q=54.369,18.614", ParkingFormatting.mapUri(54.3685, 18.6142))
+        assertEquals(null, ParkingFormatting.mapUri(Double.NaN, 18.6, exact = true))
+    }
+
+    @Test
     fun `the map page may load its own assets and OpenStreetMap tiles, nothing else`() {
         fun ok(url: String) = mapRequestAllowed(android.net.Uri.parse(url))
         assertTrue(ok("file:///android_asset/map/leaflet.js"))

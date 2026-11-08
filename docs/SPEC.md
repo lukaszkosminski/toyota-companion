@@ -1054,8 +1054,9 @@ Domena: `core/domain/OwnershipOps.kt` (`ownershipCost`, `ownershipMonths`, model
   więc 54.3685 daje 54.36850, bez artefaktów binarnych), „Pozycja z …”, „Ostatnia aktualizacja …” i przycisk „Pokaż na mapie” (jedna dokładna pozycja, tylko po dotknięciu).
 - Dokładna pozycja to **świadomy wyjątek** od §18 (Postoje pokazują zaokrąglenie do ok. 100 m): decyzja właściciela 2026-11-08 (ADR-022).
   Pozycja i adres są **tylko w pamięci**: bez bazy, eksportu archiwum, CSV, `rememberSaveable`/zapisanego stanu, logów i komunikatów błędów; `reset()` przy wyjściu z ekranu i przy wylogowaniu.
-  Mapa lub intent `geo:` tylko po dotknięciu – serwer kafelków OSM widzi oglądaną okolicę (SECURITY.md).
-- Odczyt przy każdym otwarciu ekranu (świeża pozycja); błędy jak w §42. Brak współrzędnych = „Toyota nie przysłała tych danych.”, bez mapy.
+  Mapa lub intent `geo:` tylko po dotknięciu, z dokładną pozycją (5 miejsc po przecinku; reszta aplikacji zostaje przy ok. 100 m): `MapScreen(exact = true)`, `ParkingFormatting.mapUri(…, exact = true)`; serwer kafelków OSM widzi oglądaną okolicę,
+  a aplikacja wybrana w „Otwórz w innej aplikacji z mapą” dostaje dokładną pozycję (SECURITY.md). Punkt mapy leży w `remember`, nie w `rememberSaveable` (`AppRoot.exactMap`): po zabiciu procesu mapa wraca na ekran statusu, a dokładna pozycja nie trafia do zapisanego stanu.
+- Odczyt przy każdym otwarciu ekranu (świeża pozycja), także po obrocie ekranu lub odtworzeniu ekranu z zapisanego stanu (zwykły `GET` do chmury, nie budzi auta); `reset()` przy „Wstecz” i wylogowaniu, a przejście do mapy zostawia pozycję w pamięci do powrotu, który czyta ją od nowa; błędy jak w §42. Brak współrzędnych = „Toyota nie przysłała tych danych.”, bez mapy.
 
 ## §44 Stan techniczny (PRD F43)
 - Źródło: `GET /v1/vehiclehealth/status` (pytoyoda `vehicle_health.py`) – ostrzeżenia i dane o oleju silnika z chmury Toyoty; bez budzenia auta.

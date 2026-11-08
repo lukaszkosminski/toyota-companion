@@ -31,11 +31,12 @@ object ParkingFormatting {
 
     /**
      * `geo:54.372,18.638?q=54.372,18.638` for the "open in map" button, or null without a usable position.
-     * Only the rounded (about 100 m) values leave the app, and only on an explicit tap (docs/SPEC.md §18).
+     * Only the rounded (about 100 m) values leave the app, and only on an explicit tap (docs/SPEC.md §18); [exact] is for the
+     * car's own position on the "Lokalizacja" screen (docs/SPEC.md §43).
      */
-    fun mapUri(lat: Double?, lon: Double?): String? {
+    fun mapUri(lat: Double?, lon: Double?, exact: Boolean = false): String? {
         if (lat == null || lon == null || !lat.isFinite() || !lon.isFinite()) return null
-        val point = roundedCoordinate(lat) + "," + roundedCoordinate(lon)
+        val point = if (exact) exactCoordinate(lat) + "," + exactCoordinate(lon) else roundedCoordinate(lat) + "," + roundedCoordinate(lon)
         return "geo:$point?q=$point"
     }
 

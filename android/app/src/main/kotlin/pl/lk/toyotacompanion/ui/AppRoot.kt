@@ -366,6 +366,7 @@ fun AppRoot(
                                 title = if (points.size == 1) Texts.MAP_TITLE_PLACE else Texts.MAP_TITLE_TRIP,
                                 points = points,
                                 route = routeState,
+                                exact = exact != null,
                                 onBack = {
                                     tripRoute.close()
                                     exactMap = null

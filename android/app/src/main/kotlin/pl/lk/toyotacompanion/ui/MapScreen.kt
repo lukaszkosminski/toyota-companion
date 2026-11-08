@@ -30,19 +30,30 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import java.io.ByteArrayInputStream
 
-/** A point of the in-app map: a short fixed label and a position already rounded to 0.001° (about 100 m). */
+/**
+ * A point of the in-app map: a short fixed label and a position. Trips and parking places hand over positions already rounded to
+ * 0.001° (about 100 m); only the "Lokalizacja" screen hands over the exact position, and then the map is opened with `exact = true`.
+ */
 data class MapPoint(val label: String, val lat: Double, val lon: Double)
 
 /** Hosts the map page may load from: its own assets and the OpenStreetMap tile server, nothing else. */
 private const val TILE_HOST = "tile.openstreetmap.org"
 
 /** URL of the bundled page with the points in the fragment; the labels are fixed texts, never user input. */
-fun mapPageUrl(points: List<MapPoint>): String {
+fun mapPageUrl(points: List<MapPoint>, exact: Boolean = false): String {
     val fragment = points.joinToString(";") {
-        roundedCoordinate(it.lat) + "," + roundedCoordinate(it.lon) + "," + it.label
+        if (exact) {
+            exactCoordinate(it.lat) + "," + exactCoordinate(it.lon) + "," + it.label
+        } else {
+            roundedCoordinate(it.lat) + "," + roundedCoordinate(it.lon) + "," + it.label
+        }
     }
     return "file:///android_asset/map/map.html#" + Uri.encode(fragment)
 }
+
+/** Five decimals (about 1 m) from the decimal text of the value, with a dot: the exact position of the car (docs/SPEC.md §43, ADR-022). */
+fun exactCoordinate(value: Double): String =
+    java.math.BigDecimal.valueOf(value).setScale(5, java.math.RoundingMode.HALF_UP).toPlainString()
 
 /** `[[lat,lon,e],...]` with `e` 1, 0 or -1 (unknown): numbers only, five decimals, the argument of the page's `showRoute`. */
 fun routeJson(points: List<pl.lk.toyotacompanion.core.routes.TripRoutePoint>): String = points.joinToString(",", "[", "]") {
@@ -56,13 +67,21 @@ fun mapRequestAllowed(uri: Uri): Boolean =
 
 /**
  * The map of a trip's two ends or of a parking place, shown at once inside the app (docs/SPEC.md §26): a bundled
- * Leaflet page in a locked-down WebView. Only the rounded points go to the page and only tiles of OpenStreetMap
- * are fetched, so the area of the points (not the exact position) is what the tile server sees.
+ * Leaflet page in a locked-down WebView. Only the points go to the page (rounded, or exact for the car's own position) and only tiles
+ * of OpenStreetMap are fetched, so what the tile server sees is the area being viewed.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun MapScreen(title: String, points: List<MapPoint>, route: RouteState, onBack: () -> Unit, heat: HeatState = HeatState.None) {
+fun MapScreen(
+    title: String,
+    points: List<MapPoint>,
+    route: RouteState,
+    onBack: () -> Unit,
+    heat: HeatState = HeatState.None,
+    /** The points are the exact position of the car (the "Lokalizacja" screen); everything else stays at about 100 m. */
+    exact: Boolean = false,
+) {
     BackHandler(onBack = onBack)
     val context = LocalContext.current
     var page by remember { mutableStateOf<WebView?>(null) }
@@ -110,7 +129,7 @@ fun MapScreen(title: String, points: List<MapPoint>, route: RouteState, onBack: 
                                 }
 
                         }
-                        loadUrl(mapPageUrl(points))
+                        loadUrl(mapPageUrl(points, exact))
                     }
                 },
                 onRelease = {
@@ -138,7 +157,7 @@ fun MapScreen(title: String, points: List<MapPoint>, route: RouteState, onBack: 
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 points.firstOrNull()?.let { first ->
-                    ParkingFormatting.mapUri(first.lat, first.lon)?.let { uri ->
+                    ParkingFormatting.mapUri(first.lat, first.lon, exact)?.let { uri ->
                         androidx.compose.material3.Button(
                             onClick = { openInMap(context, uri) },
                             modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
