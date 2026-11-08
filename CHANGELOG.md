@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.1 (2026-11-08)
 - Ikony Material Symbols zamiast emoji na kartach, kafelkach, przyciskach i w wierszach (SPEC §10.4); emoji zostają tylko przy symbolach pogody
 - Jasny motyw: czerwień Toyoty przyciemniona do `#C8001A` dla tekstów i przycisków, żeby kontrast wynosił co najmniej 4,5:1 (SPEC §10.4)
 - Build release zmniejszany przez R8 i bez nieużywanych zasobów (ADR-017): APK spadł z 30,9 MB do 4,3 MB, reguły w `proguard-rules.pro`; `mapping.txt` wydania zostaje jako artefakt workflow `Release`
