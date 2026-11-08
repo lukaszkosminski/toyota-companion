@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import pl.lk.toyotacompanion.data.db.ExpenseDao
 import pl.lk.toyotacompanion.data.db.ExpenseEntity
@@ -25,44 +27,52 @@ class ExpensesController(
     private val ui = MutableStateFlow(ExpensesUiState())
     val state: StateFlow<ExpensesUiState> = ui.asStateFlow()
 
+    /**
+     * Reads and writes run one after another in the order of the taps (C22 D6): two quick adds or deletes can no longer
+     * let an older list land after a newer one, and a failed write is followed by nothing that hides it.
+     */
+    private val queue = Mutex()
+
+    /** Bumped by [reset]; an operation queued before a logout does not write its list afterwards. */
+    private var generation = 0
+
     fun load() {
-        scope.launch { reload() }
+        val startedIn = generation
+        scope.launch { queue.withLock { reload(startedIn) } }
     }
 
     /** True when the entry was accepted; the amount is validated here so the form only shows "invalid". */
     fun add(date: LocalDate, category: ExpenseCategory, amountText: String, note: String): Boolean {
         val amount = parseExpenseAmount(amountText) ?: return false
         val entity = ExpenseEntity(UUID.randomUUID().toString(), date.toEpochDay(), category.name, amount, note.trim().ifEmpty { null })
-        scope.launch {
-            try {
-                withContext(io) { dao.upsert(entity) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                ui.value = ui.value.copy(failed = true)
-                return@launch
-            }
-            reload()
-        }
+        write { dao.upsert(entity) }
         return true
     }
 
     fun delete(id: String) {
+        write { dao.delete(id) }
+    }
+
+    /** One write in the queue, then the list again; a failed write keeps the rows on screen and marks the failure. */
+    private fun write(change: suspend () -> Unit) {
+        val startedIn = generation
         scope.launch {
-            try {
-                withContext(io) { dao.delete(id) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                ui.value = ui.value.copy(failed = true)
-                return@launch
+            queue.withLock {
+                try {
+                    withContext(io) { change() }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    if (generation == startedIn) ui.value = ui.value.copy(failed = true)
+                    return@withLock
+                }
+                reload(startedIn)
             }
-            reload()
         }
     }
 
-    private suspend fun reload() {
-        ui.value = try {
+    private suspend fun reload(startedIn: Int) {
+        val next = try {
             val rows = withContext(io) { dao.all() }.map { it.toExpense() }
             ExpensesUiState(loading = false, expenses = rows)
         } catch (e: CancellationException) {
@@ -70,9 +80,11 @@ class ExpensesController(
         } catch (e: Exception) {
             ExpensesUiState(loading = false, failed = true)
         }
+        if (generation == startedIn) ui.value = next
     }
 
     fun reset() {
+        generation++
         ui.value = ExpensesUiState()
     }
 }

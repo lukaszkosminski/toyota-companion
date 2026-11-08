@@ -77,6 +77,9 @@ class WeatherController(
     val state: StateFlow<WeatherUiState> = ui.asStateFlow()
 
     private var generation = 0
+
+    /** The read in flight; a newer one cancels it, so an older result never overwrites a newer one (C22 D5). */
+    private var loadJob: Job? = null
     private var loadStarted = false
     private var fetchJob: Job? = null
 
@@ -86,7 +89,8 @@ class WeatherController(
         // A result of an earlier visit must not greet the next one.
         if (!ui.value.fetching) ui.value = ui.value.copy(lastFetch = null)
         val startedIn = generation
-        scope.launch {
+        loadJob?.cancel()
+        loadJob = scope.launch {
             val result: Result<WeatherView> = try {
                 Result.success(withContext(io) { compute() })
             } catch (e: CancellationException) {
@@ -108,6 +112,8 @@ class WeatherController(
     }
 
     fun reset() {
+        loadJob?.cancel()
+        loadJob = null
         generation++
         loadStarted = false
         fetchJob?.cancel()
@@ -195,12 +201,7 @@ class WeatherController(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: WeatherFetchException) {
-                return when (e.kind) {
-                    WeatherErrorKind.NETWORK -> WeatherFetchResult.NETWORK
-                    WeatherErrorKind.RATE_LIMIT -> WeatherFetchResult.RATE_LIMIT
-                    WeatherErrorKind.API -> WeatherFetchResult.API
-                    WeatherErrorKind.DATA -> WeatherFetchResult.DATA
-                }
+                return e.kind.toFetchResult()
             }
             received += days.size
             val now = clock()
@@ -226,12 +227,7 @@ class WeatherController(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: WeatherFetchException) {
-                return when (e.kind) {
-                    WeatherErrorKind.NETWORK -> WeatherFetchResult.NETWORK
-                    WeatherErrorKind.RATE_LIMIT -> WeatherFetchResult.RATE_LIMIT
-                    WeatherErrorKind.API -> WeatherFetchResult.API
-                    WeatherErrorKind.DATA -> WeatherFetchResult.DATA
-                }
+                return e.kind.toFetchResult()
             }
             received += days.size
             try {
@@ -279,4 +275,12 @@ class WeatherController(
      * runs on API 29+ (docs/SPEC.md §23).
      */
     private fun today(): LocalDate = clock().atZone(zone()).toLocalDate()
+}
+
+/** What the screen says about a failed request; one mapping for the archive and the today forecast (C22 D4). */
+internal fun WeatherErrorKind.toFetchResult(): WeatherFetchResult = when (this) {
+    WeatherErrorKind.NETWORK -> WeatherFetchResult.NETWORK
+    WeatherErrorKind.RATE_LIMIT -> WeatherFetchResult.RATE_LIMIT
+    WeatherErrorKind.API -> WeatherFetchResult.API
+    WeatherErrorKind.DATA -> WeatherFetchResult.DATA
 }

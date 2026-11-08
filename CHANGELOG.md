@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Porządki z przeglądu C22: nowszy odczyt ekranu zawsze wygrywa ze starszym (pogoda, statystyki, podsumowanie roku, styl jazdy, postoje, karta spalania, prognoza), wydatki zapisywane po kolei bez zgubionych zmian, strona cen czytana do 2 MB, data ostatniej synchronizacji bez `String.format`
 - Cele eco: miesięczny cel spalania i jazdy na prądzie, karta „Cel miesiąca” na ekranie statusu, wynik poprzedniego miesiąca i linia w widżecie (F39, SPEC §40)
 - Koszt całkowity auta w „Podsumowaniu roku”: paliwo i wydatki, zł/km, średnio na miesiąc, udział paliwa, największe kategorie i zmiana rok do roku (F38, SPEC §39, ADR-020)
 

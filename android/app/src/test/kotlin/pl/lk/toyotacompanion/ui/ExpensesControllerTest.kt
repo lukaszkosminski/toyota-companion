@@ -6,6 +6,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -23,6 +24,9 @@ private class FakeExpenseDao : ExpenseDao() {
     var failWrite = false
     var reads = 0
 
+    /** Holds the next read until completed: the list it returns is the one from before the wait. */
+    var readGate: CompletableDeferred<Unit>? = null
+
     override suspend fun upsert(entity: ExpenseEntity) {
         if (failWrite) throw IllegalStateException("disk full")
         rows[entity.id] = entity
@@ -35,6 +39,13 @@ private class FakeExpenseDao : ExpenseDao() {
     override suspend fun all(): List<ExpenseEntity> {
         reads++
         if (failRead) throw IllegalStateException("unreadable")
+        val gate = readGate
+        if (gate != null) {
+            readGate = null
+            val before = rows.values.toList()
+            gate.await()
+            return before.sortedWith(compareByDescending<ExpenseEntity> { it.dateEpochDay }.thenBy { it.id })
+        }
         return rows.values.sortedWith(compareByDescending<ExpenseEntity> { it.dateEpochDay }.thenBy { it.id })
     }
 
@@ -196,5 +207,58 @@ class ExpensesControllerTest {
         assertTrue(c.state.value.loading)
         assertEquals(emptyList(), c.state.value.expenses)
         assertFalse(c.state.value.failed)
+    }
+
+    @Test
+    fun `a slow read started before an add cannot hide the new expense`() = runTest {
+        val dao = FakeExpenseDao()
+        val gate = CompletableDeferred<Unit>()
+        dao.readGate = gate
+        val c = controller(dao)
+
+        c.load() // reads the empty table and waits
+        advanceUntilIdle()
+        assertTrue(c.add(LocalDate.ofEpochDay(20_000), ExpenseCategory.WASH, "40", ""))
+        advanceUntilIdle()
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(listOf(ExpenseCategory.WASH), c.state.value.expenses.map { it.category })
+    }
+
+    @Test
+    fun `quick deletes end with the table as it is`() = runTest {
+        val dao = FakeExpenseDao().apply {
+            rows["a"] = entity("a", 20_000)
+            rows["b"] = entity("b", 20_001)
+            rows["c"] = entity("c", 20_002)
+        }
+        val c = controller(dao)
+        c.load()
+        advanceUntilIdle()
+
+        c.delete("a")
+        c.delete("c")
+        advanceUntilIdle()
+
+        assertEquals(listOf("b"), c.state.value.expenses.map { it.id })
+        assertFalse(c.state.value.failed)
+    }
+
+    @Test
+    fun `a list read before a logout is not shown after it`() = runTest {
+        val dao = FakeExpenseDao().apply { rows["a"] = entity("a", 20_000) }
+        val gate = CompletableDeferred<Unit>()
+        dao.readGate = gate
+        val c = controller(dao)
+        c.load()
+        advanceUntilIdle()
+
+        c.reset()
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertTrue(c.state.value.loading)
+        assertEquals(emptyList(), c.state.value.expenses)
     }
 }

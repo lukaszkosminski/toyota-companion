@@ -5,6 +5,7 @@ import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -42,13 +43,17 @@ class YearSummaryController(
     val state: StateFlow<YearSummaryState> = ui.asStateFlow()
 
     private var generation = 0
+
+    /** The read in flight; a newer one cancels it, so an older result never overwrites a newer one (C22 D5). */
+    private var loadJob: Job? = null
     private var loadStarted = false
 
     /** Opens the page on [year] or, without one, on the newest year with trips. */
     fun load(year: Int? = null) {
         loadStarted = true
         val startedIn = generation
-        scope.launch {
+        loadJob?.cancel()
+        loadJob = scope.launch {
             val result: Result<YearSummaryState> = try {
                 Result.success(
                     withContext(io) {
@@ -83,6 +88,8 @@ class YearSummaryController(
     }
 
     fun reset() {
+        loadJob?.cancel()
+        loadJob = null
         generation++
         loadStarted = false
         ui.value = YearSummaryState()

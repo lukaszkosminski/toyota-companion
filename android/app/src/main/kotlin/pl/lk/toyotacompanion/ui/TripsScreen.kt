@@ -26,6 +26,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -58,7 +59,7 @@ private sealed interface TripsLoad {
  *
  * Read-only: no Toyota call and no `refresh_status()` — the archive is what is on
  * the phone (docs/SPEC.md §9.3). No GPS positions and no VIN are displayed
- * (docs/SECURITY.md) and every control is a text button, so no icons are needed.
+ * (docs/SECURITY.md).
  *
  * @param onBack leaves the screen, also called by [BackHandler]
  * @param loadTrips reads `SyncEngine.trips()`; injected, so the screen never sees a database
@@ -201,7 +202,7 @@ private fun TripRow(stored: StoredTrip, zone: ZoneId, day: pl.lk.toyotacompanion
     val trip = stored.record.trip
     val cost = stored.cost
     val record = stored.record
-    val points = tripMapPoints(record)
+    val points = remember(record) { tripMapPoints(record) }
     Card(
         // A trip without any position is not clickable: there is nothing to show.
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 3.dp).let {
@@ -215,7 +216,7 @@ private fun TripRow(stored: StoredTrip, zone: ZoneId, day: pl.lk.toyotacompanion
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconBadge(if (points.isNotEmpty()) AppIcons.DirectionsCar else AppIcons.DirectionsCar, Palette.Blue)
+            IconBadge(AppIcons.DirectionsCar, Palette.Blue)
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(2.dp),

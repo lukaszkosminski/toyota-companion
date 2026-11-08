@@ -69,7 +69,10 @@ object Texts {
     fun lastSuccess(status: SyncStatus, zone: ZoneId = ZoneId.systemDefault()): String {
         val at = status.state.lastSuccessAt ?: return Lang.pick("Ostatnia synchronizacja: brak", "Last sync: none")
         val local = at.atZone(zone)
-        val formatted = "%04d-%02d-%02d %02d:%02d".format(local.year, local.monthValue, local.dayOfMonth, local.hour, local.minute)
+        // No String.format: with an Arabic or Persian default locale it would print other digits (C22 D7, TripsFormatting).
+        fun two(n: Int) = n.toString().padStart(2, '0')
+        val formatted = local.year.toString().padStart(4, '0') + "-" + two(local.monthValue) + "-" + two(local.dayOfMonth) + " " +
+            two(local.hour) + ":" + two(local.minute)
         return Lang.pick("Ostatnia synchronizacja: $formatted", "Last sync: $formatted")
     }
 

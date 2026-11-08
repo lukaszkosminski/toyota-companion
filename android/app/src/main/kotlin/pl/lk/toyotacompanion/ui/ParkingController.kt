@@ -3,6 +3,7 @@ package pl.lk.toyotacompanion.ui
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,12 +33,16 @@ class ParkingController(
     val state: StateFlow<ParkingUiState> = ui.asStateFlow()
 
     private var generation = 0
+
+    /** The read in flight; a newer one cancels it, so an older result never overwrites a newer one (C22 D5). */
+    private var loadJob: Job? = null
     private var loadStarted = false
 
     fun load() {
         loadStarted = true
         val startedIn = generation
-        scope.launch {
+        loadJob?.cancel()
+        loadJob = scope.launch {
             val result: Result<ParkingLog> = try {
                 Result.success(withContext(io) { parkingLogOf(read()) })
             } catch (e: CancellationException) {
@@ -59,6 +64,8 @@ class ParkingController(
     }
 
     fun reset() {
+        loadJob?.cancel()
+        loadJob = null
         generation++
         loadStarted = false
         ui.value = ParkingUiState()

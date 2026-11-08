@@ -95,4 +95,28 @@ class TrojmiastoPriceClientTest {
         assertEquals(PriceErrorKind.NETWORK, e.kind)
         assertFalse(e.message.orEmpty().contains("127.0.0.1"))
     }
+
+    @Test
+    fun `a page over the size limit is a data failure and is not read into memory`() {
+        MockWebServer().use { server ->
+            server.start()
+            val huge = PAGE + " ".repeat((TrojmiastoPriceClient.MAX_PAGE_BYTES + 1).toInt())
+            server.enqueue(MockResponse.Builder().code(200).body(huge).build())
+            val client = TrojmiastoPriceClient(OkHttpClient(), url = server.url("/").toString())
+            val e = assertFailsWith<FuelPriceException> { runBlocking { client.prices(wanted) } }
+            assertEquals(PriceErrorKind.DATA, e.kind)
+        }
+    }
+
+    @Test
+    fun `a page just under the limit is still read, with its Polish letters`() {
+        MockWebServer().use { server ->
+            server.start()
+            val padded = PAGE + " ".repeat((TrojmiastoPriceClient.MAX_PAGE_BYTES - PAGE.toByteArray().size).toInt())
+            server.enqueue(MockResponse.Builder().code(200).addHeader("Content-Type", "text/html; charset=utf-8").body(padded).build())
+            val client = TrojmiastoPriceClient(OkHttpClient(), url = server.url("/").toString())
+            val prices = runBlocking { client.prices(wanted) }
+            assertEquals(3, prices.size)
+        }
+    }
 }

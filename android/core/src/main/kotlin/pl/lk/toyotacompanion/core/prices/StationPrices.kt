@@ -40,7 +40,7 @@ class TrojmiastoPriceClient(
     override suspend fun prices(stationIds: Set<String>): List<StationPrice> {
         val request = Request.Builder().url(url.toHttpUrl()).header("User-Agent", userAgent).get().build()
         val (status, body) = try {
-            withContext(Dispatchers.IO) { http.newCall(request).execute().use { it.code to it.body?.string().orEmpty() } }
+            withContext(Dispatchers.IO) { http.newCall(request).execute().use { it.code to (if (it.code in 200..299) readLimited(it.body) else "") } }
         } catch (e: IOException) {
             throw FuelPriceException(PriceErrorKind.NETWORK, "Price request failed: ${e.javaClass.simpleName}")
         }
@@ -50,6 +50,18 @@ class TrojmiastoPriceClient(
 
     companion object {
         const val DEFAULT_URL = "https://www.trojmiasto.pl/moto/paliwa/"
+
+        /** The page has some hundred kB; more than this is not the price list and is not read into memory (C22 D13). */
+        const val MAX_PAGE_BYTES = 2L * 1024 * 1024
+
+        private fun readLimited(body: okhttp3.ResponseBody): String {
+            val source = body.source()
+            if (source.request(MAX_PAGE_BYTES + 1)) {
+                throw FuelPriceException(PriceErrorKind.DATA, "Price page larger than $MAX_PAGE_BYTES bytes")
+            }
+            val charset = body.contentType()?.charset(Charsets.UTF_8) ?: Charsets.UTF_8
+            return source.buffer.readString(charset)
+        }
         const val USER_AGENT = "toyota-companion"
 
         private val ROW = Regex("""<tr id="(\d+)" class="prices-table__item">(.*?)</tr>""", RegexOption.DOT_MATCHES_ALL)
