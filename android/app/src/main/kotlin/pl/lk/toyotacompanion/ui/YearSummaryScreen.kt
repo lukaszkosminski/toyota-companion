@@ -202,6 +202,17 @@ fun YearSummaryScreen(
                     }
                 }
 
+                // Fuel and everything else (PRD F38, docs/SPEC.md §39).
+                val ownershipLines = ownershipLines(state.ownership, state.previousOwnership)
+                if (ownershipLines.isNotEmpty()) {
+                    DashboardCard(Texts.OWNERSHIP_TITLE, AppIcons.Payments) {
+                        val share = state.ownership?.cost?.fuelSharePct
+                        if (share != null) MeterRow(Texts.OWNERSHIP_FUEL_SHARE, TripsFormatting.plain(share, 0) + " %", share.toFloat() / 100f, Palette.Orange)
+                        ownershipLines.forEach { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                        Text(Texts.OWNERSHIP_NOTE, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+
                 val previous = state.previous
                 if (previous != null) {
                     DashboardCard(Texts.STATS_YEAR_OVER_YEAR, AppIcons.TrendingUp) {
@@ -227,7 +238,7 @@ fun YearSummaryScreen(
                     onClick = {
                         val send = Intent(Intent.ACTION_SEND)
                             .setType("text/plain")
-                            .putExtra(Intent.EXTRA_TEXT, yearSummaryShareText(summary, state.previous, zone))
+                            .putExtra(Intent.EXTRA_TEXT, yearSummaryShareText(summary, state.previous, zone, state.ownership, state.previousOwnership))
                         context.startActivity(Intent.createChooser(send, Texts.YEAR_SHARE))
                     },
                     modifier = Modifier.fillMaxWidth().padding(top = 4.dp),

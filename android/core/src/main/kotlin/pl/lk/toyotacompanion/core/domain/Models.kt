@@ -122,6 +122,20 @@ data class RefuelForecast(
     val daysToReserve: BigDecimal,
 )
 
+/**
+ * What the car cost in a period, fuel and everything else (PRD F38, docs/SPEC.md §39). Mirrors Python `OwnershipCost`:
+ * [fuelPln] is the cost of the priced trips only (0 when none is priced, then [fuelSharePct] is `null`).
+ */
+data class OwnershipCost(
+    val totalPln: BigDecimal,
+    val fuelPln: BigDecimal,
+    val expensesPln: BigDecimal,
+    val perKmPln: BigDecimal?,
+    val per100KmPln: BigDecimal?,
+    val perMonthPln: BigDecimal?,
+    val fuelSharePct: BigDecimal?,
+)
+
 /** Bucket of a day by its mean temperature (PRD F15). `label` is the string the domain reports. */
 enum class TemperatureBucket(val label: String) {
     DEEP_FROST("deep_frost"),

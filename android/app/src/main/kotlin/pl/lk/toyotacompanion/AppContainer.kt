@@ -71,6 +71,7 @@ import pl.lk.toyotacompanion.ui.RefuelPromptController
 import pl.lk.toyotacompanion.ui.SessionController
 import pl.lk.toyotacompanion.ui.StatsController
 import pl.lk.toyotacompanion.ui.readArchiveBytes
+import pl.lk.toyotacompanion.ui.toExpense
 
 /** Hand-wired dependencies (no DI framework). Everything is lazy: nothing touches Keystore or disk at app start. */
 class AppContainer(
@@ -449,7 +450,14 @@ class AppContainer(
 
     /** One year of driving on one page (PRD F28, docs/SPEC.md §29). */
     val yearSummaryController: YearSummaryController by lazy {
-        YearSummaryController(read = tripsLoader, zone = { ZoneId.systemDefault() }, scope = uiScope, io = Dispatchers.IO)
+        YearSummaryController(
+            read = tripsLoader,
+            zone = { ZoneId.systemDefault() },
+            // Expenses of the year join the fuel in the total cost (PRD F38, docs/SPEC.md §39).
+            readExpenses = { database.expenseDao().all().map { it.toExpense() } },
+            scope = uiScope,
+            io = Dispatchers.IO,
+        )
     }
 
     /** Saves the routes of older trips before Toyota removes them (PRD F32, docs/SPEC.md §33). */

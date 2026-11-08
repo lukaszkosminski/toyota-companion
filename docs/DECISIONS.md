@@ -134,3 +134,9 @@ Decyzja właściciela produktu. Projekt jest dla jednego właściciela z jednym 
 a komunikat „kilka pojazdów do wyboru” obiecywał wybór, którego nie ma. Wybrane: uczciwy komunikat (PL/EN) i zapis w SPEC §8.3 i §9.3, bez UI wyboru auta. Odrzucone: wybór pojazdu w „Opcjach” (koszt i testy dla przypadku, którego właściciel nie ma;
 dochodzi sprawa spójności liczników z kilku VIN-ów, C22 D1). Skutek: właściciel z drugim autem na koncie musi poprosić o tę funkcję; wtedy `selectVehicle` trzeba wywołać pod mutexem synchronizacji (dziś robi odczyt i zapis stanu bez blokady). Metoda zostaje w `core` bez zmian.
 
+## ADR-020 Koszt całkowity auta w domenie (2026-11-08)
+Decyzja właściciela produktu (wybór funkcji F38). ADR-018 zostawił wydatki w `ui`, dopóki nie wchodzą do kosztu na kilometr; F38 robi dokładnie to, więc reguła
+(suma, zł/km, średnia na miesiąc, udział paliwa, liczba miesięcy roku) jest w `core/domain` z lustrem w Pythonie i testami o tych samych nazwach. Wejście to liczby
+(koszt paliwa, km, suma wydatków, miesiące), więc domena nie zna `ExpenseEntity` ani Room, a `ExpensesController` dalej działa wprost na `ExpenseDao` (ADR-018 bez zmian).
+Średnia na miesiąc liczona od pierwszego miesiąca z trasą albo wydatkiem w roku, nie od stycznia (auto kupione w ciągu roku). Paliwo tylko z tras z ceną, bez szacowania
+brakującej ceny. Odrzucone: koszt na km tylko z km tras z ceną (wydatki nie zależą od ceny paliwa), szacunek brakujących tras ceną domyślną (ukrywa brak danych).

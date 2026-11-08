@@ -3,8 +3,12 @@ package pl.lk.toyotacompanion.ui
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import pl.lk.toyotacompanion.core.data.StoredTrip
+import pl.lk.toyotacompanion.core.domain.OwnershipCost
+import pl.lk.toyotacompanion.core.domain.ownershipCost
+import pl.lk.toyotacompanion.core.domain.ownershipMonths
 import pl.lk.toyotacompanion.core.domain.toBigDecimal
 
 /**
@@ -124,6 +128,63 @@ fun yearSummaryLines(summary: YearSummary, previous: YearSummary?, zone: ZoneId)
     return lines
 }
 
+/**
+ * Fuel and everything else the car cost in one year (PRD F38, docs/SPEC.md §39): the fuel of the priced trips of [summary]
+ * plus the expenses dated in that year, averaged over the months from the first trip or expense of the year to December (to
+ * [today]'s month in the current year). [topCategories] are the three biggest expense categories of the year.
+ */
+data class YearOwnership(val cost: OwnershipCost, val months: Int, val topCategories: List<CategoryTotal>)
+
+/** Number of expense categories listed under the total cost (docs/SPEC.md §39). */
+const val OWNERSHIP_TOP_CATEGORIES = 3
+
+/** The total cost of [year]; `null` when the year has neither a priced trip nor an expense. */
+fun yearOwnership(
+    trips: List<StoredTrip>,
+    expenses: List<Expense>,
+    year: Int,
+    zone: ZoneId,
+    today: LocalDate,
+): YearOwnership? {
+    val summary = yearSummary(trips, year, zone)
+    val ofYear = expenses.filter { it.date.year == year }
+    val tripMonths = trips.map { it.record.trip.start.atZone(zone) }.filter { it.year == year }.map { it.monthValue }
+    val firstMonth = (tripMonths + ofYear.map { it.date.monthValue }).minOrNull() ?: return null
+    val spent = ofYear.fold(BigDecimal.ZERO) { sum, e -> sum.add(e.amount) }
+    val months = ownershipMonths(year, firstMonth, today.year, today.monthValue)
+    val cost = ownershipCost(
+        fuelCost = summary?.costPln,
+        distanceKm = summary?.distanceKm ?: BigDecimal.ZERO,
+        expenses = spent,
+        months = months,
+    ) ?: return null
+    return YearOwnership(cost, months, categoryTotals(ofYear).take(OWNERSHIP_TOP_CATEGORIES))
+}
+
+/** The total-cost lines of the page and of the shared text (docs/SPEC.md §39); empty without [ownership]. */
+fun ownershipLines(ownership: YearOwnership?, previous: YearOwnership?): List<String> {
+    val cost = ownership?.cost ?: return emptyList()
+    val lines = ArrayList<String>()
+    lines += Texts.ownershipTotal(
+        TripsFormatting.money(cost.totalPln),
+        cost.perKmPln?.let { TripsFormatting.money(it) },
+        cost.per100KmPln?.let { TripsFormatting.money(it) },
+    )
+    cost.perMonthPln?.let { lines += Texts.ownershipPerMonth(TripsFormatting.money(it), ownership.months) }
+    lines += Texts.ownershipSplit(
+        TripsFormatting.money(cost.fuelPln),
+        TripsFormatting.money(cost.expensesPln),
+        cost.fuelSharePct?.let { TripsFormatting.plain(it, 0) },
+    )
+    if (ownership.topCategories.isNotEmpty()) {
+        lines += Texts.ownershipTop(
+            ownership.topCategories.joinToString(", ") { Texts.expenseCategoryName(it.category) + " " + TripsFormatting.money(it.total) },
+        )
+    }
+    if (previous != null) percentChange(cost.totalPln, previous.cost.totalPln)?.let { lines += Texts.ownershipVersus(it) }
+    return lines
+}
+
 /** `+12 %`, `-4 %`, `0 %`; `null` when either side is missing or the base is zero. */
 fun percentChange(now: BigDecimal?, before: BigDecimal?): String? {
     if (now == null || before == null || before.signum() <= 0) return null
@@ -132,5 +193,12 @@ fun percentChange(now: BigDecimal?, before: BigDecimal?): String? {
 }
 
 /** The text handed to the share sheet: a title and the lines. */
-fun yearSummaryShareText(summary: YearSummary, previous: YearSummary?, zone: ZoneId): String =
-    (listOf(Texts.yearShareTitle(summary.year)) + yearSummaryLines(summary, previous, zone)).joinToString("\n")
+fun yearSummaryShareText(
+    summary: YearSummary,
+    previous: YearSummary?,
+    zone: ZoneId,
+    ownership: YearOwnership? = null,
+    previousOwnership: YearOwnership? = null,
+): String = (
+    listOf(Texts.yearShareTitle(summary.year)) + yearSummaryLines(summary, previous, zone) + ownershipLines(ownership, previousOwnership)
+    ).joinToString("\n")

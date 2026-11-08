@@ -974,3 +974,18 @@ ekranie „Pogoda i spalanie” (§23).
   i w kopii Auto Backup (ADR-015). Wylogowanie czyści listę w pamięci ekranu, nie bazę.
 - Błędy: nieudany odczyt – „Nie udało się odczytać wydatków.”; nieudany zapis lub usunięcie – wiersze zostają jak były, stan oznaczony jako błąd, bez treści wyjątku. Brak wydatków – „Brak wydatków. Dodaj przegląd, opony, serwis – także z datą wstecz.”
 - Testy: `ExpensesTest` (parser, sumy), `ExpensesControllerTest` (kontroler na sztucznym `ExpenseDao`), `AppDatabaseMigrationTest` (migracja 4 → 5). Brak lustra w Pythonie: to prezentacja, nie domena (ADR-018).
+
+## 39. Koszt całkowity auta (PRD F38, ADR-020)
+Domena: `core/domain/OwnershipOps.kt` (`ownershipCost`, `ownershipMonths`, model `OwnershipCost` w `Models.kt`) i lustro `backend/app/domain/ownership.py`, testy o tych samych nazwach
+(`OwnershipOpsTest`, `test_domain_ownership.py`). Prezentacja: `app/ui/YearSummary.kt` (`yearOwnership`, `ownershipLines`), `YearSummaryController` (czyta też wydatki), `YearSummaryScreen`.
+- `ownershipCost(koszt paliwa?, km, wydatki, miesiące)`: suma = paliwo (0, gdy żadna trasa nie ma ceny) + wydatki; `null`, gdy nie ma ani kosztu paliwa (> 0), ani wydatków.
+  zł/km i zł/100 km dzielą sumę przez **wszystkie** km roku (`null` przy 0 km), średnia na miesiąc przez liczbę miesięcy (`null` przy 0), udział paliwa w całych %
+  (`null` bez kosztu paliwa). Kwoty 0,01 zł, wszystko HALF_UP. Ujemne wydatki to błąd programu.
+- `ownershipMonths(rok, pierwszy miesiąc, dziś)`: od pierwszego miesiąca roku z trasą albo wydatkiem do grudnia, w bieżącym roku do bieżącego miesiąca włącznie,
+  0 dla przyszłego roku – auto kupione w kwietniu nie jest uśredniane od stycznia.
+- Rok: paliwo = koszt tras z ceną z §29 (trasy bez ceny nie są dokładane ani szacowane – dopisek o nich jest w karcie roku), wydatki = wpisy z F37 z datą w tym roku.
+- Karta „Koszt całkowity” w „Podsumowaniu roku” (po „Statystykach”, przed „Rok do roku”), tylko gdy rok ma koszt: pasek „Udział paliwa”, linie
+  „Koszt całkowity: 1 456,50 zł (3,10 zł/km · 309,89 zł/100 km)”, „Średnio 161,83 zł na miesiąc (z 9 miesięcy)”, „Paliwo 106,00 zł (7 %) · wydatki 1 350,50 zł”,
+  „Najwięcej poza paliwem: Opony 800,50 zł, Serwis 500,00 zł, Myjnia 40,00 zł” (trzy największe kategorie roku) i „Koszt całkowity wobec poprzedniego roku: +51 %”
+  (gdy poprzedni rok ma koszt), pod nimi skąd są liczby. Te same linie kończą tekst „Udostępnij podsumowanie” (§29), bez położenia i VIN.
+- Nic nie idzie do sieci; wydatki czytane z tej samej bazy co ekran „Wydatki” (§38).

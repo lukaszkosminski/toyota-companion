@@ -1,5 +1,6 @@
 package pl.lk.toyotacompanion.ui
 
+import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -15,6 +16,7 @@ import pl.lk.toyotacompanion.core.data.StoredTrip
  * @param years the years that have trips, newest first
  * @param selected the year on the page
  * @param summary its summary and [previous] that of the year before when it has trips
+ * @param ownership the total cost of the year and [previousOwnership] that of the year before (docs/SPEC.md §39)
  */
 data class YearSummaryState(
     val loading: Boolean = true,
@@ -22,6 +24,8 @@ data class YearSummaryState(
     val selected: Int? = null,
     val summary: YearSummary? = null,
     val previous: YearSummary? = null,
+    val ownership: YearOwnership? = null,
+    val previousOwnership: YearOwnership? = null,
     val loadFailed: Boolean = false,
 )
 
@@ -31,6 +35,8 @@ class YearSummaryController(
     private val zone: () -> ZoneId,
     private val scope: CoroutineScope,
     private val io: CoroutineDispatcher,
+    private val readExpenses: suspend () -> List<Expense> = { emptyList() },
+    private val today: () -> LocalDate = { LocalDate.now() },
 ) {
     private val ui = MutableStateFlow(YearSummaryState())
     val state: StateFlow<YearSummaryState> = ui.asStateFlow()
@@ -47,14 +53,18 @@ class YearSummaryController(
                 Result.success(
                     withContext(io) {
                         val trips = read()
+                        val expenses = readExpenses()
                         val years = yearsWithTrips(trips, zone())
                         val chosen = year?.takeIf { it in years } ?: years.firstOrNull()
+                        val day = today()
                         YearSummaryState(
                             loading = false,
                             years = years,
                             selected = chosen,
                             summary = chosen?.let { yearSummary(trips, it, zone()) },
                             previous = chosen?.let { yearSummary(trips, it - 1, zone()) },
+                            ownership = chosen?.let { yearOwnership(trips, expenses, it, zone(), day) },
+                            previousOwnership = chosen?.let { yearOwnership(trips, expenses, it - 1, zone(), day) },
                         )
                     },
                 )

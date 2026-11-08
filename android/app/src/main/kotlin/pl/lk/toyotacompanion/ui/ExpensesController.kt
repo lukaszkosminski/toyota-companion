@@ -63,15 +63,7 @@ class ExpensesController(
 
     private suspend fun reload() {
         ui.value = try {
-            val rows = withContext(io) { dao.all() }.map {
-                Expense(
-                    it.id,
-                    LocalDate.ofEpochDay(it.dateEpochDay),
-                    ExpenseCategory.entries.firstOrNull { c -> c.name == it.category } ?: ExpenseCategory.OTHER,
-                    it.amountPln,
-                    it.note,
-                )
-            }
+            val rows = withContext(io) { dao.all() }.map { it.toExpense() }
             ExpensesUiState(loading = false, expenses = rows)
         } catch (e: CancellationException) {
             throw e
@@ -84,3 +76,12 @@ class ExpensesController(
         ui.value = ExpensesUiState()
     }
 }
+
+/** A stored row as the screens see it; an unknown category name (from a newer version) reads as [ExpenseCategory.OTHER]. */
+internal fun ExpenseEntity.toExpense(): Expense = Expense(
+    id,
+    LocalDate.ofEpochDay(dateEpochDay),
+    ExpenseCategory.entries.firstOrNull { it.name == category } ?: ExpenseCategory.OTHER,
+    amountPln,
+    note,
+)

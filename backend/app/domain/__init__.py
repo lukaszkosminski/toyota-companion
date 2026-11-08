@@ -21,6 +21,7 @@ from .models import (
     round_percent,
     round_price,
 )
+from .ownership import OwnershipCost, ownership_cost, ownership_months
 from .refuel import (
     confirm_refuel,
     detect_refuel,
@@ -60,6 +61,9 @@ from .weather import (
 )
 
 __all__ = [
+    "OwnershipCost",
+    "ownership_cost",
+    "ownership_months",
     "REFERENCE_PRECIPITATION_BUCKET",
     "REFERENCE_TEMPERATURE_BUCKET",
     "WEATHER_MIN_TRIPS_PER_BUCKET",

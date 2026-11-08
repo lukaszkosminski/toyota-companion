@@ -782,6 +782,33 @@ object Texts {
             .ifEmpty { listOf("brak porównania") }.joinToString(SEPARATOR)
     }
 
+    // Koszt całkowity auta (PRD F38, docs/SPEC.md §39).
+
+    val OWNERSHIP_TITLE: String get() = Lang.pick("Koszt całkowity", "Total cost")
+    val OWNERSHIP_FUEL_SHARE: String get() = Lang.pick("Udział paliwa", "Fuel share")
+    val OWNERSHIP_NOTE: String get() = Lang.pick(
+        "Paliwo z tras z ceną i wydatki z ekranu „Wydatki” z tego roku.",
+        "Fuel of the priced trips and this year's expenses from \"Expenses\".",
+    )
+    fun ownershipTotal(total: String, perKm: String?, per100: String?): String {
+        val rates = listOfNotNull(perKm?.let { "$it/km" }, per100?.let { "$it/100 km" })
+        val tail = if (rates.isEmpty()) "" else " (" + rates.joinToString(SEPARATOR) + ")"
+        return Lang.pick("Koszt całkowity: $total$tail", "Total cost: $total$tail")
+    }
+    fun ownershipPerMonth(money: String, months: Int): String = Lang.pick(
+        "Średnio $money na miesiąc (z $months ${plPlural(months.toLong(), "miesiąca", "miesięcy", "miesięcy")})",
+        "On average $money a month (over $months ${enPlural(months.toLong(), "month", "months")})",
+    )
+    fun ownershipSplit(fuel: String, expenses: String, fuelShare: String?): String = Lang.pick(
+        "Paliwo $fuel" + (fuelShare?.let { " ($it %)" } ?: "") + SEPARATOR + "wydatki $expenses",
+        "Fuel $fuel" + (fuelShare?.let { " ($it %)" } ?: "") + SEPARATOR + "expenses $expenses",
+    )
+    fun ownershipTop(categories: String): String = Lang.pick("Najwięcej poza paliwem: $categories", "Most besides fuel: $categories")
+    fun ownershipVersus(change: String): String = Lang.pick(
+        "Koszt całkowity wobec poprzedniego roku: $change",
+        "Total cost vs the year before: $change",
+    )
+
     // Prędkość × temperatura (docs/SPEC.md §28).
 
     val MATRIX_TITLE: String get() = Lang.pick("Prędkość i temperatura", "Speed and temperature")
