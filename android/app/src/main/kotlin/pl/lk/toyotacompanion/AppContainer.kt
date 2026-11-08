@@ -53,6 +53,8 @@ import pl.lk.toyotacompanion.ui.DefaultPriceController
 import pl.lk.toyotacompanion.core.prices.FuelPriceGatewayFactory
 import pl.lk.toyotacompanion.ui.ConsumptionController
 import pl.lk.toyotacompanion.ui.DeclaredConsumptionController
+import pl.lk.toyotacompanion.ui.EcoGoals
+import pl.lk.toyotacompanion.ui.EcoGoalsController
 import pl.lk.toyotacompanion.ui.StationPriceController
 import pl.lk.toyotacompanion.ui.RouteBackfillController
 import pl.lk.toyotacompanion.ui.RouteHeatController
@@ -238,8 +240,12 @@ class AppContainer(
             val forecast = syncEngine.refuelForecast()?.let {
                 pl.lk.toyotacompanion.ui.forecastLine(pl.lk.toyotacompanion.ui.TimedForecast(it, java.time.Instant.now()), ZoneId.systemDefault())
             }
+            val goals = pl.lk.toyotacompanion.ui.EcoGoals(settingsStore.ecoGoalConsumption(), settingsStore.ecoGoalEvPct())
+            val goalLine = pl.lk.toyotacompanion.ui.ecoWidgetLine(
+                pl.lk.toyotacompanion.ui.ecoProgress(goals, trips, ZoneId.systemDefault(), java.time.LocalDate.now(ZoneId.systemDefault())),
+            )
             pl.lk.toyotacompanion.widget.WidgetSnapshotStore(context).save(
-                pl.lk.toyotacompanion.widget.widgetSnapshot(view, forecast, settingsStore.defaultPrice()),
+                pl.lk.toyotacompanion.widget.widgetSnapshot(view, forecast, settingsStore.defaultPrice(), goalLine),
             )
             pl.lk.toyotacompanion.widget.ConsumptionWidgetProvider.refresh(context)
         } catch (e: kotlinx.coroutines.CancellationException) {
@@ -266,6 +272,7 @@ class AppContainer(
             if (outcome is SyncOutcome.Ok) {
                 forecastController.refresh()
                 consumptionController.refresh()
+                ecoGoalsController.refresh()
                 // New trips get their weather without a tap (docs/SPEC.md §23).
                 weatherController.autoFetch()
             }
@@ -446,6 +453,20 @@ class AppContainer(
     /** The consumption the maker declares, typed by the owner (docs/SPEC.md §30). */
     val declaredConsumptionController: DeclaredConsumptionController by lazy {
         DeclaredConsumptionController(read = { settingsStore.declaredConsumption() }, save = { settingsStore.saveDeclaredConsumption(it) })
+    }
+
+    /** The monthly eco goals of the owner and the month's figures against them (PRD F39, docs/SPEC.md §40). */
+    val ecoGoalsController: EcoGoalsController by lazy {
+        EcoGoalsController(
+            readGoals = { EcoGoals(settingsStore.ecoGoalConsumption(), settingsStore.ecoGoalEvPct()) },
+            saveGoals = { settingsStore.saveEcoGoals(it.maxConsumption, it.minEvSharePct) },
+            readTrips = tripsLoader,
+            zone = { ZoneId.systemDefault() },
+            scope = uiScope,
+            io = Dispatchers.IO,
+            // The widget has a line for the goals, so it is repainted when they change.
+            onSaved = { uiScope.launch { refreshWidget() } },
+        )
     }
 
     /** One year of driving on one page (PRD F28, docs/SPEC.md §29). */

@@ -470,6 +470,34 @@ class TextsTest {
         assertEquals("30.10 14:05 · x", Texts.refuelPromptBody("30.10 14:05", "x"))
     }
 
+
+    @Test
+    fun `eco goal texts exist in both languages and carry their numbers`() {
+        fun all() = listOf(
+            Texts.ECO_TITLE, Texts.ECO_SET, Texts.ECO_EDIT, Texts.ECO_DIALOG_TITLE, Texts.ECO_BODY, Texts.ECO_CONSUMPTION_FIELD,
+            Texts.ECO_EV_FIELD, Texts.ECO_INVALID, Texts.ECO_SAVE, Texts.ECO_CANCEL, Texts.ECO_NO_EV_DATA,
+            Texts.ecoConsumptionLine("4,30", "4,50", "✓"), Texts.ecoEvLine("42", "40", "✗"), Texts.ecoTooLittle("32"),
+            Texts.ecoPrevious("x"), Texts.ecoPreviousTooLittle("20"), Texts.ecoPreviousConsumption(true), Texts.ecoPreviousConsumption(false),
+            Texts.ecoPreviousEv(true), Texts.ecoPreviousEv(false), Texts.ecoWidget("x"), Texts.ecoWidgetTooLittle("32"),
+            Texts.ecoWidgetConsumption("4,30", "4,50", "✓"), Texts.ecoWidgetEv("42", "40", null),
+        )
+        val polish = all()
+        Lang.current = AppLanguage.EN
+        val english = try {
+            all()
+        } finally {
+            Lang.current = AppLanguage.PL
+        }
+        assertEquals(polish.size, english.size)
+        for ((pl, en) in polish.zip(english)) {
+            assertTrue(pl.isNotBlank() && en.isNotBlank())
+        }
+        // Everything with a Polish word differs from its English twin; only the bare number forms may coincide.
+        assertTrue(polish.zip(english).count { it.first == it.second } <= 2, "untranslated: " + polish.zip(english).filter { it.first == it.second })
+        assertEquals("Spalanie: 4,30 / 4,50 l/100 km ✓", Texts.ecoConsumptionLine("4,30", "4,50", "✓"))
+        assertEquals("Spalanie: 4,30 / 4,50 l/100 km", Texts.ecoConsumptionLine("4,30", "4,50", null))
+        assertEquals("Za mało jazdy, by ocenić (32 km)", Texts.ecoTooLittle("32"))
+    }
 }
 
 /** Minimal entry for the message checks; the values are not formatted here. */

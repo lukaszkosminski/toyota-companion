@@ -40,6 +40,8 @@ class ConsumptionWidgetProvider : AppWidgetProvider() {
             views.setTextViewText(R.id.widget_line3, snapshot.line3)
             views.setViewVisibility(R.id.widget_line2, if (snapshot.line2.isEmpty()) View.GONE else View.VISIBLE)
             views.setViewVisibility(R.id.widget_line3, if (snapshot.line3.isEmpty()) View.GONE else View.VISIBLE)
+            views.setTextViewText(R.id.widget_line4, snapshot.line4)
+            views.setViewVisibility(R.id.widget_line4, if (snapshot.line4.isEmpty()) View.GONE else View.VISIBLE)
             val open = PendingIntent.getActivity(
                 context,
                 0,

@@ -1,4 +1,7 @@
 # Changelog
+
+## Unreleased
+- Cele eco: miesięczny cel spalania i jazdy na prądzie, karta „Cel miesiąca” na ekranie statusu, wynik poprzedniego miesiąca i linia w widżecie (F39, SPEC §40)
 - Koszt całkowity auta w „Podsumowaniu roku”: paliwo i wydatki, zł/km, średnio na miesiąc, udział paliwa, największe kategorie i zmiana rok do roku (F38, SPEC §39, ADR-020)
 
 ## 0.2.2 (2026-11-08)

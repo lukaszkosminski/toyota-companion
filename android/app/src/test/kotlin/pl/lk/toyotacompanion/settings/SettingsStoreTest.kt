@@ -131,4 +131,35 @@ class SettingsStoreTest {
         assertEquals(true, store.notificationsAsked())
     }
 
+
+    @Test
+    fun `eco goals round_trip and null removes only its goal`() {
+        assertNull(store.ecoGoalConsumption())
+        assertNull(store.ecoGoalEvPct())
+
+        store.saveEcoGoals(BigDecimal("4.50"), 40)
+        assertEquals(0, BigDecimal("4.50").compareTo(requireNotNull(store.ecoGoalConsumption())))
+        assertEquals(40, store.ecoGoalEvPct())
+        assertEquals("4.50", prefs.getString("eco_goal_consumption", null))
+
+        store.saveEcoGoals(null, 40)
+        assertNull(store.ecoGoalConsumption())
+        assertEquals(40, store.ecoGoalEvPct())
+        store.saveEcoGoals(null, null)
+        assertNull(store.ecoGoalEvPct())
+    }
+
+    @Test
+    fun `garbage eco goals read as no goal`() {
+        for (text in listOf("abc", "0", "-1", "20.01", "")) {
+            prefs.edit().putString("eco_goal_consumption", text).commit()
+            assertNull(store.ecoGoalConsumption(), text)
+        }
+        prefs.edit().putInt("eco_goal_ev_pct", 101).commit()
+        assertNull(store.ecoGoalEvPct())
+        prefs.edit().putInt("eco_goal_ev_pct", 0).commit()
+        assertNull(store.ecoGoalEvPct())
+        prefs.edit().remove("eco_goal_ev_pct").putString("eco_goal_ev_pct", "40").commit()
+        assertNull(store.ecoGoalEvPct(), "a string under the key is not a goal")
+    }
 }

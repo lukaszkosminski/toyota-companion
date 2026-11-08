@@ -51,6 +51,7 @@ fun AppRoot(
     tripRoute: TripRouteController,
     yearSummary: YearSummaryController,
     declared: DeclaredConsumptionController,
+    ecoGoals: EcoGoalsController,
     backfill: RouteBackfillController,
     heat: RouteHeatController,
     expenses: ExpensesController,
@@ -69,6 +70,7 @@ fun AppRoot(
     val routeState by tripRoute.state.collectAsState()
     val widgetContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
     val declaredState by declared.state.collectAsState()
+    val ecoGoalsState by ecoGoals.state.collectAsState()
     val heatState by heat.state.collectAsState()
     var screen by rememberSaveable { mutableStateOf(Screen.Status) }
     // The map in the app (docs/SPEC.md §26): [origin ordinal, then per point: label index, lat, lon] with the positions
@@ -108,6 +110,7 @@ fun AppRoot(
             weather.reset()
             forecast.reset()
             consumption.reset()
+            ecoGoals.reset()
             stationPrices.reset()
             tripRoute.close()
             yearSummary.reset()
@@ -127,6 +130,7 @@ fun AppRoot(
             forecast.ensureLoaded()
             consumption.ensureLoaded()
             declared.ensureLoaded()
+            ecoGoals.ensureLoaded()
         }
     }
 
@@ -183,8 +187,9 @@ fun AppRoot(
                 when (screen) {
                     Screen.Status -> StatusScreen(
                         state = current,
+                        // The tile shows the fuel now: the newest reading adjusted by the trips since then (§20.2).
+                        fuelLevelPct = forecastState?.forecast?.levelPct?.toInt(),
                         onSyncNow = session::syncNow,
-                        onRefresh = session::reload,
                         onShowTrips = { screen = Screen.Trips },
                         onShowRefuels = { screen = Screen.Refuels },
                         // Read in the navigation callback, so a rotation does not read again (§15.2).
@@ -233,6 +238,8 @@ fun AppRoot(
                         consumption = consumptionState,
                         declaredConsumption = declaredState,
                         onSetDeclared = declared::set,
+                        ecoGoals = ecoGoalsState,
+                        onSetEcoGoals = ecoGoals::set,
                         onLogout = session::logout,
                         askNotificationPermission = askNotificationPermission,
                     )

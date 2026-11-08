@@ -24,7 +24,6 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,6 +38,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -63,8 +63,8 @@ import pl.lk.toyotacompanion.core.data.SyncStatus
 @Composable
 fun StatusScreen(
     state: UiState.LoggedIn,
+    fuelLevelPct: Int?,
     onSyncNow: () -> Unit,
-    onRefresh: () -> Unit,
     onShowTrips: () -> Unit,
     onShowRefuels: () -> Unit,
     onShowRefuelLog: () -> Unit,
@@ -83,11 +83,15 @@ fun StatusScreen(
     consumption: ConsumptionView?,
     declaredConsumption: java.math.BigDecimal?,
     onSetDeclared: (String) -> Boolean,
+    ecoGoals: EcoGoalsState = EcoGoalsState(),
+    onSetEcoGoals: (String, String) -> Boolean = { _, _ -> false },
     onShowBackup: () -> Unit,
     onLogout: () -> Unit,
     askNotificationPermission: suspend () -> Boolean,
 ) {
     var confirmLogout by remember { mutableStateOf(false) }
+    var editingEcoGoals by rememberSaveable { mutableStateOf(false) }
+    if (editingEcoGoals) EcoGoalsDialog(ecoGoals.goals, onSetEcoGoals) { editingEcoGoals = false }
     val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     LaunchedEffect(Unit) {
@@ -107,7 +111,7 @@ fun StatusScreen(
     ) { innerPadding ->
         PullToRefreshBox(
             isRefreshing = state.syncing,
-            onRefresh = onRefresh,
+            onRefresh = onSyncNow,
             modifier = Modifier.fillMaxSize().padding(innerPadding),
         ) {
             Column(
@@ -129,7 +133,9 @@ fun StatusScreen(
                     // The state at a glance: freshness chip, when it was last updated, the counters (docs/SPEC.md §10.4).
                     StatusChip(status, state.lastSyncFailed)
                     Text(Texts.lastSuccess(status), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    StatRow(status)
+                    // The telemetry counter is diagnostic, not a fact about the car: one small line instead of a tile.
+                    Text(Texts.telemetryReadings(status.readingsStored), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    StatRow(status, fuelLevelPct)
                 }
 
                 if (state.lastSyncFailed == SyncErrorKind.LOGIN ||
@@ -151,20 +157,13 @@ fun StatusScreen(
                         Text(Texts.refuelPrompt(waiting))
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    FilledTonalButton(
-                        onClick = onSyncNow,
-                        enabled = !state.syncing,
-                        modifier = Modifier.weight(1f).heightIn(min = 52.dp),
-                    ) {
-                        Text(if (state.syncing) Texts.SYNCING else Texts.SYNC_NOW_BUTTON)
-                    }
-                    OutlinedButton(
-                        onClick = onRefresh,
-                        modifier = Modifier.weight(1f).heightIn(min = 52.dp),
-                    ) {
-                        Text(Texts.REFRESH_BUTTON)
-                    }
+                // Pull-to-refresh and the button do the same thing: a normal synchronization, never `refresh_status()`.
+                FilledTonalButton(
+                    onClick = onSyncNow,
+                    enabled = !state.syncing,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                ) {
+                    Text(if (state.syncing) Texts.SYNCING else Texts.SYNC_NOW_BUTTON)
                 }
 
                 if (status != null) {
@@ -173,7 +172,9 @@ fun StatusScreen(
                         DashboardCard(Texts.FORECAST_CARD_TITLE, AppIcons.EventUpcoming) { Text(line, style = MaterialTheme.typography.bodyLarge) }
                     }
                     // Average consumption of the whole archive and the monthly bars (docs/SPEC.md §24).
-                    ConsumptionCard(consumption, declaredConsumption, onSetDeclared)
+                    ConsumptionCard(consumption, declaredConsumption, onSetDeclared, onSetEcoGoal = if (ecoGoals.goals.any) null else ({ editingEcoGoals = true }))
+                    // The monthly eco goals (PRD F39, docs/SPEC.md §40).
+                    EcoGoalsCard(ecoGoals) { editingEcoGoals = true }
                     CostsCard(consumption)
                 }
 
@@ -252,7 +253,7 @@ private fun StatusChip(status: SyncStatus, failure: SyncErrorKind?) {
 
 /** The counts as numbers with a caption; the card makes the row readable as one block. */
 @Composable
-private fun StatRow(status: SyncStatus) {
+private fun StatRow(status: SyncStatus, fuelLevelPct: Int?) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
@@ -263,7 +264,7 @@ private fun StatRow(status: SyncStatus) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             StatTile(status.tripsStored.toString(), Texts.STAT_TRIPS, Palette.Blue, Modifier.weight(1f))
-            StatTile(status.readingsStored.toString(), Texts.STAT_READINGS, Palette.Teal, Modifier.weight(1f))
+            StatTile(fuelLevelPct?.let { Texts.fuelLevel(it) } ?: "–", Texts.STAT_FUEL_LEVEL, Palette.Teal, Modifier.weight(1f))
             StatTile(status.pendingRefuels.toString(), Texts.STAT_PENDING_REFUELS, if (status.pendingRefuels > 0) Palette.Orange else Palette.Green, Modifier.weight(1f))
         }
     }

@@ -989,3 +989,20 @@ Domena: `core/domain/OwnershipOps.kt` (`ownershipCost`, `ownershipMonths`, model
   „Najwięcej poza paliwem: Opony 800,50 zł, Serwis 500,00 zł, Myjnia 40,00 zł” (trzy największe kategorie roku) i „Koszt całkowity wobec poprzedniego roku: +51 %”
   (gdy poprzedni rok ma koszt), pod nimi skąd są liczby. Te same linie kończą tekst „Udostępnij podsumowanie” (§29), bez położenia i VIN.
 - Nic nie idzie do sieci; wydatki czytane z tej samej bazy co ekran „Wydatki” (§38).
+
+## 40. Cele eco (PRD F39)
+`app/ui/EcoGoals.kt` (`EcoGoals`, `parseEvGoal`, `ecoMonth`, `ecoProgress`, `ecoWidgetLine`, `EcoGoalsController`), `ui/EcoGoalsCard.kt` (karta i okno), `settings/SettingsStore.kt` (dwa klucze), `widget/WidgetSnapshot.kt`.
+- Dwa niezależne cele, oba opcjonalne: (1) spalanie miesiąca **najwyżej** X l/100 km – liczba z przedziału (0; 20], przecinek lub kropka, dwa miejsca HALF_UP, ten sam parser co spalanie deklarowane (`parseDeclaredConsumption`, §30);
+  (2) udział jazdy na prądzie **co najmniej** Y % – liczba całkowita 1–100 (dopuszczone „40” i „40 %”; ułamek, 0, 101, ujemna i tekst są odrzucane, nigdy przycinane). Puste pole usuwa dany cel. Zapis dotyczy obu pól naraz: gdy któreś jest błędne, nic się nie zmienia, a okno zostaje otwarte.
+- Cele są w ustawieniach telefonu (`settings`, klucze `eco_goal_consumption` – tekst `BigDecimal`, `eco_goal_ev_pct` – liczba), jak §30: poza archiwum, eksportem JSON i CSV; przeżywają wylogowanie. Zapis poza przedziałem czyta się jak brak celu.
+- Miesiąc = miesiąc kalendarzowy w strefie telefonu (data startu trasy). Spalanie miesiąca = Σ paliwa / Σ km tras miesiąca (0,01 HALF_UP). Udział prądu jak w §29: prąd każdej trasy przycięty do jej dystansu, Σ prądu / Σ km, całe % HALF_UP;
+  gdy żadna trasa miesiąca nie podaje jazdy na prądzie – brak danych (to nie 0 %), linia „Jazda na prądzie: brak danych w tym miesiącu”; trasa z danymi i 0 km prądu daje 0 %. Trasy z niedodatnim lub nieskończonym dystansem albo ujemnym paliwem są pomijane (jak na karcie spalania).
+- Cel jest osiągnięty, gdy spalanie ≤ X albo udział ≥ Y (równość to osiągnięcie). **Poniżej 50 km w miesiącu** (`ECO_MIN_MONTH_KM`, jak próg słupka §24) nic nie jest oceniane: „Za mało jazdy, by ocenić (N km)” (km w całych).
+- Karta „Cel miesiąca” na ekranie statusu pod „Spalaniem” (przed „Kosztami miesięcznymi”), tylko gdy jest choć jeden cel: linie „Spalanie: 4,30 / 4,50 l/100 km ✓” i „Jazda na prądzie: 42 / 40 % ✓” (✓ – w celu, ✗ – poza celem; w bieżącym miesiącu to stan na dziś, nie wynik),
+  pod nimi „Poprzedni miesiąc: cel spalania – osiągnięty · cel jazdy na prądzie – nieosiągnięty” (albo „za mało jazdy, by ocenić (N km)”; bez linii, gdy poprzedni miesiąc nie miał tras) i „Zmień cele”. Bez celów w karcie „Spalanie” jest przycisk „Ustaw cel”.
+  Okno „Cele eco”: dwa pola wypełnione bieżącymi wartościami.
+- Przeliczenie po zalogowaniu, po każdej udanej synchronizacji (obok odświeżenia karty spalania) i po zmianie celów; nieudany odczyt tras zostawia cele i ukrywa liczby. Wylogowanie czyści liczby, nie cele.
+- Widżet (§32): czwarta linia „Cel: 4,30 / 4,50 l/100 km ✓ · prąd 42 / 40 % ✓” (albo „Cel: za mało jazdy (N km)”), ukryta, gdy nie ma celu albo liczb; odświeżana razem z pozostałymi liniami i po zmianie celów. Brak linii dla celu prądu bez danych.
+- Teksty PL/EN w `Texts` (blok „Cele eco”); liczebniki odmieniane w tych tekstach nie występują (km i % są nieodmienne), więc `plPlural` nie jest potrzebne.
+- Bez sieci i bez API Toyoty; czyste funkcje i kontroler bez Compose. Testy: `EcoGoalsTest`, `EcoGoalsControllerTest`, `WidgetSnapshotTest`, `TextsTest`, `SettingsStoreTest`.
+

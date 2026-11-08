@@ -8,10 +8,10 @@ import pl.lk.toyotacompanion.ui.Texts
 import pl.lk.toyotacompanion.ui.TripsFormatting
 
 /**
- * What the home-screen widget shows (docs/SPEC.md §32): three short lines. A copy of numbers the status screen already
+ * What the home-screen widget shows (docs/SPEC.md §32): three short lines and, when the owner set an eco goal, a fourth (docs/SPEC.md §40). A copy of numbers the status screen already
  * shows, kept in a private preference file so the widget never reads the archive or the network itself; no position, no VIN.
  */
-data class WidgetSnapshot(val main: String, val line2: String, val line3: String) {
+data class WidgetSnapshot(val main: String, val line2: String, val line3: String, val line4: String = "") {
     val isEmpty: Boolean get() = main.isEmpty()
 }
 
@@ -20,13 +20,13 @@ data class WidgetSnapshot(val main: String, val line2: String, val line3: String
  * refuel forecast (third). Lines without data stay empty; no consumption at all gives an empty snapshot, which the widget
  * shows as "open the app".
  */
-fun widgetSnapshot(view: ConsumptionView?, forecastLine: String?, defaultPrice: BigDecimal?): WidgetSnapshot {
+fun widgetSnapshot(view: ConsumptionView?, forecastLine: String?, defaultPrice: BigDecimal?, goalLine: String? = null): WidgetSnapshot {
     val overall = view?.overall ?: return WidgetSnapshot("", "", "")
     val main = Texts.widgetMain(TripsFormatting.plain(overall, 2))
     val trend = pl.lk.toyotacompanion.ui.ConsumptionFormatting.trendLine(view)
     val price = defaultPrice?.let { Texts.widgetPrice(TripsFormatting.plain(it, 2)) }
     val line2 = listOfNotNull(trend?.removePrefix("Trend: "), price).joinToString(Texts.SEPARATOR)
-    return WidgetSnapshot(main, line2, forecastLine.orEmpty())
+    return WidgetSnapshot(main, line2, forecastLine.orEmpty(), goalLine.orEmpty())
 }
 
 /** The snapshot in a private preference file; written by the app after a synchronization, read by the widget. */
@@ -37,11 +37,12 @@ class WidgetSnapshotStore(context: Context) {
         prefs.getString(MAIN, "").orEmpty(),
         prefs.getString(LINE2, "").orEmpty(),
         prefs.getString(LINE3, "").orEmpty(),
+        prefs.getString(LINE4, "").orEmpty(),
     )
 
     fun save(snapshot: WidgetSnapshot) {
         prefs.edit {
-            putString(MAIN, snapshot.main).putString(LINE2, snapshot.line2).putString(LINE3, snapshot.line3)
+            putString(MAIN, snapshot.main).putString(LINE2, snapshot.line2).putString(LINE3, snapshot.line3).putString(LINE4, snapshot.line4)
         }
     }
 
@@ -55,5 +56,6 @@ class WidgetSnapshotStore(context: Context) {
         const val MAIN = "main"
         const val LINE2 = "line2"
         const val LINE3 = "line3"
+        const val LINE4 = "line4"
     }
 }

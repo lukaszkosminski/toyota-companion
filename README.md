@@ -1,85 +1,87 @@
 # toyota-companion
 
-Prywatna aplikacja towarzysząca na Androida do hybrydowej Toyoty w Europie. Pobiera dane z konta MyToyota przez nieoficjalne API (kod klienta jest portem [pytoyoda](https://github.com/pytoyoda/pytoyoda) v6.0.0 do Kotlina), archiwizuje trasy bezterminowo, liczy koszt paliwa każdej trasy i pokazuje spalanie, statystyki i pogodę. Powstała dla jednego właściciela jednego auta (PRD §3); działa w całości na telefonie, bez własnego serwera.
+A private companion app for Android for a hybrid Toyota in Europe. It reads data from the MyToyota account through the unofficial API (the Toyota client is a Kotlin port of [pytoyoda](https://github.com/pytoyoda/pytoyoda) v6.0.0), archives trips indefinitely, calculates the fuel cost of every trip and shows consumption, statistics and weather. It was built for one owner of one car (PRD §3) and runs entirely on the phone, with no server of its own.
 
-Źródłem prawdy są dokumenty w [`docs/`](docs/): [PRD](docs/PRD.md) (funkcje F1–F37) i [SPEC](docs/SPEC.md) (kryteria akceptacji). Poniższy opis je skraca; gdy się różnią, wygrywają docs.
+The source of truth is the documents in [`docs/`](docs/), which are written in Polish: the [PRD](docs/PRD.md) (features F1–F39) and the [SPEC](docs/SPEC.md) (acceptance criteria). The description below is a short summary; where they differ, the docs win. The app itself is in Polish, with an English UI language available in "Opcje" (Options).
 
-## Funkcje
+## Features
 
-### Synchronizacja i archiwum
-- Synchronizacja co 30 minut w tle (WorkManager) i ręcznie „Synchronizuj teraz”: pojazd, telemetria, trasy. Trasy zapisywane lokalnie bez duplikatów, bo Toyota kasuje je po ok. 12 miesiącach (F5, SPEC §8). Aplikacja nigdy nie woła `refresh_status()`, który drenuje akumulator 12 V.
-- Lista tras z kosztem, pogrupowana po miesiącach (SPEC §10), z pogodą dnia (F25) i rodzajem jazdy: wolna jazda, miasto, płynnie, trasa (F27, SPEC §10.3).
+### Sync and archive
+- Background sync every 30 minutes (WorkManager) and manually with "Synchronizuj teraz" (Sync now): vehicle, telemetry, trips. Trips are stored locally without duplicates, because Toyota deletes them after about 12 months (F5, SPEC §8). The app never calls `refresh_status()`, which drains the 12 V battery.
+- Trip list with cost, grouped by month (SPEC §10), with the weather of the day (F25) and the kind of drive: slow, city, flowing, route (F27, SPEC §10.3).
 
-### Koszty i tankowania
-- Wykrycie tankowania po skoku poziomu paliwa i pytanie o cenę powiadomieniem albo oknem w aplikacji (F1, F2, F2c, SPEC §1–§2, §11, §13).
-- Szacunek litrów z czujnika (F2a, SPEC §2a), cena domyślna paliwa (F2b, SPEC §12), cena 95 z trojmiasto.pl dla dwóch stacji właściciela (F22, SPEC §25).
-- Koszt trasy z średniej ważonej ceny paliwa w baku (F3, ADR-005, SPEC §4, §6), przeliczany wstecz po każdej potwierdzonej cenie (F4, SPEC §5).
-- Dziennik tankowań i spalanie „komputer vs faktyczne” liczone od tankowania do tankowania (F9, SPEC §15).
+### Costs and refuels
+- Refuel detection from a jump in the fuel level, and a price question as a notification or an in-app dialog (F1, F2, F2c, SPEC §1–§2, §11, §13).
+- Liters estimated from the sensor (F2a, SPEC §2a), a default fuel price (F2b, SPEC §12), the 95 price from trojmiasto.pl for the owner's two stations (F22, SPEC §25).
+- Trip cost from the weighted average price of the fuel in the tank (F3, ADR-005, SPEC §4, §6), recalculated backwards after every confirmed price (F4, SPEC §5).
+- Refuel log and "computer vs actual" consumption calculated from refuel to refuel (F9, SPEC §15).
 
-### Spalanie, statystyki i styl jazdy
-- Spalanie i koszty miesięczne na ekranie statusu, spalanie deklarowane producenta, alert o rosnącym spalaniu (F20, F26, F29, F30, SPEC §24, §30, §31).
-- Statystyki wieloletnie: lata, pory roku, rok do roku (F10, SPEC §17); jazda na prądzie na trasę, ranking i tygodnie (F11, F35, SPEC §16, §36); podsumowanie roku (F28, SPEC §29).
-- Styl jazdy: wynik eco po miesiącach, powtarzane odcinki i anomalie spalania (F12, F13, SPEC §19); typy tras: dom, praca, dojazdy, weekend (F16, SPEC §21).
-- Prognoza dnia tankowania (F14, SPEC §20).
+### Consumption, statistics and driving style
+- Consumption and monthly costs on the status screen, the manufacturer's declared consumption, an alert for rising consumption (F20, F26, F29, F30, SPEC §24, §30, §31).
+- Eco goals: an optional monthly goal for consumption and for the share of electric driving, with progress on the status screen and in the widget (F39, SPEC §40).
+- Multi-year statistics: years, seasons, year over year (F10, SPEC §17); electric driving per trip, ranking and weeks (F11, F35, SPEC §16, §36); year summary (F28, SPEC §29).
+- Driving style: eco score by month, repeated routes and consumption anomalies (F12, F13, SPEC §19); trip types: home, work, commute, weekend (F16, SPEC §21).
+- Refuel day forecast (F14, SPEC §20).
 
-### Pogoda i tempo jazdy
-- Wpływ temperatury i opadów na spalanie oraz tabela tempo jazdy × temperatura (F15, F24, SPEC §23, §28); spalanie w pasmach średniej prędkości (F19, SPEC §22).
+### Weather and driving pace
+- Effect of temperature and rain on consumption, and a driving pace × temperature table (F15, F24, SPEC §23, §28); consumption by average speed band (F19, SPEC §22).
 
-### Postoje i mapa
-- Dziennik postojów: miejsca, do których auto wraca, i czas postojów (F17, SPEC §18).
-- Mapa OpenStreetMap po dotknięciu trasy, z przebiegiem z GPS Toyoty (zielony – prąd, niebieski – silnik) pobranym dopiero przy otwarciu mapy (F21, F23, SPEC §26, §27); zapis przebiegów starszych tras (F32, SPEC §33) i mapa ciepła powtarzanych odcinków (F33, SPEC §34).
+### Stops and map
+- Parking diary: places the car returns to and stop durations (F17, SPEC §18).
+- OpenStreetMap map after tapping a trip, with the GPS route from Toyota (green: electric, blue: engine) fetched only when the map is opened (F21, F23, SPEC §26, §27); saving the routes of older trips (F32, SPEC §33) and a heat map of repeated routes (F33, SPEC §34).
 
-### Wydatki
-- Wydatki poza paliwem (serwis, przegląd, opony, ubezpieczenie, części, myjnia, opłaty, inne) z datą także wsteczną, sumami per kategoria i miesiąc (F37, SPEC §38, ADR-018). Tylko lokalnie.
+### Expenses
+- Non-fuel expenses (service, inspection, tyres, insurance, parts, car wash, fees, other) with a date that can be in the past, and totals per category and month (F37, SPEC §38, ADR-018). Local only.
+- Total cost of ownership in the year summary: fuel plus expenses, per km, per 100 km and per month (F38, SPEC §39, ADR-020).
 
-### Widżet i Android Auto
-- Widżet na ekran główny: średnie spalanie, trend, cena domyślna, prognoza tankowania (F31, SPEC §32).
-- Ekran tylko do odczytu w Android Auto (F34, SPEC §35, ADR-014); do użytku własnego, wymaga włączenia „Nieznane źródła” w ustawieniach programisty Android Auto. SPEC zaznacza, że nie był uruchamiany na prawdziwym zestawie samochodu ani w Desktop Head Unit.
+### Widget and Android Auto
+- Home screen widget: average consumption, trend, default price, refuel forecast and the eco goal line (F31, SPEC §32).
+- Read-only screen in Android Auto (F34, SPEC §35, ADR-014); for personal use, it requires "Unknown sources" enabled in the Android Auto developer settings. The SPEC notes that it was not run on a real car head unit or in the Desktop Head Unit.
 
-### Kopia i eksport
-- Eksport i import całego archiwum do pliku JSON, przypomnienie po 30 dniach (F7, F8, SPEC §14); arkusz tras w CSV dla polskiego Excela (F6, SPEC §14.4); opcjonalna kopia Google Auto Backup (ADR-015).
+### Backup and export
+- Export and import of the whole archive as a JSON file, with a reminder after 30 days (F7, F8, SPEC §14); a trip spreadsheet as CSV for Polish Excel (F6, SPEC §14.4); optional Google Auto Backup (ADR-015).
 
-### Aktualizacja z GitHub Releases
-- „Opcje” → „Sprawdź aktualizacje” pobiera i instaluje nowsze wydanie, sprawdzając rozmiar, SHA-256, pakiet, wersję i podpis (F36, SPEC §37, ADR-016).
+### Update from GitHub Releases
+- "Opcje" (Options) → "Sprawdź aktualizacje" (Check for updates) downloads and installs a newer release, verifying size, SHA-256, package, version and signature (F36, SPEC §37, ADR-016).
 
-## Instalacja
+## Installation
 
-Gotowe APK (ok. 4 MB, Android 10 lub nowszy, `minSdk` 29) jest w [wydaniach na GitHubie](https://github.com/lukaszkosminski/toyota-companion/releases). Pierwszą instalację robi się ręcznie: pobierz `toyota-companion-<wersja>.apk` i zezwól przeglądarce lub menedżerowi plików na „Instalowanie nieznanych aplikacji”. Kolejne wersje: w aplikacji „Opcje” → „Sprawdź aktualizacje” → „Pobierz i zainstaluj” (przy pierwszej aktualizacji aplikacja poprosi o tę samą zgodę dla siebie; system i tak pokazuje własne potwierdzenie).
+The ready-made APK (about 4 MB, Android 10 or newer, `minSdk` 29) is in the [GitHub releases](https://github.com/lukaszkosminski/toyota-companion/releases). The first installation is manual: download `toyota-companion-<version>.apk` and allow the browser or file manager to "Install unknown apps". Later versions: in the app, "Opcje" → "Sprawdź aktualizacje" → "Pobierz i zainstaluj" (Download and install). At the first update the app asks for the same permission for itself, and the system still shows its own confirmation.
 
-Przejście z wersji debug (podpisanej innym kluczem, więc nie da się jej zaktualizować):
-1. w starej wersji „Kopia i eksport” → „Eksportuj archiwum” (plik JSON zawiera GPS i VIN, trzymaj go w bezpiecznym miejscu),
-2. odinstaluj wersję debug,
-3. zainstaluj APK z wydania,
-4. zaloguj się do MyToyota,
-5. „Importuj archiwum”.
+Moving from a debug build (signed with a different key, so it cannot be updated in place):
+1. in the old version, "Kopia i eksport" (Backup and export) → "Eksportuj archiwum" (Export archive); the JSON file contains GPS and VIN, so keep it somewhere safe,
+2. uninstall the debug build,
+3. install the APK from the release,
+4. log in to MyToyota,
+5. "Importuj archiwum" (Import archive).
 
-Klucz podpisu wydań jest tylko w sekretach repozytorium i w kopii właściciela; jego utrata oznacza kolejne odinstalowanie (ADR-016).
+The release signing key lives only in the repository secrets and in the owner's own backup; losing it means another uninstall (ADR-016).
 
-## Prywatność i bezpieczeństwo
+## Privacy and security
 
-Szczegóły i uzasadnienia: [docs/SECURITY.md](docs/SECURITY.md).
+Details and reasoning: [docs/SECURITY.md](docs/SECURITY.md).
 
-- Login, hasło i tokeny Toyoty są szyfrowane AES-256-GCM kluczem z Android Keystore (ADR-007) i nie trafiają do repozytorium, logów ani kopii; logi nie zawierają haseł, tokenów, VIN ani współrzędnych GPS.
-- Trasy, VIN i wydatki są w bazie Room na telefonie. Plik eksportu zawiera GPS i VIN (bez hasła i tokenów), a aplikacja ostrzega o tym przy eksporcie.
-- Co wychodzi z telefonu i dokąd:
-  - **Toyota Connected Europe**: logowanie, pojazd, telemetria, trasy (jak synchronizacja) i przebieg wybranej trasy po otwarciu jej mapy.
-  - **Open-Meteo** (HTTPS): tylko współrzędne startu trasy zaokrąglone do 0,01° (ok. 1 km), daty i lista zmiennych; nigdy VIN, konto ani token.
-  - **OpenStreetMap** (kafelki mapy): serwer widzi oglądaną okolicę, współrzędne punktów zaokrąglone do ok. 100 m.
-  - **trojmiasto.pl**: jedno zwykłe `GET` strony z cenami po dotknięciu stacji, bez żadnych danych właściciela.
-  - **GitHub**: tylko po dotknięciu „Sprawdź aktualizacje”, bez tokenu i konta; GitHub widzi adres IP i wersję aplikacji.
-  - **Dysk Google** (Auto Backup, ADR-015): baza archiwum i ustawienia; plik z loginem i tokenami jest wykluczony, więc po przywróceniu na nowym telefonie trzeba zalogować się ponownie.
-- Sprawdzanie aktualizacji, pobieranie cen i przebiegów trasy nigdy nie dzieje się bez dotknięcia. Pogoda pobiera się automatycznie po synchronizacji, a przełącznik na ekranie pogody to wyłącza.
-- CI skanuje repozytorium gitleaksem.
+- The Toyota login, password and tokens are encrypted with AES-256-GCM using a key from the Android Keystore (ADR-007). They never reach the repository, the logs or the backups, and the logs contain no passwords, tokens, VIN or GPS coordinates.
+- Trips, VIN and expenses are in a Room database on the phone. The export file contains GPS and VIN (but no password or tokens), and the app warns about it when exporting.
+- What leaves the phone and where it goes:
+  - **Toyota Connected Europe**: login, vehicle, telemetry, trips (as in sync), and the route of a chosen trip when its map is opened.
+  - **Open-Meteo** (HTTPS): only the trip start coordinates rounded to 0.01° (about 1 km), dates and a list of variables; never VIN, account or token.
+  - **OpenStreetMap** (map tiles): the server sees the area being viewed, with point coordinates rounded to about 100 m.
+  - **trojmiasto.pl**: one plain `GET` of the price page after tapping a station, with no owner data.
+  - **GitHub**: only after tapping "Sprawdź aktualizacje", with no token or account; GitHub sees the IP address and the app version.
+  - **Google Drive** (Auto Backup, ADR-015): the archive database and settings; the file with the login and tokens is excluded, so after restoring on a new phone you have to log in again.
+- Update checks, price fetches and trip routes never happen without a tap. Weather is fetched automatically after a sync, and the switch on the weather screen turns this off.
+- CI scans the repository with gitleaks.
 
-## Budowanie i testy
+## Build and test
 
-Wymagania: JDK 21, Android SDK (platforma 37), Python 3.12 dla `backend/`.
+Requirements: JDK 21, Android SDK (platform 37), Python 3.12 for `backend/`.
 
 ```bash
 cd android
-./gradlew :core:test :app:testDebugUnitTest :app:assembleDebug   # testy + APK debug: app/build/outputs/apk/debug/
-./gradlew :app:lintDebug                                          # lint Androida
-./gradlew :app:assembleRelease                                    # build zminifikowany przez R8 (ADR-017); bez klucza niepodpisany
+./gradlew :core:test :app:testDebugUnitTest :app:assembleDebug   # tests + debug APK: app/build/outputs/apk/debug/
+./gradlew :app:lintDebug                                          # Android lint
+./gradlew :app:assembleRelease                                    # R8-minified build (ADR-017); unsigned without a key
 ```
 
 ```bash
@@ -90,55 +92,55 @@ python3 -m venv .venv
 .venv/bin/python -m pytest -q
 ```
 
-Zmiana logiki domeny wymaga testu w Pythonie i w Kotlinie o tej samej nazwie (docs/ARCHITECTURE.md).
+A change to the domain logic needs a test in Python and one in Kotlin with the same name (docs/ARCHITECTURE.md).
 
-**CI** (`.github/workflows/ci.yml`, push na `main` i pull requesty): ruff, mypy i pytest; testy core i app, APK debug, build release z R8 i lint Androida; gitleaks.
+**CI** (`.github/workflows/ci.yml`, pushes to `main` and pull requests): ruff, mypy and pytest; core and app tests, the debug APK, the release build with R8 and Android lint; gitleaks.
 
-**Wydanie** (`.github/workflows/release.yml`): tag `vMAJOR.MINOR.PATCH` uruchamia testy i lint, buduje `assembleRelease` podpisane kluczem z sekretów repozytorium, sprawdza podpis i wersję w APK i publikuje GitHub Release z plikiem `toyota-companion-<wersja>.apk`; mapowanie R8 zostaje jako artefakt workflow. Procedura jednorazowa i lokalny podpisany build: [docs/HANDOFF.md](docs/HANDOFF.md).
+**Release** (`.github/workflows/release.yml`): a tag `vMAJOR.MINOR.PATCH` runs the tests and lint, builds `assembleRelease` signed with the key from the repository secrets, checks the signature and the version in the APK and publishes a GitHub Release with the file `toyota-companion-<version>.apk`; the R8 mapping is kept as a workflow artifact. The one-time setup and a local signed build are in [docs/HANDOFF.md](docs/HANDOFF.md).
 
-## Struktura repozytorium
+## Repository layout
 
 ```
-android/core/   logika domeny, synchronizacja i klient Toyoty (czysty Kotlin/JVM, bez Androida)
-android/app/    aplikacja: Jetpack Compose, Room 3, WorkManager, Keystore, widżet, Android Auto
-backend/        wykonywalna specyfikacja domeny w Pythonie (testy referencyjne, bez serwera)
-docs/           dokumentacja projektu
+android/core/   domain logic, sync and the Toyota client (pure Kotlin/JVM, no Android)
+android/app/    the app: Jetpack Compose, Room 3, WorkManager, Keystore, widget, Android Auto
+backend/        executable specification of the domain in Python (reference tests, no server)
+docs/           project documentation (in Polish)
 ```
 
-| Dokument | Zawartość |
+| Document | Contents |
 |---|---|
-| [docs/PRD.md](docs/PRD.md) | wymagania i funkcje F1–F37, poza zakresem |
-| [docs/SPEC.md](docs/SPEC.md) | specyfikacja i kryteria akceptacji (§1–§38) |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | komponenty, zasady i awarie zależności |
-| [docs/DECISIONS.md](docs/DECISIONS.md) | decyzje (ADR-001 – ADR-019) |
-| [docs/SECURITY.md](docs/SECURITY.md) | dane chronione, przepływy do usług zewnętrznych, szyfrowanie |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | zrobione, teraz, następne |
-| [docs/DOD.md](docs/DOD.md) | definicja ukończenia |
-| [docs/HANDOFF.md](docs/HANDOFF.md) | stan prac, wydanie, środowisko lokalne |
-| [CHANGELOG.md](CHANGELOG.md) | zmiany w wydaniach |
-| [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) | licencje bibliotek i danych |
-| [AGENTS.md](AGENTS.md) | zasady pracy agentów AI (docs są nadrzędne, bez commitów bez polecenia) |
+| [docs/PRD.md](docs/PRD.md) | requirements and features F1–F39, out of scope |
+| [docs/SPEC.md](docs/SPEC.md) | specification and acceptance criteria (§1–§40) |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | components, rules and dependency failures |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | decisions (ADR-001 – ADR-020) |
+| [docs/SECURITY.md](docs/SECURITY.md) | protected data, flows to external services, encryption |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | done, now, next |
+| [docs/DOD.md](docs/DOD.md) | definition of done |
+| [docs/HANDOFF.md](docs/HANDOFF.md) | work status, release, local environment |
+| [CHANGELOG.md](CHANGELOG.md) | changes per release |
+| [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) | licenses of libraries and data |
+| [AGENTS.md](AGENTS.md) | rules for AI agents (docs take precedence, no commits without an instruction) |
 
-## Ograniczenia
+## Limitations
 
-- Tylko Europa (zakres pytoyoda); API Toyoty jest nieoficjalne i może się zmienić bez ostrzeżenia.
-- Jedno konto Toyoty = jedno auto (ADR-019): nie ma wyboru pojazdu, a konto z kilkoma pojazdami kończy się błędem synchronizacji.
-- Archiwum zaczyna się od pierwszej synchronizacji (pierwsza pobiera do 365 dni); trasy starsze niż ok. 12 miesięcy Toyota już skasowała.
-- Brak napięcia akumulatora 12 V i poziomu baterii hybrydowej (pola nie ma w używanym API, a wywołania, które mogłyby je dać, budzą auto i są zakazane). Jedyny obraz baterii to udział jazdy na prądzie z danych tras (F35).
-- Poza zakresem: zdalne sterowanie autem, „ukryta rezerwa” paliwa, mapa hamowań, model rozładowania 12 V, regiony poza Europą (PRD §5).
-- Ceny stacji dotyczą dwóch stacji w Gdańsku zapisanych w kodzie (SPEC §25); cenę można też wpisać ręcznie.
-- Android Auto nie jest dostępny przez Google Play (kategoria), tylko po włączeniu trybu programisty (SPEC §35).
+- Europe only (the scope of pytoyoda); the Toyota API is unofficial and may change without notice.
+- One Toyota account = one car (ADR-019): there is no vehicle picker, and an account with several vehicles ends in a sync error.
+- The archive starts at the first sync (the first one fetches up to 365 days); trips older than about 12 months have already been deleted by Toyota.
+- No 12 V battery voltage and no hybrid battery level (the fields are not in the API in use, and the calls that could give them wake the car and are forbidden). The only picture of the battery is the share of electric driving from trip data (F35).
+- Out of scope: remote control of the car, a "hidden reserve" of fuel, a braking map, a 12 V discharge model, regions outside Europe (PRD §5).
+- Station prices cover two stations in Gdańsk hard-coded in the app (SPEC §25); the price can also be typed in.
+- Android Auto is not available through Google Play (category), only with developer mode enabled (SPEC §35).
 
-## Licencje i atrybucje
+## Licenses and attributions
 
-Pełne zestawienie: [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+Full list: [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
 
-- Kod klienta Toyoty to port [pytoyoda](https://github.com/pytoyoda/pytoyoda) v6.0.0 na licencji MIT (tekst w `android/core/NOTICE`).
-- Leaflet 1.9.4 (BSD-2-Clause) w ekranie mapy; dane i kafelki © OpenStreetMap contributors (ODbL, kafelki CC BY-SA 2.0).
-- Ikony: Material Symbols Outlined (Apache 2.0, tekst licencji w `android/app/src/main/assets/icons/APACHE-2.0.txt`).
-- Dane pogodowe: [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0, atrybucja stale na ekranie pogody).
-- Pozostałe biblioteki (OkHttp, Room, WorkManager, Compose, kotlinx i inne): Apache-2.0.
+- The Toyota client code is a port of [pytoyoda](https://github.com/pytoyoda/pytoyoda) v6.0.0, MIT licensed (text in `android/core/NOTICE`).
+- Leaflet 1.9.4 (BSD-2-Clause) in the map screen; data and tiles © OpenStreetMap contributors (ODbL, tiles CC BY-SA 2.0).
+- Icons: Material Symbols Outlined (Apache 2.0, license text in `android/app/src/main/assets/icons/APACHE-2.0.txt`).
+- Weather data: [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0, attribution always shown on the weather screen).
+- Other libraries (OkHttp, Room, WorkManager, Compose, kotlinx and others): Apache-2.0.
 
-Repozytorium nie zawiera pliku licencji własnego kodu aplikacji.
+The repository has no license file for the app's own code.
 
-Dane logowania Toyoty nigdy nie trafiają do repozytorium (`credentials.json`, `.env`, `*.db` i klucze `*.jks` są w `.gitignore`).
+Toyota login data never goes into the repository (`credentials.json`, `.env`, `*.db` and `*.jks` keys are in `.gitignore`).

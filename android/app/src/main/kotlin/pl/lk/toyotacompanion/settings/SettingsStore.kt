@@ -65,6 +65,36 @@ class SettingsStore(private val prefs: SharedPreferences) {
         prefs.edit { if (value == null) remove(KEY_DECLARED) else putString(KEY_DECLARED, value.toPlainString()) }
     }
 
+    /** The eco goal for the month's consumption, l/100 km (docs/SPEC.md §40); `null` when never set, garbage, or outside (0, 20]. */
+    fun ecoGoalConsumption(): BigDecimal? {
+        val text = prefs.getString(KEY_ECO_CONSUMPTION, null)?.trim()
+        if (text.isNullOrEmpty()) return null
+        val parsed = try {
+            BigDecimal(text)
+        } catch (e: NumberFormatException) {
+            return null
+        }
+        return if (parsed.signum() <= 0 || parsed > BigDecimal(20)) null else parsed
+    }
+
+    /** The eco goal for the month's electric share, whole percent 1-100 (docs/SPEC.md §40); `null` when never set or outside. */
+    fun ecoGoalEvPct(): Int? {
+        val value = try {
+            prefs.getInt(KEY_ECO_EV, 0)
+        } catch (e: ClassCastException) {
+            return null
+        }
+        return if (value in 1..100) value else null
+    }
+
+    /** Stores both goals at once; `null` removes that goal. */
+    fun saveEcoGoals(consumption: BigDecimal?, evPct: Int?) {
+        prefs.edit {
+            if (consumption == null) remove(KEY_ECO_CONSUMPTION) else putString(KEY_ECO_CONSUMPTION, consumption.toPlainString())
+            if (evPct == null) remove(KEY_ECO_EV) else putInt(KEY_ECO_EV, evPct)
+        }
+    }
+
     /** Month (`YYYY-MM`) of the last "consumption keeps rising" notification (docs/SPEC.md §31). */
     fun lastConsumptionAlert(): String? = prefs.getString(KEY_ALERT, null)
 
@@ -146,6 +176,8 @@ class SettingsStore(private val prefs: SharedPreferences) {
         const val KEY_WEATHER_AUTO = "weather_auto"
         const val KEY_DECLARED = "declared_consumption"
         const val KEY_LANGUAGE = "language"
+        const val KEY_ECO_CONSUMPTION = "eco_goal_consumption"
+        const val KEY_ECO_EV = "eco_goal_ev_pct"
         const val KEY_ALERT = "consumption_alert"
         const val KEY_NOTIFIED_REFUELS = "refuel_notified_ids"
         const val KEY_NOTIFICATIONS_ASKED = "notifications_asked"

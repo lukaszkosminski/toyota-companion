@@ -90,16 +90,22 @@ object Texts {
     /** First read of the local archive. */
     val LOADING: String get() = Lang.pick("Ładowanie…", "Loading…")
 
-    /** Reads the archive again, without asking Toyota (docs/SPEC.md §9.3). */
-    val REFRESH_BUTTON: String get() = Lang.pick("Odśwież", "Refresh")
-
     val SHOW_PASSWORD: String get() = Lang.pick("Pokaż", "Show")
     val HIDE_PASSWORD: String get() = Lang.pick("Ukryj", "Hide")
 
     /** Stat cards show the number alone, the caption below says what it counts. */
     val STAT_TRIPS: String get() = Lang.pick("Trasy", "Trips")
-    val STAT_READINGS: String get() = Lang.pick("Odczyty paliwa", "Fuel readings")
+    val STAT_FUEL_LEVEL: String get() = Lang.pick("Poziom paliwa", "Fuel level")
     val STAT_PENDING_REFUELS: String get() = Lang.pick("Oczekujące tankowania", "Pending refuels")
+
+    /** The level of the newest reading, adjusted by the trips since then (docs/SPEC.md §10.4, §20.2). */
+    fun fuelLevel(pct: Int): String = Lang.pick("$pct %", "$pct%")
+
+    /** Diagnostic line under the chip: how many telemetry snapshots the archive holds (docs/SPEC.md §10.4). */
+    fun telemetryReadings(count: Int): String = Lang.pick(
+        "Telemetria: $count ${plPlural(count.toLong(), "odczyt", "odczyty", "odczytów")}",
+        "Telemetry: $count ${enPlural(count.toLong(), "reading", "readings")}",
+    )
 
     /** Chip on the status screen when there is nothing fresh or stale to say yet. */
     val STATE_NEVER: String get() = Lang.pick("brak synchronizacji", "never synced")
@@ -698,6 +704,56 @@ object Texts {
         "l/100 km: $values ($change %). Poza zimą warto sprawdzić np. ciśnienie w oponach. To tylko podpowiedź, aplikacja nie diagnozuje.",
         "l/100 km: $values ($change %). Outside winter, it is worth checking tire pressure. This is only a hint, the app does not diagnose.",
     )
+
+    // Cele eco (PRD F39, docs/SPEC.md §40).
+
+    val ECO_TITLE: String get() = Lang.pick("Cel miesiąca", "Monthly goal")
+    val ECO_SET: String get() = Lang.pick("Ustaw cel", "Set a goal")
+    val ECO_EDIT: String get() = Lang.pick("Zmień cele", "Edit goals")
+    val ECO_DIALOG_TITLE: String get() = Lang.pick("Cele eco", "Eco goals")
+    val ECO_BODY: String get() = Lang.pick(
+        "Dwa niezależne cele na każdy miesiąc kalendarzowy. Zostaw pole puste, żeby nie mieć danego celu.",
+        "Two independent goals for each calendar month. Leave a field empty to have no such goal.",
+    )
+    val ECO_CONSUMPTION_FIELD: String get() = Lang.pick("Spalanie najwyżej, l/100 km", "Consumption at most, l/100 km")
+    val ECO_EV_FIELD: String get() = Lang.pick("Jazda na prądzie co najmniej, %", "Electric driving at least, %")
+    val ECO_INVALID: String get() = Lang.pick(
+        "Spalanie: liczba większa od 0 i nie większa niż 20, np. 4,5. Prąd: liczba całkowita od 1 do 100.",
+        "Consumption: a number greater than 0 and no more than 20, e.g. 4.5. Electric: a whole number from 1 to 100.",
+    )
+    val ECO_SAVE: String get() = Lang.pick("Zapisz", "Save")
+    val ECO_CANCEL: String get() = Lang.pick("Anuluj", "Cancel")
+    val ECO_NO_EV_DATA: String get() = Lang.pick(
+        "Jazda na prądzie: brak danych w tym miesiącu",
+        "Electric driving: no data this month",
+    )
+    fun ecoConsumptionLine(actual: String, goal: String, mark: String?): String =
+        Lang.pick("Spalanie: $actual / $goal l/100 km", "Consumption: $actual / $goal l/100 km") + (mark?.let { " $it" } ?: "")
+    fun ecoEvLine(actual: String, goal: String, mark: String?): String =
+        Lang.pick("Jazda na prądzie: $actual / $goal %", "Electric driving: $actual / $goal %") + (mark?.let { " $it" } ?: "")
+    fun ecoTooLittle(km: String): String = Lang.pick(
+        "Za mało jazdy, by ocenić ($km km)",
+        "Too little driving to judge ($km km)",
+    )
+    fun ecoPrevious(parts: String): String = Lang.pick("Poprzedni miesiąc: $parts", "Previous month: $parts")
+    fun ecoPreviousTooLittle(km: String): String = Lang.pick(
+        "Poprzedni miesiąc: za mało jazdy, by ocenić ($km km)",
+        "Previous month: too little driving to judge ($km km)",
+    )
+    fun ecoPreviousConsumption(met: Boolean): String = Lang.pick(
+        if (met) "cel spalania – osiągnięty" else "cel spalania – nieosiągnięty",
+        if (met) "consumption goal – met" else "consumption goal – missed",
+    )
+    fun ecoPreviousEv(met: Boolean): String = Lang.pick(
+        if (met) "cel jazdy na prądzie – osiągnięty" else "cel jazdy na prądzie – nieosiągnięty",
+        if (met) "electric driving goal – met" else "electric driving goal – missed",
+    )
+    fun ecoWidget(parts: String): String = Lang.pick("Cel: $parts", "Goal: $parts")
+    fun ecoWidgetTooLittle(km: String): String = Lang.pick("za mało jazdy ($km km)", "too little driving ($km km)")
+    fun ecoWidgetConsumption(actual: String, goal: String, mark: String?): String =
+        "$actual / $goal l/100 km" + (mark?.let { " $it" } ?: "")
+    fun ecoWidgetEv(actual: String, goal: String, mark: String?): String =
+        Lang.pick("prąd $actual / $goal %", "electric $actual / $goal %") + (mark?.let { " $it" } ?: "")
 
     // Spalanie deklarowane (docs/SPEC.md §30).
 
