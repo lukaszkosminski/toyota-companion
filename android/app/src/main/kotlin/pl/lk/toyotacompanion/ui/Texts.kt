@@ -1397,4 +1397,44 @@ object Texts {
     val HEALTH_OIL_NO: String get() = Lang.pick("Toyota nie przysłała danych o oleju silnika.", "Toyota sent no engine oil data.")
 
     fun healthUpdated(at: String): String = Lang.pick("Ostrzeżenia z $at", "Warnings from $at")
+
+    // ---------------- Historia serwisowa i powiadomienia (PRD F44-F45, docs/SPEC.md §45-§46) ----------------
+
+    val SERVICE_TITLE: String get() = Lang.pick("Historia serwisowa", "Service history")
+
+    /** Read-only cloud cache: the screen says what it shows and that the car is never woken. */
+    val SERVICE_HINT: String get() = Lang.pick(
+        "Serwisy zapisane przez Toyotę: data, przebieg, kategoria, czynności i dealer. Tylko odczyt z chmury, bez budzenia auta.",
+        "Services Toyota recorded: date, mileage, category, operations and dealer. Read-only from the cloud, without waking the car.",
+    )
+    val SERVICE_EMPTY: String get() = Lang.pick("Toyota nie ma wpisów serwisowych dla tego auta.", "Toyota has no service entries for this car.")
+    val SERVICE_READ_ERROR: String get() = Lang.pick("Nie udało się odczytać historii serwisowej.", "Could not read the service history.")
+
+    /** No date in the record: the row says so instead of inventing one. */
+    val SERVICE_NO_DATE: String get() = Lang.pick("brak daty", "no date")
+
+    /** Toyota sent no readable operations list (the field is untyped in the reference). */
+    val SERVICE_NO_OPERATIONS: String get() = Lang.pick("Toyota nie przysłała opisu czynności.", "Toyota sent no description of the operations.")
+
+    /** One label for the dealer: `servicingDealer`, or `serviceProvider` when the dealer is missing (decision 2026-11-09). */
+    val SERVICE_DEALER: String get() = "Dealer"
+
+    val NOTIFICATIONS_TITLE: String get() = Lang.pick("Powiadomienia", "Notifications")
+
+    /** The endpoint has no pagination and cannot mark a notification as read, so the screen says that. */
+    val NOTIFICATIONS_HINT: String get() = Lang.pick(
+        "Powiadomienia Toyoty z chmury, najnowsze pierwsze. Aplikacja ich nie oznacza jako przeczytane – API na to nie pozwala.",
+        "Toyota notifications from the cloud, newest first. The app does not mark them as read – the API does not allow it.",
+    )
+    val NOTIFICATIONS_EMPTY: String get() = Lang.pick("Toyota nie ma powiadomień dla tego auta.", "Toyota has no notifications for this car.")
+    val NOTIFICATIONS_READ_ERROR: String get() = Lang.pick("Nie udało się odczytać powiadomień.", "Could not read the notifications.")
+    val NOTIFICATIONS_READ: String get() = Lang.pick("przeczytane", "read")
+    val NOTIFICATIONS_UNREAD: String get() = Lang.pick("nieprzeczytane", "unread")
+    val NOTIFICATIONS_NO_DATE: String get() = Lang.pick("brak daty", "no date")
+
+    /** Mileage of a service record with Toyota's own unit; without a unit just the grouped number. */
+    fun serviceMileage(mileage: Int, unit: String?): String {
+        val number = TripsFormatting.odometer(mileage.toDouble())
+        return if (unit.isNullOrBlank()) number else "$number $unit"
+    }
 }

@@ -63,6 +63,12 @@ object ToyotaConst {
     /** pytoyoda const.py:42 — per-door/window state and warning count (read-only, cloud cache). */
     const val VEHICLE_STATUS_ENDPOINT = "/v1/vehicle/status"
 
+    /** pytoyoda const.py:67 — the service history Toyota keeps for the car (read-only, cloud cache). */
+    const val SERVICE_HISTORY_ENDPOINT = "/v1/servicehistory/vehicle/summary"
+
+    /** pytoyoda const.py:62 — notification history; no pagination and no way to mark one as read. */
+    const val NOTIFICATION_HISTORY_ENDPOINT = "/v2/notification/history"
+
     /** pytoyoda const.py:84 — ml -> l divisor */
     const val ML_TO_L_FACTOR = 1000.0
 

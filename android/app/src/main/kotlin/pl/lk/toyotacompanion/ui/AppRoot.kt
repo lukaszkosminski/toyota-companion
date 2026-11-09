@@ -58,6 +58,8 @@ fun AppRoot(
     vehicleStatus: RemoteDataController<pl.lk.toyotacompanion.core.domain.VehicleStatus>,
     location: RemoteDataController<pl.lk.toyotacompanion.core.domain.VehicleLocation>,
     vehicleHealth: RemoteDataController<pl.lk.toyotacompanion.core.domain.VehicleHealth>,
+    serviceHistory: RemoteDataController<pl.lk.toyotacompanion.core.domain.ServiceHistory>,
+    notifications: RemoteDataController<List<pl.lk.toyotacompanion.core.domain.ToyotaNotification>>,
     update: UpdateController,
     onSetLanguage: (AppLanguage) -> Unit,
     askNotificationPermission: suspend () -> Boolean,
@@ -131,6 +133,8 @@ fun AppRoot(
             vehicleStatus.reset()
             location.reset()
             vehicleHealth.reset()
+            serviceHistory.reset()
+            notifications.reset()
             backfill.reset()
             heat.close()
             // The widget must not keep an account's numbers after logout (docs/SPEC.md §32).
@@ -224,6 +228,8 @@ fun AppRoot(
                         onShowVehicleStatus = { screen = Screen.VehicleStatus },
                         onShowLocation = { screen = Screen.Location },
                         onShowVehicleHealth = { screen = Screen.VehicleHealth },
+                        onShowServiceHistory = { screen = Screen.ServiceHistory },
+                        onShowNotifications = { screen = Screen.Notifications },
                         onShowDrivingStyle = {
                             drivingStyle.load()
                             screen = Screen.DrivingStyle
@@ -316,6 +322,16 @@ fun AppRoot(
 
                     Screen.VehicleHealth -> VehicleHealthScreen(
                         controller = vehicleHealth,
+                        onBack = { screen = Screen.Status },
+                    )
+
+                    Screen.ServiceHistory -> ServiceHistoryScreen(
+                        controller = serviceHistory,
+                        onBack = { screen = Screen.Status },
+                    )
+
+                    Screen.Notifications -> NotificationsScreen(
+                        controller = notifications,
                         onBack = { screen = Screen.Status },
                     )
 

@@ -40,9 +40,18 @@
 - Podsumowanie roku (F28, §29), widżet (F31, §32), Android Auto tylko do odczytu (F34, §35), jazda na prądzie w tygodniach (F35, §36)
 - Wydania na GitHub Releases i aktualizacja w „Opcjach” (F36, §37, ADR-016): v0.2.0 (2026-11-06), v0.2.1 (R8 – APK 4,3 MB,
   ikony Material Symbols, kontrast; ADR-017), v0.2.2 (przegląd jakości C22: odświeżanie statusu, liczebniki, jedno
-  odnowienie tokenu, testy migracji Room, ADR-019 jedno konto = jedno auto)
+  odnowienie tokenu, testy migracji Room, ADR-019 jedno konto = jedno auto), v0.2.5 (w przygotowaniu: historia serwisowa
+  i powiadomienia Toyoty – F44/F45, SPEC §45–§46)
 - Wydatki poza paliwem (F37, §38, ADR-018), koszt całkowity auta (F38, §39, ADR-020), cele eco (F39, §40)
 - Jakość (C22): wspólna kopia listy tras po synchronizacji zamiast kilku pełnych odczytów (§10.1)
+- Historia serwisowa z Toyoty (`/v1/servicehistory/vehicle/summary`) jako kafelek „Historia serwisowa” (F44, SPEC §45,
+  plan C25): data, przebieg z jednostką, kategoria, czynności i dealer (etykieta „Dealer”: `servicingDealer`, fallback
+  `serviceProvider`; oba puste = „brak danych”), bez `serviceHistoryId`, `roNumber`, `notes` i `customerCreatedRecord`
+- Powiadomienia Toyoty (`/v2/notification/history`) jako kafelek „Powiadomienia” (F45, SPEC §46, plan C25): data, stan
+  przeczytania, kategoria i typ, treść; wszystkie wpisy, najnowsze pierwsze; VIN w treści maskowany; `null` w `payload`
+  (konto bez powiadomień) traktowany jako brak danych
+- Podstawa pod przyszłe przypomnienia serwisowe (interwał km/miesiące) i powiadomienie Androida o nowym wpisie Toyoty:
+  dane są już mapowane w `core/domain`, brakuje stanu w bazie i reguł – poza zakresem C25
 
 ## NOW
 - W toku (2026-11-08, agenci): pola autostrady i przekroczeń prędkości w archiwum tras (PRD F40, Room v6) oraz ekrany
@@ -60,9 +69,25 @@
   przebiegu (kilometrówka) – propozycje z 2026-11-08, niewybrane
 - Przeniesienie logiki domenowej z `app/ui` do `core/domain` z lustrem w Pythonie przy okazji zmian (C22 D9), podział
   największych plików (D10)
+- Propozycje z przeglądu ha_toyota (2026-11-09), niewybrane; tylko odczyt, bez budzenia auta; endpointy są w pytoyoda,
+  ale nie sprawdzone na koncie właściciela – najpierw dodać je do `:core:liveCheck`:
+  - Diagnostyka synchronizacji: ostatnie udane pobranie (telemetria, trasy, status), czas i kod ostatniego błędu
+    (np. 429, APIGW-403), czas stanu auta z Toyoty (`occurrence_date`); zachowanie ostatnich dobrych danych przy chwilowym
+    błędzie zamiast czyszczenia ekranu; eksport diagnostyki bez GPS, VIN i tokenów do zgłoszenia błędu
+  - Lista kontrolek ostrzegawczych (`dashboard.warning_lights`: nazwa, status, kategoria) zamiast samej liczby w F43
+    i powiadomienie o nowej kontrolce – do sprawdzenia, czy auto zwraca te dane
 
 ## DO ZBADANIA
 - Wybór pojazdu dla konta z kilkoma autami – dziś świadomie nie (ADR-019)
+- Nieaktualny stan w F41: obserwacja z ha_toyota (`refresh_strategy.py`, 2026-04) – 429 + APIGW-403 przy pustej lub
+  starej pamięci podręcznej Toyoty – dotyczyła `/v1/global/remote/status`, wycofanego przez Toyotę ok. 26.06.2026
+  (pytoyoda PR #268); F41 czyta już `/v1/vehicle/status`. Do sprawdzenia w `:core:liveCheck`, czy nowy endpoint zachowuje
+  się podobnie; niezależnie od tego: wyraźny wiek danych i komunikat błędu, który nie wygląda jak błąd logowania
+- Alert „auto zostało otwarte” po postoju: koniec jazdy rozpoznany po zmianie przebiegu między synchronizacjami
+  (jak czujnik `driving` w ha_toyota), potem jeden odczyt zamków bez wybudzania; ryzyko nieaktualnych danych (punkt wyżej),
+  a wybudzanie łamie zakaz `refresh_status()` (12 V)
+- Temperatura w kabinie (`/v1/vehicle/climate-status`, tylko odczyt): aktualne dane prawdopodobnie wymagają wcześniej
+  `refresh-climate-status`, czyli budzenia auta; mała wartość
 
 ## ZAMKNIĘTE BADANIA
 - F14/F22 ceny na stacjach: strona trojmiasto.pl po dotknięciu (SPEC §25); F18 Android Auto: wersja ograniczona jako F34 (ADR-014)

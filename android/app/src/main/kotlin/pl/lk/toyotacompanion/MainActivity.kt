@@ -65,6 +65,8 @@ class MainActivity : ComponentActivity() {
                 container.vehicleStatusController,
                 container.locationController,
                 container.vehicleHealthController,
+                container.serviceHistoryController,
+                container.notificationsController,
                 container.updateController,
                 container::setLanguage,
                 askNotificationPermission = container.askNotificationPermission,

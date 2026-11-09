@@ -1072,3 +1072,23 @@ Domena: `core/domain/OwnershipOps.kt` (`ownershipCost`, `ownershipMonths`, model
 - Payload ma `warning` i `quantityOfEngOilIcon` jako `list[Any]` w referencji, więc aplikacja **liczy wpisy i nie interpretuje ich treści** (nie zgaduje kodów ani ikon).
   Znaczenie i dostępność pól zależą od sondy struktury odpowiedzi (HANDOFF); brak listy = brak danych, nie 0.
 - Błędy jak w §42; nic nie jest zapisywane w bazie ani w kopii.
+
+## §45 Historia serwisowa (PRD F44)
+- Źródło: `GET /v1/servicehistory/vehicle/summary` (pytoyoda `service_history.py:12-66`) – wpisy serwisowe zapisane przez Toyotę; odczyt **cache w chmurze**, bez `refresh_status()` i bez komend, więc auto nie jest budzone.
+  Pliki: `core/toyota/ToyotaConst.kt` (`SERVICE_HISTORY_ENDPOINT`), `core/toyota/dto/ServiceHistoryDto.kt`, `ToyotaApi.getServiceHistory`, `core/toyota/VehicleDataMapper.kt` (`toServiceHistory`), `core/domain/VehicleService.kt` (`ServiceRecord`, `ServiceHistory`), `core/vehicle/VehicleDataGateway.kt`, `app/ui/ServiceFormatting.kt`, `app/ui/ServiceScreens.kt`, `app/ui/AppRoot.kt`, `app/ui/StatusScreen.kt`.
+- Ekran z kafelka „Historia serwisowa” w menu statusu: odczyt **raz przy każdym otwarciu** (zwykły GET), bez odpytywania w tle i bez `LaunchedEffect` z pętlą.
+- Wpis pokazuje: datę (`serviceDate`, `DD.MM.RRRR`), przebieg (`mileage` z jednostką `unit` – grupowany, bez jednostki gdy Toyota jej nie przysłała), kategorię (`serviceCategory`), czynności (`operationsPerformed`) i dealera. Lista od najnowszego wpisu; wpis bez daty sortuje się na końcu, nie znika.
+- **Decyzja właściciela 2026-11-09:** etykieta „Dealer” = `servicingDealer`, a gdy go brak – `serviceProvider`; gdy oba puste: „brak danych”. **Nie pokazujemy:** `serviceHistoryId`, `roNumber`, `notes`, `customerCreatedRecord`.
+- `operationsPerformed` jest `Any` w referencji, więc aplikacja **nie interpretuje treści**: tekst → jedna pozycja, tablica tekstów → lista, pusta tablica → brak pozycji, inny kształt → „Toyota nie przysłała opisu czynności.”.
+- Brak `payload` = „Toyota nie przysłała tych danych.”; pusta lista wpisów = „Toyota nie ma wpisów serwisowych dla tego auta.”; 403/404 = „Toyota nie udostępnia tych danych dla tego auta.”; inny błąd = komunikat odczytu + „Spróbuj ponownie”.
+- Kształt pól jest **niezweryfikowany** na koncie właściciela: decyzję o dealerze potwierdza sonda struktury (`TOYOTA_PROBE=structure`, `Probe.kt` poz. [7]), którą właściciel odpala sam, bo wymaga loginu. DTO jest tolerancyjne – wszystkie pola nullable, nieznane klucze ignorowane – więc wynik sondy nie wymusza przeróbek, tylko ewentualną korektę mapowania.
+- Prywatność: tylko w pamięci; bez bazy, archiwum, eksportu, CSV i `rememberSaveable`; `reset()` przy wylogowaniu.
+
+## §46 Powiadomienia (PRD F45)
+- Źródło: `GET /v2/notification/history` (pytoyoda `notifications.py:22-90`) – historia powiadomień konta; odczyt cache w chmurze, bez budzenia auta. Endpoint **nie ma stronicowania ani oznaczania jako przeczytane** (`api.py:302-320`), więc aplikacja niczego nie zmienia po stronie Toyoty.
+  Pliki: `ToyotaConst.kt` (`NOTIFICATION_HISTORY_ENDPOINT`), `core/toyota/dto/NotificationDto.kt`, `ToyotaApi.getNotifications`, `VehicleDataMapper.toNotifications`, `core/domain/VehicleService.kt` (`ToyotaNotification`), `VehicleDataGateway.kt`, `ServiceFormatting.kt`, `ServiceScreens.kt`.
+- `payload` to lista stron (jedna na pojazd), a `notifications` może być `null` (konto bez powiadomień, pytoyoda rzuca wtedy `TypeError`) – to „brak danych”, nie błąd.
+- Wpis pokazuje: datę (`notificationDate`, strefa lokalna), stan (`isRead` → „przeczytane”/„nieprzeczytane”; brak = nic), kategorię (`displayCategory`, a gdy brak – `category`) i typ (`type`) w jednej linii oraz treść (`message`). Najnowsze pierwsze; **wszystkie wpisy** (decyzja właściciela 2026-11-09), lista przewijana.
+- VIN w treści powiadomienia jest maskowany do czterech ostatnich znaków; pełny VIN nie trafia na ekran, do logów ani komunikatów błędów (SECURITY.md).
+- Brak `payload` = „Toyota nie przysłała tych danych.”; pusta lista = „Toyota nie ma powiadomień dla tego auta.”; błędy jak w §42.
+- Prywatność: tylko w pamięci; bez bazy, archiwum, eksportu i `rememberSaveable`; `reset()` przy wylogowaniu.

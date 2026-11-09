@@ -4,7 +4,11 @@ import kotlinx.serialization.json.Json
 import java.time.LocalDate
 import pl.lk.toyotacompanion.core.toyota.dto.LocationDto
 import pl.lk.toyotacompanion.core.toyota.dto.LocationResponse
+import pl.lk.toyotacompanion.core.toyota.dto.NotificationHistoryResponse
+import pl.lk.toyotacompanion.core.toyota.dto.NotificationPageDto
 import pl.lk.toyotacompanion.core.toyota.dto.RemoteStatusDto
+import pl.lk.toyotacompanion.core.toyota.dto.ServiceHistoryPayloadDto
+import pl.lk.toyotacompanion.core.toyota.dto.ServiceHistoryResponse
 import pl.lk.toyotacompanion.core.toyota.dto.TelemetryDto
 import pl.lk.toyotacompanion.core.toyota.dto.TelemetryResponse
 import pl.lk.toyotacompanion.core.toyota.dto.TripDetailResponse
@@ -111,6 +115,21 @@ class ToyotaApi(private val controller: ToyotaController) {
     /** pytoyoda api.py:185-197 — GET /v1/vehiclehealth/status: warning entries and engine oil. */
     suspend fun getVehicleHealth(vin: String): VehicleHealthDto? =
         decode<VehicleHealthResponse>(ToyotaConst.VEHICLE_HEALTH_ENDPOINT, vin = vin).payload
+
+    /**
+     * pytoyoda api.py:322-336 — GET /v1/servicehistory/vehicle/summary: the service history Toyota keeps.
+     * Read-only cloud cache; never wakes the car. A missing payload is null, not an error.
+     */
+    suspend fun getServiceHistory(vin: String): ServiceHistoryPayloadDto? =
+        decode<ServiceHistoryResponse>(ToyotaConst.SERVICE_HISTORY_ENDPOINT, vin = vin).payload
+
+    /**
+     * pytoyoda api.py:302-320 — GET /v2/notification/history: the notification pages of the account.
+     * The endpoint has no pagination parameters and cannot mark a notification as read; a null payload
+     * (an account without notifications) is returned as null, not as an error.
+     */
+    suspend fun getNotifications(vin: String): List<NotificationPageDto?>? =
+        decode<NotificationHistoryResponse>(ToyotaConst.NOTIFICATION_HISTORY_ENDPOINT, vin = vin).payload
 
     /**
      * SECURITY: the cause of a [ToyotaDataException] is a serialization error whose text can quote a piece of the answer, which for

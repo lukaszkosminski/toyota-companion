@@ -90,6 +90,12 @@ enum class Screen {
     /** Warning lights and engine oil from Toyota's cloud (PRD F43, docs/SPEC.md §44). */
     VehicleHealth,
 
+    /** The service history Toyota keeps for the car (PRD F44, docs/SPEC.md §45). */
+    ServiceHistory,
+
+    /** The notification history of the account (PRD F45, docs/SPEC.md §46). */
+    Notifications,
+
     /** Eco score, repeated routes and fuel anomalies (docs/SPEC.md §19). */
     DrivingStyle,
 

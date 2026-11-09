@@ -22,6 +22,8 @@ import pl.lk.toyotacompanion.core.data.StoredTrip
 import pl.lk.toyotacompanion.core.data.TripRecord
 import pl.lk.toyotacompanion.core.data.VehicleRecord
 import pl.lk.toyotacompanion.core.domain.FuelReading
+import pl.lk.toyotacompanion.core.domain.ServiceHistory
+import pl.lk.toyotacompanion.core.domain.ToyotaNotification
 import pl.lk.toyotacompanion.core.domain.VehicleHealth
 import pl.lk.toyotacompanion.core.domain.VehicleLocation
 import pl.lk.toyotacompanion.core.domain.VehicleStatus
@@ -112,9 +114,10 @@ class AppContainer(
     }
 
     /**
-     * Read-only Toyota data outside the archive (PRD F41-F43, docs/SPEC.md §42-§44): vehicle status,
-     * the last known position and vehicle health. Each screen reads once when it opens; the position is
-     * kept in memory only (docs/SECURITY.md). The shared controller renews the token once for every call.
+     * Read-only Toyota data outside the archive (PRD F41-F45, docs/SPEC.md §42-§46): vehicle status,
+     * the last known position, vehicle health, the service history and the notifications. Each screen reads
+     * once when it opens; the position is kept in memory only (docs/SECURITY.md). The shared controller renews
+     * the token once for every call.
      */
     private val vehicleData: VehicleDataGateway = object : VehicleDataGateway {
         override suspend fun status(vin: String): VehicleStatus? =
@@ -125,6 +128,12 @@ class AppContainer(
 
         override suspend fun health(vin: String): VehicleHealth? =
             ToyotaGatewayFactory.vehicleData(sharedController()).health(vin)
+
+        override suspend fun serviceHistory(vin: String): ServiceHistory? =
+            ToyotaGatewayFactory.vehicleData(sharedController()).serviceHistory(vin)
+
+        override suspend fun notifications(vin: String): List<ToyotaNotification>? =
+            ToyotaGatewayFactory.vehicleData(sharedController()).notifications(vin)
     }
 
     private suspend fun selectedVin(): String? = syncEngine.selectedVin()
@@ -148,6 +157,24 @@ class AppContainer(
     val vehicleHealthController: pl.lk.toyotacompanion.ui.RemoteDataController<VehicleHealth> by lazy {
         pl.lk.toyotacompanion.ui.RemoteDataController(
             read = { selectedVin()?.let { vehicleData.health(it) } },
+            scope = uiScope,
+            io = Dispatchers.IO,
+        )
+    }
+
+    /** The service history Toyota keeps for the car (PRD F44, docs/SPEC.md §45); read on every opening. */
+    val serviceHistoryController: pl.lk.toyotacompanion.ui.RemoteDataController<ServiceHistory> by lazy {
+        pl.lk.toyotacompanion.ui.RemoteDataController(
+            read = { selectedVin()?.let { vehicleData.serviceHistory(it) } },
+            scope = uiScope,
+            io = Dispatchers.IO,
+        )
+    }
+
+    /** The notification history of the account (PRD F45, docs/SPEC.md §46); read on every opening. */
+    val notificationsController: pl.lk.toyotacompanion.ui.RemoteDataController<List<ToyotaNotification>> by lazy {
+        pl.lk.toyotacompanion.ui.RemoteDataController(
+            read = { selectedVin()?.let { vehicleData.notifications(it) } },
             scope = uiScope,
             io = Dispatchers.IO,
         )

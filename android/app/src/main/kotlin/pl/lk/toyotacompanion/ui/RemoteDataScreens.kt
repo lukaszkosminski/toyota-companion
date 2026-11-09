@@ -37,7 +37,7 @@ import pl.lk.toyotacompanion.core.domain.VehicleStatus
 /** Shared shell: a title bar with "Wstecz" and one scrollable column of cards. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RemoteScreen(title: String, onBack: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+internal fun RemoteScreen(title: String, onBack: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
     BackHandler(onBack = onBack)
     Scaffold(
         topBar = {
@@ -69,12 +69,13 @@ private fun ComponentRow(line: ComponentLine) {
 
 /** Loading, "Toyota does not share this data", a retryable error or the payload — the same order on every screen. */
 @Composable
-private fun RemoteState(
+internal fun RemoteState(
     loading: Boolean,
     unavailable: Boolean,
     failed: Boolean,
     empty: Boolean,
     errorText: String,
+    emptyText: String = Texts.REMOTE_EMPTY,
     retry: () -> Unit,
 ) {
     when {
@@ -84,7 +85,7 @@ private fun RemoteState(
             Text(errorText)
             TextButton(onClick = retry) { Text(Texts.RETRY) }
         }
-        empty -> Text(Texts.REMOTE_EMPTY)
+        empty -> Text(emptyText)
     }
 }
 
