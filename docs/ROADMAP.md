@@ -40,8 +40,8 @@
 - Podsumowanie roku (F28, §29), widżet (F31, §32), Android Auto tylko do odczytu (F34, §35), jazda na prądzie w tygodniach (F35, §36)
 - Wydania na GitHub Releases i aktualizacja w „Opcjach” (F36, §37, ADR-016): v0.2.0 (2026-11-06), v0.2.1 (R8 – APK 4,3 MB,
   ikony Material Symbols, kontrast; ADR-017), v0.2.2 (przegląd jakości C22: odświeżanie statusu, liczebniki, jedno
-  odnowienie tokenu, testy migracji Room, ADR-019 jedno konto = jedno auto), v0.2.5 (w przygotowaniu: historia serwisowa
-  i powiadomienia Toyoty – F44/F45, SPEC §45–§46)
+  odnowienie tokenu, testy migracji Room, ADR-019 jedno konto = jedno auto), v0.2.5 (2026-11-09: historia serwisowa
+  i powiadomienia Toyoty, diagnostyka synchronizacji – F44–F46, SPEC §45–§47)
 - Wydatki poza paliwem (F37, §38, ADR-018), koszt całkowity auta (F38, §39, ADR-020), cele eco (F39, §40)
 - Jakość (C22): wspólna kopia listy tras po synchronizacji zamiast kilku pełnych odczytów (§10.1)
 - Historia serwisowa z Toyoty (`/v1/servicehistory/vehicle/summary`) jako kafelek „Historia serwisowa” (F44, SPEC §45,

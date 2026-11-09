@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+
+## 0.2.5 (2026-11-09)
 - Historia serwisowa Toyoty jako kafelek „Historia serwisowa” (F44, SPEC §45, plan C25): data, przebieg z jednostką, kategoria, czynności i dealer pod jedną etykietą „Dealer” (`servicingDealer`, fallback `serviceProvider`, oba puste = „brak danych”); bez numeru RO, notatek, identyfikatora wpisu i flagi wpisu właściciela
 - Powiadomienia Toyoty jako kafelek „Powiadomienia” (F45, SPEC §46, plan C25): data, stan przeczytania, kategoria i typ, treść; wszystkie wpisy od najnowszego, VIN w treści maskowany do czterech znaków, konto bez powiadomień to „brak danych”, nie błąd
 - Oba ekrany tylko do odczytu z chmury Toyoty, bez `refresh_status()` i bez zapisu na telefonie; kształt pól do potwierdzenia sondą `TOYOTA_PROBE=structure`
