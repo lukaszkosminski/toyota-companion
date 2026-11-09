@@ -106,7 +106,7 @@ object VehicleDataMapper {
             .filterNotNull()
             .flatMap { page ->
                 page.notifications.orEmpty().asSequence().filterNotNull()
-                    .map { it.toNotification(page.vin ?: vin) }
+                    .map { it.toNotification(page.vin?.takeIf { value -> value.isNotBlank() } ?: vin) }
             }
             .sortedWith(compareByDescending<ToyotaNotification> { it.date })
             .toList()
@@ -129,17 +129,9 @@ object VehicleDataMapper {
         date = parseInstant(notificationDate),
         category = displayCategory?.trim()?.takeIf { it.isNotEmpty() } ?: category?.trim()?.takeIf { it.isNotEmpty() },
         type = type?.trim()?.takeIf { it.isNotEmpty() },
-        message = message?.let { maskVin(it, this.vin ?: vin) },
+        message = message?.let { ToyotaSecrets.maskVin(it, this.vin?.takeIf { value -> value.isNotBlank() } ?: vin) },
         isRead = isRead,
     )
-
-    /** The VIN inside a message keeps only its last four characters (docs/SECURITY.md); a full VIN is never shown. */
-    private fun maskVin(text: String, vin: String?): String {
-        if (vin.isNullOrBlank() || !text.contains(vin)) return text
-        return text.replace(vin, maskedVin(vin))
-    }
-
-    private fun maskedVin(vin: String): String = "*".repeat((vin.length - 4).coerceAtLeast(0)) + vin.takeLast(4)
 
     /** A string, or the strings of an array. Anything else is "not readable" (null), never an interpretation. */
     private fun JsonElement?.toTextList(): List<String>? = when (this) {

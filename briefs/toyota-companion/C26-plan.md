@@ -101,3 +101,23 @@ i archiwum – żadnego wywołania Toyoty, więc auto nie jest budzone. Nic nie 
 3. `RemoteDataController` (ostatnie dobre dane) + ekrany.
 4. Ekran „Diagnostyka”, raport, teksty, nawigacja, `AppContainer`.
 5. Docs + CHANGELOG, walidacja, commit.
+
+## 9. Poprawki po przeglądzie (2026-11-09)
+
+Przegląd w `briefs/toyota-companion/C26-review-agent2.md` (plik poza commitem – cudza praca) domknięty
+w commicie `fix(app)`:
+
+- **B1** – `ToyotaSecrets.maskVin` (wspólny z F45) maskuje każde wystąpienie gołego VIN w całym raporcie,
+  także wartości ≤ 4 znaków; testy gołego VIN, krótkiego VIN i komunikatu bez VIN-u.
+- **B2** – kod HTTP tylko z zakresu 100–599; `-1` z `ToyotaController` (brak odpowiedzi) → brak kodu; test.
+- **W1** – `lastTelemetrySuccessAt` zapisywany po zapisach odczytu/tankowania, jak trasy; test STORAGE
+  sprawdza, że nieudany zapis nie wygląda na sukces telemetrii.
+- **W2** – tekst „Dane poniżej pochodzą z ostatniego udanego odczytu…” PL/EN, SPEC §47 poprawiony, test PL/EN.
+- **W3** – token generacji na każde `load()`, więc wolniejszy pierwszy odczyt nie nadpisze świeższego;
+  test z dwoma `CompletableDeferred`.
+- **W4** – KDoc opisuje `load()` na każdym otwarciu i rolę `ensureLoaded` (używanego przez inne kontrolery).
+- **D1–D4** – testy raportu ustawiają język PL i przywracają poprzedni, test raportu EN; fallback wersji „?”;
+  komunikat błędu tylko razem z rodzajem; pusty `vin` strony/wpisu traktowany jak brak.
+- **D5 (pominięte)** – „Kopiuj diagnostykę” nadal ma `AppIcons.Save` (dyskietka), bo w `AppIcons.kt` nie ma
+  `content_copy`; dodanie ikony to osobna, kosmetyczna zmiana zestawu ikon. Do rozważenia przy okazji
+  porządkowania `AppIcons` (razem z innymi brakującymi symbolami Material).

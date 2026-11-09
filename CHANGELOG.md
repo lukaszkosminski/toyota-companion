@@ -7,6 +7,7 @@
 - Diagnostyka synchronizacji jako kafelek „Diagnostyka” (F46, SPEC §47, plan C26): czasy ostatniego udanego pobrania pojazdów/konta, telemetrii i tras, czas stanu auta z Toyoty, czas i kod ostatniego błędu (np. 429, 403), liczniki archiwum; raport do schowka i do udostępnienia bez VIN, GPS i tokenów; odczyt lokalny, bez budzenia auta
 - Po chwilowym błędzie lub 403/404 ekrany Toyoty zachowują ostatnie dobre dane i pokazują komunikat błędu nad nimi, zamiast czyścić ekran (SPEC §47, dotyczy §42–§46)
 - Baza Room 7: nowe kolumny diagnostyczne `sync_state` (czasy kroków i kod HTTP ostatniego błędu), migracja automatyczna 6→7, stary wiersz bez zmian
+- Poprawki z przeglądu C26 (F44–F46, SPEC §45–§47): raport diagnostyki maskuje też goły VIN w komunikacie (ostatnie cztery znaki, także dla krótkich wartości) i pokazuje komunikat tylko razem z rodzajem błędu; kod HTTP tylko z zakresu 100–599 (`-1` = brak odpowiedzi → brak kodu); czas telemetrii liczony po zapisach, jak trasy; świeższy odczyt wygrywa przy dwóch `load()`; linia „Dane poniżej pochodzą z ostatniego udanego odczytu”; wersja aplikacji nigdy nie jest pusta; pusty VIN strony powiadomień traktowany jak brak
 
 ## 0.2.4 (2026-11-08)
 - Koszt tras po pierwszym potwierdzonym tankowaniu: paliwo, które zostało w baku, ma cenę domyślną, więc cena w baku to średnia ważona z nią (np. 6,175 zamiast 5,92 zł/l), a nie sama cena tankowania (poprawka ADR-005, SPEC §4, §6)

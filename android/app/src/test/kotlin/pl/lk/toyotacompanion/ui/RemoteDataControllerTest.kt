@@ -169,6 +169,32 @@ class RemoteDataControllerTest {
     }
 
     @Test
+    fun `a slower first read never overwrites a newer one`() = runTest {
+        val first = CompletableDeferred<String>()
+        val second = CompletableDeferred<String>()
+        var calls = 0
+        val c = controller {
+            calls++
+            if (calls == 1) first.await() else second.await()
+        }
+
+        c.load()
+        advanceUntilIdle()
+        c.load()
+        advanceUntilIdle()
+
+        second.complete("new")
+        advanceUntilIdle()
+        assertEquals("new", c.state.value.data)
+
+        // The older call finishes later; its token no longer matches, so its answer is dropped.
+        first.complete("old")
+        advanceUntilIdle()
+        assertEquals("new", c.state.value.data)
+        assertFalse(c.state.value.loading)
+    }
+
+    @Test
     fun `an answer that arrives after reset is dropped`() = runTest {
         val gate = CompletableDeferred<String>()
         val c = controller { gate.await() }

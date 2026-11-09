@@ -152,6 +152,23 @@ class VehicleServiceMapperTest {
     }
 
     @Test
+    fun `an empty page vin falls back to the given vin for masking`() {
+        val list = notifications(
+            """{"payload":[{"vin":"","notifications":[{"message":"Serwis dla VIN1234567890"}]}]}""",
+        )
+
+        assertEquals("Serwis dla *********7890", list?.first()?.message)
+    }
+
+    @Test
+    fun `a short vin is masked completely, never left bare`() {
+        assertEquals("***", ToyotaSecrets.maskVin("abc", "abc"))
+        assertEquals("abc", ToyotaSecrets.maskVin("abc", null))
+        assertEquals("abc", ToyotaSecrets.maskVin("abc", ""))
+        assertEquals("VIN ***", ToyotaSecrets.maskVin("VIN abc", "abc"))
+    }
+
+    @Test
     fun `a missing date and a missing category stay unknown`() {
         val list = notifications(
             """{"payload":[{"notifications":[{"message":"x"}]}]}""",

@@ -1324,8 +1324,8 @@ object Texts {
 
     /** A broken retry kept the last good answer on screen (docs/SPEC.md §47). */
     val REMOTE_STALE: String get() = Lang.pick(
-        "Powyżej dane z ostatniego udanego odczytu – najnowszego nie udało się pobrać.",
-        "Above is the last successful read – the newest one could not be fetched.",
+        "Dane poniżej pochodzą z ostatniego udanego odczytu – najnowszego nie udało się pobrać.",
+        "The data below is from the last successful read – the newest one could not be fetched.",
     )
 
     val SHOW_ON_MAP: String get() = Lang.pick("Pokaż na mapie", "Show on map")

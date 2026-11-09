@@ -4,6 +4,8 @@ import java.time.Instant
 import java.time.ZoneOffset
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
 import pl.lk.toyotacompanion.core.data.SyncErrorKind
 import pl.lk.toyotacompanion.core.data.SyncState
@@ -14,6 +16,19 @@ class DiagnosticsFormattingTest {
 
     private val zone = ZoneOffset.UTC
     private val at = Instant.parse("2026-11-09T12:34:00Z")
+    private var previousLanguage = AppLanguage.PL
+
+    // The texts are global state; a test that leaves EN behind would break the Polish assertions (D1).
+    @Before
+    fun usePolish() {
+        previousLanguage = Lang.current
+        Lang.current = AppLanguage.PL
+    }
+
+    @After
+    fun restoreLanguage() {
+        Lang.current = previousLanguage
+    }
 
     private fun status(state: SyncState = SyncState()) = SyncStatus(
         state = state,
@@ -109,5 +124,66 @@ class DiagnosticsFormattingTest {
             assertTrue(forbidden !in report, "$forbidden leaked into:\n$report")
         }
         assertTrue("REDACTED" in report, report)
+    }
+
+    @Test
+    fun `a bare vin in a message is masked to its last four characters`() {
+        val report = diagnosticsReport(
+            status(
+                SyncState(
+                    vin = "VIN1234567890",
+                    lastErrorAt = at,
+                    lastErrorKind = SyncErrorKind.API,
+                    lastErrorMessage = "VIN1234567890 not found",
+                ),
+            ),
+            appVersion = "0.2.5",
+            zone = zone,
+        )
+
+        assertTrue("VIN1234567890" !in report, report)
+        assertTrue("Komunikat: *********7890 not found" in report.lines(), report)
+    }
+
+    @Test
+    fun `without a known vin the message stays as it is`() {
+        val report = diagnosticsReport(
+            status(SyncState(lastErrorAt = at, lastErrorKind = SyncErrorKind.API, lastErrorMessage = "some failure")),
+            appVersion = "0.2.5",
+            zone = zone,
+        )
+
+        assertTrue("Komunikat: some failure" in report.lines())
+    }
+
+    @Test
+    fun `a message without an error kind is not shown`() {
+        val report = diagnosticsReport(
+            status(SyncState(lastErrorMessage = "stary komunikat")),
+            appVersion = "0.2.5",
+            zone = zone,
+        )
+
+        assertTrue("Ostatni błąd: brak" in report.lines())
+        assertTrue("Komunikat" !in report, report)
+    }
+
+    @Test
+    fun `the report follows the chosen language`() {
+        Lang.current = AppLanguage.EN
+        try {
+            val report = diagnosticsReport(
+                status(SyncState(lastAttemptAt = at, lastErrorAt = at, lastErrorKind = SyncErrorKind.NETWORK)),
+                appVersion = "0.2.5",
+                zone = zone,
+            )
+
+            assertTrue("Sync diagnostics" in report.lines(), report)
+            assertTrue("Last attempt: 2026-11-09 12:34" in report.lines(), report)
+            assertTrue("Last error: 2026-11-09 12:34 · NETWORK" in report.lines(), report)
+            assertTrue("Archive: trips 585, readings 120, refuels without a price 1" in report.lines(), report)
+        } finally {
+            Lang.current = AppLanguage.PL
+        }
     }
 }

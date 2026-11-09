@@ -195,7 +195,7 @@ class AppContainer(
 
     /** Version shown in the diagnostics report and compared with the GitHub release (ADR-016). */
     val appVersionName: String by lazy {
-        context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty()
+        context.packageManager.getPackageInfo(context.packageName, 0).versionName?.takeIf { it.isNotBlank() } ?: "?"
     }
 
     /** App update from GitHub Releases, only after a tap in "Opcje" (PRD F36, docs/SPEC.md §37, ADR-016). */

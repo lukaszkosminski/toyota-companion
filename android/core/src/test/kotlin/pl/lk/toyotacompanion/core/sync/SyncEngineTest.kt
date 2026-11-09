@@ -480,6 +480,9 @@ class SyncEngineTest {
         assertFailed(c.engine.fullSync(), SyncErrorKind.STORAGE)
 
         assertEquals(0, stores.readings.count())
+        val state = stores.state.get()
+        assertEquals(DAY_1, state.lastVehiclesSuccessAt, "the vehicles step did succeed")
+        assertNull(state.lastTelemetrySuccessAt, "nothing was stored, so telemetry is not a successful step")
     }
 
     @Test
@@ -1357,6 +1360,19 @@ class SyncEngineTest {
         val c = ctx(gateway)
 
         val failed = assertFailed(c.engine.fullSync(), SyncErrorKind.NETWORK)
+
+        assertNull(failed.error.status)
+        assertNull(c.stores.state.get().lastErrorStatus)
+    }
+
+    @Test
+    fun `a_request_without_a_response_records_no_http_status`() = runTest {
+        val gateway = FakeToyotaGateway(fleet = listOf(vehicleRecord()))
+        // ToyotaController uses -1 when the request got no response at all; it is not an HTTP code.
+        gateway.tripsError = ToyotaApiException(-1, "no response")
+        val c = ctx(gateway)
+
+        val failed = assertFailed(c.engine.fullSync(), SyncErrorKind.API)
 
         assertNull(failed.error.status)
         assertNull(c.stores.state.get().lastErrorStatus)

@@ -28,7 +28,8 @@ fun diagnosticsErrorKind(kind: SyncErrorKind?): String = kind?.name ?: Texts.DIA
 /**
  * The whole report as plain text (PRD F46, docs/SPEC.md §47): app version, per-step times of the last
  * synchronization, the moment Toyota last saw the car, the last error (time, kind, HTTP status, sanitized
- * message) and the archive counters. No VIN, no coordinates, no token.
+ * message) and the archive counters. No VIN, no coordinates, no token: the stored message goes through
+ * [ToyotaSecrets.sanitize] and every occurrence of the bare VIN through [ToyotaSecrets.maskVin].
  */
 fun diagnosticsReport(
     status: SyncStatus,
@@ -52,10 +53,14 @@ fun diagnosticsReport(
         val code = state.lastErrorStatus?.let { " · HTTP $it" }.orEmpty()
         "${Texts.DIAGNOSTICS_ERROR}: $at · ${diagnosticsErrorKind(state.lastErrorKind)}$code"
     }
-    state.lastErrorMessage?.let {
-        // Sanitized when stored; a second pass keeps a report from an old row honest (docs/SECURITY.md).
-        lines += "${Texts.DIAGNOSTICS_MESSAGE}: ${ToyotaSecrets.sanitize(it)}"
+    // A message without a kind is a half-written or old row; showing it under "no error" would confuse (D3).
+    if (state.lastErrorKind != null) {
+        state.lastErrorMessage?.let {
+            // Sanitized when stored; a second pass keeps a report from an old row honest (docs/SECURITY.md).
+            lines += "${Texts.DIAGNOSTICS_MESSAGE}: ${ToyotaSecrets.sanitize(it)}"
+        }
     }
     lines += Texts.diagnosticsArchive(status.tripsStored, status.readingsStored, status.pendingRefuels)
-    return lines.joinToString("\n")
+    // sanitize only knows `key=value`; a bare VIN in a message needs its own pass (docs/SPEC.md §47).
+    return ToyotaSecrets.maskVin(lines.joinToString("\n"), state.vin)
 }

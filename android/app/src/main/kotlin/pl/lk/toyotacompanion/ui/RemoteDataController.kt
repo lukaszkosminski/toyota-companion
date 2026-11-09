@@ -29,9 +29,13 @@ data class RemoteDataUiState<T>(
 
 /**
  * The controller behind "Stan pojazdu", "Lokalizacja", "Stan techniczny", the service history, the
- * notifications and the diagnostics: read once when the screen opens ([ensureLoaded]), never polled. No
- * database, no cache on disk — the location in particular stays in memory only (docs/SECURITY.md). [reset]
- * on logout invalidates late answers.
+ * notifications and the diagnostics. The screens call [load] on every opening, so a reopened screen is
+ * fresh; [ensureLoaded] reads at most once and is for callers that must not refresh. No database, no cache
+ * on disk — the location in particular stays in memory only (docs/SECURITY.md).
+ *
+ * Every [load] gets its own token: an answer from an older call is dropped when a newer one already runs,
+ * so a slow first request cannot overwrite a fresher second one. [reset] invalidates every answer still in
+ * flight and drops the kept data.
  */
 class RemoteDataController<T>(
     private val read: suspend () -> T?,
@@ -44,13 +48,14 @@ class RemoteDataController<T>(
     private var generation = 0
     private var loaded = false
 
+    /** Reads once if nothing was read since the last [reset]; a caller that wants a refresh calls [load]. */
     fun ensureLoaded() {
         if (!loaded) load()
     }
 
     fun load() {
         loaded = true
-        val startedIn = generation
+        val token = ++generation
         val previous = ui.value
         // The last good answer stays on screen while a retry runs (docs/SPEC.md §47).
         ui.value = RemoteDataUiState(loading = true, data = previous.data)
@@ -70,7 +75,7 @@ class RemoteDataController<T>(
                 failed = true
                 null
             }
-            if (generation != startedIn) return@launch
+            if (token != generation) return@launch
             // A broken read keeps what was last good; an answer without a payload is an honest "no data".
             val shown = if (failed || unavailable) previous.data else data
             ui.value = RemoteDataUiState(loading = false, data = shown, failed = failed, unavailable = unavailable)

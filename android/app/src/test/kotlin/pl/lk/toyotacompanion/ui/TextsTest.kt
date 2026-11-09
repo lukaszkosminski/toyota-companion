@@ -522,6 +522,21 @@ class TextsTest {
         assertEquals("Spalanie: 4,30 / 4,50 l/100 km", Texts.ecoConsumptionLine("4,30", "4,50", null))
         assertEquals("Za mało jazdy, by ocenić (32 km)", Texts.ecoTooLittle("32"))
     }
+
+    @Test
+    fun `the stale data line points below the message in both languages`() {
+        // The line is rendered above the kept data, so it must say "below" (docs/SPEC.md §47, W2).
+        assertEquals("Dane poniżej pochodzą z ostatniego udanego odczytu – najnowszego nie udało się pobrać.", Texts.REMOTE_STALE)
+        Lang.current = AppLanguage.EN
+        val english = try {
+            Texts.REMOTE_STALE
+        } finally {
+            Lang.current = AppLanguage.PL
+        }
+        assertEquals("The data below is from the last successful read – the newest one could not be fetched.", english)
+        assertTrue("Above" !in english)
+        assertTrue("Powyżej" !in Texts.REMOTE_STALE)
+    }
 }
 
 /** Minimal entry for the message checks; the values are not formatted here. */

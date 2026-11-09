@@ -451,9 +451,6 @@ class SyncEngine(
         if (reading == null) {
             telemetryFailed = true
         } else {
-            // The fetch worked even when Toyota has nothing newer (docs/SPEC.md §47).
-            progress = progress.copy(lastTelemetrySuccessAt = clock())
-            state.save(progress)
             val previous = readings.latest(vin)
             if (previous == null) {
                 // First reading ever: nothing to compare against (docs/SPEC.md §8.3).
@@ -466,6 +463,10 @@ class SyncEngine(
             // Not newer than the stored reading (Toyota caches telemetry while the
             // car sleeps): no new row and no detection, otherwise every 30 minutes
             // would add a row for the same moment.
+            // Success means "fetched and stored" (docs/SPEC.md §47), so the time is written after the archive
+            // writes, like trips: a STORAGE failure must not look like a successful telemetry step.
+            progress = progress.copy(lastTelemetrySuccessAt = clock())
+            state.save(progress)
         }
 
         // 3. Trips since the watermark, with an overlap for late-arriving trips.
@@ -598,6 +599,7 @@ class SyncEngine(
             is ToyotaDataException -> SyncErrorKind.DATA
             else -> SyncErrorKind.DATA
         }
-        return SyncError(kind, ToyotaSecrets.sanitize(e.message ?: e.javaClass.simpleName), (e as? ToyotaApiException)?.statusCode)
+        val status = (e as? ToyotaApiException)?.statusCode?.takeIf { it in 100..599 }
+        return SyncError(kind, ToyotaSecrets.sanitize(e.message ?: e.javaClass.simpleName), status)
     }
 }
