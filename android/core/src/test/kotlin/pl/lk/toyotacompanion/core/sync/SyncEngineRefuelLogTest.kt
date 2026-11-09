@@ -213,4 +213,20 @@ class SyncEngineRefuelLogTest {
         assertEquals(0, c.gateway.telemetryCalls)
         assertEquals(0, c.gateway.tripsCalls)
     }
+
+    @Test
+    fun `confirmed refuels are oldest first and leave pending and other cars out`() = runTest {
+        val c = ctx()
+        c.stores.state.save(SyncState(vin = VIN))
+        c.stores.refuels.addIfAbsent(fullRefuel("b", DAY_1.plusSeconds(600)), VIN)
+        c.stores.refuels.addIfAbsent(fullRefuel("a", DAY_1), VIN)
+        c.stores.refuels.addIfAbsent(
+            fullRefuel("p", DAY_1.plusSeconds(300), status = RefuelStatus.PENDING),
+            VIN,
+        )
+        c.stores.refuels.addIfAbsent(fullRefuel("other", DAY_1, status = RefuelStatus.CONFIRMED), OTHER_VIN)
+
+        assertEquals(listOf("a", "b"), c.engine.confirmedRefuels().map { it.id })
+        assertEquals(0, c.gateway.tripsCalls)
+    }
 }

@@ -66,18 +66,27 @@ fun csvDateTime(at: Instant, zone: ZoneId): String {
 private val CSV_NUMBER = Regex("-?[0-9]+(,[0-9]+)?")
 
 /**
- * One cell: quoted when it holds the separator, a quote or a line break (quotes doubled,
- * RFC 4180). Text (not a number) starting with `=`, `+`, `-` or `@` gets a leading `'`,
- * so a spreadsheet never runs it as a formula (CSV injection, docs/SPEC.md §14.4).
+ * One cell: quoted when it holds the separator, a quote, a line break, a tab or edge whitespace (quotes doubled,
+ * RFC 4180). A text (not a number) whose first non-whitespace character is `=`, `+`, `-` or `@` gets a leading
+ * `'` **at the very start**, so a spreadsheet never runs it as a formula even when Excel trims the whitespace
+ * (CSV injection, docs/SPEC.md §14.4). `CSV_NUMBER` is checked on the original text, so `-1` stays a number
+ * while ` -1` is text and is guarded. Whitespace is never trimmed: the export mirrors what was stored.
  */
 fun csvCell(text: String): String {
-    val formulaLike = text.isNotEmpty() && text[0] in "=+-@" && !CSV_NUMBER.matches(text)
+    val firstMeaningful = text.firstOrNull { !it.isWhitespace() }
+    val formulaLike = firstMeaningful != null && firstMeaningful in "=+-@" && !CSV_NUMBER.matches(text)
     val guarded = if (formulaLike) "'$text" else text
-    val needsQuotes = guarded.any { it == ';' || it == '"' || it == '\r' || it == '\n' }
+    val needsQuotes = guarded.any { it == ';' || it == '"' || it == '\r' || it == '\n' || it == '\t' } ||
+        (text.isNotEmpty() && (text.first().isWhitespace() || text.last().isWhitespace()))
     return if (needsQuotes) "\"" + guarded.replace("\"", "\"\"") + "\"" else guarded
 }
 
-private fun csvRow(cells: List<String>): String = cells.joinToString(CSV_SEPARATOR) { csvCell(it) } + CSV_LINE_END
+/** `2026-10-29` — a date-only cell for the refuel and expense sheets; no `String.format` (see [TripsFormatting]). */
+internal fun csvDate(day: java.time.LocalDate): String =
+    day.year.toString() + "-" + pad(day.monthValue) + "-" + pad(day.dayOfMonth)
+
+/** One RFC 4180 row with the shared separator and line end; used by every sheet (docs/SPEC.md §14.4, §48). */
+internal fun csvRow(cells: List<String>): String = cells.joinToString(CSV_SEPARATOR) { csvCell(it) } + CSV_LINE_END
 
 private fun sourceLabel(source: CostSource): String = when (source) {
     CostSource.REFUEL -> Texts.CSV_SOURCE_REFUEL

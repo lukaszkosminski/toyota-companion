@@ -63,6 +63,12 @@ fun BackupScreen(
     val createCsv = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) {
         uri -> if (uri != null) controller.exportTripsCsv(uri.toString())
     }
+    val createRefuelsCsv = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) {
+        uri -> if (uri != null) controller.exportRefuelsCsv(uri.toString())
+    }
+    val createExpensesCsv = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) {
+        uri -> if (uri != null) controller.exportExpensesCsv(uri.toString())
+    }
 
     LaunchedEffect(Unit) { controller.open() }
 
@@ -124,6 +130,21 @@ fun BackupScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     IconLabel(AppIcons.Description, Texts.CSV_EXPORT)
+                }
+                Button(
+                    onClick = { createRefuelsCsv.launch(refuelsCsvFileName(LocalDate.now(zone))) },
+                    // null = count not known yet: enabled, so a failed count read never blocks the export.
+                    enabled = state.refuelsStored != 0 && !state.busy,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    IconLabel(AppIcons.LocalGasStation, Texts.CSV_EXPORT_REFUELS)
+                }
+                Button(
+                    onClick = { createExpensesCsv.launch(expensesCsvFileName(LocalDate.now(zone))) },
+                    enabled = state.expensesStored != 0 && !state.busy,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    IconLabel(AppIcons.ReceiptLong, Texts.CSV_EXPORT_EXPENSES)
                 }
             }
 

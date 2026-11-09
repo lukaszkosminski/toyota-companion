@@ -18,6 +18,7 @@ import pl.lk.toyotacompanion.core.data.ArchiveSnapshot
 import pl.lk.toyotacompanion.core.data.StoredTrip
 import pl.lk.toyotacompanion.core.data.decodeArchive
 import pl.lk.toyotacompanion.core.data.encodeArchive
+import pl.lk.toyotacompanion.core.domain.Refuel
 import pl.lk.toyotacompanion.core.sync.ArchiveImport
 import pl.lk.toyotacompanion.core.sync.ArchiveImportCounts
 
@@ -100,6 +101,10 @@ data class BackupUiState(
     val error: String? = null,
     val cloudRequested: Boolean = false,
     val cloudError: String? = null,
+    /** Confirmed refuels available for the CSV export; `null` = not known yet (the button stays enabled). */
+    val refuelsStored: Int? = null,
+    /** Expenses available for the CSV export; `null` = not known yet (the button stays enabled). */
+    val expensesStored: Int? = null,
 )
 
 /**
@@ -115,6 +120,8 @@ data class BackupUiState(
  * @param readFile reads the chosen file; throws [ArchiveTooLargeException] past the limit
  * @param readLastExport / [saveLastExport] the date in `SettingsStore`
  * @param loadTrips the trips of the selected vehicle for the CSV (`SyncEngine.trips`, docs/SPEC.md §14.4)
+ * @param loadRefuels the confirmed refuels for the CSV (`SyncEngine.confirmedRefuels`, docs/SPEC.md §48)
+ * @param loadExpenses the stored non-fuel expenses for the CSV (`ExpenseDao.all`, docs/SPEC.md §48)
  * @param zone the zone of the trips list, so the CSV shows the same times
  * @param cloudBackupNow asks Android for an Auto Backup pass (`BackupManager.dataChanged`, ADR-015);
  *        a lambda, so the controller still has no Android types
@@ -127,6 +134,8 @@ class BackupController(
     private val readLastExport: suspend () -> Instant?,
     private val saveLastExport: suspend (Instant) -> Unit,
     private val loadTrips: suspend () -> List<StoredTrip>,
+    private val loadRefuels: suspend () -> List<Refuel>,
+    private val loadExpenses: suspend () -> List<Expense>,
     private val cloudBackupNow: () -> Unit,
     private val zone: () -> ZoneId,
     private val scope: CoroutineScope,
@@ -140,6 +149,9 @@ class BackupController(
 
     /** A read of the date is running or done; a second call before its result reads nothing. */
     private var loadStarted = false
+
+    /** A read of the CSV counters is running; opening the screen twice does not read them twice. */
+    private var countsInFlight = false
 
     /**
      * Reads the date of the last export once; `AppRoot` calls this from an effect that
@@ -163,10 +175,11 @@ class BackupController(
         }
     }
 
-    /** Opens the screen: the result of an earlier operation is gone. */
+    /** Opens the screen: the result of an earlier operation is gone; the CSV counters are fresh. */
     fun open() {
         ui.value = ui.value.copy(message = null, error = null, cloudRequested = false, cloudError = null)
         ensureLoaded()
+        refreshCsvCounts()
     }
 
     /**
@@ -199,6 +212,24 @@ class BackupController(
         launchOperation { exportCsvTo(target) }
     }
 
+    /**
+     * Writes the confirmed refuels of the selected vehicle as CSV to [target] (PRD F47, docs/SPEC.md §48).
+     * Not a backup: the date of the last archive copy stays as it is.
+     */
+    fun exportRefuelsCsv(target: String) {
+        if (ui.value.busy) return
+        launchOperation { exportRefuelsCsvTo(target) }
+    }
+
+    /**
+     * Writes the non-fuel expenses as CSV to [target] (PRD F47, docs/SPEC.md §48).
+     * Not a backup: the date of the last archive copy stays as it is.
+     */
+    fun exportExpensesCsv(target: String) {
+        if (ui.value.busy) return
+        launchOperation { exportExpensesCsvTo(target) }
+    }
+
     /** Reads [source] and adds what is missing from the phone (docs/SPEC.md §14.1). */
     fun importFrom(source: String) {
         if (ui.value.busy) return
@@ -209,6 +240,7 @@ class BackupController(
     fun reset() {
         generation++
         loadStarted = false
+        countsInFlight = false
         ui.value = BackupUiState()
     }
 
@@ -227,6 +259,9 @@ class BackupController(
             if (generation != startedIn) return@launch
             ui.value = when (result) {
                 is BackupResult.CsvExported -> ui.value.copy(busy = false, message = Texts.csvExported(result.trips))
+                is BackupResult.RefuelsCsvExported -> ui.value.copy(busy = false, message = Texts.csvRefuelsExported(result.refuels))
+                is BackupResult.ExpensesCsvExported -> ui.value.copy(busy = false, message = Texts.csvExpensesExported(result.expenses))
+                is BackupResult.Empty -> ui.value.copy(busy = false, message = result.message)
                 is BackupResult.Exported -> ui.value.copy(
                     busy = false,
                     lastExport = result.at,
@@ -255,6 +290,58 @@ class BackupController(
         return BackupResult.CsvExported(trips.size)
     }
 
+    private suspend fun exportRefuelsCsvTo(target: String): BackupResult {
+        val refuels = withContext(io) { loadRefuels() }
+        // The button is disabled when the count is a known zero; a list that emptied meanwhile writes nothing.
+        if (refuels.isEmpty()) return BackupResult.Empty(Texts.CSV_NO_REFUELS)
+        val bytes = (CSV_BOM + refuelsCsv(refuels, zone())).toByteArray(Charsets.UTF_8)
+        withContext(io) { writeFile(target, bytes) }
+        return BackupResult.RefuelsCsvExported(refuels.size)
+    }
+
+    private suspend fun exportExpensesCsvTo(target: String): BackupResult {
+        val expenses = withContext(io) { loadExpenses() }
+        // The button is disabled when the count is a known zero; a list that emptied meanwhile writes nothing.
+        if (expenses.isEmpty()) return BackupResult.Empty(Texts.CSV_NO_EXPENSES)
+        val bytes = (CSV_BOM + expensesCsv(expenses)).toByteArray(Charsets.UTF_8)
+        withContext(io) { writeFile(target, bytes) }
+        return BackupResult.ExpensesCsvExported(expenses.size)
+    }
+
+    /**
+     * Reads the counts behind the two new buttons once per screen opening. A failed read keeps the last known
+     * value (`null` before the first one), so the button stays enabled rather than opening a file picker that
+     * would create an empty file; the export then reports "nothing to export" without writing.
+     */
+    private fun refreshCsvCounts() {
+        if (countsInFlight) return
+        countsInFlight = true
+        val startedIn = generation
+        scope.launch {
+            try {
+                val refuels = readCount { loadRefuels() }
+                val expenses = readCount { loadExpenses() }
+                if (generation != startedIn) return@launch
+                ui.value = ui.value.copy(
+                    refuelsStored = refuels ?: ui.value.refuelsStored,
+                    expensesStored = expenses ?: ui.value.expensesStored,
+                )
+            } finally {
+                countsInFlight = false
+            }
+        }
+    }
+
+    /** The size of a list, or `null` when the read failed (the text is never shown, docs/SECURITY.md). */
+    private suspend fun <T> readCount(read: suspend () -> List<T>): Int? =
+        try {
+            withContext(io) { read().size }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            null
+        }
+
     private suspend fun importArchiveFrom(source: String): BackupResult {
         val bytes = try {
             withContext(io) { readFile(source) }
@@ -273,6 +360,10 @@ class BackupController(
     private sealed class BackupResult {
         data class Exported(val at: Instant, val trips: Int) : BackupResult()
         data class CsvExported(val trips: Int) : BackupResult()
+        data class RefuelsCsvExported(val refuels: Int) : BackupResult()
+        data class ExpensesCsvExported(val expenses: Int) : BackupResult()
+        /** Nothing to export: information, not a failure (docs/SPEC.md §48). */
+        data class Empty(val message: String) : BackupResult()
         data class Imported(val counts: ArchiveImportCounts) : BackupResult()
         data class Failed(val message: String) : BackupResult()
     }

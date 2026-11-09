@@ -1180,15 +1180,29 @@ object Texts {
 
     val CSV_SECTION: String get() = Lang.pick("Arkusz kalkulacyjny", "Spreadsheet")
     val CSV_EXPLANATION: String get() = Lang.pick(
-        "Trasy wybranego pojazdu z kosztem w pliku CSV dla Excela i Arkuszy Google – bez położenia GPS i numeru VIN.",
-        "Trips of selected vehicle with cost in a CSV file for Excel and Google Sheets – without GPS location and VIN.",
+        "Trasy, tankowania i wydatki w plikach CSV dla Excela i Arkuszy Google – bez położenia GPS i numeru VIN.",
+        "Trips, refuels and expenses in CSV files for Excel and Google Sheets – without GPS location and VIN.",
     )
     val CSV_EXPORT: String get() = Lang.pick("Eksportuj trasy do CSV", "Export trips to CSV")
     val CSV_NO_TRIPS: String get() = Lang.pick("Brak tras do eksportu.", "No trips to export.")
+    val CSV_EXPORT_REFUELS: String get() = Lang.pick("Eksportuj tankowania do CSV", "Export refuels to CSV")
+    val CSV_NO_REFUELS: String get() = Lang.pick("Brak tankowań do eksportu.", "No refuels to export.")
+    val CSV_EXPORT_EXPENSES: String get() = Lang.pick("Eksportuj wydatki do CSV", "Export expenses to CSV")
+    val CSV_NO_EXPENSES: String get() = Lang.pick("Brak wydatków do eksportu.", "No expenses to export.")
 
     fun csvExported(trips: Int): String = Lang.pick(
         "Zapisano arkusz tras (trasy: $trips).",
         "Saved trip spreadsheet (trips: $trips).",
+    )
+
+    fun csvRefuelsExported(refuels: Int): String = Lang.pick(
+        "Zapisano arkusz tankowań (tankowania: $refuels).",
+        "Saved refuel spreadsheet (refuels: $refuels).",
+    )
+
+    fun csvExpensesExported(expenses: Int): String = Lang.pick(
+        "Zapisano arkusz wydatków (wydatki: $expenses).",
+        "Saved expense spreadsheet (expenses: $expenses).",
     )
 
     /** Header cells; the unit lives here, so the cells below stay plain numbers. */
@@ -1208,6 +1222,30 @@ object Texts {
 
     /** "Źródło ceny" of a trip priced with the default price of the phone. */
     val CSV_SOURCE_DEFAULT: String get() = Lang.pick("cena domyślna", "default price")
+
+    /** Header of the refuel sheet (PRD F47, docs/SPEC.md §48); the unit lives here, so cells stay plain numbers. */
+    val CSV_REFUELS_HEADER: List<String> get() = listOf(
+        Lang.pick("Data", "Date"),
+        Lang.pick("Licznik [km]", "Odometer [km]"),
+        Lang.pick("Poziom przed [%]", "Level before [%]"),
+        Lang.pick("Poziom po [%]", "Level after [%]"),
+        Lang.pick("Litry [l]", "Liters [l]"),
+        Lang.pick("Cena [zł/l]", "Price [zł/l]"),
+        Lang.pick("Koszt [zł]", "Cost [zł]"),
+        Lang.pick("Źródło litrów", "Liters source"),
+        Lang.pick("Do pełna", "Filled to full"),
+    )
+
+    /** Header of the expense sheet (PRD F47, docs/SPEC.md §48). */
+    val CSV_EXPENSES_HEADER: List<String> get() = listOf(
+        Lang.pick("Data", "Date"),
+        Lang.pick("Kategoria", "Category"),
+        Lang.pick("Kwota [zł]", "Amount [zł]"),
+        Lang.pick("Notatka", "Note"),
+    )
+
+    val CSV_YES: String get() = Lang.pick("tak", "yes")
+    val CSV_NO: String get() = Lang.pick("nie", "no")
 
     /** F8 reminder card on the status screen. */
     val BACKUP_REMINDER_NEVER: String get() = Lang.pick(

@@ -305,11 +305,23 @@ class SyncEngine(
         val vin = state.get().vin ?: return RefuelLog.EMPTY
         val all = refuels.all(vin)
         val tripList = trips.all(vin).map { it.toTrip() }
-        val confirmed = all
-            .filter { it.status == RefuelStatus.CONFIRMED }
+        val confirmed = confirmedOnly(all)
             .sortedWith(compareByDescending<Refuel> { it.ts }.thenBy { it.id })
         return RefuelLog(confirmed, fuelEconomyIntervals(all, tripList))
     }
+
+    /**
+     * The confirmed refuels of the selected vehicle, oldest first (ts, then id) — the refuel log without the
+     * economy intervals, for the CSV export (PRD F47, docs/SPEC.md §48). A pending refuel has no price yet, so
+     * it stays out; no network, no mutex.
+     */
+    suspend fun confirmedRefuels(): List<Refuel> {
+        val vin = state.get().vin ?: return emptyList()
+        return confirmedOnly(refuels.all(vin)).sortedWith(compareBy({ it.ts }, { it.id }))
+    }
+
+    /** The one filter both reads share, so the log and the CSV can never disagree on what a "confirmed" refuel is. */
+    private fun confirmedOnly(all: List<Refuel>): List<Refuel> = all.filter { it.status == RefuelStatus.CONFIRMED }
 
     /**
      * The whole archive for the backup file (PRD F7, docs/SPEC.md §14): every

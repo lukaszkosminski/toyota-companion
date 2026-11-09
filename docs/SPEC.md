@@ -619,8 +619,10 @@ Arkusz tras w CSV (F6) – §14.4.
 - Cena, koszt i źródło są puste dokładnie wtedy, gdy lista tras pisze „brak ceny” (`hasNoCost`). Koszt jest wartością
   autorytatywną: „paliwo × cena” w arkuszu może się od niego różnić o 0,01 zł (lista tras pokazuje cenę z 2 miejscami).
 - Bez GPS, VIN, id trasy, ocen jazdy i wiersza „Razem” – sumy liczy arkusz; do pełnej kopii służy §14.1.
-- Komórka tekstowa (nie liczba) zaczynająca się od `=`, `+`, `-` albo `@` dostaje na początku `'` – arkusz nie
-  wykona jej jako formuły (CSV injection); dziś tekstami są tylko stałe aplikacji, wymóg dotyczy przyszłych kolumn.
+- Komórka tekstowa (nie liczba), której pierwszy **nie-biały** znak to `=`, `+`, `-` albo `@`, dostaje na samym początku `'` – arkusz
+  nie wykona jej jako formuły (CSV injection), nawet gdy Excel obetnie wiodący biały znak; liczba (np. `-1`) nie dostaje `'`.
+  Komórki z wiodącym/końcowym białym znakiem lub tabulatorem są w cudzysłowie, żeby dane zostały wiernie zapisane.
+  Tekstami są już nie tylko stałe aplikacji: od F47 notatki wydatków pochodzą od użytkownika.
 - UI: sekcja „Arkusz kalkulacyjny” na ekranie „Kopia i eksport”, przycisk „Eksportuj trasy do CSV” →
   `CreateDocument("text/csv")`, nazwa `toyota-companion-trasy-RRRR-MM-DD.csv` (nazwa nie rozróżnia pojazdów;
   bez VIN). Przycisk nieaktywny bez tras – systemowy wybór pliku tworzy plik, zanim aplikacja cokolwiek sprawdzi;
@@ -1102,3 +1104,32 @@ Domena: `core/domain/OwnershipOps.kt` (`ownershipCost`, `ownershipMonths`, model
 - **Ostatnie dobre dane zostają na ekranie** (dotyczy §42–§46): po błędzie lub 403/404 ponowny odczyt zachowuje poprzednie dane i pokazuje komunikat błędu oraz linię „Dane poniżej pochodzą z ostatniego udanego odczytu…” nad nimi, zamiast czyścić ekran; odpowiedź 200 bez payloadu to nadal „Toyota nie przysłała tych danych”. `reset()` (Wstecz, wylogowanie) czyści także zachowane dane.
 - „Kopiuj diagnostykę” i „Udostępnij” dają ten sam tekst; **bez VIN, współrzędnych GPS i tokenów**; komunikat błędu przechodzi `ToyotaSecrets.sanitize` przy zapisie i jeszcze raz przy budowie raportu, a każde wystąpienie gołego VIN (także bez klucza `vin=`) jest maskowane do czterech ostatnich znaków; komunikat pokazujemy tylko razem z rodzajem błędu, żeby stary wpis bez rodzaju nie wyglądał na „brak błędu” z komunikatem.
 - Migracja Room 6→7: nowe kolumny `sync_state` są nullable, stary wiersz zostaje bez zmian (test migracji każdej wersji).
+
+## §48 Arkusze tankowań i wydatków w CSV (PRD F47)
+- Rozszerzenie eksportu arkuszy z §14.4: obok tras dwa kolejne pliki CSV, w tym samym formacie (separator `;`,
+  przecinek dziesiętny, UTF-8 z BOM doklejany przy zapisie, CRLF, cudzysłów i ochrona przed CSV injection).
+  Pliki: `app/ui/RefuelsCsv.kt` (`refuelsCsv`, `refuelsCsvFileName`), `app/ui/ExpensesCsv.kt` (`expensesCsv`,
+  `expensesCsvFileName`), `app/ui/TripsCsv.kt` (współdzielone `csvRow`/`csvDate`), `BackupController`,
+  `BackupScreen`, `Texts`, `AppContainer`. Bez zmian w `core/domain` i w Pythonie – to formatowanie w warstwie `app`.
+- **Tankowania** (`Texts.CSV_REFUELS_HEADER`): potwierdzone tankowania wybranego auta, te same co w dzienniku (§15.2),
+  od najstarszego (`ts`, remis – po `id`). Kolumny: `Data` (`RRRR-MM-DD GG:MM`, strefa ekranu), `Licznik [km]` (1 miejsce),
+  `Poziom przed [%]` i `Poziom po [%]` (liczby całkowite), `Litry [l]` (3 miejsca – pełna precyzja domeny; dziennik
+  pokazuje je bez zer końcowych, więc `14,190` i `14,19` to ta sama wartość), `Cena [zł/l]` (3), `Koszt [zł]` (2),
+  `Źródło litrów` (`Texts.LOG_SOURCE_*`), `Do pełna` (`tak`/`nie`; puste, gdy `filledToFull` jest `null`, a nie „nie”).
+- **Koszt jest tylko zapisanym `totalCost`** – aplikacja nigdy nie liczy „litry × cena” w arkuszu; brak wartości daje
+  pustą komórkę, nie 0. Puste są też litry, cena i źródło, gdy tankowanie ich nie ma; `Poziom przed/po` są zawsze liczbami.
+- Tankowanie `PENDING` (bez potwierdzonej ceny) nie trafia do arkusza – to dziennik potwierdzonych (§15.2).
+- **Wydatki** (`Texts.CSV_EXPENSES_HEADER`): wszystkie wydatki poza paliwem (F37, §38), od najstarszego (`date`, remis – po `id`).
+  Kolumny: `Data` (`RRRR-MM-DD`, bez strefy), `Kategoria` (nazwa z ekranu, PL/EN wg języka UI; nieznana kategoria z nowszej
+  wersji czyta się jako `Inne`), `Kwota [zł]` (2 miejsca), `Notatka` (tekst zapisany verbatim, escapowany; komórka z wiodącym
+  białym znakiem lub tabulatorem w cudzysłowie, tekst zaczynający się od `= + - @` po białych znakach dostaje `'` na początku).
+- Bez VIN, GPS, `id` tankowania/wydatku i wiersza „Razem”. Nazwy plików: `toyota-companion-tankowania-RRRR-MM-DD.csv`
+  i `toyota-companion-wydatki-RRRR-MM-DD.csv` (bez VIN); `CreateDocument("text/csv")`, jak trasy.
+- UI: sekcja „Arkusz kalkulacyjny” ma trzy przyciski; nowe są nieaktywne, gdy licznik jest znanym zerem, i przy `busy`.
+  Liczniki tankowań i wydatków są czytane przy każdym otwarciu ekranu (osobny guard tylko na równoległy odczyt); błąd odczytu
+  zostawia ostatnią znaną wartość, a `null` = nieznane → przycisk aktywny, żeby błąd licznika nie blokował eksportu.
+- Pusta lista w chwili zapisu (np. wydatek usunięty w międzyczasie) daje informację „Brak tankowań/wydatków do eksportu.”
+  i **nie zapisuje pliku** (żadnego pustego pliku); to komunikat, nie czerwony błąd.
+- Eksport nie zmienia daty ostatniej kopii archiwum (F8 dotyczy tylko kopii) i nie wymaga sieci. Prywatność: daty/godziny
+  tankowań, licznik i notatki wydatków to dane osobowe (notatka może zawierać dowolny tekst); plik trafia tylko tam, gdzie
+  wskaże użytkownik, bez ostrzeżenia jak przy kopii (SECURITY.md).

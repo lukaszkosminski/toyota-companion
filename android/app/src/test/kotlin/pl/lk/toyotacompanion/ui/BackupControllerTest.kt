@@ -4,6 +4,7 @@ package pl.lk.toyotacompanion.ui
 
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -49,6 +50,34 @@ private val OLD_EXPORT: Instant = Instant.parse("2026-09-01T06:00:00Z")
 private const val TARGET = "content://downloads/archive.json"
 
 private const val CSV_TARGET = "content://downloads/trasy.csv"
+
+private const val REFUELS_TARGET = "content://downloads/tankowania.csv"
+
+private const val EXPENSES_TARGET = "content://downloads/wydatki.csv"
+
+/** One confirmed refuel for the CSV; the content itself is tested in [RefuelsCsvTest]. */
+private fun csvRefuel(id: String, ts: String = "2026-10-01T08:00:00Z"): Refuel = Refuel(
+    id = id,
+    ts = Instant.parse(ts),
+    odometerKm = 12_345.6,
+    levelBefore = 20,
+    levelAfter = 80,
+    liters = BigDecimal("30.100"),
+    pricePerLiter = BigDecimal("6.190"),
+    totalCost = BigDecimal("186.32"),
+    status = RefuelStatus.CONFIRMED,
+    litersSource = LitersSource.RECEIPT,
+    filledToFull = true,
+)
+
+/** One expense for the CSV; the content itself is tested in [ExpensesCsvTest]. */
+private fun csvExpense(id: String): Expense = Expense(
+    id = id,
+    date = LocalDate.of(2026, 10, 1),
+    category = ExpenseCategory.SERVICE,
+    amount = BigDecimal("250.50"),
+    note = "olej",
+)
 
 /** One row of the spreadsheet: the content itself is tested in [TripsCsvTest]. */
 private fun csvTrip(id: String, start: String): StoredTrip = StoredTrip(
@@ -112,6 +141,15 @@ private class FakeBackup {
     var loadCalls = 0
     var loadError: Exception? = null
 
+    var refuels: List<Refuel> = listOf(csvRefuel("r1"), csvRefuel("r2", "2026-10-02T08:00:00Z"))
+    var refuelLoadCalls = 0
+    var refuelLoadError: Exception? = null
+    var refuelGate: CompletableDeferred<Unit>? = null
+
+    var expenses: List<Expense> = listOf(csvExpense("e1"))
+    var expenseLoadCalls = 0
+    var expenseLoadError: Exception? = null
+
     var lastExport: Instant? = null
     var readDateCalls = 0
     var readDateError: Exception? = null
@@ -157,6 +195,19 @@ private class FakeBackup {
         return trips
     }
 
+    suspend fun loadRefuels(): List<Refuel> {
+        refuelGate?.await()
+        refuelLoadCalls++
+        refuelLoadError?.let { throw it }
+        return refuels
+    }
+
+    suspend fun loadExpenses(): List<Expense> {
+        expenseLoadCalls++
+        expenseLoadError?.let { throw it }
+        return expenses
+    }
+
     suspend fun readDate(): Instant? {
         readDateCalls++
         readDateError?.let { throw it }
@@ -182,6 +233,8 @@ class BackupControllerTest {
         readLastExport = { backup.readDate() },
         saveLastExport = { backup.saveDate(it) },
         loadTrips = { backup.loadTrips() },
+        loadRefuels = { backup.loadRefuels() },
+        loadExpenses = { backup.loadExpenses() },
         cloudBackupNow = { backup.cloud() },
         zone = { ZoneOffset.UTC },
         scope = CoroutineScope(SupervisorJob() + io),
@@ -534,5 +587,144 @@ class BackupControllerTest {
 
         controller.open()
         assertNull(controller.state.value.cloudError, "opening the screen clears the old failure")
+    }
+
+    // ---------------- CSV of refuels and expenses (PRD F47, docs/SPEC.md §48) ----------------
+
+    @Test
+    fun `opening the screen refreshes the csv counters`() = runTest {
+        val backup = FakeBackup().apply {
+            refuels = listOf(csvRefuel("r1"), csvRefuel("r2"))
+            expenses = listOf(csvExpense("e1"))
+        }
+        val controller = controller(backup, StandardTestDispatcher(testScheduler))
+
+        controller.open()
+        advanceUntilIdle()
+
+        assertEquals(2, controller.state.value.refuelsStored)
+        assertEquals(1, controller.state.value.expensesStored)
+        assertEquals(1, backup.refuelLoadCalls)
+        assertEquals(1, backup.expenseLoadCalls)
+
+        // Coming back after adding an expense must see the new count, so every open reads them again.
+        backup.expenses = listOf(csvExpense("e1"), csvExpense("e2"))
+        controller.open()
+        advanceUntilIdle()
+        assertEquals(2, backup.refuelLoadCalls)
+        assertEquals(2, backup.expenseLoadCalls)
+        assertEquals(2, controller.state.value.expensesStored)
+    }
+
+    @Test
+    fun `a failed counter read keeps the count unknown instead of zero`() = runTest {
+        val backup = FakeBackup().apply { refuelLoadError = IllegalStateException("archive is unreadable") }
+        val controller = controller(backup, StandardTestDispatcher(testScheduler))
+
+        controller.open()
+        advanceUntilIdle()
+
+        assertNull(controller.state.value.refuelsStored, "unknown, so the button stays enabled")
+        assertEquals(1, controller.state.value.expensesStored)
+        assertNull(controller.state.value.error)
+    }
+
+    @Test
+    fun `reset drops a late counter read`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val backup = FakeBackup().apply {
+            refuels = listOf(csvRefuel("r1"))
+            refuelGate = gate
+        }
+        val controller = controller(backup, StandardTestDispatcher(testScheduler))
+
+        controller.open()
+        advanceUntilIdle()
+        controller.reset()
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(BackupUiState(), controller.state.value, "the old session may not fill the screen again")
+    }
+
+    @Test
+    fun `refuels export writes the bom, the sheet and the message`() = runTest {
+        val backup = FakeBackup()
+        val controller = controller(backup, StandardTestDispatcher(testScheduler))
+
+        controller.exportRefuelsCsv(REFUELS_TARGET)
+        advanceUntilIdle()
+
+        val bytes = requireNotNull(backup.written)
+        assertEquals(REFUELS_TARGET, backup.writeTarget)
+        assertEquals(0xEF, bytes[0].toInt() and 0xFF, "Excel without a BOM reads cp1250 (docs/SPEC.md §14.4)")
+        assertEquals(0xBB, bytes[1].toInt() and 0xFF)
+        assertEquals(0xBF, bytes[2].toInt() and 0xFF)
+        assertEquals(CSV_BOM + refuelsCsv(backup.refuels, ZoneOffset.UTC), String(bytes, Charsets.UTF_8))
+        assertEquals(Texts.csvRefuelsExported(2), controller.state.value.message)
+        assertNull(controller.state.value.error)
+        assertFalse(controller.state.value.busy)
+        assertTrue(backup.savedDates.isEmpty(), "a spreadsheet is not a backup (PRD F8)")
+    }
+
+    @Test
+    fun `expenses export writes the bom, the sheet and the message`() = runTest {
+        val backup = FakeBackup()
+        val controller = controller(backup, StandardTestDispatcher(testScheduler))
+
+        controller.exportExpensesCsv(EXPENSES_TARGET)
+        advanceUntilIdle()
+
+        val bytes = requireNotNull(backup.written)
+        assertEquals(EXPENSES_TARGET, backup.writeTarget)
+        assertEquals(CSV_BOM + expensesCsv(backup.expenses), String(bytes, Charsets.UTF_8))
+        assertEquals(Texts.csvExpensesExported(1), controller.state.value.message)
+        assertNull(controller.state.value.error)
+        assertFalse(controller.state.value.busy)
+        assertTrue(backup.savedDates.isEmpty(), "a spreadsheet is not a backup (PRD F8)")
+    }
+
+    @Test
+    fun `an empty refuel list writes no file and is information, not an error`() = runTest {
+        val backup = FakeBackup().apply { refuels = emptyList() }
+        val controller = controller(backup, StandardTestDispatcher(testScheduler))
+
+        controller.exportRefuelsCsv(REFUELS_TARGET)
+        advanceUntilIdle()
+
+        assertEquals(1, backup.refuelLoadCalls)
+        assertEquals(0, backup.writeCalls, "no file content and no half file (docs/SPEC.md §48)")
+        assertEquals(Texts.CSV_NO_REFUELS, controller.state.value.message)
+        assertNull(controller.state.value.error)
+        assertFalse(controller.state.value.busy)
+    }
+
+    @Test
+    fun `an empty expense list writes no file and is information, not an error`() = runTest {
+        val backup = FakeBackup().apply { expenses = emptyList() }
+        val controller = controller(backup, StandardTestDispatcher(testScheduler))
+
+        controller.exportExpensesCsv(EXPENSES_TARGET)
+        advanceUntilIdle()
+
+        assertEquals(1, backup.expenseLoadCalls)
+        assertEquals(0, backup.writeCalls)
+        assertEquals(Texts.CSV_NO_EXPENSES, controller.state.value.message)
+        assertNull(controller.state.value.error)
+        assertFalse(controller.state.value.busy)
+    }
+
+    @Test
+    fun `a failed refuels write shows the general error`() = runTest {
+        val backup = FakeBackup().apply { writeError = IllegalStateException("cannot write content://downloads/tankowania.csv") }
+        val controller = controller(backup, StandardTestDispatcher(testScheduler))
+
+        controller.exportRefuelsCsv(REFUELS_TARGET)
+        advanceUntilIdle()
+
+        assertEquals(Texts.BACKUP_FAILED, controller.state.value.error)
+        assertTrue("tankowania" !in requireNotNull(controller.state.value.error), "the file name must not reach the screen")
+        assertNull(controller.state.value.message)
+        assertFalse(controller.state.value.busy)
     }
 }

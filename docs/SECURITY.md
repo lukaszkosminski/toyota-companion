@@ -16,6 +16,11 @@
   telefonu. Nazwa pliku `toyota-companion-RRRR-MM-DD.json` nie zawiera VIN; treść pliku i wyjątki nie trafiają do logów ani na ekran.
 - Arkusz CSV (F6, SPEC §14.4) nie zawiera GPS ani VIN, ale czasy i dystanse tras to też dane osobowe – plik trafia
   tylko tam, gdzie wskaże użytkownik; bez ostrzeżenia jak przy kopii. Komórki tekstowe chronione przed CSV injection.
+- Arkusze CSV tankowań i wydatków (F47, SPEC §48) też nie zawierają GPS, VIN ani `id`, ale daty i godziny tankowań,
+  licznik oraz **notatki wydatków** (dowolny tekst użytkownika, mogący zawierać nazwiska, adresy czy numery rejestracyjne)
+  to dane osobowe. Eksport zapisuje je verbatim i tylko tam, gdzie wskaże użytkownik (systemowy wybór pliku); bez
+  ostrzeżenia jak przy kopii archiwum, bez wysyłania ich gdziekolwiek poza wybrany plik i bez trafiania do logów.
+  Nazwy plików nie zawierają VIN.
 - Ekran „Postoje” (F17, SPEC §18) jako jedyny pokazuje położenie: zaokrąglone do 0,001° (ok. 100 m), liczone z tras w
   archiwum; współrzędne nie trafiają do logów, CSV ani nazw plików; jedyne wyjście to mapa po dotknięciu trasy na liście lub „Otwórz w mapie” w „Postojach” (SPEC §26: kafelki OpenStreetMap z okolicy punktów zaokrąglonych do ok. 100 m; WebView zamknięty na pozostały ruch) oraz intent `geo:` z tą samą zaokrągloną wartością po dotknięciu „Otwórz w innej aplikacji z mapą”.
 - Ceny stacji (F22, SPEC §25): jedno zwykłe `GET` publicznej strony trojmiasto.pl po dotknięciu stacji; bez parametrów, cookie, konta, położenia i VIN; komunikaty błędów bez treści strony i adresu.

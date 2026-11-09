@@ -224,6 +224,21 @@ class TripsCsvTest {
     }
 
     @Test
+    fun `whitespace before a formula is guarded at the very start`() {
+        // The apostrophe is the first character, so a spreadsheet that trims the space still sees text (C27 review 1).
+        assertEquals("\"' =1+1\"", csvCell(" =1+1"))
+        assertEquals("\"'\t=1+1\"", csvCell("\t=1+1"))
+        assertEquals("\"' -1\"", csvCell(" -1"), "a space makes it text, not a number")
+    }
+
+    @Test
+    fun `edge whitespace and tabs are quoted and kept, never trimmed`() {
+        assertEquals("\" x \"", csvCell(" x "))
+        assertEquals("\"x\t\"", csvCell("x\t"))
+        assertEquals("\"a;b\"", csvCell("a;b"))
+    }
+
+    @Test
     fun `the suggested file name carries the day and no vin`() {
         assertEquals("toyota-companion-trasy-2026-10-31.csv", tripsCsvFileName(LocalDate.of(2026, 10, 31)))
         assertEquals("toyota-companion-trasy-2026-01-05.csv", tripsCsvFileName(LocalDate.of(2026, 1, 5)))

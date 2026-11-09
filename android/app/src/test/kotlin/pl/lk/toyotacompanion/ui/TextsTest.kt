@@ -206,6 +206,16 @@ class TextsTest {
                 Texts.CSV_HEADER.joinToString(";"),
                 Texts.CSV_SOURCE_REFUEL,
                 Texts.CSV_SOURCE_DEFAULT,
+                Texts.CSV_EXPORT_REFUELS,
+                Texts.CSV_NO_REFUELS,
+                Texts.CSV_EXPORT_EXPENSES,
+                Texts.CSV_NO_EXPENSES,
+                Texts.csvRefuelsExported(3),
+                Texts.csvExpensesExported(2),
+                Texts.CSV_REFUELS_HEADER.joinToString(";"),
+                Texts.CSV_EXPENSES_HEADER.joinToString(";"),
+                Texts.CSV_YES,
+                Texts.CSV_NO,
                 csvDateTime(Instant.parse("2026-10-29T14:05:00Z"), ZONE),
             ) +
             // Dziennik tankowan (docs/SPEC.md §15): kazdy nowy tekst i kazda formatowana wartosc.
@@ -327,6 +337,49 @@ class TextsTest {
         assertEquals(listOf("Start", "Koniec", "Dystans [km]", "Paliwo [l]", "Dystans EV [km]", "Cena [zł/l]", "Koszt [zł]", "Źródło ceny"), Texts.CSV_HEADER)
         assertEquals("tankowanie", Texts.CSV_SOURCE_REFUEL)
         assertEquals("cena domy\u015Blna", Texts.CSV_SOURCE_DEFAULT)
+    }
+
+    @Test
+    fun `the refuel and expense csv headers are fixed words`() {
+        assertEquals(9, Texts.CSV_REFUELS_HEADER.size)
+        assertEquals(
+            listOf("Data", "Licznik [km]", "Poziom przed [%]", "Poziom po [%]", "Litry [l]", "Cena [zł/l]", "Koszt [zł]", "Źródło litrów", "Do pełna"),
+            Texts.CSV_REFUELS_HEADER,
+        )
+        assertEquals(4, Texts.CSV_EXPENSES_HEADER.size)
+        assertEquals(listOf("Data", "Kategoria", "Kwota [zł]", "Notatka"), Texts.CSV_EXPENSES_HEADER)
+        assertEquals("tak", Texts.CSV_YES)
+        assertEquals("nie", Texts.CSV_NO)
+        assertEquals("Eksportuj tankowania do CSV", Texts.CSV_EXPORT_REFUELS)
+        assertEquals("Brak tankowań do eksportu.", Texts.CSV_NO_REFUELS)
+        assertEquals("Eksportuj wydatki do CSV", Texts.CSV_EXPORT_EXPENSES)
+        assertEquals("Brak wydatków do eksportu.", Texts.CSV_NO_EXPENSES)
+        assertTrue("tankowania: 3" in Texts.csvRefuelsExported(3))
+        assertTrue("wydatki: 2" in Texts.csvExpensesExported(2))
+    }
+
+    @Test
+    fun `the refuel and expense csv texts have an english twin`() {
+        fun all() = listOf(
+            Texts.CSV_EXPORT_REFUELS, Texts.CSV_NO_REFUELS, Texts.CSV_EXPORT_EXPENSES, Texts.CSV_NO_EXPENSES,
+            Texts.csvRefuelsExported(3), Texts.csvExpensesExported(2),
+            Texts.CSV_REFUELS_HEADER.joinToString(";"), Texts.CSV_EXPENSES_HEADER.joinToString(";"),
+            Texts.CSV_YES, Texts.CSV_NO,
+        )
+        val polish = all()
+        Lang.current = AppLanguage.EN
+        val english = try {
+            all()
+        } finally {
+            Lang.current = AppLanguage.PL
+        }
+        assertEquals(polish.size, english.size)
+        for ((pl, en) in polish.zip(english)) {
+            assertTrue(pl.isNotBlank() && en.isNotBlank())
+            assertTrue(pl != en, "untranslated: $pl")
+        }
+        assertEquals("Date;Odometer [km];Level before [%];Level after [%];Liters [l];Price [zł/l];Cost [zł];Liters source;Filled to full", english[6])
+        assertEquals("Date;Category;Amount [zł];Note", english[7])
     }
 
     @Test

@@ -66,6 +66,7 @@ import pl.lk.toyotacompanion.ui.StationPriceController
 import pl.lk.toyotacompanion.ui.RouteBackfillController
 import pl.lk.toyotacompanion.ui.RouteHeatController
 import pl.lk.toyotacompanion.ui.TripRouteController
+import pl.lk.toyotacompanion.ui.toExpense
 import pl.lk.toyotacompanion.ui.YearSummaryController
 import pl.lk.toyotacompanion.data.db.RoomTripRouteRepository
 import pl.lk.toyotacompanion.ui.DrivingStyleController
@@ -507,6 +508,8 @@ class AppContainer(
             readLastExport = { settingsStore.lastArchiveExport() },
             saveLastExport = { at -> settingsStore.saveLastArchiveExport(at) },
             loadTrips = tripsLoader,
+            loadRefuels = { syncEngine.confirmedRefuels() },
+            loadExpenses = { database.expenseDao().all().map { it.toExpense() } },
             // Auto Backup to the owner's Google Drive (ADR-015): dataChanged only schedules a pass.
             cloudBackupNow = { BackupManager(context).dataChanged() },
             zone = { ZoneId.systemDefault() },
