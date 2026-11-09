@@ -1121,15 +1121,16 @@ Domena: `core/domain/OwnershipOps.kt` (`ownershipCost`, `ownershipMonths`, model
 - Tankowanie `PENDING` (bez potwierdzonej ceny) nie trafia do arkusza – to dziennik potwierdzonych (§15.2).
 - **Wydatki** (`Texts.CSV_EXPENSES_HEADER`): wszystkie wydatki poza paliwem (F37, §38), od najstarszego (`date`, remis – po `id`).
   Kolumny: `Data` (`RRRR-MM-DD`, bez strefy), `Kategoria` (nazwa z ekranu, PL/EN wg języka UI; nieznana kategoria z nowszej
-  wersji czyta się jako `Inne`), `Kwota [zł]` (2 miejsca), `Notatka` (tekst zapisany verbatim, escapowany; komórka z wiodącym
-  białym znakiem lub tabulatorem w cudzysłowie, tekst zaczynający się od `= + - @` po białych znakach dostaje `'` na początku).
+  wersji czyta się jako `Inne`), `Kwota [zł]` (2 miejsca), `Notatka` (treść nietrimowana; escapowanie CSV może dodać `'`
+  przed tekstem przypominającym formułę, a komórka z wiodącym białym znakiem lub tabulatorem jest w cudzysłowie).
 - Bez VIN, GPS, `id` tankowania/wydatku i wiersza „Razem”. Nazwy plików: `toyota-companion-tankowania-RRRR-MM-DD.csv`
   i `toyota-companion-wydatki-RRRR-MM-DD.csv` (bez VIN); `CreateDocument("text/csv")`, jak trasy.
 - UI: sekcja „Arkusz kalkulacyjny” ma trzy przyciski; nowe są nieaktywne, gdy licznik jest znanym zerem, i przy `busy`.
   Liczniki tankowań i wydatków są czytane przy każdym otwarciu ekranu (osobny guard tylko na równoległy odczyt); błąd odczytu
   zostawia ostatnią znaną wartość, a `null` = nieznane → przycisk aktywny, żeby błąd licznika nie blokował eksportu.
 - Pusta lista w chwili zapisu (np. wydatek usunięty w międzyczasie) daje informację „Brak tankowań/wydatków do eksportu.”
-  i **nie zapisuje pliku** (żadnego pustego pliku); to komunikat, nie czerwony błąd.
+  i **aplikacja nic nie zapisuje**; systemowy wybór pliku mógł już utworzyć pusty plik, zanim lista została sprawdzona
+  (tak jak w §14.4). To komunikat, nie czerwony błąd; przycisk jest nieaktywny, gdy licznik jest znanym zerem.
 - Eksport nie zmienia daty ostatniej kopii archiwum (F8 dotyczy tylko kopii) i nie wymaga sieci. Prywatność: daty/godziny
   tankowań, licznik i notatki wydatków to dane osobowe (notatka może zawierać dowolny tekst); plik trafia tylko tam, gdzie
   wskaże użytkownik, bez ostrzeżenia jak przy kopii (SECURITY.md).

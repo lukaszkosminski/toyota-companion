@@ -5,6 +5,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import pl.lk.toyotacompanion.core.domain.LitersSource
 import pl.lk.toyotacompanion.core.domain.Refuel
+import pl.lk.toyotacompanion.core.domain.RefuelStatus
 import pl.lk.toyotacompanion.core.domain.toBigDecimal
 
 /**
@@ -13,11 +14,15 @@ import pl.lk.toyotacompanion.core.domain.toBigDecimal
  * first (ties by id), `;` separator, comma decimals, CRLF, no `Locale`. Numbers are plain (unit in the
  * header); a missing value stays empty, never 0. No VIN, GPS or id. The [CSV_BOM] is added by the caller
  * when it turns the text into bytes.
+ *
+ * Only confirmed refuels reach the sheet even if a caller hands over a mixed list: a pending one has no price
+ * yet and would only add empty cells (docs/SPEC.md §48). The production caller already filters them
+ * (`SyncEngine.confirmedRefuels`), so this is a cheap guard against a future caller.
  */
 fun refuelsCsv(refuels: List<Refuel>, zone: ZoneId): String {
     val out = StringBuilder()
     out.append(csvRow(Texts.CSV_REFUELS_HEADER))
-    val ordered = refuels.sortedWith(compareBy({ it.ts }, { it.id }))
+    val ordered = refuels.filter { it.status == RefuelStatus.CONFIRMED }.sortedWith(compareBy({ it.ts }, { it.id }))
     for (refuel in ordered) {
         out.append(
             csvRow(

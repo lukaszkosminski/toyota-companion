@@ -89,7 +89,8 @@ Bez `id`, VIN, GPS i wiersza „Razem” – sumy liczy arkusz.
 
 ## 5. Przypadki brzegowe
 
-- Brak tankowań/wydatków: przycisk nieaktywny; lista pusta w chwili zapisu → komunikat, bez zapisu.
+- Brak tankowań/wydatków: przycisk nieaktywny; lista pusta w chwili zapisu → komunikat i brak zapisu ze strony
+  aplikacji (systemowy wybór pliku mógł już utworzyć pusty plik, jak w §14.4).
 - Tankowanie pending (bez ceny) nie trafia do arkusza – to dziennik potwierdzonych (§15.2); brakujące
   litry/cena/koszt w potwierdzonym wpisie dają pustą komórkę, nie 0.
 - Notatka z `;`, cudzysłowem, nową linią albo zaczynająca się od `=` – escapowana przez `csvCell`.
@@ -138,3 +139,17 @@ Recenzent pD zgłosił ryzyka przed implementacją; domknięte w kodzie:
   i etykiet; `TextsTest` obejmuje nowe teksty w sweepie i jawnych asercjach PL/EN.
 - **`csvDate`** – KDoc poprawiony (bierze `LocalDate`, nie strefę).
 - **SPEC §48** – dopisane, że `Do pełna` jest puste przy `filledToFull == null`, a nie „nie”.
+
+## 10. Domknięcie uwag recenzenta (2026-11-09)
+
+Po finalnym przeglądzie (commit `786693b` wypchnięty) domknięte w jednym commicie `docs/fix`:
+
+1. **Pusty plik** – SPEC §48, CHANGELOG, ROADMAP i plan mówią teraz jak §14.4: aplikacja nic nie zapisuje, ale
+   systemowy wybór pliku (`CreateDocument`) mógł już utworzyć pusty plik, zanim lista została sprawdzona.
+2. **Defensywny filtr** – `refuelsCsv` sam odrzuca wpisy inne niż `CONFIRMED` (produkcja i tak dostaje listę
+   z `SyncEngine.confirmedRefuels()`); test z listą mieszaną.
+3. **SECURITY/SPEC „verbatim”** – treść nie jest trimowana, ale escapowanie CSV może dodać `'` przed tekstem
+   przypominającym formułę; opis poprawiony w SECURITY i §48.
+5. **README** – zamiast samego arkusza tras wymienia trzy arkusze CSV: trasy, tankowania, wydatki (F6, F47).
+
+Punkt 4 (kosmetyka opisu commita `NOW→DONE` vs `LATER→DONE`) pominięty – historia commitów zostaje bez zmian.

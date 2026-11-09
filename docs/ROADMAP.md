@@ -58,7 +58,8 @@
   (Room 7: nowe kolumny `sync_state`, migracja automatyczna)
 - Eksport CSV tankowań i wydatków (F47, SPEC §48, plan C27): dwa nowe arkusze obok tras – potwierdzone tankowania
   (data, licznik, poziomy, litry, cena, koszt, źródło litrów, „do pełna”) i wydatki poza paliwem (data, kategoria,
-  kwota, notatka); ten sam format polskiego arkusza, bez VIN, GPS i `id`; puste listy nie tworzą pliku
+  kwota, notatka); ten sam format polskiego arkusza, bez VIN, GPS i `id`; przy pustej liście aplikacja nic nie zapisuje
+  (systemowy wybór pliku może wcześniej utworzyć pusty plik)
 
 ## NOW
 - W toku (2026-11-08, agenci): pola autostrady i przekroczeń prędkości w archiwum tras (PRD F40, Room v6) oraz ekrany

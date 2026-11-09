@@ -39,7 +39,7 @@ The source of truth is the documents in [`docs/`](docs/), which are written in P
 - Read-only screen in Android Auto (F34, SPEC §35, ADR-014); for personal use, it requires "Unknown sources" enabled in the Android Auto developer settings. The SPEC notes that it was not run on a real car head unit or in the Desktop Head Unit.
 
 ### Backup and export
-- Export and import of the whole archive as a JSON file, with a reminder after 30 days (F7, F8, SPEC §14); a trip spreadsheet as CSV for Polish Excel (F6, SPEC §14.4); optional Google Auto Backup (ADR-015).
+- Export and import of the whole archive as a JSON file, with a reminder after 30 days (F7, F8, SPEC §14); spreadsheets as CSV for Polish Excel: trips, refuels and expenses (F6, F47, SPEC §14.4, §48); optional Google Auto Backup (ADR-015).
 
 ### Update from GitHub Releases
 - "Opcje" (Options) → "Sprawdź aktualizacje" (Check for updates) downloads and installs a newer release, verifying size, SHA-256, package, version and signature (F36, SPEC §37, ADR-016).

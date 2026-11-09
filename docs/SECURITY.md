@@ -18,7 +18,8 @@
   tylko tam, gdzie wskaże użytkownik; bez ostrzeżenia jak przy kopii. Komórki tekstowe chronione przed CSV injection.
 - Arkusze CSV tankowań i wydatków (F47, SPEC §48) też nie zawierają GPS, VIN ani `id`, ale daty i godziny tankowań,
   licznik oraz **notatki wydatków** (dowolny tekst użytkownika, mogący zawierać nazwiska, adresy czy numery rejestracyjne)
-  to dane osobowe. Eksport zapisuje je verbatim i tylko tam, gdzie wskaże użytkownik (systemowy wybór pliku); bez
+  to dane osobowe. Eksport nie trimuje treści (escapowanie CSV może dodać `'` przed tekstem przypominającym formułę)
+  i zapisuje ją tylko tam, gdzie wskaże użytkownik (systemowy wybór pliku); bez
   ostrzeżenia jak przy kopii archiwum, bez wysyłania ich gdziekolwiek poza wybrany plik i bez trafiania do logów.
   Nazwy plików nie zawierają VIN.
 - Ekran „Postoje” (F17, SPEC §18) jako jedyny pokazuje położenie: zaokrąglone do 0,001° (ok. 100 m), liczone z tras w

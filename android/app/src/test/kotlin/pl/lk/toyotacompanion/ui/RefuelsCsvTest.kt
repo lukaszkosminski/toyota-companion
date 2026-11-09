@@ -195,6 +195,16 @@ class RefuelsCsvTest {
     }
 
     @Test
+    fun `a pending refuel never reaches the sheet`() {
+        val pending = refuel("p").copy(status = RefuelStatus.PENDING)
+        val text = refuelsCsv(listOf(refuel("a"), pending), UTC)
+        val rows = text.split(CRLF).filter { it.isNotEmpty() }
+
+        assertEquals(2, rows.size, "header and one confirmed row")
+        assertTrue("2026-10-29 14:05;12345,6;" in rows[1])
+    }
+
+    @Test
     fun `the labels follow the chosen language`() {
         Lang.current = AppLanguage.EN
         try {
