@@ -52,6 +52,10 @@
   (konto bez powiadomień) traktowany jako brak danych
 - Podstawa pod przyszłe przypomnienia serwisowe (interwał km/miesiące) i powiadomienie Androida o nowym wpisie Toyoty:
   dane są już mapowane w `core/domain`, brakuje stanu w bazie i reguł – poza zakresem C25
+- Diagnostyka synchronizacji (F46, SPEC §47, plan C26): czasy ostatniego udanego pobrania pojazdów/konta, telemetrii
+  i tras, czas stanu auta z Toyoty (`occurrence_date`), czas i kod ostatniego błędu (np. 429, 403), liczniki archiwum;
+  po chwilowym błędzie ekrany Toyoty zachowują ostatnie dobre dane; raport do schowka/udostępnienia bez VIN, GPS i tokenów
+  (Room 7: nowe kolumny `sync_state`, migracja automatyczna)
 
 ## NOW
 - W toku (2026-11-08, agenci): pola autostrady i przekroczeń prędkości w archiwum tras (PRD F40, Room v6) oraz ekrany
@@ -71,9 +75,6 @@
   największych plików (D10)
 - Propozycje z przeglądu ha_toyota (2026-11-09), niewybrane; tylko odczyt, bez budzenia auta; endpointy są w pytoyoda,
   ale nie sprawdzone na koncie właściciela – najpierw dodać je do `:core:liveCheck`:
-  - Diagnostyka synchronizacji: ostatnie udane pobranie (telemetria, trasy, status), czas i kod ostatniego błędu
-    (np. 429, APIGW-403), czas stanu auta z Toyoty (`occurrence_date`); zachowanie ostatnich dobrych danych przy chwilowym
-    błędzie zamiast czyszczenia ekranu; eksport diagnostyki bez GPS, VIN i tokenów do zgłoszenia błędu
   - Lista kontrolek ostrzegawczych (`dashboard.warning_lights`: nazwa, status, kategoria) zamiast samej liczby w F43
     i powiadomienie o nowej kontrolce – do sprawdzenia, czy auto zwraca te dane
 

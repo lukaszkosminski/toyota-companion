@@ -9,9 +9,11 @@ class NoCredentialsException(message: String = "No stored Toyota credentials") :
 /**
  * Kind + human-readable reason of a failed synchronization. [message] is always
  * sanitized with `ToyotaSecrets.sanitize`: never a password, token or VIN
- * (docs/SECURITY.md).
+ * (docs/SECURITY.md). [status] is the HTTP status of the failed request when
+ * there was one (429, 403, ...), for the diagnostics screen (docs/SPEC.md §47);
+ * a transport failure has none.
  */
-data class SyncError(val kind: SyncErrorKind, val message: String) {
+data class SyncError(val kind: SyncErrorKind, val message: String, val status: Int? = null) {
     /** Whether trying again later can help (429/5xx/network) — drives `Result.retry()` in the worker. */
     val retryable: Boolean get() = kind.retryable
 }

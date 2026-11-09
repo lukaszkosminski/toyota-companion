@@ -24,7 +24,7 @@ import pl.lk.toyotacompanion.core.domain.LitersSource
 import pl.lk.toyotacompanion.core.domain.RefuelStatus
 
 private const val SCHEMA_DIR = "schemas/pl.lk.toyotacompanion.data.db.AppDatabase"
-private const val CURRENT_VERSION = 6
+private const val CURRENT_VERSION = 7
 
 /**
  * The archive cannot be fetched from Toyota again once it is older than ~12 months, so every committed schema
@@ -32,8 +32,8 @@ private const val CURRENT_VERSION = 6
  *
  * Each test builds the database of version N the way Room 3 would have left it - the `createSql` of every entity and index
  * and the `setupQueries` (room_master_table with the identity hash) of that schema file, `PRAGMA user_version = N` - fills
- * the tables that exist in that version through plain SQL, and opens it with the current [AppDatabase] (the five
- * auto-migrations 1 -> 2 -> 3 -> 4 -> 5 -> 6). Nothing in the app code is touched.
+ * the tables that exist in that version through plain SQL, and opens it with the current [AppDatabase] (the six
+ * auto-migrations 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7). Nothing in the app code is touched.
  */
 @RunWith(RobolectricTestRunner::class)
 class AppDatabaseMigrationTest {
@@ -108,9 +108,39 @@ class AppDatabaseMigrationTest {
     }
 
     @Test
+    fun `version 6 keeps the sync state and gets the diagnostic columns empty`() = runTest {
+        val db = migrate(6)
+        assertArchiveKept(db, 6)
+        assertWeatherKept(db, expectedCode = 61)
+        assertRouteKept(db)
+
+        val state = assertNotNull(db.syncStateDao().get())
+        assertNull(state.lastVehiclesSuccessAt)
+        assertNull(state.lastTelemetrySuccessAt)
+        assertNull(state.lastTripsSuccessAt)
+        assertNull(state.lastErrorStatus)
+        // The new columns accept a write without touching the old values.
+        db.syncStateDao().save(
+            state.copy(
+                lastVehiclesSuccessAt = Instant.ofEpochMilli(1_000),
+                lastTelemetrySuccessAt = Instant.ofEpochMilli(1_100),
+                lastTripsSuccessAt = Instant.ofEpochMilli(1_200),
+                lastErrorStatus = 429,
+            ),
+        )
+        val written = assertNotNull(db.syncStateDao().get())
+        assertEquals(Instant.ofEpochMilli(1_000), written.lastVehiclesSuccessAt)
+        assertEquals(Instant.ofEpochMilli(1_100), written.lastTelemetrySuccessAt)
+        assertEquals(Instant.ofEpochMilli(1_200), written.lastTripsSuccessAt)
+        assertEquals(429, written.lastErrorStatus)
+        assertEquals("VIN1", written.vin)
+        assertEquals("no network", written.lastErrorMessage)
+    }
+
+    @Test
     fun `the current version opens its own schema unchanged`() = runTest {
         val db = migrate(CURRENT_VERSION)
-        assertArchiveKept(db, 6)
+        assertArchiveKept(db, 7)
         assertWeatherKept(db, expectedCode = 61)
         assertRouteKept(db)
         val expense = db.expenseDao().all().single()
@@ -290,6 +320,13 @@ class AppDatabaseMigrationTest {
         assertEquals(20000L, state.watermarkEpochDay)
         assertEquals(pl.lk.toyotacompanion.core.data.SyncErrorKind.NETWORK, state.lastErrorKind)
         assertEquals("no network", state.lastErrorMessage)
+        // Schema 7 added the diagnostic columns: an older file has "not recorded", never a guessed time.
+        if (version >= 7) {
+            assertNull(state.lastVehiclesSuccessAt)
+            assertNull(state.lastTelemetrySuccessAt)
+            assertNull(state.lastTripsSuccessAt)
+            assertNull(state.lastErrorStatus)
+        }
     }
 
     private suspend fun assertWeatherKept(db: AppDatabase, expectedCode: Int?) {

@@ -60,6 +60,8 @@ fun AppRoot(
     vehicleHealth: RemoteDataController<pl.lk.toyotacompanion.core.domain.VehicleHealth>,
     serviceHistory: RemoteDataController<pl.lk.toyotacompanion.core.domain.ServiceHistory>,
     notifications: RemoteDataController<List<pl.lk.toyotacompanion.core.domain.ToyotaNotification>>,
+    diagnostics: RemoteDataController<pl.lk.toyotacompanion.core.data.SyncStatus>,
+    appVersion: String,
     update: UpdateController,
     onSetLanguage: (AppLanguage) -> Unit,
     askNotificationPermission: suspend () -> Boolean,
@@ -135,6 +137,7 @@ fun AppRoot(
             vehicleHealth.reset()
             serviceHistory.reset()
             notifications.reset()
+            diagnostics.reset()
             backfill.reset()
             heat.close()
             // The widget must not keep an account's numbers after logout (docs/SPEC.md §32).
@@ -230,6 +233,7 @@ fun AppRoot(
                         onShowVehicleHealth = { screen = Screen.VehicleHealth },
                         onShowServiceHistory = { screen = Screen.ServiceHistory },
                         onShowNotifications = { screen = Screen.Notifications },
+                        onShowDiagnostics = { screen = Screen.Diagnostics },
                         onShowDrivingStyle = {
                             drivingStyle.load()
                             screen = Screen.DrivingStyle
@@ -332,6 +336,12 @@ fun AppRoot(
 
                     Screen.Notifications -> NotificationsScreen(
                         controller = notifications,
+                        onBack = { screen = Screen.Status },
+                    )
+
+                    Screen.Diagnostics -> DiagnosticsScreen(
+                        controller = diagnostics,
+                        appVersion = appVersion,
                         onBack = { screen = Screen.Status },
                     )
 

@@ -232,9 +232,13 @@ class RepositoryContract(private val storesFactory: () -> RepositoryStores) {
             watermarkEpochDay = 20_758L,
             lastAttemptAt = T0,
             lastSuccessAt = T0,
+            lastVehiclesSuccessAt = T0,
+            lastTelemetrySuccessAt = T0.plusSeconds(1),
+            lastTripsSuccessAt = T0.plusSeconds(2),
             lastErrorAt = T0.plusSeconds(60),
             lastErrorKind = SyncErrorKind.API,
             lastErrorMessage = "Toyota API request failed (HTTP 429) REDACTED",
+            lastErrorStatus = 429,
         )
         repo.save(saved)
 

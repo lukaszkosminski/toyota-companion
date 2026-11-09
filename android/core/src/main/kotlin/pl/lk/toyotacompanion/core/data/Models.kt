@@ -111,15 +111,25 @@ enum class SyncErrorKind(val retryable: Boolean) {
  * [watermarkEpochDay] is the `to` date of the last fully successful trip fetch;
  * the next run fetches from `watermark - overlap` so trips that Toyota ingests
  * late are still picked up (docs/SPEC.md §8.3). It only advances on success.
+ *
+ * The per-step timestamps ([lastVehiclesSuccessAt], [lastTelemetrySuccessAt],
+ * [lastTripsSuccessAt]) feed the diagnostics screen (docs/SPEC.md §47): they are
+ * written after each successful step, so a later failure never hides when the
+ * earlier steps last worked. [lastErrorStatus] is the HTTP status of the last
+ * failure, when there was one (429, 403, ...), never a token or a VIN.
  */
 data class SyncState(
     val vin: String? = null,
     val watermarkEpochDay: Long? = null,
     val lastAttemptAt: Instant? = null,
     val lastSuccessAt: Instant? = null,
+    val lastVehiclesSuccessAt: Instant? = null,
+    val lastTelemetrySuccessAt: Instant? = null,
+    val lastTripsSuccessAt: Instant? = null,
     val lastErrorAt: Instant? = null,
     val lastErrorKind: SyncErrorKind? = null,
     val lastErrorMessage: String? = null,
+    val lastErrorStatus: Int? = null,
 ) {
     /** Local data is on screen but not current (docs/ARCHITECTURE.md failure table). */
     val isStale: Boolean
@@ -158,6 +168,11 @@ data class SyncStatus(
     val pendingRefuels: Int,
     /** Odometer of the newest telemetry reading, or null before the first one (docs/SPEC.md §9.3). */
     val odometerKm: Double? = null,
+    /**
+     * The moment Toyota last saw the car (`occurrence_date` of the newest telemetry reading), or null
+     * before the first reading (docs/SPEC.md §47). This is the age of the car's state, not of the fetch.
+     */
+    val carStateAt: Instant? = null,
 ) {
     val isFresh: Boolean get() = !state.isStale
 }

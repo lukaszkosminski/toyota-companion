@@ -102,6 +102,73 @@ class RemoteDataControllerTest {
     }
 
     @Test
+    fun `a failed retry keeps the last good data on screen`() = runTest {
+        var calls = 0
+        val c = controller {
+            calls++
+            if (calls == 1) "position" else throw ToyotaApiException(500, "boom")
+        }
+        c.ensureLoaded()
+        advanceUntilIdle()
+
+        c.load()
+        advanceUntilIdle()
+
+        assertEquals(RemoteDataUiState(loading = false, data = "position", failed = true), c.state.value)
+    }
+
+    @Test
+    fun `an unavailable retry keeps the last good data too`() = runTest {
+        var calls = 0
+        val c = controller {
+            calls++
+            if (calls == 1) "doors" else throw ToyotaApiException(403, "gone")
+        }
+        c.ensureLoaded()
+        advanceUntilIdle()
+
+        c.load()
+        advanceUntilIdle()
+
+        assertEquals(RemoteDataUiState(loading = false, data = "doors", unavailable = true), c.state.value)
+    }
+
+    @Test
+    fun `an honest empty answer drops the old data`() = runTest {
+        var calls = 0
+        val c = controller {
+            calls++
+            if (calls == 1) "doors" else null
+        }
+        c.ensureLoaded()
+        advanceUntilIdle()
+
+        c.load()
+        advanceUntilIdle()
+
+        assertEquals(RemoteDataUiState<String>(loading = false, data = null), c.state.value)
+    }
+
+    @Test
+    fun `reset drops the data kept after a failure`() = runTest {
+        var calls = 0
+        val c = controller {
+            calls++
+            if (calls == 1) "position" else throw IOException("offline")
+        }
+        c.ensureLoaded()
+        advanceUntilIdle()
+        c.load()
+        advanceUntilIdle()
+        assertEquals("position", c.state.value.data)
+
+        c.reset()
+
+        assertEquals(RemoteDataUiState<String>(), c.state.value)
+        assertNull(c.state.value.data)
+    }
+
+    @Test
     fun `an answer that arrives after reset is dropped`() = runTest {
         val gate = CompletableDeferred<String>()
         val c = controller { gate.await() }

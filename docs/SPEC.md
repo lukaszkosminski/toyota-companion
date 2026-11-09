@@ -1092,3 +1092,12 @@ Domena: `core/domain/OwnershipOps.kt` (`ownershipCost`, `ownershipMonths`, model
 - VIN w treści powiadomienia jest maskowany do czterech ostatnich znaków; pełny VIN nie trafia na ekran, do logów ani komunikatów błędów (SECURITY.md).
 - Brak `payload` = „Toyota nie przysłała tych danych.”; pusta lista = „Toyota nie ma powiadomień dla tego auta.”; błędy jak w §42.
 - Prywatność: tylko w pamięci; bez bazy, archiwum, eksportu i `rememberSaveable`; `reset()` przy wylogowaniu.
+
+## §47 Diagnostyka synchronizacji (PRD F46)
+- Ekran „Diagnostyka” z kafelka w menu statusu: odczyt **lokalny** (archiwum + `SyncState`), bez wywołania Toyoty i bez `refresh_status()`, więc auto nie jest budzone; poza licznikami czasu w `sync_state` nic nie jest zapisywane.
+  Pliki: `core/data/Models.kt` (`SyncState.lastVehiclesSuccessAt`, `lastTelemetrySuccessAt`, `lastTripsSuccessAt`, `lastErrorStatus`, `SyncStatus.carStateAt`), `core/sync/SyncOutcome.kt` (`SyncError.status`), `core/sync/SyncEngine.kt`, `app/data/db` (schemat 7), `app/ui/RemoteDataController.kt`, `app/ui/DiagnosticsFormatting.kt`, `app/ui/DiagnosticsScreen.kt`, `app/ui/AppRoot.kt`, `app/ui/StatusScreen.kt`.
+- Pokazuje: wersję aplikacji, czas ostatniej próby i ostatniego pełnego sukcesu, czasy ostatniego udanego pobrania **pojazdów/konta, telemetrii i tras** (każdy krok zapisany osobno, więc późniejszy błąd nie gubi wcześniejszych), czas stanu auta z Toyoty (`occurrence_date` = `ts` najnowszego odczytu telemetrii), ostatni błąd (czas, rodzaj, kod HTTP, gdy był – np. 429, 403) oraz liczniki archiwum (trasy, odczyty, tankowania bez ceny).
+- „Brak” zamiast zmyślonej daty: przed pierwszym krokiem wszystkie czasy są `null`; **miękki** błąd telemetrii nie rusza jej czasu, ale trasy i koszty idą dalej; błąd transportu nie ma kodu HTTP.
+- **Ostatnie dobre dane zostają na ekranie** (dotyczy §42–§46): po błędzie lub 403/404 ponowny odczyt zachowuje poprzednie dane i pokazuje komunikat błędu oraz linię „Powyżej dane z ostatniego udanego odczytu…” nad nimi, zamiast czyścić ekran; odpowiedź 200 bez payloadu to nadal „Toyota nie przysłała tych danych”. `reset()` (Wstecz, wylogowanie) czyści także zachowane dane.
+- „Kopiuj diagnostykę” i „Udostępnij” dają ten sam tekst; **bez VIN, współrzędnych GPS i tokenów**; komunikat błędu przechodzi `ToyotaSecrets.sanitize` przy zapisie i jeszcze raz przy budowie raportu.
+- Migracja Room 6→7: nowe kolumny `sync_state` są nullable, stary wiersz zostaje bez zmian (test migracji każdej wersji).

@@ -135,13 +135,16 @@ class SyncEngine(
     /** What the UI shows: local data plus “current / not current”. */
     suspend fun status(): SyncStatus {
         val current = state.get()
+        val latest = current.vin?.let { readings.latest(it) }
         return SyncStatus(
             state = current,
             tripsStored = trips.count(),
             readingsStored = readings.count(),
             pendingRefuels = refuels.pending(current.vin).size,
             // One extra row: the odometer of the newest reading (docs/SPEC.md §9.3).
-            odometerKm = current.vin?.let { readings.latest(it)?.odometerKm },
+            odometerKm = latest?.odometerKm,
+            // The moment Toyota saw the car, not when the phone fetched it (docs/SPEC.md §47).
+            carStateAt = latest?.ts,
         )
     }
 
@@ -404,7 +407,8 @@ class SyncEngine(
         }
 
         val stored = state.get()
-        state.save(stored.copy(lastAttemptAt = startedAt))
+        var progress = stored.copy(lastAttemptAt = startedAt)
+        state.save(progress)
 
         // 1. Vehicles. Also detects a VIN change; nothing is ever deleted here.
         val fleet: List<VehicleRecord> = try {
@@ -418,6 +422,9 @@ class SyncEngine(
         if (fleet.isEmpty()) {
             return failAt(startedAt, SyncError(SyncErrorKind.NO_VEHICLE, "Toyota account returned no vehicle"))
         }
+        // A successful step keeps its own time even if a later step fails (docs/SPEC.md §47).
+        progress = progress.copy(lastVehiclesSuccessAt = clock())
+        state.save(progress)
         val vin: String = when {
             stored.vin != null && fleet.any { it.vin == stored.vin } -> requireNotNull(stored.vin)
             fleet.size == 1 -> fleet.single().vin
@@ -444,6 +451,9 @@ class SyncEngine(
         if (reading == null) {
             telemetryFailed = true
         } else {
+            // The fetch worked even when Toyota has nothing newer (docs/SPEC.md §47).
+            progress = progress.copy(lastTelemetrySuccessAt = clock())
+            state.save(progress)
             val previous = readings.latest(vin)
             if (previous == null) {
                 // First reading ever: nothing to compare against (docs/SPEC.md §8.3).
@@ -473,6 +483,8 @@ class SyncEngine(
             return failAt(startedAt, classify(e))
         }
         val tripsAdded = writingTrips { trips.upsertAll(fetched) }
+        progress = progress.copy(lastTripsSuccessAt = clock())
+        state.save(progress)
 
         // 4. Costs (docs/SPEC.md §4, §5).
         val tripsCosted: Int = try {
@@ -485,7 +497,7 @@ class SyncEngine(
             return failAt(startedAt, classify(e))
         }
 
-        val done = state.get().copy(
+        val done = progress.copy(
             vin = vin,
             watermarkEpochDay = today.toEpochDay(),
             lastAttemptAt = startedAt,
@@ -493,6 +505,7 @@ class SyncEngine(
             lastErrorAt = null,
             lastErrorKind = null,
             lastErrorMessage = null,
+            lastErrorStatus = null,
         )
         state.save(done)
         return SyncOutcome.Ok(tripsAdded, readingsAdded, refuelsDetected, tripsCosted, telemetryFailed, done)
@@ -558,6 +571,7 @@ class SyncEngine(
             lastErrorAt = clock(),
             lastErrorKind = error.kind,
             lastErrorMessage = error.message,
+            lastErrorStatus = error.status,
         )
         try {
             state.save(updated)
@@ -584,6 +598,6 @@ class SyncEngine(
             is ToyotaDataException -> SyncErrorKind.DATA
             else -> SyncErrorKind.DATA
         }
-        return SyncError(kind, ToyotaSecrets.sanitize(e.message ?: e.javaClass.simpleName))
+        return SyncError(kind, ToyotaSecrets.sanitize(e.message ?: e.javaClass.simpleName), (e as? ToyotaApiException)?.statusCode)
     }
 }

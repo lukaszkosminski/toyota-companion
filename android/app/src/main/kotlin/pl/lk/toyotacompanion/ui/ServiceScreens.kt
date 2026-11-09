@@ -45,12 +45,12 @@ fun ServiceHistoryScreen(
             loading = state.loading,
             unavailable = state.unavailable,
             failed = state.failed,
-            empty = history == null || records.isEmpty(),
+            hasData = records.isNotEmpty(),
             errorText = Texts.SERVICE_READ_ERROR,
             retry = { controller.load() },
             emptyText = if (history != null && records.isEmpty()) Texts.SERVICE_EMPTY else Texts.REMOTE_EMPTY,
         )
-        if (!state.loading && !state.failed && !state.unavailable && records.isNotEmpty()) {
+        if (records.isNotEmpty()) {
             MutedLine(Texts.SERVICE_HINT)
             records.forEach { record ->
                 val row = serviceRow(record)
@@ -87,7 +87,7 @@ fun NotificationsScreen(
             loading = state.loading,
             unavailable = state.unavailable,
             failed = state.failed,
-            empty = notifications == null || notifications.isEmpty(),
+            hasData = !notifications.isNullOrEmpty(),
             errorText = Texts.NOTIFICATIONS_READ_ERROR,
             retry = { controller.load() },
             emptyText = if (notifications != null && notifications.isEmpty()) {
@@ -96,7 +96,7 @@ fun NotificationsScreen(
                 Texts.REMOTE_EMPTY
             },
         )
-        if (!state.loading && !state.failed && !state.unavailable && !notifications.isNullOrEmpty()) {
+        if (!notifications.isNullOrEmpty()) {
             MutedLine(Texts.NOTIFICATIONS_HINT)
             notifications.forEach { notification ->
                 DashboardCard(notificationDateText(notification.date, zone), AppIcons.Info) {

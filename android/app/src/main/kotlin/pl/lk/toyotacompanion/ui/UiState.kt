@@ -96,6 +96,9 @@ enum class Screen {
     /** The notification history of the account (PRD F45, docs/SPEC.md §46). */
     Notifications,
 
+    /** Sync diagnostics: last successful steps, the last error and the archive counters (PRD F46, docs/SPEC.md §47). */
+    Diagnostics,
+
     /** Eco score, repeated routes and fuel anomalies (docs/SPEC.md §19). */
     DrivingStyle,
 

@@ -19,6 +19,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import pl.lk.toyotacompanion.core.data.StoredTrip
+import pl.lk.toyotacompanion.core.data.SyncStatus
 import pl.lk.toyotacompanion.core.data.TripRecord
 import pl.lk.toyotacompanion.core.data.VehicleRecord
 import pl.lk.toyotacompanion.core.domain.FuelReading
@@ -178,6 +179,23 @@ class AppContainer(
             scope = uiScope,
             io = Dispatchers.IO,
         )
+    }
+
+    /**
+     * Sync diagnostics (PRD F46, docs/SPEC.md §47): a local read of the archive and the sync bookkeeping.
+     * No Toyota call, so the car is never woken, and nothing is written.
+     */
+    val diagnosticsController: pl.lk.toyotacompanion.ui.RemoteDataController<SyncStatus> by lazy {
+        pl.lk.toyotacompanion.ui.RemoteDataController(
+            read = { syncEngine.status() },
+            scope = uiScope,
+            io = Dispatchers.IO,
+        )
+    }
+
+    /** Version shown in the diagnostics report and compared with the GitHub release (ADR-016). */
+    val appVersionName: String by lazy {
+        context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty()
     }
 
     /** App update from GitHub Releases, only after a tap in "Opcje" (PRD F36, docs/SPEC.md §37, ADR-016). */

@@ -1322,6 +1322,12 @@ object Texts {
     /** Toyota answered but without a payload. */
     val REMOTE_EMPTY: String get() = Lang.pick("Toyota nie przysłała tych danych.", "Toyota sent no such data.")
 
+    /** A broken retry kept the last good answer on screen (docs/SPEC.md §47). */
+    val REMOTE_STALE: String get() = Lang.pick(
+        "Powyżej dane z ostatniego udanego odczytu – najnowszego nie udało się pobrać.",
+        "Above is the last successful read – the newest one could not be fetched.",
+    )
+
     val SHOW_ON_MAP: String get() = Lang.pick("Pokaż na mapie", "Show on map")
 
     val VEHICLE_STATUS_TITLE: String get() = Lang.pick("Stan pojazdu", "Vehicle status")
@@ -1437,4 +1443,35 @@ object Texts {
         val number = TripsFormatting.odometer(mileage.toDouble())
         return if (unit.isNullOrBlank()) number else "$number $unit"
     }
+
+    // ---------------- Diagnostyka synchronizacji (PRD F46, docs/SPEC.md §47) ----------------
+
+    val DIAGNOSTICS_TITLE: String get() = Lang.pick("Diagnostyka synchronizacji", "Sync diagnostics")
+
+    /** Local read only: nothing is fetched from Toyota, so the car is never woken. */
+    val DIAGNOSTICS_HINT: String get() = Lang.pick(
+        "Odczyt lokalny: czasy synchronizacji, stan archiwum i ostatni błąd. Nic nie jest pobierane z Toyoty, więc auto nie jest budzone. " +
+            "Raport nie zawiera VIN, współrzędnych GPS ani tokenów.",
+        "Local read: sync times, the archive and the last error. Nothing is fetched from Toyota, so the car is never woken. " +
+            "The report carries no VIN, GPS coordinates or tokens.",
+    )
+    val DIAGNOSTICS_READ_ERROR: String get() = Lang.pick("Nie udało się odczytać diagnostyki.", "Could not read the diagnostics.")
+    val DIAGNOSTICS_ATTEMPT: String get() = Lang.pick("Ostatnia próba", "Last attempt")
+    val DIAGNOSTICS_SUCCESS: String get() = Lang.pick("Ostatni pełny sukces", "Last full success")
+    val DIAGNOSTICS_VEHICLES: String get() = Lang.pick("Pojazdy i konto", "Vehicles and account")
+    val DIAGNOSTICS_TELEMETRY: String get() = Lang.pick("Telemetria", "Telemetry")
+    val DIAGNOSTICS_TRIPS: String get() = Lang.pick("Trasy", "Trips")
+    val DIAGNOSTICS_CAR_STATE: String get() = Lang.pick("Stan auta z Toyoty", "Car state from Toyota")
+    val DIAGNOSTICS_ERROR: String get() = Lang.pick("Ostatni błąd", "Last error")
+    val DIAGNOSTICS_MESSAGE: String get() = Lang.pick("Komunikat", "Message")
+    val DIAGNOSTICS_NONE: String get() = Lang.pick("brak", "none")
+
+    fun diagnosticsArchive(trips: Int, readings: Int, pending: Int): String = Lang.pick(
+        "Archiwum: trasy $trips, odczyty $readings, tankowania bez ceny $pending",
+        "Archive: trips $trips, readings $readings, refuels without a price $pending",
+    )
+
+    val DIAGNOSTICS_COPY: String get() = Lang.pick("Kopiuj diagnostykę", "Copy diagnostics")
+    val DIAGNOSTICS_COPIED: String get() = Lang.pick("Skopiowano do schowka.", "Copied to the clipboard.")
+    val DIAGNOSTICS_SHARE: String get() = Lang.pick("Udostępnij", "Share")
 }

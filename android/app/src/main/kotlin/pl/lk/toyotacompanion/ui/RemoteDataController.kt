@@ -14,9 +14,11 @@ private const val HTTP_FORBIDDEN = 403
 private const val HTTP_NOT_FOUND = 404
 
 /**
- * One read of the read-only Toyota data (docs/SPEC.md §42-§44). [data] null with [failed] false means
+ * One read of the read-only Toyota data (docs/SPEC.md §42-§47). [data] null with [failed] false means
  * Toyota answered without a payload (the screen says "no data"); [failed] true means the call itself broke;
  * [unavailable] true means Toyota refused the endpoint (403/404: retired or not supported for this car).
+ * After a broken or refused retry [data] keeps the last good answer, so a transient error does not clear the
+ * screen (docs/SPEC.md §47); [reset] drops it.
  */
 data class RemoteDataUiState<T>(
     val loading: Boolean = true,
@@ -26,9 +28,10 @@ data class RemoteDataUiState<T>(
 )
 
 /**
- * The controller behind "Stan pojazdu", "Lokalizacja" and "Stan techniczny": read once when the screen
- * opens ([ensureLoaded]), never polled. No database, no cache on disk — the location in particular stays
- * in memory only (docs/SECURITY.md). [reset] on logout invalidates late answers.
+ * The controller behind "Stan pojazdu", "Lokalizacja", "Stan techniczny", the service history, the
+ * notifications and the diagnostics: read once when the screen opens ([ensureLoaded]), never polled. No
+ * database, no cache on disk — the location in particular stays in memory only (docs/SECURITY.md). [reset]
+ * on logout invalidates late answers.
  */
 class RemoteDataController<T>(
     private val read: suspend () -> T?,
@@ -48,7 +51,9 @@ class RemoteDataController<T>(
     fun load() {
         loaded = true
         val startedIn = generation
-        ui.value = RemoteDataUiState(loading = true)
+        val previous = ui.value
+        // The last good answer stays on screen while a retry runs (docs/SPEC.md §47).
+        ui.value = RemoteDataUiState(loading = true, data = previous.data)
         scope.launch {
             var failed = false
             var unavailable = false
@@ -66,7 +71,9 @@ class RemoteDataController<T>(
                 null
             }
             if (generation != startedIn) return@launch
-            ui.value = RemoteDataUiState(loading = false, data = data, failed = failed, unavailable = unavailable)
+            // A broken read keeps what was last good; an answer without a payload is an honest "no data".
+            val shown = if (failed || unavailable) previous.data else data
+            ui.value = RemoteDataUiState(loading = false, data = shown, failed = failed, unavailable = unavailable)
         }
     }
 

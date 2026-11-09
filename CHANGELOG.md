@@ -4,6 +4,9 @@
 - Historia serwisowa Toyoty jako kafelek „Historia serwisowa” (F44, SPEC §45, plan C25): data, przebieg z jednostką, kategoria, czynności i dealer pod jedną etykietą „Dealer” (`servicingDealer`, fallback `serviceProvider`, oba puste = „brak danych”); bez numeru RO, notatek, identyfikatora wpisu i flagi wpisu właściciela
 - Powiadomienia Toyoty jako kafelek „Powiadomienia” (F45, SPEC §46, plan C25): data, stan przeczytania, kategoria i typ, treść; wszystkie wpisy od najnowszego, VIN w treści maskowany do czterech znaków, konto bez powiadomień to „brak danych”, nie błąd
 - Oba ekrany tylko do odczytu z chmury Toyoty, bez `refresh_status()` i bez zapisu na telefonie; kształt pól do potwierdzenia sondą `TOYOTA_PROBE=structure`
+- Diagnostyka synchronizacji jako kafelek „Diagnostyka” (F46, SPEC §47, plan C26): czasy ostatniego udanego pobrania pojazdów/konta, telemetrii i tras, czas stanu auta z Toyoty, czas i kod ostatniego błędu (np. 429, 403), liczniki archiwum; raport do schowka i do udostępnienia bez VIN, GPS i tokenów; odczyt lokalny, bez budzenia auta
+- Po chwilowym błędzie lub 403/404 ekrany Toyoty zachowują ostatnie dobre dane i pokazują komunikat błędu nad nimi, zamiast czyścić ekran (SPEC §47, dotyczy §42–§46)
+- Baza Room 7: nowe kolumny diagnostyczne `sync_state` (czasy kroków i kod HTTP ostatniego błędu), migracja automatyczna 6→7, stary wiersz bez zmian
 
 ## 0.2.4 (2026-11-08)
 - Koszt tras po pierwszym potwierdzonym tankowaniu: paliwo, które zostało w baku, ma cenę domyślną, więc cena w baku to średnia ważona z nią (np. 6,175 zamiast 5,92 zł/l), a nie sama cena tankowania (poprawka ADR-005, SPEC §4, §6)

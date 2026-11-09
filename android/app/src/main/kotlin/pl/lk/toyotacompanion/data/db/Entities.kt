@@ -203,12 +203,27 @@ data class SyncStateEntity(
     @ColumnInfo(name = "watermark_epoch_day") val watermarkEpochDay: Long?,
     @ColumnInfo(name = "last_attempt_at") val lastAttemptAt: Instant?,
     @ColumnInfo(name = "last_success_at") val lastSuccessAt: Instant?,
+    @ColumnInfo(name = "last_vehicles_success_at") val lastVehiclesSuccessAt: Instant?,
+    @ColumnInfo(name = "last_telemetry_success_at") val lastTelemetrySuccessAt: Instant?,
+    @ColumnInfo(name = "last_trips_success_at") val lastTripsSuccessAt: Instant?,
     @ColumnInfo(name = "last_error_at") val lastErrorAt: Instant?,
     @ColumnInfo(name = "last_error_kind") val lastErrorKind: SyncErrorKind?,
     @ColumnInfo(name = "last_error_message") val lastErrorMessage: String?,
+    @ColumnInfo(name = "last_error_status") val lastErrorStatus: Int?,
 ) {
-    fun toDomain(): SyncState =
-        SyncState(vin, watermarkEpochDay, lastAttemptAt, lastSuccessAt, lastErrorAt, lastErrorKind, lastErrorMessage)
+    fun toDomain(): SyncState = SyncState(
+        vin = vin,
+        watermarkEpochDay = watermarkEpochDay,
+        lastAttemptAt = lastAttemptAt,
+        lastSuccessAt = lastSuccessAt,
+        lastVehiclesSuccessAt = lastVehiclesSuccessAt,
+        lastTelemetrySuccessAt = lastTelemetrySuccessAt,
+        lastTripsSuccessAt = lastTripsSuccessAt,
+        lastErrorAt = lastErrorAt,
+        lastErrorKind = lastErrorKind,
+        lastErrorMessage = lastErrorMessage,
+        lastErrorStatus = lastErrorStatus,
+    )
 }
 
 const val SYNC_STATE_ID = 1
@@ -218,9 +233,13 @@ fun SyncState.toEntity(): SyncStateEntity = SyncStateEntity(
     watermarkEpochDay = watermarkEpochDay,
     lastAttemptAt = lastAttemptAt,
     lastSuccessAt = lastSuccessAt,
+    lastVehiclesSuccessAt = lastVehiclesSuccessAt,
+    lastTelemetrySuccessAt = lastTelemetrySuccessAt,
+    lastTripsSuccessAt = lastTripsSuccessAt,
     lastErrorAt = lastErrorAt,
     lastErrorKind = lastErrorKind,
     lastErrorMessage = lastErrorMessage,
+    lastErrorStatus = lastErrorStatus,
 )
 
 /** Cached daily weather of one rounded place (docs/SPEC.md §23); `date` is `YYYY-MM-DD`, values may be null. */

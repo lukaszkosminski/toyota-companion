@@ -67,25 +67,35 @@ private fun ComponentRow(line: ComponentLine) {
     }
 }
 
-/** Loading, "Toyota does not share this data", a retryable error or the payload — the same order on every screen. */
+/** Loading, "Toyota does not share this data", a retryable error or the payload — the same order on every screen.
+ * A broken retry keeps the last good data: the error and [Texts.REMOTE_STALE] go above it, never instead of it
+ * (docs/SPEC.md §47). */
 @Composable
 internal fun RemoteState(
     loading: Boolean,
     unavailable: Boolean,
     failed: Boolean,
-    empty: Boolean,
+    hasData: Boolean,
     errorText: String,
     emptyText: String = Texts.REMOTE_EMPTY,
     retry: () -> Unit,
 ) {
-    when {
-        loading -> Text(Texts.LOADING)
-        unavailable -> Text(Texts.REMOTE_UNAVAILABLE)
-        failed -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(errorText)
-            TextButton(onClick = retry) { Text(Texts.RETRY) }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        when {
+            loading && !hasData -> Text(Texts.LOADING)
+            failed -> {
+                Text(errorText)
+                TextButton(onClick = retry) { Text(Texts.RETRY) }
+            }
+            unavailable -> Text(Texts.REMOTE_UNAVAILABLE)
+            !hasData -> Text(emptyText)
         }
-        empty -> Text(emptyText)
+        if (loading && hasData) {
+            Text(Texts.LOADING, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (hasData && (failed || unavailable)) {
+            Text(Texts.REMOTE_STALE, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 
@@ -100,10 +110,10 @@ fun VehicleStatusScreen(
     LaunchedEffect(Unit) { controller.load() }
     val status = state.data
     RemoteScreen(Texts.VEHICLE_STATUS_TITLE, onBack) {
-        RemoteState(state.loading, state.unavailable, state.failed, status == null, Texts.VEHICLE_STATUS_READ_ERROR) {
+        RemoteState(state.loading, state.unavailable, state.failed, status != null, Texts.VEHICLE_STATUS_READ_ERROR) {
             controller.load()
         }
-        if (!state.loading && !state.failed && !state.unavailable && status != null) {
+        if (status != null) {
             DashboardCard(Texts.VEHICLE_STATUS_TITLE, AppIcons.DirectionsCar) {
                 status.lastUpdate?.let { Text(Texts.vehicleUpdated(TripsFormatting.startDateTime(it, zone))) }
                 status.warnings?.let { Text(Texts.vehicleWarnings(it)) }
@@ -142,10 +152,10 @@ fun LocationScreen(
         onBack()
     }
     RemoteScreen(Texts.LOCATION_TITLE, leave) {
-        RemoteState(state.loading, state.unavailable, state.failed, location == null, Texts.LOCATION_READ_ERROR) {
+        RemoteState(state.loading, state.unavailable, state.failed, location != null, Texts.LOCATION_READ_ERROR) {
             controller.load()
         }
-        if (!state.loading && !state.failed && !state.unavailable && location != null) {
+        if (location != null) {
             DashboardCard(Texts.LOCATION_TITLE, AppIcons.LocationOn) {
                 location.displayName?.let { Text(it, style = MaterialTheme.typography.titleMedium) }
                 coordinatesText(location)?.let {
@@ -179,10 +189,10 @@ fun VehicleHealthScreen(
     LaunchedEffect(Unit) { controller.load() }
     val health = state.data
     RemoteScreen(Texts.HEALTH_TITLE, onBack) {
-        RemoteState(state.loading, state.unavailable, state.failed, health == null, Texts.HEALTH_READ_ERROR) {
+        RemoteState(state.loading, state.unavailable, state.failed, health != null, Texts.HEALTH_READ_ERROR) {
             controller.load()
         }
-        if (!state.loading && !state.failed && !state.unavailable && health != null) {
+        if (health != null) {
             DashboardCard(Texts.HEALTH_TITLE, AppIcons.Build) {
                 health.warnings?.let { Text(Texts.vehicleWarnings(it)) }
                 health.hasOilInfo?.let { Text(if (it) Texts.HEALTH_OIL_YES else Texts.HEALTH_OIL_NO) }

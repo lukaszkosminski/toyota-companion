@@ -1279,6 +1279,99 @@ class SyncEngineTest {
 
         assertTrue(c.engine.status().isFresh)
         assertNull(c.stores.state.get().lastErrorKind)
+        assertNull(c.stores.state.get().lastErrorStatus)
+    }
+
+    // ---------------- diagnostics (docs/SPEC.md §47) ----------------
+
+    @Test
+    fun `per_step_times_record_each_successful_step`() = runTest {
+        val c = ctx(
+            FakeToyotaGateway(
+                fleet = listOf(vehicleRecord()),
+                telemetry = reading(DAY_1, 40),
+                tripsProvider = { _, _, _ -> listOf(tripRecord("t1", DAY_1.minusSeconds(60))) },
+            ),
+        )
+
+        assertOk(c.engine.fullSync())
+
+        val state = c.stores.state.get()
+        assertEquals(DAY_1, state.lastVehiclesSuccessAt)
+        assertEquals(DAY_1, state.lastTelemetrySuccessAt)
+        assertEquals(DAY_1, state.lastTripsSuccessAt)
+        assertEquals(DAY_1, state.lastSuccessAt)
+        assertNull(state.lastErrorStatus)
+    }
+
+    @Test
+    fun `a_failed_trip_step_keeps_the_times_of_the_steps_that_worked`() = runTest {
+        val c = ctx(
+            FakeToyotaGateway(
+                fleet = listOf(vehicleRecord()),
+                telemetry = reading(DAY_1, 40),
+                tripsProvider = { _, _, _ -> listOf(tripRecord("t1", DAY_1.minusSeconds(60))) },
+            ),
+        )
+        assertOk(c.engine.fullSync())
+
+        c.gateway.tripsError = ToyotaApiException(429, "too many requests")
+        c.clock.at(DAY_2)
+        val failed = assertFailed(c.engine.fullSync(), SyncErrorKind.API)
+
+        val state = c.stores.state.get()
+        assertEquals(DAY_2, state.lastVehiclesSuccessAt)
+        assertEquals(DAY_2, state.lastTelemetrySuccessAt)
+        assertEquals(DAY_1, state.lastTripsSuccessAt, "the failed trip fetch must not look successful")
+        assertEquals(429, state.lastErrorStatus)
+        assertEquals(429, failed.error.status)
+        assertEquals(DAY_2, state.lastErrorAt)
+    }
+
+    @Test
+    fun `a_telemetry_error_does_not_update_its_time_but_trips_still_do`() = runTest {
+        val gateway = FakeToyotaGateway(
+            fleet = listOf(vehicleRecord()),
+            telemetry = reading(DAY_1, 40),
+            tripsProvider = { _, _, _ -> listOf(tripRecord("t1", DAY_1.minusSeconds(60))) },
+        )
+        val c = ctx(gateway)
+        assertOk(c.engine.fullSync())
+
+        gateway.telemetryError = ToyotaNetworkException("offline")
+        c.clock.at(DAY_2)
+        val ok = assertOk(c.engine.fullSync())
+
+        assertTrue(ok.telemetryFailed)
+        val state = c.stores.state.get()
+        assertEquals(DAY_2, state.lastVehiclesSuccessAt)
+        assertEquals(DAY_1, state.lastTelemetrySuccessAt)
+        assertEquals(DAY_2, state.lastTripsSuccessAt)
+        assertNull(state.lastErrorKind, "a soft telemetry failure is not a failed synchronization")
+    }
+
+    @Test
+    fun `a_transport_error_records_no_http_status`() = runTest {
+        val gateway = FakeToyotaGateway(fleet = listOf(vehicleRecord()))
+        gateway.vehiclesError = ToyotaNetworkException("offline")
+        val c = ctx(gateway)
+
+        val failed = assertFailed(c.engine.fullSync(), SyncErrorKind.NETWORK)
+
+        assertNull(failed.error.status)
+        assertNull(c.stores.state.get().lastErrorStatus)
+    }
+
+    @Test
+    fun `car_state_time_is_the_timestamp_of_the_newest_reading`() = runTest {
+        val c = ctx(
+            FakeToyotaGateway(fleet = listOf(vehicleRecord()), telemetry = reading(DAY_1, 40)),
+        )
+
+        assertNull(c.engine.status().carStateAt, "no reading yet, so no car state time")
+        assertOk(c.engine.fullSync())
+
+        assertEquals(DAY_1, c.engine.status().carStateAt)
     }
 }
 
