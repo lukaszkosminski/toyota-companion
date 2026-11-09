@@ -77,6 +77,17 @@
   ale nie sprawdzone na koncie właściciela – najpierw dodać je do `:core:liveCheck`:
   - Lista kontrolek ostrzegawczych (`dashboard.warning_lights`: nazwa, status, kategoria) zamiast samej liczby w F43
     i powiadomienie o nowej kontrolce – do sprawdzenia, czy auto zwraca te dane
+- Propozycje z przeglądu C26 (2026-11-09), niewybrane; tylko dane i endpointy już obecne w projekcie, bez budzenia auta:
+  - Budżet miesięczny na paliwo i wydatki: postęp z istniejących kosztów tras i `expenses`, na ekranie statusu,
+    plus lokalne powiadomienie przy progu; bez sieci i bez nowych pól Toyoty
+  - Historia i trend ceny paliwa: zapisywać lokalne snapshoty z istniejących pobrań trojmiasto.pl po dotknięciu
+    (F22, §25) i porównywać ostatnio zapłaconą cenę z bieżącą ceną stacji
+  - Eksport CSV tankowań i wydatków: rozszerzenie istniejącego eksportu tras CSV (F6, §14.4)
+  - Powiadomienie o niskim paliwie: na podstawie ostatniej telemetrii (`distanceToEmptyKm`/poziom paliwa) po
+    synchronizacji, z wiekiem odczytu w treści; bez wybudzania auta
+  - Lokalny licznik nieprzeczytanych powiadomień Toyoty: dodać `messageId` do `ToyotaNotification` (jest już w DTO)
+    i lokalną tabelę „widziane”; bez oznaczania jako przeczytane po stronie Toyoty (endpoint tego nie ma, §46);
+    rozwinięcie podstawy opisanej w DONE
 
 ## DO ZBADANIA
 - Wybór pojazdu dla konta z kilkoma autami – dziś świadomie nie (ADR-019)
