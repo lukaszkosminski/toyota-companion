@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+
+## 0.2.6 (2026-11-09)
 - Eksport CSV tankowań i wydatków (F47, SPEC §48, plan C27): dwa nowe arkusze w sekcji „Arkusz kalkulacyjny” obok tras – potwierdzone tankowania (data, licznik, poziomy, litry, cena, koszt, źródło litrów, „do pełna”) i wydatki poza paliwem (data, kategoria, kwota, notatka); ten sam format polskiego arkusza, bez VIN, GPS i `id`; przy pustej liście aplikacja nic nie zapisuje (systemowy wybór pliku może wcześniej utworzyć pusty plik), a eksport nie zmienia daty kopii archiwum
 - CSV injection: komórka tekstowa z pierwszym nie-białym znakiem `= + - @` dostaje `'` na samym początku, liczby (`-1`) pozostają liczbami, a komórki z wiodącym/końcowym białym znakiem lub tabulatorem są w cudzysłowie
 
