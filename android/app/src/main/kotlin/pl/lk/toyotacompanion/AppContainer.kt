@@ -365,6 +365,8 @@ class AppContainer(
                 forecastController.refresh()
                 consumptionController.refresh()
                 ecoGoalsController.refresh()
+                // New trips change the month's budget figures too (PRD F48, docs/SPEC.md §49).
+                budgetController.refresh()
                 // New trips get their weather without a tap (docs/SPEC.md §23).
                 weatherController.autoFetch()
             }
@@ -560,6 +562,22 @@ class AppContainer(
             io = Dispatchers.IO,
             // The widget has a line for the goals, so it is repainted when they change.
             onSaved = { uiScope.launch { refreshWidget() } },
+        )
+    }
+
+    /**
+     * The monthly budget for fuel and expenses (PRD F48, docs/SPEC.md §49): the limit from the phone settings and the
+     * month computed from the archive and the expenses table. No network, so the car is never woken.
+     */
+    val budgetController: pl.lk.toyotacompanion.ui.BudgetController by lazy {
+        pl.lk.toyotacompanion.ui.BudgetController(
+            readLimit = { settingsStore.monthlyBudget() },
+            saveLimit = { settingsStore.saveMonthlyBudget(it) },
+            readTrips = tripsLoader,
+            readExpenses = { database.expenseDao().all().map { it.toExpense() } },
+            zone = { ZoneId.systemDefault() },
+            scope = uiScope,
+            io = Dispatchers.IO,
         )
     }
 

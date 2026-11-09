@@ -95,6 +95,33 @@ class SettingsStore(private val prefs: SharedPreferences) {
         }
     }
 
+    /**
+     * The monthly budget for fuel and non-fuel expenses (PRD F48, docs/SPEC.md §49), in zł; `null` when never set,
+     * garbage or not positive. A phone setting like the default price: plain text, survives logging out (ADR-006).
+     */
+    fun monthlyBudget(): BigDecimal? {
+        val text = try {
+            prefs.getString(KEY_MONTHLY_BUDGET, null)?.trim()
+        } catch (e: ClassCastException) {
+            // Something else was stored under the key: read as "no budget", like a garbage price.
+            return null
+        }
+        if (text.isNullOrEmpty()) return null
+        val parsed = try {
+            BigDecimal(text)
+        } catch (e: NumberFormatException) {
+            return null
+        }
+        // A stored garbage value like 0.004 must not reach the domain: it would round to 0.00 and break the percent.
+        val rounded = parsed.setScale(2, java.math.RoundingMode.HALF_UP)
+        return if (rounded.signum() <= 0) null else rounded
+    }
+
+    /** Stores the budget in zł; `null` removes it. Deciding the rounding is the caller's job. */
+    fun saveMonthlyBudget(value: BigDecimal?) {
+        prefs.edit { if (value == null) remove(KEY_MONTHLY_BUDGET) else putString(KEY_MONTHLY_BUDGET, value.toPlainString()) }
+    }
+
     /** Month (`YYYY-MM`) of the last "consumption keeps rising" notification (docs/SPEC.md §31). */
     fun lastConsumptionAlert(): String? = prefs.getString(KEY_ALERT, null)
 
@@ -178,6 +205,7 @@ class SettingsStore(private val prefs: SharedPreferences) {
         const val KEY_LANGUAGE = "language"
         const val KEY_ECO_CONSUMPTION = "eco_goal_consumption"
         const val KEY_ECO_EV = "eco_goal_ev_pct"
+        const val KEY_MONTHLY_BUDGET = "monthly_budget"
         const val KEY_ALERT = "consumption_alert"
         const val KEY_NOTIFIED_REFUELS = "refuel_notified_ids"
         const val KEY_NOTIFICATIONS_ASKED = "notifications_asked"

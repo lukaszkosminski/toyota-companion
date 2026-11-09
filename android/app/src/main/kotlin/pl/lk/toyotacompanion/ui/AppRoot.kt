@@ -52,6 +52,7 @@ fun AppRoot(
     yearSummary: YearSummaryController,
     declared: DeclaredConsumptionController,
     ecoGoals: EcoGoalsController,
+    budget: BudgetController,
     backfill: RouteBackfillController,
     heat: RouteHeatController,
     expenses: ExpensesController,
@@ -78,6 +79,7 @@ fun AppRoot(
     val widgetContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
     val declaredState by declared.state.collectAsState()
     val ecoGoalsState by ecoGoals.state.collectAsState()
+    val budgetState by budget.state.collectAsState()
     val heatState by heat.state.collectAsState()
     var screen by rememberSaveable { mutableStateOf(Screen.Status) }
     // The map in the app (docs/SPEC.md §26): [origin ordinal, then per point: label index, lat, lon] with the positions
@@ -127,6 +129,7 @@ fun AppRoot(
             forecast.reset()
             consumption.reset()
             ecoGoals.reset()
+            budget.reset()
             stationPrices.reset()
             tripRoute.close()
             yearSummary.reset()
@@ -154,6 +157,7 @@ fun AppRoot(
             consumption.ensureLoaded()
             declared.ensureLoaded()
             ecoGoals.ensureLoaded()
+            budget.ensureLoaded()
         }
     }
 
@@ -163,8 +167,12 @@ fun AppRoot(
     // reads the state, not a copy of it.
     SideEffect { prompt.onFormScreen = { screen in PROMPT_BLOCKED_SCREENS } }
     // A new screen decides again from the last read; no database access, so a
-    // rotation costs nothing (docs/SPEC.md §13.3).
-    LaunchedEffect(screen) { prompt.screenChanged() }
+    // rotation costs nothing (docs/SPEC.md §13.3). The status screen refreshes the budget on every
+    // entry, so a new expense or trip shows up without a restart (PRD F48, docs/SPEC.md §49).
+    LaunchedEffect(screen) {
+        prompt.screenChanged()
+        if (screen == Screen.Status) budget.refresh()
+    }
 
     // A tapped notification opens the full price form of its entry (docs/SPEC.md §13.1).
     // `loggedIn` is a key: on a cold start the session is still loading when the id
@@ -267,6 +275,8 @@ fun AppRoot(
                         onSetDeclared = declared::set,
                         ecoGoals = ecoGoalsState,
                         onSetEcoGoals = ecoGoals::set,
+                        budget = budgetState,
+                        onSetBudget = budget::set,
                         onLogout = session::logout,
                         askNotificationPermission = askNotificationPermission,
                     )

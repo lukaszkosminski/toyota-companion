@@ -435,6 +435,9 @@ Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – �
   archiwum zostaje na telefonie (ADR-006). `DefaultPriceController.reset()` czyści tylko stan w pamięci.
 - Odczyt i zapis pliku preferencji idą z `Dispatchers.IO`: przez `defaultPriceProvider` w `AppContainer` i przez
   `DefaultPriceController` w scope'ie aplikacji.
+- Ten sam plik trzyma inne ustawienia telefonu, m.in. `monthly_budget` (budżet miesięczny, F48/§49) jako tekst
+  `BigDecimal` z dwoma miejscami i wartością dodatnią; śmieci, zero, wartość ujemna albo zaokrąglająca się do 0,00
+  czytają się jak brak budżetu. Wylogowanie go nie usuwa (ADR-006).
 
 ### §12.3 Ekran „Cena domyślna” (kryteria akceptacji)
 - Wejście: karta „Cena domyślna” w „Opcjach” (nie na ekranie statusu: to cena paliwa w baku przed pierwszym potwierdzonym
@@ -1134,3 +1137,42 @@ Domena: `core/domain/OwnershipOps.kt` (`ownershipCost`, `ownershipMonths`, model
 - Eksport nie zmienia daty ostatniej kopii archiwum (F8 dotyczy tylko kopii) i nie wymaga sieci. Prywatność: daty/godziny
   tankowań, licznik i notatki wydatków to dane osobowe (notatka może zawierać dowolny tekst); plik trafia tylko tam, gdzie
   wskaże użytkownik, bez ostrzeżenia jak przy kopii (SECURITY.md).
+
+## §49 Budżet miesięczny (PRD F48)
+- Karta „Budżet miesiąca” na ekranie statusu: **jeden opcjonalny limit na telefon**, nie na auto, obejmujący paliwo
+  i wydatki poza paliwem. Limit jest w `settings/SettingsStore.kt` (klucz `monthly_budget`, tekst `BigDecimal`
+  z dwoma miejscami, wartość dodatnia), poza archiwum, eksportem JSON/CSV i `sync_state`; przeżywa wylogowanie
+  (ADR-006). Karta nie wykonuje żadnej sieci i nie budzi auta; `reset()` przy wylogowaniu czyści tylko stan w pamięci.
+- Karta jest widoczna **także bez `SyncStatus`** – nie zależy od Toyoty, więc błąd synchronizacji nie ukrywa budżetu
+  ani wejścia do ustawienia. Bez limitu pokazuje podpowiedź i „Ustaw budżet”; z limitem – wydane, paliwo, wydatki,
+  zostało/przekroczono, procent i „Zmień budżet”.
+- Domena: `core/domain/BudgetOps.kt` (`BudgetProgress`, `budgetProgress`), lustro `backend/app/domain/budget.py`
+  (`BudgetProgress`, `budget_progress`) – te same nazwy testów w Kotlinie i Pythonie. Pliki `app`: `ui/Budget.kt`
+  (`MonthlyBudget`, `BudgetState`, `parseBudgetLimit`, `monthFuelCost`, `monthExpenses`, `budgetProgressFor`),
+  `ui/BudgetController.kt`, `ui/BudgetCard.kt`, `ui/StatusScreen.kt`, `ui/AppRoot.kt`, `AppContainer.kt`, `Texts`.
+- Miesiąc kalendarzowy w strefie lokalnej (ta sama co lista tras). **Paliwo** = suma `costPln` tras wybranego auta,
+  których start wypada w miesiącu i które mają cenę (`hasNoCost` wyklucza „brak ceny”); to koszt jazdy, nie zakupy
+  paliwa. **Wydatki** = suma `amount` wszystkich wydatków z datą w miesiącu (data poniesienia). Karta łączy dwie
+  podstawy, więc linie nazywają się „Paliwo” i „Wydatki”. Tylko PLN, bez przeliczeń walut.
+- Kwoty: paliwo i wydatki zaokrąglane do 0,01 zł, suma raz na końcu; `remaining = limit - spent` (może być ujemne),
+  procent całkowity HALF_UP (może przekroczyć 100), `overBudget = spent > limit` po zaokrągleniu, więc dokładnie limit
+  nie jest przekroczeniem. Limit ≤ 0 albo zaokrąglający się do 0,00 (np. 0,004) jest odrzucany, żeby nie dzielić przez
+  zero; ujemne kwoty to błąd programisty.
+- Brak odczytu: limit zostaje (to ustawienie telefonu), a ostatnie dobre liczby **tego samego miesiąca** zostają na
+  ekranie z komunikatem błędu; pierwszy błąd bez liczb pokazuje komunikat zamiast zmyślonych zer. `loading` pokazuje
+  „Ładowanie…” tylko wtedy, gdy nie ma jeszcze liczb (lekcja C26: ostatnie dobre dane nie znikają).
+- Odświeżanie: po zalogowaniu, przy każdym wejściu na ekran statusu i po udanej synchronizacji (`syncRunner`,
+  `SyncOutcome.Ok`); brak sieci. Północ albo zmiana miesiąca przy otwartym ekranie nie odświeża karty – zrobi to
+  następne wejście albo synchronizacja. Zmiana strefy może przenieść trasę między miesiącami (start liczony lokalnie).
+- Dialog: jedno pole „Limit [zł]”; puste usuwa budżet, niepoprawna kwota (≤ 0, więcej niż 2 miejsca, tekst) zostawia
+  okno otwarte. Zapis jest pojedynczą edycją `SharedPreferences` na wątku wywołującego, jak inne ustawienia (§12.2).
+- Auto Backup (ADR-015): limit jest w `settings.xml` objętym kopią Google i transferem urządzenia, jak cena domyślna
+  i cele eco; **nie jest sekretem**. Ręczny eksport archiwum (JSON) i arkusze CSV nie zawierają limitu (settings są
+  poza archiwum). Karta nie wysyła nic sama; baza z trasami i wydatkami jest w Auto Backup, tak jak dotąd.
+- **Powiadomienie przy progu – osobny krok, nie w tej zmianie.** Istniejące kanały „Tankowania”
+  (`IMPORTANCE_HIGH`, tankowanie) i „Spalanie”/„Consumption” (`IMPORTANCE_DEFAULT`, rosnące spalanie) nie pasują do
+  budżetu. Następny krok: nowy kanał „Budżet” (`IMPORTANCE_DEFAULT`, teksty PL/EN), progi **80% (ostrzeżenie)**
+  i **100% (przekroczenie)**, klucz `RRRR-MM:80`/`RRRR-MM:100` w `SettingsStore` (wzorzec `lastConsumptionAlert`/
+  `KEY_ALERT`), trigger po udanej synchronizacji i po dodaniu/usunięciu wydatku (nie przy samym wejściu na status –
+  użytkownik widzi kartę), bez nowego uprawnienia (`POST_NOTIFICATIONS` jest już proszone raz w §13.2), treść tylko
+  kwota i procent, bez VIN/GPS. Odmowa uprawnienia nie psuje karty.

@@ -60,6 +60,29 @@ class SettingsStoreTest {
     }
 
     @Test
+    fun `monthly_budget_round_trips_and_garbage_reads_as_null`() {
+        assertNull(store.monthlyBudget(), "bez klucza")
+        store.saveMonthlyBudget(BigDecimal("800.50"))
+        assertEquals(0, BigDecimal("800.50").compareTo(requireNotNull(store.monthlyBudget())))
+        assertEquals("800.50", prefs.getString("monthly_budget", null), "toPlainString, always a dot")
+
+        store.saveMonthlyBudget(null)
+        assertNull(store.monthlyBudget())
+        assertNull(prefs.getString("monthly_budget", null))
+
+        for (text in listOf("", "   ", "abc", "0", "-5", "0.004")) {
+            prefs.edit().putString("monthly_budget", text).commit()
+            assertNull(store.monthlyBudget(), "dla [$text]")
+        }
+    }
+
+    @Test
+    fun `monthly_budget_of_the_wrong_type_reads_as_null`() {
+        prefs.edit().putInt("monthly_budget", 800).commit()
+        assertNull(store.monthlyBudget())
+    }
+
+    @Test
     fun `nothing_is_stored_before_the_first_save`() {
         assertNotNull(prefs.all)
         assertEquals(0, prefs.all.size, "pusty plik to brak ceny, nie blad")

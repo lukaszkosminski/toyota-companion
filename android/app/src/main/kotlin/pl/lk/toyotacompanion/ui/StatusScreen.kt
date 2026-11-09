@@ -88,6 +88,8 @@ fun StatusScreen(
     onSetDeclared: (String) -> Boolean,
     ecoGoals: EcoGoalsState = EcoGoalsState(),
     onSetEcoGoals: (String, String) -> Boolean = { _, _ -> false },
+    budget: BudgetState = BudgetState(),
+    onSetBudget: (String) -> Boolean = { false },
     onShowBackup: () -> Unit,
     onLogout: () -> Unit,
     askNotificationPermission: suspend () -> Boolean,
@@ -95,6 +97,8 @@ fun StatusScreen(
     var confirmLogout by remember { mutableStateOf(false) }
     var editingEcoGoals by rememberSaveable { mutableStateOf(false) }
     if (editingEcoGoals) EcoGoalsDialog(ecoGoals.goals, onSetEcoGoals) { editingEcoGoals = false }
+    var editingBudget by rememberSaveable { mutableStateOf(false) }
+    if (editingBudget) BudgetDialog(budget.budget, onSetBudget) { editingBudget = false }
     val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     LaunchedEffect(Unit) {
@@ -180,6 +184,10 @@ fun StatusScreen(
                     EcoGoalsCard(ecoGoals) { editingEcoGoals = true }
                     CostsCard(consumption)
                 }
+
+                // The monthly budget for fuel and expenses (PRD F48, docs/SPEC.md §49). It does not depend on the
+                // Toyota status, so it stays visible when the status is missing (a failed sync must not hide it).
+                BudgetCard(budget) { editingBudget = true }
 
                 // The menu: one tile per screen (docs/SPEC.md §10.4). The default price shows its value, the others name the screen.
                 MenuGrid(

@@ -19,6 +19,7 @@ The source of truth is the documents in [`docs/`](docs/), which are written in P
 ### Consumption, statistics and driving style
 - Consumption and monthly costs on the status screen, the manufacturer's declared consumption, an alert for rising consumption (F20, F26, F29, F30, SPEC §24, §30, §31).
 - Eco goals: an optional monthly goal for consumption and for the share of electric driving, with progress on the status screen and in the widget (F39, SPEC §40).
+- Monthly budget: one optional limit per phone for fuel and non-fuel expenses, with progress on the status screen counted only from the local archive (F48, SPEC §49); the threshold notification is a separate step.
 - Multi-year statistics: years, seasons, year over year (F10, SPEC §17); electric driving per trip, ranking and weeks (F11, F35, SPEC §16, §36); year summary (F28, SPEC §29).
 - Driving style: eco score by month, repeated routes and consumption anomalies (F12, F13, SPEC §19); trip types: home, work, commute, weekend (F16, SPEC §21).
 - Refuel day forecast (F14, SPEC §20).

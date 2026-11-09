@@ -60,6 +60,10 @@
   (data, licznik, poziomy, litry, cena, koszt, źródło litrów, „do pełna”) i wydatki poza paliwem (data, kategoria,
   kwota, notatka); ten sam format polskiego arkusza, bez VIN, GPS i `id`; przy pustej liście aplikacja nic nie zapisuje
   (systemowy wybór pliku może wcześniej utworzyć pusty plik)
+- Budżet miesięczny (F48, SPEC §49, plan C28): karta „Budżet miesiąca” na statusie – jeden opcjonalny limit na telefon
+  na paliwo (koszt jazdy z tras) i wydatki (data poniesienia), postęp z lokalnego archiwum, ostatnie dobre dane przy
+  błędzie; limit w `settings`, przeżywa wylogowanie; bez sieci i bez budzenia auta. Powiadomienie przy progu to osobny
+  krok (niżej)
 
 ## NOW
 - W toku (2026-11-08, agenci): pola autostrady i przekroczeń prędkości w archiwum tras (PRD F40, Room v6) oraz ekrany
@@ -82,8 +86,8 @@
   - Lista kontrolek ostrzegawczych (`dashboard.warning_lights`: nazwa, status, kategoria) zamiast samej liczby w F43
     i powiadomienie o nowej kontrolce – do sprawdzenia, czy auto zwraca te dane
 - Propozycje z przeglądu C26 (2026-11-09), niewybrane; tylko dane i endpointy już obecne w projekcie, bez budzenia auta:
-  - Budżet miesięczny na paliwo i wydatki: postęp z istniejących kosztów tras i `expenses`, na ekranie statusu,
-    plus lokalne powiadomienie przy progu; bez sieci i bez nowych pól Toyoty
+  - Powiadomienie budżetowe przy progu (F48, §49): nowy kanał „Budżet” (`IMPORTANCE_DEFAULT`), progi 80%/100%, klucz
+    `RRRR-MM:80`/`:100`, trigger po synchronizacji i po zmianie wydatków; bez nowego uprawnienia, bez VIN/GPS – opis w §49
   - Historia i trend ceny paliwa: zapisywać lokalne snapshoty z istniejących pobrań trojmiasto.pl po dotknięciu
     (F22, §25) i porównywać ostatnio zapłaconą cenę z bieżącą ceną stacji
   - Powiadomienie o niskim paliwie: na podstawie ostatniej telemetrii (`distanceToEmptyKm`/poziom paliwa) po

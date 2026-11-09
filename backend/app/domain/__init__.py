@@ -1,5 +1,6 @@
 """Pure domain model for toyota-companion: no I/O, no pytoyoda, stdlib only."""
 
+from .budget import BudgetProgress, budget_progress
 from .cost import compute_trip_cost, recompute_costs
 from .economy import MIN_COMPARABLE_DISTANCE_KM, fuel_economy_intervals
 from .forecast import RESERVE_PCT, WINDOW_DAYS, RefuelForecast, refuel_forecast
@@ -61,6 +62,8 @@ from .weather import (
 )
 
 __all__ = [
+    "BudgetProgress",
+    "budget_progress",
     "OwnershipCost",
     "ownership_cost",
     "ownership_months",

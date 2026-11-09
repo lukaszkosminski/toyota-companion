@@ -771,6 +771,43 @@ object Texts {
     fun ecoWidgetEv(actual: String, goal: String, mark: String?): String =
         Lang.pick("prąd $actual / $goal %", "electric $actual / $goal %") + (mark?.let { " $it" } ?: "")
 
+    // Budżet miesięczny (PRD F48, docs/SPEC.md §49).
+
+    val BUDGET_TITLE: String get() = Lang.pick("Budżet miesiąca", "Monthly budget")
+    val BUDGET_HINT: String get() = Lang.pick(
+        "Paliwo i wydatki poza paliwem w tym miesiącu, liczone z archiwum na telefonie. Bez sieci, bez budzenia auta.",
+        "Fuel and non-fuel expenses of this month, counted from the archive on the phone. No network, no waking the car.",
+    )
+    val BUDGET_SET: String get() = Lang.pick("Ustaw budżet", "Set budget")
+    val BUDGET_EDIT: String get() = Lang.pick("Zmień budżet", "Change budget")
+    val BUDGET_DIALOG_TITLE: String get() = Lang.pick("Budżet miesięczny", "Monthly budget")
+    val BUDGET_BODY: String get() = Lang.pick(
+        "Jeden limit na paliwo i wydatki poza paliwem w każdym miesiącu kalendarzowym. Puste pole usuwa budżet.",
+        "One limit for fuel and non-fuel expenses in each calendar month. Leave the field empty to remove the budget.",
+    )
+    val BUDGET_FIELD: String get() = Lang.pick("Limit [zł]", "Budget limit [zł]")
+    val BUDGET_INVALID: String get() = Lang.pick(
+        "Podaj kwotę większą od zera, do dwóch miejsc po przecinku, np. 800,50.",
+        "Enter an amount greater than zero with at most two decimals, e.g. 800.50.",
+    )
+    val BUDGET_READ_ERROR: String get() = Lang.pick(
+        "Nie udało się odczytać budżetu z archiwum.",
+        "Could not read the budget from the archive.",
+    )
+    val BUDGET_NO_FIGURES: String get() = Lang.pick(
+        "Liczby pojawią się po odczytaniu archiwum.",
+        "The figures appear once the archive is read.",
+    )
+
+    /** `listopad 2026: 74% z 800,00 zł` — the month, the whole percent used and the limit. */
+    fun budgetCaption(month: String, limit: String, percent: Int): String =
+        Lang.pick("$month: $percent% z $limit zł", "$month: $percent% of $limit zł")
+
+    fun budgetFuel(value: String): String = Lang.pick("Paliwo: $value zł", "Fuel: $value zł")
+    fun budgetExpenses(value: String): String = Lang.pick("Wydatki: $value zł", "Expenses: $value zł")
+    fun budgetRemaining(value: String): String = Lang.pick("Zostało: $value zł", "Left: $value zł")
+    fun budgetOver(value: String): String = Lang.pick("Przekroczono o $value zł", "Over by $value zł")
+
     // Spalanie deklarowane (docs/SPEC.md §30).
 
     val DECLARED_SET: String get() = Lang.pick("Ustaw spalanie deklarowane", "Set declared consumption")

@@ -276,6 +276,24 @@ class TextsTest {
                 RefuelLogFormatting.economyLine(logInterval(EconomyStatus.OK)),
                 RefuelLogFormatting.economyLine(logInterval(EconomyStatus.MISSING_RECEIPT)),
                 RefuelLogFormatting.detailLine(logInterval(EconomyStatus.OPEN)),
+            ) +
+            // Budżet miesięczny (PRD F48, docs/SPEC.md §49).
+            listOf(
+                Texts.BUDGET_TITLE,
+                Texts.BUDGET_HINT,
+                Texts.BUDGET_SET,
+                Texts.BUDGET_EDIT,
+                Texts.BUDGET_DIALOG_TITLE,
+                Texts.BUDGET_BODY,
+                Texts.BUDGET_FIELD,
+                Texts.BUDGET_INVALID,
+                Texts.BUDGET_READ_ERROR,
+                Texts.BUDGET_NO_FIGURES,
+                Texts.budgetCaption("listopad 2026", "800,00", 74),
+                Texts.budgetFuel("342,45"),
+                Texts.budgetExpenses("250,50"),
+                Texts.budgetRemaining("207,05"),
+                Texts.budgetOver("50,00"),
             )
         for (text in all) {
             for (forbidden in listOf("token", "Token", "VIN1", "p@ss", "secret")) {
@@ -589,6 +607,35 @@ class TextsTest {
         assertEquals("The data below is from the last successful read – the newest one could not be fetched.", english)
         assertTrue("Above" !in english)
         assertTrue("Powyżej" !in Texts.REMOTE_STALE)
+    }
+
+    @Test
+    fun `budget texts exist in both languages and carry their numbers`() {
+        fun all() = listOf(
+            Texts.BUDGET_TITLE, Texts.BUDGET_HINT, Texts.BUDGET_SET, Texts.BUDGET_EDIT, Texts.BUDGET_DIALOG_TITLE,
+            Texts.BUDGET_BODY, Texts.BUDGET_FIELD, Texts.BUDGET_INVALID, Texts.BUDGET_READ_ERROR, Texts.BUDGET_NO_FIGURES,
+            Texts.budgetCaption("listopad 2026", "800,00", 74),
+            Texts.budgetFuel("342,45"), Texts.budgetExpenses("250,50"),
+            Texts.budgetRemaining("207,05"), Texts.budgetOver("50,00"),
+        )
+        val polish = all()
+        Lang.current = AppLanguage.EN
+        val english = try {
+            all()
+        } finally {
+            Lang.current = AppLanguage.PL
+        }
+        assertEquals(polish.size, english.size)
+        for ((pl, en) in polish.zip(english)) {
+            assertTrue(pl.isNotBlank() && en.isNotBlank())
+            assertTrue(pl != en, "untranslated: $pl")
+        }
+        assertEquals("Budżet miesiąca", polish[0])
+        assertEquals("Monthly budget", english[0])
+        assertEquals("Limit [zł]", polish[6])
+        assertEquals("Budget limit [zł]", english[6], "the field must not be identical in both languages")
+        assertEquals("listopad 2026: 74% z 800,00 zł", polish[10])
+        assertEquals("listopad 2026: 74% of 800,00 zł", english[10], "the month and limit are arguments of the caller")
     }
 }
 
