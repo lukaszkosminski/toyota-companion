@@ -356,6 +356,23 @@ class TextsTest {
         assertEquals("Brak tras do eksportu.", Texts.CSV_NO_TRIPS)
         assertTrue("GPS" in Texts.CSV_EXPLANATION && "VIN" in Texts.CSV_EXPLANATION, Texts.CSV_EXPLANATION)
         assertTrue("trasy: 3" in Texts.csvExported(3), Texts.csvExported(3))
+        assertEquals("Ostatnia kopia", Texts.BACKUP_LAST)
+    }
+
+    @Test
+    fun `service category labels and descriptions have english twins`() {
+        fun all() = listOf(
+            Texts.SERVICE_CATEGORY_LABEL, Texts.SERVICE_CATEGORY_MAINTENANCE, Texts.SERVICE_CATEGORY_DELIVERY, Texts.BACKUP_LAST,
+        )
+        val polish = all()
+        Lang.current = AppLanguage.EN
+        val english = try {
+            all()
+        } finally {
+            Lang.current = AppLanguage.PL
+        }
+        assertEquals(listOf("Kategoria", "Przegląd okresowy", "Wydanie auta", "Ostatnia kopia"), polish)
+        assertEquals(listOf("Category", "Scheduled maintenance", "Vehicle delivery", "Last backup"), english)
     }
 
     @Test

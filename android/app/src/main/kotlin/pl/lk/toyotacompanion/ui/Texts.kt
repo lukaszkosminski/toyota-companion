@@ -320,6 +320,9 @@ object Texts {
     /** Status button and the title of the backup screen. */
     val BACKUP_TITLE: String get() = Lang.pick("Kopia i eksport", "Backup and export")
 
+    /** Caption under the date of the last archive copy on the backup screen. */
+    val BACKUP_LAST: String get() = Lang.pick("Ostatnia kopia", "Last backup")
+
     val BACKUP_EXPORT: String get() = Lang.pick("Eksportuj archiwum", "Export archive")
     val BACKUP_IMPORT: String get() = Lang.pick("Importuj archiwum", "Import archive")
 
@@ -1605,8 +1608,14 @@ object Texts {
 
     val SERVICE_MILEAGE_LABEL: String get() = Lang.pick("Przebieg", "Mileage")
 
-    /** The category is Toyota's own code (`MNT`, `VDE`); its meaning is not documented, so the label says it is a code. */
-    val SERVICE_CATEGORY_LABEL: String get() = Lang.pick("Kategoria (kod Toyoty)", "Category (Toyota code)")
+    /** Toyota's category code keeps its code in the value; the label no longer suggests a code-only row. */
+    val SERVICE_CATEGORY_LABEL: String get() = Lang.pick("Kategoria", "Category")
+
+    /** Owner-confirmed meaning of `MNT` (2026-11-10), shown with the code in parentheses; other codes stay as sent. */
+    val SERVICE_CATEGORY_MAINTENANCE: String get() = Lang.pick("Przegląd okresowy", "Scheduled maintenance")
+
+    /** Owner-confirmed meaning of `VDE` (2026-11-10), shown with the code in parentheses; other codes stay as sent. */
+    val SERVICE_CATEGORY_DELIVERY: String get() = Lang.pick("Wydanie auta", "Vehicle delivery")
     val SERVICE_OPERATIONS_LABEL: String get() = Lang.pick("Czynności", "Operations")
     val SERVICE_NO_OPERATIONS_SHORT: String get() = Lang.pick("brak opisu", "no description")
 

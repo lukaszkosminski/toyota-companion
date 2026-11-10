@@ -92,7 +92,7 @@ fun BackupScreen(
                 Text(Texts.BACKUP_EXPLANATION, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 val last = state.lastExport
                 if (last != null) {
-                    StatTile(backupDate(last, zone), Texts.BACKUP_TITLE, Palette.Green)
+                    StatTile(backupDate(last, zone), Texts.BACKUP_LAST, Palette.Green)
                 } else {
                     IconText(
                         AppIcons.History,
@@ -124,14 +124,14 @@ fun BackupScreen(
 
             DashboardCard(Texts.CSV_SECTION, AppIcons.BarChart) {
                 Text(Texts.CSV_EXPLANATION, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Button(
+                OutlinedButton(
                     onClick = { createCsv.launch(tripsCsvFileName(LocalDate.now(zone))) },
                     enabled = hasTrips && !state.busy,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     IconLabel(AppIcons.Description, Texts.CSV_EXPORT)
                 }
-                Button(
+                OutlinedButton(
                     onClick = { createRefuelsCsv.launch(refuelsCsvFileName(LocalDate.now(zone))) },
                     // null = count not known yet: enabled, so a failed count read never blocks the export.
                     enabled = state.refuelsStored != 0 && !state.busy,
@@ -139,7 +139,7 @@ fun BackupScreen(
                 ) {
                     IconLabel(AppIcons.LocalGasStation, Texts.CSV_EXPORT_REFUELS)
                 }
-                Button(
+                OutlinedButton(
                     onClick = { createExpensesCsv.launch(expensesCsvFileName(LocalDate.now(zone))) },
                     enabled = state.expensesStored != 0 && !state.busy,
                     modifier = Modifier.fillMaxWidth(),
@@ -151,7 +151,7 @@ fun BackupScreen(
             // Auto Backup to the owner's Google Drive (ADR-015, docs/SPEC.md §14.2).
             DashboardCard(Texts.BACKUP_CLOUD_SECTION, AppIcons.Cloud) {
                 Text(Texts.BACKUP_CLOUD_EXPLANATION, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Button(
+                OutlinedButton(
                     onClick = { controller.requestCloudBackup() },
                     modifier = Modifier.fillMaxWidth(),
                 ) {

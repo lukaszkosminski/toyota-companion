@@ -53,6 +53,30 @@ class ServiceFormattingTest {
     }
 
     @Test
+    fun `the owner-confirmed category codes get a description, unknown codes stay as sent`() {
+        assertEquals("Przegląd okresowy (MNT)", serviceCategoryText("MNT"))
+        assertEquals("Wydanie auta (VDE)", serviceCategoryText("VDE"))
+        assertEquals("XYZ", serviceCategoryText("XYZ"))
+        assertEquals("Kategoria", Texts.SERVICE_CATEGORY_LABEL)
+
+        Lang.current = AppLanguage.EN
+        try {
+            assertEquals("Scheduled maintenance (MNT)", serviceCategoryText("MNT"))
+            assertEquals("Vehicle delivery (VDE)", serviceCategoryText("VDE"))
+            assertEquals("XYZ", serviceCategoryText("XYZ"))
+            assertEquals("Category", Texts.SERVICE_CATEGORY_LABEL)
+        } finally {
+            Lang.current = AppLanguage.PL
+        }
+    }
+
+    @Test
+    fun `the service row uses the confirmed category description`() {
+        val details = serviceDetails(serviceRow(ServiceRecord(category = "MNT")))
+        assertEquals(ServiceDetail("Kategoria", "Przegląd okresowy (MNT)"), details[0])
+    }
+
+    @Test
     fun `a notification shows the date in the local zone and its read state`() {
         assertEquals("01.11 10:00", notificationDateText(Instant.parse("2026-11-01T10:00:00Z"), zone))
         assertEquals(Texts.NOTIFICATIONS_NO_DATE, notificationDateText(null, zone))

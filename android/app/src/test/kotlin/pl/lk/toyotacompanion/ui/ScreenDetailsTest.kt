@@ -106,14 +106,14 @@ class ScreenDetailsTest {
     // ---- U9: service rows ----
 
     @Test
-    fun `a service record is label and value rows, the category is Toyota's code`() {
+    fun `a service record is label and value rows, the category has the confirmed meaning and code`() {
         val row = serviceRow(
             ServiceRecord(mileage = 15320, mileageUnit = "km", category = "MNT", dealer = "Dealer Gdynia", operations = listOf("Wymiana oleju", "Filtr")),
         )
         assertEquals(
             listOf(
                 ServiceDetail("Przebieg", "15\u00A0320 km"),
-                ServiceDetail("Kategoria (kod Toyoty)", "MNT"),
+                ServiceDetail("Kategoria", "Przegląd okresowy (MNT)"),
                 ServiceDetail("Dealer", "Dealer Gdynia"),
                 ServiceDetail("Czynności", "Wymiana oleju\nFiltr"),
             ),
@@ -122,18 +122,23 @@ class ScreenDetailsTest {
     }
 
     @Test
-    fun `missing parts are left out or said so, and no code is translated`() {
-        val rows = serviceDetails(serviceRow(ServiceRecord(category = "VDE", operations = null)))
+    fun `missing parts are left out or said so, and an unknown code stays as sent`() {
+        val rows = serviceDetails(serviceRow(ServiceRecord(category = "XYZ", operations = null)))
         assertEquals(
             listOf(
-                ServiceDetail("Kategoria (kod Toyoty)", "VDE"),
+                ServiceDetail("Kategoria", "XYZ"),
                 ServiceDetail("Dealer", "brak danych"),
                 ServiceDetail("Czynności", "brak opisu"),
             ),
             rows,
         )
-        assertEquals("Mileage", run { Lang.current = AppLanguage.EN; Texts.SERVICE_MILEAGE_LABEL })
-        assertEquals("Category (Toyota code)", Texts.SERVICE_CATEGORY_LABEL)
+        Lang.current = AppLanguage.EN
+        try {
+            assertEquals("Mileage", Texts.SERVICE_MILEAGE_LABEL)
+            assertEquals("Category", Texts.SERVICE_CATEGORY_LABEL)
+        } finally {
+            Lang.current = AppLanguage.PL
+        }
     }
 
     // ---- U12: price per litre where it changes ----

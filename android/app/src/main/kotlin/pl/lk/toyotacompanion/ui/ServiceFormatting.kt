@@ -10,8 +10,8 @@ import pl.lk.toyotacompanion.core.domain.ToyotaNotification
  * Formatting of the service history and the notification list (docs/SPEC.md §45-§46).
  *
  * No `Locale.getDefault()`: the date is built from its parts and the mileage goes through
- * [TripsFormatting.odometer], so the same values show on every device. Nothing here interprets what
- * Toyota sent — a missing part is "brak danych", never a guess.
+ * [TripsFormatting.odometer], so the same values show on every device. Nothing here guesses: a missing
+ * part is "brak danych", and only the owner-confirmed category codes get a description.
  */
 
 /** One service record as the screen shows it: a title line and the details Toyota actually sent. */
@@ -27,16 +27,26 @@ data class ServiceRow(
 data class ServiceDetail(val label: String, val value: String)
 
 /**
- * The rows under the date of a record, each as label and value: "Przebieg", "Kategoria (kod Toyoty)", "Dealer" and "Czynności". Mileage and
+ * The rows under the date of a record, each as label and value: "Przebieg", "Kategoria", "Dealer" and "Czynności". Mileage and
  * category are left out when Toyota sent none; the dealer says "brak danych" and the operations say that no description came. The category
- * is shown as Toyota's code (`MNT`, `VDE`): the meaning of the codes is not documented, so none is guessed.
+ * is shown with the owner-confirmed meaning and the code in parentheses for `MNT` and `VDE`; every other code stays as sent.
  */
 fun serviceDetails(row: ServiceRow): List<ServiceDetail> = listOfNotNull(
     row.mileage?.let { ServiceDetail(Texts.SERVICE_MILEAGE_LABEL, it) },
-    row.category?.let { ServiceDetail(Texts.SERVICE_CATEGORY_LABEL, it) },
+    row.category?.let { ServiceDetail(Texts.SERVICE_CATEGORY_LABEL, serviceCategoryText(it)) },
     ServiceDetail(Texts.SERVICE_DEALER, row.dealer),
     ServiceDetail(Texts.SERVICE_OPERATIONS_LABEL, row.operations?.joinToString("\n") ?: Texts.SERVICE_NO_OPERATIONS_SHORT),
 )
+
+/**
+ * Toyota's category code with the meaning the owner confirmed on 2026-11-10: "Przegląd okresowy (MNT)" and
+ * "Wydanie auta (VDE)". Every other code is returned unchanged - the app still does not guess.
+ */
+fun serviceCategoryText(code: String): String = when (code) {
+    "MNT" -> "${Texts.SERVICE_CATEGORY_MAINTENANCE} ($code)"
+    "VDE" -> "${Texts.SERVICE_CATEGORY_DELIVERY} ($code)"
+    else -> code
+}
 
 /** `12.03.2026`, or "brak daty" when Toyota sent none. */
 fun serviceDateText(date: LocalDate?): String = if (date == null) {
