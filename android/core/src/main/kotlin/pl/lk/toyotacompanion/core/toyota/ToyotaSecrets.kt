@@ -8,12 +8,26 @@ package pl.lk.toyotacompanion.core.toyota
 object ToyotaSecrets {
     private const val MAX_LEN = 200
 
+    /**
+     * A bare `Bearer <credential>` (a header in a message, a body) - the credential is at least eight characters, so the word
+     * "Bearer" in a sentence next to a short word stays as it is.
+     */
+    private val BEARER = Regex("(?i)\\b(bearer)\\s+[A-Za-z0-9._~+/=-]{8,}")
+
+    /**
+     * A secret-looking key with its value: `key=value`, `key: value`, `"key":"value"`. The key may be the end of a longer name
+     * (`access_token`, `refreshToken`, `newPassword`, `client_secret`, `sessiontoken`): hiding too much is harmless, showing a
+     * secret is not, so `errorcode=503` is hidden as well. An optional `Bearer`/`Basic` scheme belongs to the value, so
+     * `Authorization: Bearer abc` ends as `Authorization: REDACTED`.
+     */
     private val SECRET_KEY = Regex(
-        "(?i)([\"']?(password|access_token|refresh_token|id_token|token_id|tokenid|code|authorization|vin)[\"']?\\s*[:=]\\s*[\"']?)([^\"'&,}\\s]+)",
+        "(?i)([\"']?[A-Za-z0-9_.-]*(?:password|secret|token_id|tokenid|token|code|authorization|vin)[\"']?\\s*[:=]\\s*[\"']?)" +
+            "(?:(?:bearer|basic)\\s+)?[^\"'&,}\\s]+",
     )
 
     fun sanitize(text: String): String {
-        val redacted = SECRET_KEY.replace(text) { "${it.groupValues[1]}REDACTED" }
+        val bearer = BEARER.replace(text) { "${it.groupValues[1]} REDACTED" }
+        val redacted = SECRET_KEY.replace(bearer) { "${it.groupValues[1]}REDACTED" }
         val single = redacted.replace('\n', ' ').replace('\r', ' ')
         return if (single.length <= MAX_LEN) single else single.take(MAX_LEN) + "…"
     }
