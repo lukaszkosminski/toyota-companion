@@ -41,7 +41,9 @@
 - Wydania na GitHub Releases i aktualizacja w „Opcjach” (F36, §37, ADR-016): v0.2.0 (2026-11-06), v0.2.1 (R8 – APK 4,3 MB,
   ikony Material Symbols, kontrast; ADR-017), v0.2.2 (przegląd jakości C22: odświeżanie statusu, liczebniki, jedno
   odnowienie tokenu, testy migracji Room, ADR-019 jedno konto = jedno auto), v0.2.5 (2026-11-09: historia serwisowa
-  i powiadomienia Toyoty, diagnostyka synchronizacji – F44–F46, SPEC §45–§47), v0.2.6 (2026-11-09: eksport CSV tankowań i wydatków – F47, SPEC §48)
+  i powiadomienia Toyoty, diagnostyka synchronizacji – F44–F46, SPEC §45–§47), v0.2.6 (2026-11-09: eksport CSV tankowań i wydatków – F47, SPEC §48),
+  v0.2.7 (2026-11-10: budżet miesięczny i jego powiadomienie, krótkie trasy i zimny silnik, ślad CO₂ – F48–F51, SPEC §49–§51;
+  czytelność statusu i podstron z przeglądu C32)
 - Wydatki poza paliwem (F37, §38, ADR-018), koszt całkowity auta (F38, §39, ADR-020), cele eco (F39, §40)
 - Jakość (C22): wspólna kopia listy tras po synchronizacji zamiast kilku pełnych odczytów (§10.1)
 - Historia serwisowa z Toyoty (`/v1/servicehistory/vehicle/summary`) jako kafelek „Historia serwisowa” (F44, SPEC §45,
@@ -77,8 +79,6 @@
   debug na wydanie (eksport archiwum → odinstalowanie → instalacja → logowanie → import)
 
 ## NEXT
-- Wydanie kolejnej wersji po v0.2.6 z budżetem miesięcznym i jego powiadomieniem (F48–F49, SPEC §49) – na polecenie
-  właściciela
 - Propozycje zaakceptowane przez właściciela 2026-11-10 (tylko dane lokalne i już używane źródła, bez budzenia auta);
   każda dostaje numer F, wpis w PRD/SPEC i plan przed kodem, w tej kolejności:
   1. Kalkulator kosztu planowanej trasy: kilometry i rodzaj jazdy → litry i zł z własnego spalania w pasmach tempa

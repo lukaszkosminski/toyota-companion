@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+
+## 0.2.7 (2026-11-10)
 - Maskowanie sekretów w komunikatach i diagnostyce (`ToyotaSecrets.sanitize`): zasłaniane są też goły `token=`, klucze kończące się na `token`, `password`, `secret` (`accessToken`, `refreshToken`, `client_secret`, `sessiontoken`) i poświadczenie po schemacie w nagłówku (`Authorization: Bearer …` → `Authorization: REDACTED`, samo `Bearer …` → `Bearer REDACTED`); zwykłe słowo „token” w zdaniu zostaje
 - Powiadomienia Toyoty i diagnostyka (przegląd C32, U18 i U20): w powiadomieniach zdjęty zamaskowany prefiks VIN przed treścią, polskie nazwy dla znanych kategorii i typu, nieprzeczytane wyróżnione etykietą i pogrubioną datą; diagnostyka pokazuje wiersze etykieta–wartość z krótkim formatem dat, bez powtórzonego tytułu, z ikoną kopiowania; „Ostatnia synchronizacja” na statusie w tym samym krótkim formacie. Raport do schowka bez zmian
 - Kategoria serwisowa i przyciski kopii (przegląd C32, U9 i U19): „Historia serwisowa” pokazuje potwierdzone przez właściciela 2026-11-10 znaczenia kodów Toyoty z kodem w nawiasie – `MNT` → „Przegląd okresowy (MNT)”, `VDE` → „Wydanie auta (VDE)” (EN: „Scheduled maintenance”, „Vehicle delivery”); etykieta wiersza to „Kategoria”/„Category”, a nieznany kod zostaje bez zmian; „Kopia i eksport” – kafelek daty ma podpis „Ostatnia kopia”/„Last backup”, a pełnym przyciskiem zostaje tylko „Eksportuj archiwum”; eksporty CSV i kopia w chmurze są obrysowane jak „Importuj archiwum” (logika, stany `enabled` i ikony bez zmian)
