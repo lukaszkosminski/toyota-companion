@@ -1,6 +1,7 @@
 package pl.lk.toyotacompanion.ui
 
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import pl.lk.toyotacompanion.core.data.SyncErrorKind
 import pl.lk.toyotacompanion.core.data.SyncStatus
@@ -63,4 +64,41 @@ fun diagnosticsReport(
     lines += Texts.diagnosticsArchive(status.tripsStored, status.readingsStored, status.pendingRefuels)
     // sanitize only knows `key=value`; a bare VIN in a message needs its own pass (docs/SPEC.md §47).
     return ToyotaSecrets.maskVin(lines.joinToString("\n"), state.vin)
+}
+
+/**
+ * The same facts as [diagnosticsReport], as label and value rows for the screen (C32 U20): the times in the short stamp of the rest of the
+ * app (`10.11 19:04`, the year only when it is not [today]'s), no title repeated and the error on one row. The message goes through the same
+ * two passes as the report, so no VIN, coordinate or token reaches the screen either.
+ */
+fun diagnosticsRows(
+    status: SyncStatus,
+    appVersion: String,
+    zone: ZoneId,
+    today: LocalDate,
+): List<LabelValue> {
+    fun stamp(at: Instant?): String = at?.let { TripsFormatting.shortStamp(it, zone, today) } ?: Texts.DIAGNOSTICS_NONE
+    val state = status.state
+    val rows = mutableListOf(
+        LabelValue(Texts.DIAGNOSTICS_VERSION, appVersion),
+        LabelValue(Texts.DIAGNOSTICS_ATTEMPT, stamp(state.lastAttemptAt)),
+        LabelValue(Texts.DIAGNOSTICS_SUCCESS, stamp(state.lastSuccessAt)),
+        LabelValue(Texts.DIAGNOSTICS_VEHICLES, stamp(state.lastVehiclesSuccessAt)),
+        LabelValue(Texts.DIAGNOSTICS_TELEMETRY, stamp(state.lastTelemetrySuccessAt)),
+        LabelValue(Texts.DIAGNOSTICS_TRIPS, stamp(state.lastTripsSuccessAt)),
+        LabelValue(Texts.DIAGNOSTICS_CAR_STATE, stamp(status.carStateAt)),
+    )
+    if (state.lastErrorKind == null) {
+        rows += LabelValue(Texts.DIAGNOSTICS_ERROR, Texts.DIAGNOSTICS_NONE)
+    } else {
+        val code = state.lastErrorStatus?.let { " · HTTP $it" }.orEmpty()
+        rows += LabelValue(Texts.DIAGNOSTICS_ERROR, stamp(state.lastErrorAt) + Texts.SEPARATOR + diagnosticsErrorKind(state.lastErrorKind) + code)
+        state.lastErrorMessage?.let {
+            rows += LabelValue(Texts.DIAGNOSTICS_MESSAGE, ToyotaSecrets.maskVin(ToyotaSecrets.sanitize(it), state.vin))
+        }
+    }
+    rows += LabelValue(Texts.DIAGNOSTICS_ARCHIVE_TRIPS, TripsFormatting.count(status.tripsStored))
+    rows += LabelValue(Texts.DIAGNOSTICS_ARCHIVE_READINGS, TripsFormatting.count(status.readingsStored))
+    rows += LabelValue(Texts.DIAGNOSTICS_ARCHIVE_PENDING, TripsFormatting.count(status.pendingRefuels))
+    return rows
 }

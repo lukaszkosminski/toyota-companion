@@ -1,6 +1,7 @@
 package pl.lk.toyotacompanion.ui
 
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.ZoneId
 import pl.lk.toyotacompanion.core.data.SyncErrorKind
 import pl.lk.toyotacompanion.core.data.SyncStatus
@@ -65,14 +66,10 @@ object Texts {
     fun freshness(status: SyncStatus): String =
         if (status.isFresh) Lang.pick("aktualne", "current") else Lang.pick("nieaktualne", "not current")
 
-    /** Last full success as `YYYY-MM-DD HH:mm` in the local zone, or "brak". */
-    fun lastSuccess(status: SyncStatus, zone: ZoneId = ZoneId.systemDefault()): String {
+    /** Last full success as `10.11 19:04` (the year only when it is not [today]'s), or "brak" (C32 U20). */
+    fun lastSuccess(status: SyncStatus, zone: ZoneId = ZoneId.systemDefault(), today: LocalDate = LocalDate.now(zone)): String {
         val at = status.state.lastSuccessAt ?: return Lang.pick("Ostatnia synchronizacja: brak", "Last sync: none")
-        val local = at.atZone(zone)
-        // No String.format: with an Arabic or Persian default locale it would print other digits (C22 D7, TripsFormatting).
-        fun two(n: Int) = n.toString().padStart(2, '0')
-        val formatted = local.year.toString().padStart(4, '0') + "-" + two(local.monthValue) + "-" + two(local.dayOfMonth) + " " +
-            two(local.hour) + ":" + two(local.minute)
+        val formatted = TripsFormatting.shortStamp(at, zone, today)
         return Lang.pick("Ostatnia synchronizacja: $formatted", "Last sync: $formatted")
     }
 
@@ -1667,6 +1664,11 @@ object Texts {
         "Archiwum: trasy $trips, odczyty $readings, tankowania bez ceny $pending",
         "Archive: trips $trips, readings $readings, refuels without a price $pending",
     )
+
+    val DIAGNOSTICS_VERSION: String get() = Lang.pick("Wersja aplikacji", "App version")
+    val DIAGNOSTICS_ARCHIVE_TRIPS: String get() = Lang.pick("Trasy w archiwum", "Trips in the archive")
+    val DIAGNOSTICS_ARCHIVE_READINGS: String get() = Lang.pick("Odczyty telemetrii", "Telemetry readings")
+    val DIAGNOSTICS_ARCHIVE_PENDING: String get() = Lang.pick("Tankowania bez ceny", "Refuels without a price")
 
     val DIAGNOSTICS_COPY: String get() = Lang.pick("Kopiuj diagnostykę", "Copy diagnostics")
     val DIAGNOSTICS_COPIED: String get() = Lang.pick("Skopiowano do schowka.", "Copied to the clipboard.")

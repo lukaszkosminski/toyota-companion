@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import java.time.LocalDate
 import java.time.ZoneId
 import pl.lk.toyotacompanion.core.data.SyncStatus
 
@@ -48,11 +49,10 @@ fun DiagnosticsScreen(
         }
         if (status != null) {
             val report = diagnosticsReport(status, appVersion, zone)
+            // The rows of the screen are label and value; the copied and shared text stays the plain report (docs/SPEC.md §47).
             DashboardCard(Texts.DIAGNOSTICS_TITLE, AppIcons.FactCheck) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-                    report.lineSequence().forEach { line ->
-                        Text(line, style = MaterialTheme.typography.bodyMedium)
-                    }
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                    diagnosticsRows(status, appVersion, zone, LocalDate.now(zone)).forEach { LabelValueRow(it) }
                 }
             }
             Button(
@@ -63,7 +63,7 @@ fun DiagnosticsScreen(
                 },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
             ) {
-                IconLabel(AppIcons.Save, Texts.DIAGNOSTICS_COPY)
+                IconLabel(AppIcons.ContentCopy, Texts.DIAGNOSTICS_COPY)
             }
             if (copied) {
                 Text(Texts.DIAGNOSTICS_COPIED, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

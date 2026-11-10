@@ -2,6 +2,7 @@ package pl.lk.toyotacompanion.ui
 
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -80,7 +81,9 @@ class TextsTest {
 
     @Test
     fun `last success is a timestamp or missing`() {
-        assertEquals("Ostatnia synchronizacja: 2026-10-29 10:00", Texts.lastSuccess(status(true), ZONE))
+        assertEquals("Ostatnia synchronizacja: 29.10 10:00", Texts.lastSuccess(status(true), ZONE, LocalDate.parse("2026-10-30")))
+        // Another year than today's adds the year, the same day-month shape otherwise.
+        assertEquals("Ostatnia synchronizacja: 29.10.2026 10:00", Texts.lastSuccess(status(true), ZONE, LocalDate.parse("2027-01-02")))
         assertEquals("Ostatnia synchronizacja: brak", Texts.lastSuccess(status(false), ZONE))
     }
 

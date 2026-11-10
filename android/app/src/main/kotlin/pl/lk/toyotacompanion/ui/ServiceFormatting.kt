@@ -23,19 +23,16 @@ data class ServiceRow(
     val operations: List<String>?,
 )
 
-/** One label-value row of a service record (docs/SPEC.md §45). */
-data class ServiceDetail(val label: String, val value: String)
-
 /**
  * The rows under the date of a record, each as label and value: "Przebieg", "Kategoria", "Dealer" and "Czynności". Mileage and
  * category are left out when Toyota sent none; the dealer says "brak danych" and the operations say that no description came. The category
  * is shown with the owner-confirmed meaning and the code in parentheses for `MNT` and `VDE`; every other code stays as sent.
  */
-fun serviceDetails(row: ServiceRow): List<ServiceDetail> = listOfNotNull(
-    row.mileage?.let { ServiceDetail(Texts.SERVICE_MILEAGE_LABEL, it) },
-    row.category?.let { ServiceDetail(Texts.SERVICE_CATEGORY_LABEL, serviceCategoryText(it)) },
-    ServiceDetail(Texts.SERVICE_DEALER, row.dealer),
-    ServiceDetail(Texts.SERVICE_OPERATIONS_LABEL, row.operations?.joinToString("\n") ?: Texts.SERVICE_NO_OPERATIONS_SHORT),
+fun serviceDetails(row: ServiceRow): List<LabelValue> = listOfNotNull(
+    row.mileage?.let { LabelValue(Texts.SERVICE_MILEAGE_LABEL, it) },
+    row.category?.let { LabelValue(Texts.SERVICE_CATEGORY_LABEL, serviceCategoryText(it)) },
+    LabelValue(Texts.SERVICE_DEALER, row.dealer),
+    LabelValue(Texts.SERVICE_OPERATIONS_LABEL, row.operations?.joinToString("\n") ?: Texts.SERVICE_NO_OPERATIONS_SHORT),
 )
 
 /**
@@ -77,8 +74,38 @@ fun notificationReadText(isRead: Boolean?): String? = isRead?.let {
     if (it) Texts.NOTIFICATIONS_READ else Texts.NOTIFICATIONS_UNREAD
 }
 
-/** The category and the type of a notification on one line; null when Toyota sent neither. */
+/**
+ * The category and the type of a notification on one line; null when Toyota sent neither. Only the values the reference and the
+ * fixtures name are translated (see [notificationCategoryText]); any other value is shown as Toyota sent it.
+ */
 fun notificationKindText(notification: ToyotaNotification): String? {
-    val parts = listOfNotNull(notification.category, notification.type)
+    val parts = listOfNotNull(notification.category?.let(::notificationCategoryText), notification.type?.let(::notificationTypeText))
     return parts.takeIf { it.isNotEmpty() }?.joinToString(Texts.SEPARATOR)
 }
+
+/**
+ * Polish name of Toyota's `displayCategory` for the values the reference documents (`General`, `Vehicle Alerts`, `Remote Commands`);
+ * English keeps the value, and an unknown value is returned unchanged.
+ */
+fun notificationCategoryText(category: String): String = when (category.trim()) {
+    "General" -> Lang.pick("Ogólne", "General")
+    "Vehicle Alerts" -> Lang.pick("Alerty pojazdu", "Vehicle Alerts")
+    "Remote Commands" -> Lang.pick("Zdalne polecenia", "Remote Commands")
+    else -> category
+}
+
+/** Polish name of Toyota's notification `type` for the value the fixtures carry (`alert`); any other value is returned unchanged. */
+fun notificationTypeText(type: String): String = when (type.trim()) {
+    "alert" -> Lang.pick("ostrzeżenie", "alert")
+    else -> type
+}
+
+/** The masked VIN that Toyota puts in front of some messages: stars, the last four characters of the VIN, then `: `. */
+private val MASKED_VIN_PREFIX = Regex("^\\*{4,}[A-Za-z0-9]{4}: ")
+
+/**
+ * The text of a notification without its masked VIN prefix (`*************4408: Klimatyzacja …` shows `Klimatyzacja …`). Only the exact
+ * shape is cut; stars or a VIN further inside the text stay as they are (docs/SPEC.md §46). `null` when nothing is left.
+ */
+fun notificationMessageText(message: String?): String? =
+    message?.let { MASKED_VIN_PREFIX.replaceFirst(it, "") }?.trim()?.takeIf { it.isNotEmpty() }

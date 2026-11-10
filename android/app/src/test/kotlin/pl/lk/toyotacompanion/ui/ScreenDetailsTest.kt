@@ -112,10 +112,10 @@ class ScreenDetailsTest {
         )
         assertEquals(
             listOf(
-                ServiceDetail("Przebieg", "15\u00A0320 km"),
-                ServiceDetail("Kategoria", "Przegląd okresowy (MNT)"),
-                ServiceDetail("Dealer", "Dealer Gdynia"),
-                ServiceDetail("Czynności", "Wymiana oleju\nFiltr"),
+                LabelValue("Przebieg", "15\u00A0320 km"),
+                LabelValue("Kategoria", "Przegląd okresowy (MNT)"),
+                LabelValue("Dealer", "Dealer Gdynia"),
+                LabelValue("Czynności", "Wymiana oleju\nFiltr"),
             ),
             serviceDetails(row),
         )
@@ -126,9 +126,9 @@ class ScreenDetailsTest {
         val rows = serviceDetails(serviceRow(ServiceRecord(category = "XYZ", operations = null)))
         assertEquals(
             listOf(
-                ServiceDetail("Kategoria", "XYZ"),
-                ServiceDetail("Dealer", "brak danych"),
-                ServiceDetail("Czynności", "brak opisu"),
+                LabelValue("Kategoria", "XYZ"),
+                LabelValue("Dealer", "brak danych"),
+                LabelValue("Czynności", "brak opisu"),
             ),
             rows,
         )

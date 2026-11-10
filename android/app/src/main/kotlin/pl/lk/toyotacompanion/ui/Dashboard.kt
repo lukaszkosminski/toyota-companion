@@ -54,6 +54,18 @@ fun DashboardCard(title: String, icon: ImageVector, modifier: Modifier = Modifie
     }
 }
 
+/** One label and its value (docs/SPEC.md §45, §47): the label is quiet on the left, the value takes the rest on the right. */
+data class LabelValue(val label: String, val value: String)
+
+/** A [LabelValue] as one row: a long value (operations, a message) wraps inside its own column, the label never wraps. */
+@Composable
+fun LabelValueRow(row: LabelValue) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(row.label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(row.value, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
+    }
+}
+
 /** `4,13 l/100 km` as one big number with its unit beside it, and a caption under it. */
 @Composable
 fun Headline(value: String, unit: String, caption: String) {

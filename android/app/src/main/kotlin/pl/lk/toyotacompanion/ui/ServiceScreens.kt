@@ -4,14 +4,20 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
 import pl.lk.toyotacompanion.core.domain.ServiceHistory
@@ -26,15 +32,6 @@ import pl.lk.toyotacompanion.core.domain.ToyotaNotification
 @Composable
 private fun DetailLine(text: String) {
     Text(text, style = MaterialTheme.typography.bodyMedium)
-}
-
-/** A label on the left and its value on the right; a long value (the operations) wraps inside its own column. */
-@Composable
-private fun DetailRow(detail: ServiceDetail) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(detail.label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(detail.value, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
-    }
 }
 
 @Composable
@@ -68,7 +65,7 @@ fun ServiceHistoryScreen(
                 DashboardCard(row.title, AppIcons.History) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
                         // Label left, value right; the operations are untyped in the reference: no list, no guessed one.
-                        serviceDetails(row).forEach { DetailRow(it) }
+                        serviceDetails(row).forEach { LabelValueRow(it) }
                     }
                 }
             }
@@ -101,15 +98,44 @@ fun NotificationsScreen(
         )
         if (!notifications.isNullOrEmpty()) {
             MutedLine(Texts.NOTIFICATIONS_HINT)
-            notifications.forEach { notification ->
-                DashboardCard(notificationDateText(notification.date, zone), AppIcons.Info) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-                        notificationReadText(notification.isRead)?.let { DetailLine(it) }
-                        notificationKindText(notification)?.let { MutedLine(it) }
-                        notification.message?.let { DetailLine(it) }
-                    }
+            notifications.forEach { NotificationCard(it, zone) }
+        }
+    }
+}
+
+/**
+ * One notification (PRD F45, docs/SPEC.md §46). An unread one is marked twice: its date is bold and its icon and a small label take the
+ * accent colour; a read one stays quiet. The masked VIN in front of the message is not shown.
+ */
+@Composable
+private fun NotificationCard(notification: ToyotaNotification, zone: ZoneId) {
+    val unread = notification.isRead == false
+    val scheme = MaterialTheme.colorScheme
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainer),
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(
+                    AppIcons.Info,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = if (unread) readable(Palette.Blue) else scheme.onSurfaceVariant,
+                )
+                Text(
+                    notificationDateText(notification.date, zone),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = if (unread) FontWeight.Bold else null,
+                )
+                if (unread) {
+                    Pill(Texts.NOTIFICATIONS_UNREAD, Palette.Blue.copy(alpha = 0.18f), Palette.Blue)
                 }
             }
+            if (!unread) notificationReadText(notification.isRead)?.let { MutedLine(it) }
+            notificationKindText(notification)?.let { MutedLine(it) }
+            notificationMessageText(notification.message)?.let { DetailLine(it) }
         }
     }
 }

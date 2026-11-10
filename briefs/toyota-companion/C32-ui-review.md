@@ -82,3 +82,8 @@ Właściciel zatwierdził U13, U8, U9, U11, U12, U14, U16, U17 (decyzje w polece
 - **U14** – `RemoteDataScreens.kt`: karta „Stan techniczny” w „Stanie pojazdu” z osobnym odczytem i błędem; kafelek, ekran i `Screen.VehicleHealth` usunięte; tekst bez „backend”.
 - **U16** – `EvWeeks.kt`, `StatsScreen.kt`, `ChartKit.kt` (`MeterRow` z etykietą na resztę szerokości): jeden wiersz na tydzień, minuty poza listą.
 - **U17** – `VehicleDataFormatting.kt` (`vehicleSummary`, `isDeviation`), `RemoteDataScreens.kt`: zdanie na górze karty, odstępstwa pogrubione w kolorze ostrzeżenia.
+- **U18** – `ServiceFormatting.kt` (`notificationMessageText`, `notificationCategoryText`, `notificationTypeText`), `ServiceScreens.kt` (`NotificationCard`: nieprzeczytane = pogrubiona data, akcentowa ikona i etykieta „nieprzeczytane”). Testy w `NotificationAndDiagnosticsTest.kt`. Do sprawdzenia na emulatorze: etykieta w wierszu daty i prefiks zdjęty.
+- **U20** – `DiagnosticsFormatting.kt` (`diagnosticsRows`), `DiagnosticsScreen.kt` (wiersze `LabelValueRow` z `Dashboard.kt`, ikona `ContentCopy`), `TripsFormatting.shortStamp`, `Texts.lastSuccess` (krótki format). Raport bez zmian. Do sprawdzenia: ikona kopiowania (ścieżka z Material Symbols z pamięci, zweryfikuj wygląd) i daty na ekranie.
+
+U21 (Dziennik tankowań) wycofane 2026-11-10: ekran już pokazuje litry i kwotę, gdy tankowanie je ma; wpis właściciela
+z 29.10 ma tylko cenę za litr, więc uwaga była błędną diagnozą agenta głównego, nie brakiem w ekranie.

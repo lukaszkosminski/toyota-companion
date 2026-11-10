@@ -73,7 +73,7 @@ class ServiceFormattingTest {
     @Test
     fun `the service row uses the confirmed category description`() {
         val details = serviceDetails(serviceRow(ServiceRecord(category = "MNT")))
-        assertEquals(ServiceDetail("Kategoria", "Przegląd okresowy (MNT)"), details[0])
+        assertEquals(LabelValue("Kategoria", "Przegląd okresowy (MNT)"), details[0])
     }
 
     @Test

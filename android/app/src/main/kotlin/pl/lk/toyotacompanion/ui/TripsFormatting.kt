@@ -3,6 +3,7 @@ package pl.lk.toyotacompanion.ui
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import pl.lk.toyotacompanion.core.data.StoredTrip
 import pl.lk.toyotacompanion.core.domain.CostSource
@@ -92,6 +93,16 @@ object TripsFormatting {
      * is already computed in the zone by [groupTripsByMonth].
      */
     fun monthLabel(month: MonthKey): String = "${MONTHS_NOMINATIVE[month.month - 1]} ${month.year}"
+
+    /**
+     * The short stamp of the status and the diagnostics screens: `10.11 19:04` in the same day-month shape as the list, with the year
+     * (`10.11.2025 19:04`) only when it is not the year of [today]. A plain function of its inputs, so the test fixes the day.
+     */
+    fun shortStamp(at: Instant, zone: ZoneId, today: LocalDate): String {
+        val local = at.atZone(zone)
+        if (local.year == today.year) return startDateTime(at, zone)
+        return "${two(local.dayOfMonth)}.${two(local.monthValue)}.${local.year} ${two(local.hour)}:${two(local.minute)}"
+    }
 
     /** `29.10` – the date under the x axis of a chart (docs/SPEC.md §15.2). */
     fun dayMonth(instant: Instant, zone: ZoneId): String {
