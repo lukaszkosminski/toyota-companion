@@ -274,8 +274,9 @@ API Toyoty, w tym `refresh_status()` (§9 wstęp, AGENTS.md).
 - `costPln == null` albo `source == NONE` -> „brak ceny”; `source == DEFAULT` -> dopisek „cena domyślna”.
 - Pod kosztem wiersza trasy: cena za litr (`TripsFormatting.priceLine`), a gdy `source == DEFAULT`
   to w tej samej linii po `Texts.SEPARATOR` dopisek „cena domyślna”; bez ceny zostaje tylko „brak ceny”.
-  Linia ceny pokazuje się tylko tam, gdzie się zmienia (`tripIdsWithPriceLine`): gdy różni się od linii chronologicznie poprzedniej trasy (po `(start, id)`, przez granice miesięcy),
-  oraz zawsze przy najstarszej trasie każdego miesiąca; „cena domyślna” jest częścią linii, więc przejście tankowanie ↔ cena domyślna to zmiana (C32 U12).
+  Linia ceny pokazuje się tylko tam, gdzie się zmienia (`tripIdsWithPriceLine`). Lista idzie od najnowszych, więc cena stoi przy **najnowszej** trasie każdej serii o tej samej cenie: gdy linia różni się od linii chronologicznie
+  **następnej** trasy (po `(start, id)`, przez granice miesięcy), przy najnowszej trasie w ogóle oraz zawsze przy najnowszej trasie każdego miesiąca – góra ekranu i góra miesiąca zawsze mają cenę;
+  „cena domyślna” jest częścią linii, więc przejście tankowanie ↔ cena domyślna to zmiana (C32 U12).
 - Nagłówek grupy: gdy suma kosztu jest `null` -> „brak ceny”; dopisek „bez ceny: N” tylko gdy `N > 0`.
 - Wszystkie teksty w `Texts`; żadnych Icons w UI.
 
@@ -1206,6 +1207,27 @@ Domena: `core/domain/OwnershipOps.kt` (`ownershipCost`, `ownershipMonths`, model
   Pliki: `ui/BudgetAlert.kt` (czysta reguła progów), `notify/BudgetAlertNotifier.kt`, `ui/ExpensesController.kt`
   (`onChanged`), `ui/BudgetController.kt` (przełącznik), `ui/AppRoot.kt`, `AppContainer` (`syncRunner`, notifier),
   `settings/SettingsStore.kt`, `ui/OptionsScreen.kt`, `ui/Texts.kt`.
+
+## §50 Krótkie trasy i zimny silnik (PRD F50)
+Domena: Python `backend/app/domain/shorttrips.py` (wzorzec), Kotlin `core/domain/ShortTripOps.kt` (te same nazwy testów: `backend/tests/test_domain_shorttrips.py`, `ShortTripOpsTest.kt`). Ekran: karta w „Statystykach” (§18):
+`StatsController.computeStats` (`StatsView.shortTrips`), `ui/ShortTripsFormatting.kt`, `StatsScreen.kt`, teksty w `Texts.kt`. Tylko lokalne archiwum tras (`Trip.start/end`, dystans, litry, `evDistanceKm`, koszt): bez sieci, bez GPS, bez budzenia auta,
+bez nowych uprawnień i bez zmiany schematu Room; nic nie jest zapisywane.
+- **Wejście:** trasa liczy się, gdy dystans jest skończony i `≥ 0,1 km` (`SHORT_MIN_KM`; poniżej to przestawienie auta) oraz litry `≥ 0`; pozostałe są tylko liczone w `leftOut`. Trasa z 0 l (jazda na prądzie) **zostaje** w sumach, tak jak w §22/§24.
+- **Pasma** (dolna granica włącznie, jak w §22): poniżej 2, 2–5, 5–10, 10–25, od 25 km. Pasmo bez tras nie występuje. „Krótkie” to trzy dolne pasma (poniżej 10 km); **odniesienie** to wszystkie trasy od 10 km razem (`SHORT_REFERENCE_FROM_KM`).
+- **Na pasmo:** liczba tras, udział tras i km (całe %, HALF_UP, od wszystkich użytych tras), km (0,1), litry, **l/100 km = Σ litrów / Σ km × 100** (0,01, nigdy średnia średnich), zł/100 km = Σ kosztu / Σ km tras z ceną
+  (`source != none` i kwota; bez ceny `null`, nigdy 0 zł), udział jazdy na prądzie (Σ km EV przycięte do dystansu trasy / Σ km pasma, całe %; `null` bez żadnej trasy z danymi o prądzie).
+- **Progi liczności:** liczby pasma (l/100 km, zł/100 km, udział EV) tylko od 5 tras (`SHORT_MIN_TRIPS_SHOWN`); poniżej – „za mało”. Wniosek wymaga **≥ 10 tras po każdej porównywanej stronie** (`SHORT_MIN_TRIPS_COMPARE`).
+- **Nadwyżka** (tylko pasma poniżej 10 km, gdy pasmo ma ≥ 10 tras i odniesienie ≥ 10 tras): `l/100 km pasma − l/100 km odniesienia` (różnica wartości pokazanych, 0,01, ze znakiem); **litry** = `Σ litrów pasma − Σ litrów odniesienia × Σ km pasma / Σ km odniesienia`
+  (stawka odniesienia bez wcześniejszego zaokrąglenia, wynik 0,01 l HALF_UP); **zł** = nadwyżka litrów (niezaokrąglona) × cena litra pasma (Σ kosztu / Σ litrów tras z ceną i litrami > 0; bez takiej ceny `null`). Wartość ujemna (krótkie trasy na prądzie) jest prawdziwa i zostaje ze znakiem.
+  Suma krótkich pasm sumuje tylko pasma z policzoną nadwyżką; suma w zł tylko gdy **każde** policzone pasmo ma cenę, inaczej `null`.
+- **Zimny start** (`tripStartKinds`, ze **wszystkich** tras archiwum, także tych, które pasma pomijają – silnik rozgrzewa się niezależnie od jakości odczytu): poprzednia trasa to ta przed nią wg `(start, id)`; pierwsza trasa = nieznany;
+  przerwa `> 21 dni` (`MAX_GAP_DAYS`, jak w F17) = nieznany (możliwa dziura w archiwum); przerwa `≥ 3 h` (`COLD_GAP_HOURS`) = zimny; krótsza, także nakładanie się zapisów = ciepły. To przybliżenie – w archiwum nie ma temperatury silnika.
+  Na pasmo: liczby zimnych, ciepłych i nieznanych startów oraz, gdy zimnych i ciepłych jest po ≥ 10, l/100 km każdej strony i różnica „zimny − ciepły” (osobno w każdym paśmie, żeby nie mieszać długości z zimnem).
+- **Karta** (`ShortTripsCard`): tytuł „Krótkie trasy i zimny silnik”, jedna krótka podpowiedź (czym jest zimny start, że litry liczone są do wszystkich km), nagłówek „Krótkie trasy (poniżej 10 km): 38 % tras, 11 % km”, linia „Nadwyżka w archiwum: 14,2 l · 91,40 zł”
+  (gdy suma ≤ 0: „Nie zużywają więcej paliwa niż trasy od 10 km”; bez żadnego porównania brak linii), potem **wiersz `MeterRow` na pasmo** (nazwa, po prawej l/100 km albo „za mało”, pasek względem najwyższej wartości na karcie) z **jedną** linią pomocniczą
+  „41 tras (23 %) · 9 % km · +1,62 l/100 km” (liczba tras odmieniona; nadwyżka tylko przy krótkich pasmach, które ją mają), wiersz odniesienia „Odniesienie – trasy od 10 km” i blok „Zimny a ciepły start” („2–5 km: zimny 6,10 · ciepły 5,60 l/100 km (+0,50)” albo
+  zdanie, że za mało tras). Liczby przez `TripsFormatting.number`/`count` (twarda spacja), linie krótkie, żeby nie łamały się na 360 dp (C32). Karta znika, gdy nie ma żadnej użytej trasy. Ekran nie pokazuje dat ani godzin pojedynczych tras.
+- **Poza zakresem:** sezon/zima i temperatura (F15), wykrywanie dziur współrzędnymi, ustawienia progów, wykres, eksport, powiadomienia.
 
 ## §51 Ślad CO₂ (PRD F51)
 Szacunek CO₂ z **przepalonych litrów**, wyliczany przy odczycie z lokalnego archiwum; nic nie jest zapisywane (bez Room, `settings` i sieci), auto nie jest budzone.

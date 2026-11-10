@@ -17,9 +17,11 @@ import pl.lk.toyotacompanion.core.data.StoredTrip
 import pl.lk.toyotacompanion.core.domain.ElectricRanking
 import pl.lk.toyotacompanion.core.domain.PeriodKind
 import pl.lk.toyotacompanion.core.domain.PeriodStats
+import pl.lk.toyotacompanion.core.domain.ShortTripSummary
 import pl.lk.toyotacompanion.core.domain.aggregateElectricShare
 import pl.lk.toyotacompanion.core.domain.electricTripRanking
 import pl.lk.toyotacompanion.core.domain.periodStats
+import pl.lk.toyotacompanion.core.domain.shortTripSummary
 import pl.lk.toyotacompanion.core.domain.yearOverYear
 
 /**
@@ -44,6 +46,8 @@ data class StatsView(
     val trafficLeftOut: Int,
     val tripTotal: Int,
     val evWeeks: List<EvWeek>,
+    /** Trips by length band and the cold start (PRD F50, docs/SPEC.md §50). */
+    val shortTrips: ShortTripSummary,
 )
 
 /**
@@ -130,5 +134,6 @@ fun computeStats(stored: List<StoredTrip>, zone: ZoneId): StatsView {
         trafficLeftOut = trafficLeftOut(stored),
         tripTotal = stored.size,
         evWeeks = evByWeek(stored, zone),
+        shortTrips = shortTripSummary(trips, costs),
     )
 }

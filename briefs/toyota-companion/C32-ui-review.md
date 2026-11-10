@@ -78,7 +78,7 @@ Właściciel zatwierdził U13, U8, U9, U11, U12, U14, U16, U17 (decyzje w polece
   wynika tylko, że `displayName` to „human-readable name”; potwierdzona wartość jest jedna (`Last Parked`), więc tylko ona jest tłumaczona.
 - **U9** – `ServiceFormatting.kt` (`serviceDetails`), `ServiceScreens.kt`: wiersze Przebieg / Kategoria (kod Toyoty) / Dealer / Czynności; kodów nie tłumaczymy.
 - **U11** – `WeatherScreen.kt`, `WeatherFormatting.kt`: kafelki raz na górze; wiersz koszyka „24 trasy · 312,4 km”, l/100 km po prawej z jednostką, zł/100 km w linii pomocniczej.
-- **U12** – `TripsGrouping.kt` (`tripIdsWithPriceLine`), `TripsScreen.kt`: cena za litr przy zmianie i przy najstarszej trasie miesiąca.
+- **U12** – `TripsGrouping.kt` (`tripIdsWithPriceLine`), `TripsScreen.kt`: cena za litr przy najnowszej trasie każdej serii o tej samej cenie (różni się od chronologicznie następnej) i przy najnowszej trasie miesiąca (korekta: lista jest od najnowszych).
 - **U14** – `RemoteDataScreens.kt`: karta „Stan techniczny” w „Stanie pojazdu” z osobnym odczytem i błędem; kafelek, ekran i `Screen.VehicleHealth` usunięte; tekst bez „backend”.
 - **U16** – `EvWeeks.kt`, `StatsScreen.kt`, `ChartKit.kt` (`MeterRow` z etykietą na resztę szerokości): jeden wiersz na tydzień, minuty poza listą.
 - **U17** – `VehicleDataFormatting.kt` (`vehicleSummary`, `isDeviation`), `RemoteDataScreens.kt`: zdanie na górze karty, odstępstwa pogrubione w kolorze ostrzeżenia.

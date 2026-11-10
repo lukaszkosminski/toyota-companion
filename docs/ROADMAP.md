@@ -66,6 +66,8 @@
 - Powiadomienie budżetowe (F49, SPEC §49, plan C29): kanał „Budżet”, progi 80% i 100% raz na miesiąc i próg, trigger
   po udanej synchronizacji i po zmianie wydatków, przełącznik w „Opcjach” (domyślnie włączony); reuse `POST_NOTIFICATIONS`
   bez nowej prośby, treść bez VIN/GPS
+- Krótkie trasy i zimny silnik (F50, SPEC §50, plan C30): karta w „Statystykach” – trasy w pasmach długości (poniżej 2, 2–5, 5–10, 10–25, od 25 km) z udziałem tras i km, l/100 km jako Σ litrów / Σ km,
+  nadwyżką krótkich tras wobec tras od 10 km (l/100 km, w archiwum litry i zł) i porównaniem zimnego startu (≥ 3 h od poprzedniej trasy) z ciepłym; progi liczności 5 i 10 tras; tylko lokalne archiwum. Sezon (zima) poza zakresem
 - Ślad CO₂ (F51, SPEC §51, plan C31): szacunek z przepalonych litrów (2,3 kg CO₂/l benzyny, źródło NRCan) w nagłówku miesiąca na liście
   tras i w „Podsumowaniu roku” (ekran i tekst do udostępnienia), kg poniżej 1000 kg i tony od 1000 kg; bez prądu i produkcji auta, lokalnie, bez przechowywania.
   Wersja na pojedynczą trasę poza zakresem (pozycja nie obejmuje już „na trasę”)
@@ -81,7 +83,6 @@
   każda dostaje numer F, wpis w PRD/SPEC i plan przed kodem, w tej kolejności:
   1. Kalkulator kosztu planowanej trasy: kilometry i rodzaj jazdy → litry i zł z własnego spalania w pasmach tempa
      i temperatury (F19, F24) oraz ceny w baku
-  2. Krótkie trasy i zimny silnik: udział krótkich tras i o ile więcej paliwa na 100 km kosztują niż dłuższe
   3. Najlepsza godzina wyjazdu: dla powtarzanych odcinków (F16) czas, prędkość i spalanie wg godziny startu i dnia tygodnia
   4. Tygodniowe lub miesięczne podsumowanie w powiadomieniu: km, koszt, udział prądu, porównanie z poprzednim okresem
   6. Stacja przy tankowaniu: marka lub nazwa, średnia cena i faktyczne spalanie wg stacji

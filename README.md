@@ -2,7 +2,7 @@
 
 A private companion app for Android for a hybrid Toyota in Europe. It reads data from the MyToyota account through the unofficial API (the Toyota client is a Kotlin port of [pytoyoda](https://github.com/pytoyoda/pytoyoda) v6.0.0), archives trips indefinitely, calculates the fuel cost of every trip and shows consumption, statistics and weather. It was built for one owner of one car (PRD §3) and runs entirely on the phone, with no server of its own.
 
-The source of truth is the documents in [`docs/`](docs/), which are written in Polish: the [PRD](docs/PRD.md) (features F1–F49 and F51) and the [SPEC](docs/SPEC.md) (acceptance criteria). The description below is a short summary; where they differ, the docs win. The app itself is in Polish, with an English UI language available in "Opcje" (Options).
+The source of truth is the documents in [`docs/`](docs/), which are written in Polish: the [PRD](docs/PRD.md) (features F1–F51) and the [SPEC](docs/SPEC.md) (acceptance criteria). The description below is a short summary; where they differ, the docs win. The app itself is in Polish, with an English UI language available in "Opcje" (Options).
 
 ## Features
 
@@ -20,6 +20,7 @@ The source of truth is the documents in [`docs/`](docs/), which are written in P
 - Consumption and monthly costs on the status screen, the manufacturer's declared consumption, an alert for rising consumption (F20, F26, F29, F30, SPEC §24, §30, §31).
 - Eco goals: an optional monthly goal for consumption and for the share of electric driving, with progress on the status screen and in the widget (F39, SPEC §40).
 - Monthly budget: one optional limit per phone for fuel and non-fuel expenses, with progress on the status screen counted only from the local archive (F48, SPEC §49); one notification from 80% of the limit and one when it is exceeded, once per month and threshold, with a switch in Options (F49).
+- Short trips and the cold engine: trips by length band (under 2, 2–5, 5–10, 10–25, 25 km and more) with the share of trips and km, litres per 100 km as sum over sum, the excess of short trips over trips from 10 km and cold against warm starts, from the local archive only (F50, SPEC §50).
 - CO₂ footprint: an estimate from the litres burned, in the month header of the trip list and in the year summary (F51, SPEC §51); combustion of gasoline only, no electricity or car production.
 - Multi-year statistics: years, seasons, year over year (F10, SPEC §17); electric driving per trip, ranking and weeks (F11, F35, SPEC §16, §36); year summary (F28, SPEC §29).
 - Driving style: eco score by month, repeated routes and consumption anomalies (F12, F13, SPEC §19); trip types: home, work, commute, weekend (F16, SPEC §21).

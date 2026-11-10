@@ -31,6 +31,23 @@ from .refuel import (
     estimate_refuel_liters,
     tank_price_after_refuel,
 )
+from .shorttrips import (
+    COLD_GAP_HOURS,
+    MAX_GAP_DAYS,
+    SHORT_MIN_KM,
+    SHORT_MIN_TRIPS_COMPARE,
+    SHORT_MIN_TRIPS_SHOWN,
+    SHORT_REFERENCE_FROM_KM,
+    BandStats,
+    ColdSplit,
+    LengthBand,
+    ReferenceStats,
+    ShortTripSummary,
+    StartKind,
+    length_band_of,
+    short_trip_summary,
+    trip_start_kinds,
+)
 from .tripstats import (
     MIN_RANKED_DISTANCE_KM,
     RANKING_LIMIT,
@@ -63,6 +80,21 @@ from .weather import (
 )
 
 __all__ = [
+    "COLD_GAP_HOURS",
+    "MAX_GAP_DAYS",
+    "SHORT_MIN_KM",
+    "SHORT_MIN_TRIPS_COMPARE",
+    "SHORT_MIN_TRIPS_SHOWN",
+    "SHORT_REFERENCE_FROM_KM",
+    "BandStats",
+    "ColdSplit",
+    "LengthBand",
+    "ReferenceStats",
+    "ShortTripSummary",
+    "StartKind",
+    "length_band_of",
+    "short_trip_summary",
+    "trip_start_kinds",
     "BudgetProgress",
     "budget_progress",
     "CO2_KG_PER_LITER_GASOLINE",

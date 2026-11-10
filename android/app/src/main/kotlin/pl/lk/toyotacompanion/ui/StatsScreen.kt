@@ -29,6 +29,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
 import pl.lk.toyotacompanion.core.domain.PeriodStats
+import pl.lk.toyotacompanion.core.domain.COLD_GAP_HOURS
+import pl.lk.toyotacompanion.core.domain.LengthBand
+import pl.lk.toyotacompanion.core.domain.ShortTripSummary
 
 /**
  * "Statystyki" (PRD F10, F11, docs/SPEC.md §16-§17): the electric share and the trips with
@@ -212,6 +215,11 @@ fun StatsScreen(
                     }
                 }
 
+                // Short trips and the cold engine (PRD F50, docs/SPEC.md §50): one meter row per length band with one helper line.
+                if (view.shortTrips.bands.isNotEmpty()) {
+                    item { ShortTripsCard(view.shortTrips) }
+                }
+
                 item {
                     DashboardCard(Texts.STATS_YEARS, AppIcons.CalendarMonth) {
                         val years = view.years
@@ -231,6 +239,54 @@ fun StatsScreen(
             }
         }
     }
+}
+
+/** The card of PRD F50: summary, a meter row per band, the reference row and, when there is enough, the cold-start block. */
+@Composable
+private fun ShortTripsCard(summary: ShortTripSummary) {
+    DashboardCard(Texts.SHORT_TITLE, AppIcons.Thermostat) {
+        Text(
+            Texts.shortHint(COLD_GAP_HOURS),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        ShortTripsFormatting.headline(summary)?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+        ShortTripsFormatting.excessLine(summary)?.let { Text(it, style = MaterialTheme.typography.titleSmall) }
+        val highest = ShortTripsFormatting.highest(summary)
+        summary.bands.forEach { row ->
+            MeterRow(
+                ShortTripsFormatting.bandName(row.band),
+                ShortTripsFormatting.bandValue(row),
+                ShortTripsFormatting.fraction(row.lPer100Km, highest),
+                shortBandColor(row.band),
+            )
+            Text(ShortTripsFormatting.bandLine(row), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        summary.reference?.let { reference ->
+            MeterRow(
+                ShortTripsFormatting.referenceLabel(),
+                reference.lPer100Km?.let { Texts.trafficConsumption(TripsFormatting.number(it, 2)) } ?: Texts.SHORT_TOO_FEW,
+                ShortTripsFormatting.fraction(reference.lPer100Km, highest),
+                Palette.Green,
+            )
+        }
+        Text(Texts.SHORT_COLD_TITLE, style = MaterialTheme.typography.titleSmall)
+        val cold = ShortTripsFormatting.coldLines(summary)
+        if (cold.isEmpty()) {
+            Text(Texts.SHORT_COLD_NONE, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            cold.forEach { Text(it, style = MaterialTheme.typography.bodyMedium) }
+        }
+    }
+}
+
+/** Short bands run from red to amber, the longer ones are the calm colours of the reference. */
+private fun shortBandColor(band: LengthBand) = when (band) {
+    LengthBand.UNDER_2 -> Palette.Red
+    LengthBand.FROM_2 -> Palette.Orange
+    LengthBand.FROM_5 -> Palette.Amber
+    LengthBand.FROM_10 -> Palette.Teal
+    LengthBand.FROM_25 -> Palette.Blue
 }
 
 @Composable

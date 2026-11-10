@@ -607,6 +607,59 @@ object Texts {
     fun consumptionFalling(change: String): String = Lang.pick("Trend: ↘ malejące ($change %)", "Trend: ↘ falling ($change %)")
     fun consumptionSteady(change: String): String = Lang.pick("Trend: → stabilne ($change %)", "Trend: → steady ($change %)")
 
+    // Krótkie trasy i zimny silnik (PRD F50, docs/SPEC.md §50).
+
+    val SHORT_TITLE: String get() = Lang.pick("Krótkie trasy i zimny silnik", "Short trips and cold engine")
+
+    /** One short line: what a cold start is (an approximation) and what the litres are counted over. */
+    fun shortHint(gapHours: Long): String = Lang.pick(
+        "Zimny start: od poprzedniej trasy minęło co najmniej $gapHours ${plPlural(gapHours, "godzina", "godziny", "godzin")} (przybliżenie). Litry liczone do wszystkich km, także na prądzie.",
+        "Cold start: at least $gapHours ${enPlural(gapHours, "hour", "hours")} since the previous trip (an approximation). Litres counted over all km, including those on battery.",
+    )
+    val SHORT_TOO_FEW: String get() = Lang.pick("za mało", "too few")
+    val SHORT_NO_EXCESS: String get() = Lang.pick("Nie zużywają więcej paliwa niż trasy od 10 km", "They do not burn more than trips from 10 km")
+    val SHORT_REFERENCE: String get() = Lang.pick("Odniesienie – trasy od 10 km", "Reference – trips from 10 km")
+    val SHORT_COLD_TITLE: String get() = Lang.pick("Zimny a ciepły start", "Cold against warm start")
+    val SHORT_COLD_NONE: String get() = Lang.pick(
+        "Za mało tras, żeby porównać zimny start z ciepłym (potrzeba po 10 w paśmie).",
+        "Too few trips to compare cold with warm starts (10 of each in a band are needed).",
+    )
+
+    fun shortBandName(band: pl.lk.toyotacompanion.core.domain.LengthBand): String = when (band) {
+        pl.lk.toyotacompanion.core.domain.LengthBand.UNDER_2 -> Lang.pick("poniżej 2 km", "under 2 km")
+        pl.lk.toyotacompanion.core.domain.LengthBand.FROM_2 -> "2–5 km"
+        pl.lk.toyotacompanion.core.domain.LengthBand.FROM_5 -> "5–10 km"
+        pl.lk.toyotacompanion.core.domain.LengthBand.FROM_10 -> "10–25 km"
+        pl.lk.toyotacompanion.core.domain.LengthBand.FROM_25 -> Lang.pick("od 25 km", "25 km and more")
+    }
+
+    /** `41 tras (23 %)` / `41 trips (23%)`: the trips of a band and their share of all the trips. */
+    fun shortTripsOfShare(trips: Int, percent: String): String = Lang.pick(
+        "${TripsFormatting.count(trips)} ${plPlural(trips.toLong(), "trasa", "trasy", "tras")} ($percent %)",
+        "${TripsFormatting.count(trips)} ${enPlural(trips.toLong(), "trip", "trips")} ($percent %)",
+    )
+
+    fun shortKmShare(percent: String): String = "$percent % km"
+
+    /** `+1,62 l/100 km`, the excess of a short band over the reference row (trips from 10 km) under the bands. */
+    fun shortExcessRate(signed: String): String = "$signed l/100 km"
+
+    fun shortHeadline(tripsPercent: String, kmPercent: String): String = Lang.pick(
+        "Krótkie trasy (poniżej 10 km): $tripsPercent % tras, $kmPercent % km",
+        "Short trips (under 10 km): $tripsPercent % of trips, $kmPercent % of km",
+    )
+
+    /** `Nadwyżka w archiwum: 14,2 l · 91,40 zł`; the money part only with a price. */
+    fun shortExcess(litres: String, money: String?): String {
+        val tail = money?.let { SEPARATOR + it } ?: ""
+        return Lang.pick("Nadwyżka w archiwum: $litres$tail", "Extra in the archive: $litres$tail")
+    }
+
+    fun shortColdRow(band: String, cold: String, warm: String, difference: String): String = Lang.pick(
+        "$band: zimny $cold · ciepły $warm l/100 km ($difference)",
+        "$band: cold $cold · warm $warm l/100 km ($difference)",
+    )
+
     // Jazda na prądzie w tygodniach (docs/SPEC.md §36).
 
     val EV_WEEKS_SECTION: String get() = Lang.pick("Jazda na prądzie w tygodniach", "Weekly EV driving")
