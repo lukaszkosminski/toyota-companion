@@ -1,6 +1,6 @@
 # C33 – plan: Kalkulator kosztu planowanej trasy (PRD F52, SPEC §52)
 
-Status: **szkic do akceptacji** (tylko ten plik; kod, testy i docs po akceptacji). Data: 2026-11-10, agent 3.
+Status: **zaakceptowany i zaimplementowany 2026-11-10** (korekty w sekcji 11). Pierwotnie: szkic do akceptacji. Data: 2026-11-10, agent 3.
 Worktree `toyota-companion-a3`, `c32-agent3` = `06c16bf`. Uwaga: `F52`/`§52` **nie ma jeszcze w docs** – grep wskazuje
 tylko `docs/ROADMAP.md:84` (pozycja 1 NEXT); pierwszym krokiem po akceptacji jest wpis w PRD/SPEC, potem kod.
 
@@ -108,3 +108,25 @@ Room, powiadomienia, ceny stacji, import/eksport, zmiany Gradle.
 4. Cena z ostatniej trasy bywa stara przy braku nowych tras – czy dopuścić cenę z ostatniego tankowania, nawet gdy
    po nim nie było trasy (wymaga odczytu tankowań w `StatsController`)?
 5. Potwierdzenie numerów F52/§52 – w docs ich jeszcze nie ma; czy rezerwacja numerów jest właściwa?
+
+## 11. Korekty agenta głównego przy implementacji (2026-11-10)
+
+- **Wejście do domeny:** zamiast `speedsKmh: Map<String, Double?>` (domena nie zna prędkości, a mapa po id byłaby sztucznym łącznikiem) `plannedTripCost`
+  dostaje gotowe próbki `PlanSample(distanceKm, fuelL, band)`. Pasmo liczy warstwa app z `averageSpeed` (funkcja `usable` z F19), domena dostaje już tylko rodzaj.
+  Lustro Python ma ten sam kształt.
+- **Definicja kwartyli** wprost: stawki posortowane, indeks ⌊(n−1)/4⌋ i ⌊3(n−1)/4⌋, bez interpolacji. Interpolacja wprowadza ułamkowe indeksy i inną regułę dla
+  małych n; prosty indeks daje ten sam wynik bitowo w Kotlinie i Pythonie i łatwo go sprawdzić ręcznie w testach.
+- **Zaokrąglenia:** litry 0,1 l HALF_UP, zł całe HALF_UP, oba z niezaokrąglonych wartości (litry × cena, nie zaokrąglone litry × cena). Test
+  `money_is_whole_zloty_half_up` (0,5 l × 5,00 zł = 2,50 → 3, nie 2) pilnuje HALF_UP, a nie half-even.
+- **Populacja** (decyzja właściciela): trasy rodzaju o długości 0,5×–2× km, gdy ich ≥ 10; inaczej wszystkie trasy rodzaju, też tylko gdy ≥ 10. Wynik
+  niesie `population` i liczbę obu zbiorów, żeby linia pomocnicza mówiła prawdę („z 37 podobnych tras” / „z 212 tras tego rodzaju”).
+- **Trasy 0 l** wchodzą do populacji (decyzja, jak F19). Konsekwencja: przy ≥ 25 % tras na prądzie dolna granica może wyjść 0,0 l. Karta pokazuje
+  wtedy „ok. 0,0–0,7 l” – to prawda o archiwum, nie błąd. Wersja 2 może to oddzielić.
+- **Cena** (decyzja właściciela): najnowsza wyceniona trasa (z `TripCost`, bez `NONE`), potem cena domyślna, potem brak (same litry, komunikat).
+  Stare tankowanie bez trasy po nim nie jest brane (pytanie 4 zostaje otwarte).
+- **Zakres km:** 0 < km ≤ 5000 (`PLAN_MAX_KM`); większe lub zerowe to „wpisz kilometry”.
+- **Pasma tempa przeniesione** do `core/domain/TrafficBands.kt` (`TrafficClass`, progi 15/25/40, `trafficBandOf`) bez zmiany zachowania F19; testy
+  F19 i F24 przeszły bez zmiany asercji (dodane są tylko importy).
+- **Implementacja:** `core/domain/PlannedTripOps.kt` (+ `PlannedTripOpsTest.kt`), `backend/app/domain/planned.py` (+ `tests/test_domain_planned.py`, te same
+  nazwy przypadków), `ui/PlannedTripFormatting.kt`, karta `PlannedTripCard` na górze „Statystyk”, `StatsController` (`planSamples`, `planPrice`,
+  `planDefaultBand`, parametr `defaultPrice`), `AppContainer` (czytanie ceny domyślnej), `Texts.kt`, `PlannedTripFormattingTest.kt`.

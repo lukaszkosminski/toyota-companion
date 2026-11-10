@@ -1,6 +1,7 @@
 # Roadmap
 
 ## DONE
+- Kalkulator kosztu planowanej trasy (F52, SPEC §52, plan C33): przedział litrów i zł z pasm tempa F19 i z własnego archiwum; bez temperatury i sezonu (wersja 2, F24)
 - Narzędzia jakości i CI (ruff, mypy, pytest, gitleaks)
 - Port domeny do Kotlina (`android/core`, Python 76 / Kotlin 76 testów domeny, nazwy 1:1)
 - Klient Toyoty w Kotlinie: logowanie, pojazdy, telemetria, trasy (33 testy na mock serwerze)
@@ -81,8 +82,7 @@
 ## NEXT
 - Propozycje zaakceptowane przez właściciela 2026-11-10 (tylko dane lokalne i już używane źródła, bez budzenia auta);
   każda dostaje numer F, wpis w PRD/SPEC i plan przed kodem, w tej kolejności:
-  1. Kalkulator kosztu planowanej trasy: kilometry i rodzaj jazdy → litry i zł z własnego spalania w pasmach tempa
-     i temperatury (F19, F24) oraz ceny w baku
+  1. (zrobione jako F52, bez temperatury – patrz DONE) Kalkulator kosztu planowanej trasy
   3. Najlepsza godzina wyjazdu: dla powtarzanych odcinków (F16) czas, prędkość i spalanie wg godziny startu i dnia tygodnia
   4. Tygodniowe lub miesięczne podsumowanie w powiadomieniu: km, koszt, udział prądu, porównanie z poprzednim okresem
   6. Stacja przy tankowaniu: marka lub nazwa, średnia cena i faktyczne spalanie wg stacji

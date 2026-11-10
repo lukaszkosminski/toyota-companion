@@ -1249,3 +1249,21 @@ Szacunek CO₂ z **przepalonych litrów**, wyliczany przy odczycie z lokalnego a
 - **Prywatność:** zagregowana liczba bez VIN, GPS i nazw miejsc, bez sieci, logów i uprawnień.
 - **Pliki:** `core/domain/Co2Ops.kt`, `backend/app/domain/co2.py`, `ui/TripsGrouping.kt` (`MonthGroup.co2Kg`), `ui/YearSummary.kt` (`YearSummary.co2Kg`, `yearSummaryLines`),
   `ui/TripsFormatting.kt` (`co2`), `ui/TripsScreen.kt`, `ui/YearSummaryScreen.kt`, `ui/Texts.kt`.
+
+## §52 Kalkulator kosztu planowanej trasy (PRD F52)
+Plan: `briefs/toyota-companion/C33-plan.md`. Domena: `core/domain/TrafficBands.kt` (pasma tempa przeniesione z F19 bez zmiany zachowania),
+`core/domain/PlannedTripOps.kt` (`plannedTripCost`, `mostDrivenBand`); lustro Python `backend/app/domain/planned.py` z tymi samymi nazwami testów.
+Ekran: karta na górze „Statystyk” (`ui/PlannedTripFormatting.kt`, `StatsScreen.kt`), dane z `StatsController` (`StatsView.planSamples`, `planPrice`).
+- **Wejście:** kilometry (od 0 do 5000, z przecinkiem lub kropką, do dwóch miejsc) i rodzaj jazdy – jedno z czterech pasm tempa F19 (wolno < 15, miasto 15–25, płynnie 25–40, trasa ≥ 40 km/h).
+  Domyślnie wybrany jest rodzaj z **największą liczbą tras** w archiwum (remis – węższe pasmo wolne → trasa). Pusta lub błędna wartość nie daje wyniku, tylko komunikat.
+- **Próbka:** trasa z prędkością (`averageSpeed`), co najmniej 2 km (jak F19) i paliwem ≥ 0 należy do pasma wg prędkości. **Trasy z 0 l wchodzą** do populacji (jak F19); ich l/100 km to 0.
+- **Populacja:** trasy wybranego rodzaju o długości od **0,5× do 2×** wpisanych km (włącznie). Gdy jest ich co najmniej **10**, to ona. Inaczej – wszystkie trasy rodzaju, ale tylko gdy jest ich co najmniej **10**.
+  Poniżej 10 tras rodzaju wyniku nie ma: „za mało tras tego rodzaju: n z 10”.
+- **Stawka trasy:** dla każdej trasy populacji `l/100 km = litry × 100 / km` (dokładnie, bez zaokrąglania pośredniego). Nie średnia ze średnich.
+- **Kwartyle** (bez interpolacji): stawki posortowane rosnąco, n elementów; dolny = stawka o indeksie ⌊(n−1)/4⌋, górny = o indeksie ⌊3(n−1)/4⌋ (indeksy od zera).
+- **Przedział:** litry = wpisane km × kwartyl / 100 (bez zaokrąglania pośredniego), zaokrąglone do **0,1 l** (HALF_UP). Zł = niezaokrąglone litry × cena, zaokrąglone do **całych złotych** (HALF_UP).
+  To przedział zużycia z własnych tras, nie prognoza i nie średnia pasma.
+- **Cena** (`StatsController`): 1) `pricePerLiter` najnowszej trasy z wyceną (`TripCost`, bez `hasNoCost`), 2) cena domyślna z Ustawień, 3) brak – wtedy tylko litry („brak ceny paliwa – ustaw cenę domyślną w Opcjach”).
+- **Linia pomocnicza wyniku** mówi, której populacji użyto: „z 37 podobnych tras” (długość 0,5–2×) albo „z 212 tras tego rodzaju (za mało podobnej długości)”.
+- **Poza zakresem wersji 1:** temperatura i sezon (F24), mapy, GPS, zapisywanie planów, powiadomienia.
+- **Prywatność:** tylko lokalne archiwum i ustawienia; nic nie jest zapisywane ani logowane; bez sieci i budzenia auta.

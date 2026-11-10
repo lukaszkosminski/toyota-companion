@@ -3,21 +3,15 @@ package pl.lk.toyotacompanion.ui
 import java.math.BigDecimal
 import java.math.RoundingMode
 import pl.lk.toyotacompanion.core.data.StoredTrip
+import pl.lk.toyotacompanion.core.domain.TrafficClass
+import pl.lk.toyotacompanion.core.domain.trafficBandOf
 import pl.lk.toyotacompanion.core.domain.toBigDecimal
 
 /** Shortest trip that counts: below it the average speed says more about the car park than the road. */
 const val TRAFFIC_MIN_KM = 2.0
 
-/** Upper bounds (km/h, exclusive) of [TrafficClass.SLOW], [TrafficClass.CITY] and [TrafficClass.FLOWING]. */
-const val TRAFFIC_SLOW_BELOW = 15.0
-const val TRAFFIC_CITY_BELOW = 25.0
-const val TRAFFIC_FLOWING_BELOW = 40.0
-
 /** How many trips both ends of the comparison need before the surcharge is stated. */
 const val TRAFFIC_MIN_COMPARE_TRIPS = 10
-
-/** Speed band of a trip - an indirect measure of traffic, not a reading of it (docs/SPEC.md §22). */
-enum class TrafficClass { SLOW, CITY, FLOWING, HIGHWAY }
 
 /** One row of the "Tempo jazdy a spalanie" summary. */
 data class TrafficSummary(
@@ -41,12 +35,7 @@ fun trafficClassOf(speedKmh: Double): TrafficClass {
     return bandOf(speedKmh)
 }
 
-internal fun bandOf(speedKmh: Double): TrafficClass = when {
-    speedKmh < TRAFFIC_SLOW_BELOW -> TrafficClass.SLOW
-    speedKmh < TRAFFIC_CITY_BELOW -> TrafficClass.CITY
-    speedKmh < TRAFFIC_FLOWING_BELOW -> TrafficClass.FLOWING
-    else -> TrafficClass.HIGHWAY
-}
+internal fun bandOf(speedKmh: Double): TrafficClass = trafficBandOf(speedKmh)
 
 internal fun usable(stored: StoredTrip): Double? {
     val speed = stored.record.averageSpeed ?: return null

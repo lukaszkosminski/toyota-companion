@@ -3,6 +3,7 @@ package pl.lk.toyotacompanion.ui
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.ZoneId
+import pl.lk.toyotacompanion.core.domain.TrafficClass
 import pl.lk.toyotacompanion.core.data.SyncErrorKind
 import pl.lk.toyotacompanion.core.data.SyncStatus
 import pl.lk.toyotacompanion.core.sync.ArchiveImportCounts
@@ -606,6 +607,52 @@ object Texts {
     fun consumptionRising(change: String): String = Lang.pick("Trend: ↗ rosnące ($change %)", "Trend: ↗ rising ($change %)")
     fun consumptionFalling(change: String): String = Lang.pick("Trend: ↘ malejące ($change %)", "Trend: ↘ falling ($change %)")
     fun consumptionSteady(change: String): String = Lang.pick("Trend: → stabilne ($change %)", "Trend: → steady ($change %)")
+
+    // Kalkulator kosztu planowanej trasy (PRD F52, docs/SPEC.md §52).
+
+    val PLANNED_TITLE: String get() = Lang.pick("Kalkulator trasy", "Trip cost calculator")
+    val PLANNED_HINT: String get() = Lang.pick(
+        "Kilometry i rodzaj jazdy: przedział z twoich tras tego rodzaju, nie prognoza.",
+        "Kilometres and the kind of drive: a range from your own trips of that kind, not a forecast.",
+    )
+    val PLANNED_KM_LABEL: String get() = Lang.pick("Kilometry", "Kilometres")
+    val PLANNED_KIND_LABEL: String get() = Lang.pick("Rodzaj jazdy", "Kind of drive")
+    val PLANNED_BAD_KM: String get() = Lang.pick("Wpisz kilometry, np. 12,5 (od 0 do 5000).", "Enter kilometres, e.g. 12.5 (from 0 to 5000).")
+    val PLANNED_NO_PRICE: String get() = Lang.pick(
+        "Brak ceny paliwa – ustaw cenę domyślną w Opcjach. Pokazane są same litry.",
+        "No fuel price – set the default price in Options. Only litres are shown.",
+    )
+
+    /** The kind of drive on a button of the calculator: the short names of [drivingType]. */
+    fun plannedKind(cls: TrafficClass): String = when (cls) {
+        TrafficClass.SLOW -> Lang.pick("wolno", "slow")
+        TrafficClass.CITY -> Lang.pick("miasto", "city")
+        TrafficClass.FLOWING -> Lang.pick("płynnie", "flowing")
+        TrafficClass.HIGHWAY -> Lang.pick("trasa", "highway")
+    }
+
+    /** `ok. 0,5–0,7 l · 3–4 zł`, or without the money part when there is no price. */
+    fun plannedResult(litres: String, money: String?): String {
+        val text = Lang.pick("ok. $litres", "approx. $litres")
+        return if (money == null) text else text + SEPARATOR + money
+    }
+
+    /** `z 37 podobnych tras`: the trips of a similar length the range came from (the count is at least ten). */
+    fun plannedSimilar(count: Int): String = Lang.pick(
+        "z ${TripsFormatting.count(count)} podobnych tras",
+        "from ${TripsFormatting.count(count)} similar trips",
+    )
+
+    /** `z 212 tras tego rodzaju (za mało podobnej długości)`: the whole kind, because too few trips have a similar length. */
+    fun plannedWholeKind(count: Int): String = Lang.pick(
+        "z ${TripsFormatting.count(count)} tras tego rodzaju (za mało podobnej długości)",
+        "from ${TripsFormatting.count(count)} trips of this kind (too few of a similar length)",
+    )
+
+    fun plannedTooFew(count: Int, minimum: Int): String = Lang.pick(
+        "za mało tras tego rodzaju: $count z $minimum",
+        "too few trips of this kind: $count of $minimum",
+    )
 
     // Krótkie trasy i zimny silnik (PRD F50, docs/SPEC.md §50).
 

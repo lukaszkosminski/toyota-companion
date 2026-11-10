@@ -2,6 +2,14 @@ package pl.lk.toyotacompanion.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
@@ -23,13 +31,15 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
+import pl.lk.toyotacompanion.core.domain.TrafficClass
 import pl.lk.toyotacompanion.core.domain.PeriodStats
 import pl.lk.toyotacompanion.core.domain.COLD_GAP_HOURS
+import pl.lk.toyotacompanion.core.domain.PlannedTripResult
+import pl.lk.toyotacompanion.core.domain.plannedTripCost
 import pl.lk.toyotacompanion.core.domain.LengthBand
 import pl.lk.toyotacompanion.core.domain.ShortTripSummary
 
@@ -71,6 +81,9 @@ fun StatsScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                // The trip cost calculator on top (PRD F52, docs/SPEC.md §52): the newest tool, before the figures of the archive.
+                item { PlannedTripCard(view) }
+
                 item {
                     DashboardCard(Texts.STATS_EV_SECTION, AppIcons.Bolt) {
                         val share = view.evShare
@@ -237,6 +250,53 @@ fun StatsScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * The trip cost calculator (PRD F52, docs/SPEC.md §52): kilometres, one of four kinds of drive, and the range from the own archive. The
+ * kind starts at the one with the most trips; a price comes from the last priced trip or the default price.
+ */
+@Composable
+private fun PlannedTripCard(view: StatsView) {
+    var km by rememberSaveable { mutableStateOf("") }
+    var band by rememberSaveable { mutableStateOf(view.planDefaultBand ?: TrafficClass.FLOWING) }
+    val parsed = PlannedTripFormatting.parseKm(km)
+    val result = parsed?.let { plannedTripCost(view.planSamples, it, band, view.planPrice) }
+    DashboardCard(Texts.PLANNED_TITLE, AppIcons.Route) {
+        Text(Texts.PLANNED_HINT, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        OutlinedTextField(
+            value = km,
+            onValueChange = { km = it },
+            label = { Text(Texts.PLANNED_KM_LABEL) },
+            singleLine = true,
+            isError = km.isNotBlank() && parsed == null,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(Texts.PLANNED_KIND_LABEL, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // Four buttons on one row, each with one short word, so they fit a 360 dp screen (C32).
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+            TrafficClass.entries.forEach { cls ->
+                FilterChip(
+                    selected = band == cls,
+                    onClick = { band = cls },
+                    label = { Text(Texts.plannedKind(cls), maxLines = 1, softWrap = false) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        when (val r = result) {
+            null -> Unit
+            is PlannedTripResult.Range -> {
+                Text(PlannedTripFormatting.headline(r.range), style = MaterialTheme.typography.titleMedium)
+                Text(PlannedTripFormatting.helper(r.range), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (r.range.costLow == null) {
+                    Text(Texts.PLANNED_NO_PRICE, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            else -> PlannedTripFormatting.notRange(r)?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
         }
     }
 }

@@ -2,6 +2,7 @@ package pl.lk.toyotacompanion.ui
 
 import java.math.BigDecimal
 import java.math.RoundingMode
+import pl.lk.toyotacompanion.core.domain.TrafficClass
 import pl.lk.toyotacompanion.core.data.StoredTrip
 import pl.lk.toyotacompanion.core.domain.DayWeather
 import pl.lk.toyotacompanion.core.domain.TemperatureBucket

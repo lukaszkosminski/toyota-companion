@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import java.math.BigDecimal
 import java.math.RoundingMode
+import pl.lk.toyotacompanion.core.domain.TrafficClass
 import pl.lk.toyotacompanion.core.domain.TemperatureBucket
 import pl.lk.toyotacompanion.core.domain.WeatherBucketStats
 import pl.lk.toyotacompanion.core.domain.WeatherImpact

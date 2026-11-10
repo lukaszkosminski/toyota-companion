@@ -20,6 +20,11 @@ import pl.lk.toyotacompanion.core.domain.PeriodStats
 import pl.lk.toyotacompanion.core.domain.ShortTripSummary
 import pl.lk.toyotacompanion.core.domain.aggregateElectricShare
 import pl.lk.toyotacompanion.core.domain.electricTripRanking
+import pl.lk.toyotacompanion.core.domain.PlanSample
+import pl.lk.toyotacompanion.core.domain.TrafficClass
+import pl.lk.toyotacompanion.core.domain.toBigDecimal
+import pl.lk.toyotacompanion.core.domain.trafficBandOf
+import pl.lk.toyotacompanion.core.domain.mostDrivenBand
 import pl.lk.toyotacompanion.core.domain.periodStats
 import pl.lk.toyotacompanion.core.domain.shortTripSummary
 import pl.lk.toyotacompanion.core.domain.yearOverYear
@@ -48,6 +53,12 @@ data class StatsView(
     val evWeeks: List<EvWeek>,
     /** Trips by length band and the cold start (PRD F50, docs/SPEC.md §50). */
     val shortTrips: ShortTripSummary,
+    /** The samples of the trip cost calculator (PRD F52, SPEC §52): distance, litres and kind of every usable trip, no positions. */
+    val planSamples: List<PlanSample>,
+    /** The price the calculator uses: the last priced trip, else the default price, `null` without either. */
+    val planPrice: BigDecimal?,
+    /** The kind the calculator starts with: the one with the most trips. */
+    val planDefaultBand: TrafficClass?,
 )
 
 /**
@@ -67,6 +78,8 @@ class StatsController(
     private val zone: () -> ZoneId,
     private val scope: CoroutineScope,
     private val io: CoroutineDispatcher,
+    /** The stored default fuel price (docs/SPEC.md §12); read on [io] with the trips. */
+    private val defaultPrice: () -> BigDecimal? = { null },
 ) {
     private val ui = MutableStateFlow(StatsUiState())
     val state: StateFlow<StatsUiState> = ui.asStateFlow()
@@ -83,7 +96,7 @@ class StatsController(
         loadJob?.cancel()
         loadJob = scope.launch {
             val result: Result<StatsView> = try {
-                Result.success(withContext(io) { computeStats(read(), zone()) })
+                Result.success(withContext(io) { computeStats(read(), zone(), defaultPrice()) })
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -112,12 +125,13 @@ class StatsController(
 }
 
 /** The pure part of [StatsController]: one pass of the domain functions over the trips. */
-fun computeStats(stored: List<StoredTrip>, zone: ZoneId): StatsView {
+fun computeStats(stored: List<StoredTrip>, zone: ZoneId, defaultPrice: BigDecimal? = null): StatsView {
     val trips = stored.map { it.record.trip }
     val costs = stored.mapNotNull { it.cost }
     val yoy = yearOverYear(trips, costs, zone)
     val places = knownPlaces(parkingLogOf(stored), zone)
     val traffic = trafficSummaries(stored)
+    val plan = planSamples(stored)
     return StatsView(
         evShare = aggregateElectricShare(trips),
         ranking = electricTripRanking(trips),
@@ -135,5 +149,20 @@ fun computeStats(stored: List<StoredTrip>, zone: ZoneId): StatsView {
         tripTotal = stored.size,
         evWeeks = evByWeek(stored, zone),
         shortTrips = shortTripSummary(trips, costs),
+        planSamples = plan,
+        planPrice = lastPlanPrice(stored) ?: defaultPrice,
+        planDefaultBand = mostDrivenBand(plan),
     )
 }
+
+/** The calculator's samples: every trip the speed bands count (≥ 2 km, a speed, fuel ≥ 0), with its kind of drive (PRD F52). */
+internal fun planSamples(stored: List<StoredTrip>): List<PlanSample> = stored.mapNotNull { trip ->
+    val speed = usable(trip) ?: return@mapNotNull null
+    PlanSample(toBigDecimal(trip.record.trip.distanceKm), trip.record.trip.fuelL, trafficBandOf(speed))
+}
+
+/** The price of the newest trip that has one (PRD F52): a priced trip is one with an amount and not `NONE`. */
+internal fun lastPlanPrice(stored: List<StoredTrip>): BigDecimal? = stored
+    .filter { !hasNoCost(it.cost) && it.cost?.pricePerLiter != null }
+    .maxWithOrNull(compareBy({ it.record.trip.start }, { it.record.id }))
+    ?.cost?.pricePerLiter

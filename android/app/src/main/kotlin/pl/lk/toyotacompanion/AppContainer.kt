@@ -530,7 +530,13 @@ class AppContainer(
 
     /** Electric share, years and seasons of the selected vehicle (PRD F10, F11, docs/SPEC.md §16-§17). */
     val statsController: StatsController by lazy {
-        StatsController(read = tripsLoader, zone = { ZoneId.systemDefault() }, scope = uiScope, io = Dispatchers.IO)
+        StatsController(
+            read = tripsLoader,
+            zone = { ZoneId.systemDefault() },
+            scope = uiScope,
+            io = Dispatchers.IO,
+            defaultPrice = { settingsStore.defaultPrice() },
+        )
     }
 
     /** The refuel forecast of the status screen (PRD F14, docs/SPEC.md §20). */

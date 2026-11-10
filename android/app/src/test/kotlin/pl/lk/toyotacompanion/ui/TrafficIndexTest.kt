@@ -5,6 +5,7 @@ import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import org.junit.Test
+import pl.lk.toyotacompanion.core.domain.TrafficClass
 import pl.lk.toyotacompanion.core.data.StoredTrip
 import pl.lk.toyotacompanion.core.data.TripRecord
 import pl.lk.toyotacompanion.core.domain.CostSource

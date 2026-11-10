@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Kalkulator kosztu planowanej trasy (F52, SPEC §52, plan C33): na górze „Statystyk” wpisujesz kilometry i wybierasz rodzaj jazdy (cztery pasma tempa), a aplikacja pokazuje przedział litrów i zł z własnych tras tego rodzaju (kwartyle P25–P75 l/100 km; populacja: trasy o długości 0,5–2× wpisanych km, gdy ich co najmniej 10); cena z ostatniej wycenionej trasy albo ceny domyślnej; tylko lokalne archiwum
 
 ## 0.2.7 (2026-11-10)
 - Maskowanie sekretów w komunikatach i diagnostyce (`ToyotaSecrets.sanitize`): zasłaniane są też goły `token=`, klucze kończące się na `token`, `password`, `secret` (`accessToken`, `refreshToken`, `client_secret`, `sessiontoken`) i poświadczenie po schemacie w nagłówku (`Authorization: Bearer …` → `Authorization: REDACTED`, samo `Bearer …` → `Bearer REDACTED`); zwykłe słowo „token” w zdaniu zostaje
