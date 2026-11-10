@@ -68,11 +68,10 @@ object EvWeeksFormatting {
     fun weekLabel(week: EvWeek): String =
         week.weekStart.dayOfMonth.toString().padStart(2, '0') + "." + week.weekStart.monthValue.toString().padStart(2, '0')
 
-    /** `13.10: 62 % na prądzie · 41,2 z 66,5 km · 98 min · trasy: 9`. */
-    fun line(week: EvWeek): String = listOfNotNull(
-        weekLabel(week) + ": " + Texts.evOnBattery(TripsFormatting.number(week.evSharePct, 0)),
-        TripsFormatting.number(week.evKm, 1) + Lang.pick(" z ", " of ") + TripsFormatting.number(week.distanceKm, 1) + " km",
-        week.evMinutes?.let { Texts.evMinutes(it) },
-        Texts.statsTrips(week.trips),
-    ).joinToString(Texts.SEPARATOR)
+    /** `od 13.10 · 41,2 z 66,5 km · 9 tras`: the week, the electric km of all km and the trips. The minutes stay in [EvWeek] but are not listed. */
+    fun line(week: EvWeek): String =
+        Texts.evWeekLine(weekLabel(week), TripsFormatting.number(week.evKm, 1), TripsFormatting.number(week.distanceKm, 1), week.trips)
+
+    /** `62 %`, the share on the right of the row. */
+    fun share(week: EvWeek): String = TripsFormatting.number(week.evSharePct, 0) + " %"
 }

@@ -37,7 +37,7 @@ class VehicleDataFormattingTest {
         assertEquals(
             listOf(
                 ComponentLine("Kierowca", "zamknięte · zablokowane"),
-                ComponentLine("Bagażnik", "otwarte · odblokowane"),
+                ComponentLine("Bagażnik", "otwarte · odblokowane", deviation = true),
                 ComponentLine("Maska", "zamknięte"),
             ),
             doorLines(status),
@@ -53,7 +53,7 @@ class VehicleDataFormattingTest {
             ),
         )
 
-        assertEquals(listOf(ComponentLine("Pasażer", "zamknięte"), ComponentLine("Tył prawy", "otwarte")), windowLines(status))
+        assertEquals(listOf(ComponentLine("Pasażer", "zamknięte"), ComponentLine("Tył prawy", "otwarte", deviation = true)), windowLines(status))
         assertEquals(emptyList(), doorLines(VehicleStatus()))
         assertEquals(emptyList(), windowLines(VehicleStatus()))
     }
@@ -63,7 +63,7 @@ class VehicleDataFormattingTest {
         Lang.current = AppLanguage.EN
         try {
             val line = doorLines(VehicleStatus(doors = mapOf(DoorPosition.REAR_LEFT to ComponentState(isOpen = false, isLocked = false))))
-            assertEquals(listOf(ComponentLine("Rear left", "closed · unlocked")), line)
+            assertEquals(listOf(ComponentLine("Rear left", "closed · unlocked", deviation = true)), line)
             assertEquals("no data", componentStateText(ComponentState()))
         } finally {
             Lang.current = AppLanguage.PL

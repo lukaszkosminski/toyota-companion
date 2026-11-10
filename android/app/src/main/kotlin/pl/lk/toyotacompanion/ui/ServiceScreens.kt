@@ -2,6 +2,7 @@ package pl.lk.toyotacompanion.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -10,6 +11,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
 import pl.lk.toyotacompanion.core.domain.ServiceHistory
@@ -24,6 +26,15 @@ import pl.lk.toyotacompanion.core.domain.ToyotaNotification
 @Composable
 private fun DetailLine(text: String) {
     Text(text, style = MaterialTheme.typography.bodyMedium)
+}
+
+/** A label on the left and its value on the right; a long value (the operations) wraps inside its own column. */
+@Composable
+private fun DetailRow(detail: ServiceDetail) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(detail.label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(detail.value, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
+    }
 }
 
 @Composable
@@ -56,16 +67,8 @@ fun ServiceHistoryScreen(
                 val row = serviceRow(record)
                 DashboardCard(row.title, AppIcons.History) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-                        row.mileage?.let { DetailLine(it) }
-                        row.category?.let { DetailLine(it) }
-                        DetailLine("${Texts.SERVICE_DEALER}: ${row.dealer}")
-                        val operations = row.operations
-                        if (operations == null) {
-                            // The field is untyped in the reference: no readable list, so no guessed one.
-                            MutedLine(Texts.SERVICE_NO_OPERATIONS)
-                        } else {
-                            operations.forEach { MutedLine(it) }
-                        }
+                        // Label left, value right; the operations are untyped in the reference: no list, no guessed one.
+                        serviceDetails(row).forEach { DetailRow(it) }
                     }
                 }
             }

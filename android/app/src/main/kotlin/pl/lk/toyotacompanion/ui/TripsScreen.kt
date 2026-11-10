@@ -118,6 +118,8 @@ fun TripsScreen(
             )
         },
     ) { innerPadding ->
+        // The price per litre is told where it changes, not on every row (docs/SPEC.md §10.3).
+        val priceShown = remember(load) { (load as? TripsLoad.Ready)?.let { tripIdsWithPriceLine(it.groups) }.orEmpty() }
         when (val current = load) {
             TripsLoad.Loading -> Box(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
@@ -159,7 +161,7 @@ fun TripsScreen(
                         MonthHeader(group)
                     }
                     items(group.trips, key = { it.record.id }) { stored ->
-                        TripRow(stored, zone, days[stored.record.id], onShowMap)
+                        TripRow(stored, zone, days[stored.record.id], onShowMap, stored.record.id in priceShown)
                     }
                 }
             }
@@ -200,7 +202,7 @@ private fun MonthHeader(group: MonthGroup) {
 
 /** One row: when the car drove, how far, how much fuel and what it cost. */
 @Composable
-private fun TripRow(stored: StoredTrip, zone: ZoneId, day: pl.lk.toyotacompanion.core.weather.WeatherDay?, onShowMap: (List<MapPoint>, String?) -> Unit) {
+private fun TripRow(stored: StoredTrip, zone: ZoneId, day: pl.lk.toyotacompanion.core.weather.WeatherDay?, onShowMap: (List<MapPoint>, String?) -> Unit, showPrice: Boolean = true) {
     val trip = stored.record.trip
     val cost = stored.cost
     val record = stored.record
@@ -255,7 +257,7 @@ private fun TripRow(stored: StoredTrip, zone: ZoneId, day: pl.lk.toyotacompanion
                     color = if (hasNoCost(cost)) MaterialTheme.colorScheme.onSurfaceVariant else Palette.Green,
                 )
                 // Price per litre under the cost; "cena domyślna" rides on the same line (§10.3).
-                val priceLine = TripsFormatting.priceLine(stored)
+                val priceLine = if (showPrice) TripsFormatting.priceLine(stored) else null
                 if (priceLine != null) {
                     Text(priceLine, style = MaterialTheme.typography.bodySmall)
                 }

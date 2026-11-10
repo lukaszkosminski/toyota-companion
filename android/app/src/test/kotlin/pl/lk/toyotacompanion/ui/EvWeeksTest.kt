@@ -79,10 +79,12 @@ class EvWeeksTest {
     }
 
     @Test
-    fun `the text names the week, the share, the km and the minutes`() {
+    fun `the text names the week, the km and the trips and the share stands apart`() {
         val week = evByWeek(trips, WARSAW).first()
         assertEquals("26.10", EvWeeksFormatting.weekLabel(week))
-        assertEquals("26.10: 72 % na prądzie · 36,0 z 50,0 km · 40 min na prądzie · trasy: 3", EvWeeksFormatting.line(week))
+        // The minutes on battery are no longer in the list (C32 U16); the share is the right-hand value of the row.
+        assertEquals("od 26.10 · 36,0 z 50,0 km · 3 trasy", EvWeeksFormatting.line(week))
+        assertEquals("72 %", EvWeeksFormatting.share(week))
         assertTrue(Texts.EV_WEEKS_HINT.contains("12 V"))
     }
 }

@@ -120,6 +120,21 @@ fun WeatherScreen(controller: WeatherController, onBack: () -> Unit) {
                     }
                 }
 
+                // The trips and kilometres the weather split covers, once for the whole screen instead of under each chart (C32 U11).
+                val covered = view.temperature.buckets
+                if (covered.isNotEmpty()) {
+                    item {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            StatTile(TripsFormatting.count(covered.sumOf { it.trips }), Texts.STAT_TRIPS, Palette.Blue, Modifier.weight(1f))
+                            StatTile(
+                                TripsFormatting.number(covered.fold(BigDecimal.ZERO) { sum, bucket -> sum + bucket.distanceKm }, 0),
+                                "km",
+                                Palette.Violet,
+                                Modifier.weight(1f),
+                            )
+                        }
+                    }
+                }
                 item { ImpactCard(Texts.WEATHER_BY_TEMPERATURE, AppIcons.Thermostat, view.temperature) }
                 item { ImpactCard(Texts.WEATHER_BY_RAIN, AppIcons.Rainy, view.precipitation) }
                 item { MatrixCard(view.matrix) }
@@ -153,15 +168,6 @@ private fun ImpactCard(title: String, icon: ImageVector, impact: WeatherImpact) 
         if (impact.buckets.isEmpty()) {
             Text(Texts.WEATHER_NO_DATA)
         } else {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatTile(impact.buckets.sumOf { it.trips }.toString(), Texts.STAT_TRIPS, Palette.Blue, Modifier.weight(1f))
-                StatTile(
-                    TripsFormatting.number(impact.buckets.fold(BigDecimal.ZERO) { sum, bucket -> sum + bucket.distanceKm }, 0),
-                    "km",
-                    Palette.Violet,
-                    Modifier.weight(1f),
-                )
-            }
         }
         for (bucket in impact.buckets) BucketRow(bucket)
         if (impact.tripsWithoutWeather > 0) {
@@ -190,12 +196,13 @@ private fun BucketRow(bucket: WeatherBucketStats) {
                 Text(WeatherFormatting.bucketLine(bucket), style = MaterialTheme.typography.bodyMedium)
             }
             bucket.lPer100Km?.let {
-                Text(TripsFormatting.number(it, 2), style = MaterialTheme.typography.titleMedium, color = readable(color))
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(TripsFormatting.number(it, 2), style = MaterialTheme.typography.titleMedium, color = readable(color))
+                    Text("l/100 km", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
-        WeatherFormatting.bucketNote(bucket)?.let {
-            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        Text(WeatherFormatting.bucketDetails(bucket), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         // The share of the battery explains part of every gap, so it is shown as a meter of its own (§16).
         val ev = WeatherFormatting.evShare(bucket)
         if (ev != null && bucket.distanceKm.signum() > 0) {

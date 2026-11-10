@@ -77,3 +77,24 @@ fun groupTripsByMonth(trips: List<StoredTrip>, zone: ZoneId): List<MonthGroup> {
             MonthGroup(month, group.toList(), km, liters, cost, missing, co2Kg(liters))
         }
 }
+
+/**
+ * The trips whose row shows the price per litre (docs/SPEC.md §10.3): the line under the cost says `6,30 zł/l` only when it differs from the
+ * line of the chronologically previous trip (by start, then id, across months), and always on the oldest trip of each month, so a reader
+ * who opens a month sees the price once. A trip with no price line (no price) shows none; "cena domyślna" is part of the line, so a change
+ * between a refuel price and the default one counts as a change.
+ */
+fun tripIdsWithPriceLine(groups: List<MonthGroup>): Set<String> {
+    val ordered = groups.flatMap { it.trips }.sortedWith(compareBy({ it.record.trip.start }, { it.record.id }))
+    val oldestOfMonth = groups.mapNotNull { group ->
+        group.trips.minWithOrNull(compareBy({ it.record.trip.start }, { it.record.id }))?.record?.id
+    }.toSet()
+    val shown = LinkedHashSet<String>()
+    var previous: String? = null
+    for (stored in ordered) {
+        val line = TripsFormatting.priceLine(stored)
+        if (line != null && (stored.record.id in oldestOfMonth || previous == null || line != previous)) shown += stored.record.id
+        previous = line
+    }
+    return shown
+}

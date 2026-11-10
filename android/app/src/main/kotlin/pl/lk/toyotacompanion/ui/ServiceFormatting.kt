@@ -23,6 +23,21 @@ data class ServiceRow(
     val operations: List<String>?,
 )
 
+/** One label-value row of a service record (docs/SPEC.md §45). */
+data class ServiceDetail(val label: String, val value: String)
+
+/**
+ * The rows under the date of a record, each as label and value: "Przebieg", "Kategoria (kod Toyoty)", "Dealer" and "Czynności". Mileage and
+ * category are left out when Toyota sent none; the dealer says "brak danych" and the operations say that no description came. The category
+ * is shown as Toyota's code (`MNT`, `VDE`): the meaning of the codes is not documented, so none is guessed.
+ */
+fun serviceDetails(row: ServiceRow): List<ServiceDetail> = listOfNotNull(
+    row.mileage?.let { ServiceDetail(Texts.SERVICE_MILEAGE_LABEL, it) },
+    row.category?.let { ServiceDetail(Texts.SERVICE_CATEGORY_LABEL, it) },
+    ServiceDetail(Texts.SERVICE_DEALER, row.dealer),
+    ServiceDetail(Texts.SERVICE_OPERATIONS_LABEL, row.operations?.joinToString("\n") ?: Texts.SERVICE_NO_OPERATIONS_SHORT),
+)
+
 /** `12.03.2026`, or "brak daty" when Toyota sent none. */
 fun serviceDateText(date: LocalDate?): String = if (date == null) {
     Texts.SERVICE_NO_DATE

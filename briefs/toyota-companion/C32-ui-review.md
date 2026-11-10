@@ -68,3 +68,17 @@ oraz motyw ciemny (status, siatka kafelków, Statystyki) – motyw ciemny bez uw
 
 Sekcja A (U1–U7, U10) poprawiona przez agenta 2 i sprawdzona na emulatorze 2026-11-10; U5: kwota mieści się w jednej
 linii mniejszą czcionką, kafelki w rzędzie różnią się wysokością o kilka pikseli.
+
+## D. Stan wdrożenia (agent 2, 2026-11-10)
+
+Właściciel zatwierdził U13, U8, U9, U11, U12, U14, U16, U17 (decyzje w poleceniu agenta głównego). Wdrożone w kodzie, do sprawdzenia na emulatorze:
+
+- **U13** – `StatusScreen.kt`: menu kafelków i przypomnienie o kopii zaraz pod przyciskami, karty (Prognoza, Spalanie, Cel, Koszty, Budżet) pod nimi; linia „Ostatnia kopia archiwum” zostaje przy kafelkach.
+- **U8** – `VehicleDataFormatting.kt` (`locationNameText`, `locationTimeLines`, `knownPlaceNear` z istniejącym `distanceMeters`), `RemoteDataScreens.kt`, `AppRoot.kt` (miejsca z `loadTrips`, tylko w pamięci). Z referencji pytoyoda
+  wynika tylko, że `displayName` to „human-readable name”; potwierdzona wartość jest jedna (`Last Parked`), więc tylko ona jest tłumaczona.
+- **U9** – `ServiceFormatting.kt` (`serviceDetails`), `ServiceScreens.kt`: wiersze Przebieg / Kategoria (kod Toyoty) / Dealer / Czynności; kodów nie tłumaczymy.
+- **U11** – `WeatherScreen.kt`, `WeatherFormatting.kt`: kafelki raz na górze; wiersz koszyka „24 trasy · 312,4 km”, l/100 km po prawej z jednostką, zł/100 km w linii pomocniczej.
+- **U12** – `TripsGrouping.kt` (`tripIdsWithPriceLine`), `TripsScreen.kt`: cena za litr przy zmianie i przy najstarszej trasie miesiąca.
+- **U14** – `RemoteDataScreens.kt`: karta „Stan techniczny” w „Stanie pojazdu” z osobnym odczytem i błędem; kafelek, ekran i `Screen.VehicleHealth` usunięte; tekst bez „backend”.
+- **U16** – `EvWeeks.kt`, `StatsScreen.kt`, `ChartKit.kt` (`MeterRow` z etykietą na resztę szerokości): jeden wiersz na tydzień, minuty poza listą.
+- **U17** – `VehicleDataFormatting.kt` (`vehicleSummary`, `isDeviation`), `RemoteDataScreens.kt`: zdanie na górze karty, odstępstwa pogrubione w kolorze ostrzeżenia.

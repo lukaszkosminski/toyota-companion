@@ -246,7 +246,6 @@ fun AppRoot(
                         },
                         onShowVehicleStatus = { screen = Screen.VehicleStatus },
                         onShowLocation = { screen = Screen.Location },
-                        onShowVehicleHealth = { screen = Screen.VehicleHealth },
                         onShowServiceHistory = { screen = Screen.ServiceHistory },
                         onShowNotifications = { screen = Screen.Notifications },
                         onShowDiagnostics = { screen = Screen.Diagnostics },
@@ -334,6 +333,7 @@ fun AppRoot(
 
                     Screen.VehicleStatus -> VehicleStatusScreen(
                         controller = vehicleStatus,
+                        healthController = vehicleHealth,
                         onBack = { screen = Screen.Status },
                     )
 
@@ -341,11 +341,12 @@ fun AppRoot(
                         controller = location,
                         // The map opens only after a tap, with this one exact point (docs/SECURITY.md).
                         onShowMap = { points -> showMap(Screen.Location, points, null, exact = true) },
-                        onBack = { screen = Screen.Status },
-                    )
-
-                    Screen.VehicleHealth -> VehicleHealthScreen(
-                        controller = vehicleHealth,
+                        // Home and work from the archive, only to name the position; computed in memory (ADR-022).
+                        findPlaces = {
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                knownPlaces(parkingLogOf(loadTrips()), ZoneId.systemDefault())
+                            }
+                        },
                         onBack = { screen = Screen.Status },
                     )
 

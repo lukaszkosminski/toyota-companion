@@ -1,16 +1,21 @@
-# Stan prac (2026-11-08)
+# Stan prac (2026-11-10)
 
-## Skrót – 2026-11-08
-- Wydania na GitHub Releases: v0.2.0 (06.11), v0.2.1 i v0.2.2 (08.11); APK ok. 4,3 MB (R8, ADR-017), podpisany kluczem wydań,
-  mapping R8 jako artefakt workflow `Release`. Telefon: „Opcje” → „Sprawdź aktualizacje”.
-- PRD F1–F39 gotowe (w tym F37 wydatki, F38 koszt całkowity, F39 cele eco); w toku: F40 (autostrada i przekroczenia prędkości,
-  Room v6) i ekrany stanu pojazdu, lokalizacji i stanu technicznego (SPEC §42–§44) – patrz ROADMAP „NOW”.
-- Testy (main 1c05d4d): core 405, app 653, Python 171; lint 0 problemów; CI: ruff/mypy/pytest, testy Androida, build release z R8,
-  lint, gitleaks.
-- Przegląd jakości C22 (briefs/toyota-companion/C22-quality-review.md): zrobione Q1–Q7; zostały drobne D2–D14.
+## Skrót – 2026-11-10
+- Wydania na GitHub Releases: v0.2.0 (06.11), v0.2.1–v0.2.4 (08.11), v0.2.5 i v0.2.6 (09.11); workflow `Release`
+  publikuje podpisany APK i mapping R8 jako artefakt. Telefon: „Opcje” → „Sprawdź aktualizacje”.
+- Po v0.2.6 na `main`, bez nowego wydania: budżet miesięczny i powiadomienie budżetowe (F48–F49, SPEC §49, commity
+  `c7022a0` i `84bad7f`), czytelność podstron z przeglądu C32 (`2f490e4`) i ślad CO₂ (F51, SPEC §51, `7dfebcc`).
+  F50 (krótkie trasy i zimny silnik) ma tylko plan `briefs/toyota-companion/C30-plan.md`.
+- Testy według walidacji agenta głównego z 10.11: core 458, app 853, Python 198; lint 0 problemów. CI: ruff/mypy/pytest, testy Androida, build release z R8, lint, gitleaks.
+- Przegląd UI C32 i propozycje dla właściciela: `briefs/toyota-companion/C32-ui-review.md`; poprawki U1–U7 i U10
+  w commicie `2f490e4`, propozycje 1–8 (U8, U9, U11–U14, U16, U17) w następnym commicie (motyw ciemny bez uwag;
+  nie obejrzano języka EN, większej czcionki i ekranu 360 dp). Emulator 10.11: 592 trasy, tankowanie z 08.11 nadal czeka.
+- ROADMAP „NEXT”: wydanie po v0.2.6 z F48–F49 na polecenie właściciela oraz lista funkcji zaakceptowanych 10.11
+  (m.in. kalkulator trasy, krótkie trasy, najlepsza godzina wyjazdu, podsumowanie okresowe, stacja przy tankowaniu,
+  import CSV, zdjęcie paragonu, utrata wartości, opony, odznaki eco); numeracja pozycji pomija 5.
 - Emulator `toyota36` ma zalogowane konto właściciela, 585 tras i jedno oczekujące tankowanie z 08.11 10:42 (cena do podania
   przez właściciela); ustawione przykładowe cele eco 4,5 l/100 km i 55 %. Kopia danych aplikacji z 08.11:
-  briefs/toyota-companion/emu-backup/2026-11-08/data.tar.
+  briefs/toyota-companion/emu-backup/2026-11-08/data.tar. (stan z 08.11, niezweryfikowany 10.11)
 
 
 ## Gotowe

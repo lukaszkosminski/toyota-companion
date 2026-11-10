@@ -34,13 +34,19 @@ private fun stats(
 /** docs/SPEC.md §23: the text of a weather bucket, in Polish and independent of the phone's locale. */
 class WeatherFormattingTest {
     @Test
-    fun `the line has trips, distance, consumption and price per 100 km`() {
-        assertEquals("trasy: 24 · 312,4 km · 4,38 l/100 km · 22,10 zł/100 km", WeatherFormatting.bucketLine(stats()))
+    fun `the line has only the trips and the distance so it fits a narrow screen`() {
+        assertEquals("24 trasy · 312,4 km", WeatherFormatting.bucketLine(stats()))
+        assertEquals("1 trasa · 312,4 km", WeatherFormatting.bucketLine(stats(trips = 1)))
+        assertEquals("5 tras · 312,4 km", WeatherFormatting.bucketLine(stats(trips = 5)))
     }
 
     @Test
-    fun `without a price the line says so`() {
-        assertTrue(WeatherFormatting.bucketLine(stats(cost100 = null)).endsWith(Texts.NO_PRICE))
+    fun `the price per 100 km moves to the helper line and without a price it says so`() {
+        assertEquals("22,10 zł/100 km", WeatherFormatting.bucketCost(stats()))
+        assertEquals(Texts.NO_PRICE, WeatherFormatting.bucketCost(stats(cost100 = null)))
+        assertEquals("22,10 zł/100 km · +0,61 l/100 km wobec odniesienia · na prądzie 50 %", WeatherFormatting.bucketDetails(stats(delta = "0.612")))
+        assertEquals("22,10 zł/100 km · na prądzie 50 %", WeatherFormatting.bucketDetails(stats()))
+        assertTrue(WeatherFormatting.bucketDetails(stats(cost100 = null)).startsWith(Texts.NO_PRICE))
     }
 
     @Test
@@ -64,7 +70,7 @@ class WeatherFormattingTest {
         try {
             for (locale in listOf(Locale.ROOT, Locale.US, Locale.GERMANY, Locale.forLanguageTag("tr-TR"))) {
                 Locale.setDefault(locale)
-                assertEquals("trasy: 24 · 312,4 km · 4,38 l/100 km · 22,10 zł/100 km", WeatherFormatting.bucketLine(stats()))
+                assertEquals("24 trasy · 312,4 km", WeatherFormatting.bucketLine(stats()))
             }
         } finally {
             Locale.setDefault(saved)

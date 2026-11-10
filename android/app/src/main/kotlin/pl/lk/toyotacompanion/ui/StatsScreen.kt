@@ -158,8 +158,10 @@ fun StatsScreen(
                                 height = 72.dp,
                             )
                             Text(Texts.EV_WEEKS_HINT, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            // One row per week: the text on the left, the share on the right and the bar under them (C32 U16).
                             view.evWeeks.asReversed().forEach { week ->
-                                Text(EvWeeksFormatting.line(week), style = MaterialTheme.typography.bodySmall)
+                                val share = week.evSharePct.toFloat() / 100f
+                                MeterRow(EvWeeksFormatting.line(week), EvWeeksFormatting.share(week), share, Palette.score(share))
                             }
                         }
                     }

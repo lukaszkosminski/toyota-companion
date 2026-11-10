@@ -274,6 +274,8 @@ API Toyoty, w tym `refresh_status()` (§9 wstęp, AGENTS.md).
 - `costPln == null` albo `source == NONE` -> „brak ceny”; `source == DEFAULT` -> dopisek „cena domyślna”.
 - Pod kosztem wiersza trasy: cena za litr (`TripsFormatting.priceLine`), a gdy `source == DEFAULT`
   to w tej samej linii po `Texts.SEPARATOR` dopisek „cena domyślna”; bez ceny zostaje tylko „brak ceny”.
+  Linia ceny pokazuje się tylko tam, gdzie się zmienia (`tripIdsWithPriceLine`): gdy różni się od linii chronologicznie poprzedniej trasy (po `(start, id)`, przez granice miesięcy),
+  oraz zawsze przy najstarszej trasie każdego miesiąca; „cena domyślna” jest częścią linii, więc przejście tankowanie ↔ cena domyślna to zmiana (C32 U12).
 - Nagłówek grupy: gdy suma kosztu jest `null` -> „brak ceny”; dopisek „bez ceny: N” tylko gdy `N > 0`.
 - Wszystkie teksty w `Texts`; żadnych Icons w UI.
 
@@ -308,12 +310,12 @@ Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – �
 - Kolejność: stan (chip świeżości, godzina ostatniej synchronizacji, linia „Telemetria: N odczytów”), liczniki w dwóch rzędach po dwa
   (Trasy / Poziom paliwa / Przebieg / Oczekujące tankowania),
   błąd synchronizacji (jeśli jest), przycisk ceny oczekującego tankowania (jeśli jest), przycisk „Synchronizuj teraz” na pełną szerokość
-  (gest przeciągnięcia w dół robi to samo), potem karty: „Prognoza” (🔮), „Spalanie” (⛽) i „Koszty miesięczne” (💰), na końcu menu.
+  (gest przeciągnięcia w dół robi to samo), potem **menu kafelków** (z przypomnieniem o kopii i linią „Ostatnia kopia archiwum”), a pod nim karty: „Prognoza” (🔮), „Spalanie” (⛽), cel miesiąca, „Koszty miesięczne” (💰) i budżet (C32 U13).
 - Karta to zaokrąglony kontener z ikoną i tytułem, jedno miejsce na odstępy, kształty i typografię (`DashboardCard`, `Headline`, `Pill`, `MenuTile` w `ui/Dashboard.kt`); kolory z motywu
   (jasny, ciemny i dynamiczny). Spalanie: duża liczba „4,13 l/100 km” z podpisem, trend jako kolorowa pigułka (rosnący – kolor błędu, malejący – kolor główny, stabilny – neutralny),
   słupki z zaokrąglonymi górami; kierunek trendu w pigułce pokazuje tylko ikona (tekst „rosnące (+8,2 %)” bez strzałki; strzałka zostaje w linii widżetu). Koszty: duża suma „1 182,89 zł”, słupki od zera, trzy najnowsze miesiące w szczegółach, reszta za „Pokaż wszystkie miesiące (N)”.
 - Menu to kafelki po dwa w rzędzie, o równej wysokości w rzędzie, z ikoną nad etykietą, każdy kafelek co najmniej 88 dp wysoki: Trasy, Dziennik tankowań, Statystyki, Styl jazdy,
-  Podsumowanie roku, Pogoda i spalanie, Wydatki, Postoje, Kopia i eksport oraz Opcje. Cena domyślna nie ma kafelka: to cena paliwa w baku przed pierwszym potwierdzonym tankowaniem (trasy sprzed niego i mieszanie z pierwszym tankowaniem, §4), więc jest w „Opcjach” (§12.3). Przypomnienie o kopii zostaje pod menu.
+  Podsumowanie roku, Pogoda i spalanie, Wydatki, Postoje, Stan pojazdu (ze „Stanem technicznym” jako kartą, §44), Lokalizacja, Historia serwisowa, Powiadomienia, Diagnostyka, Kopia i eksport oraz Opcje. Cena domyślna nie ma kafelka: to cena paliwa w baku przed pierwszym potwierdzonym tankowaniem (trasy sprzed niego i mieszanie z pierwszym tankowaniem, §4), więc jest w „Opcjach” (§12.3). Przypomnienie o kopii zostaje pod menu.
 - Liczby do wyświetlania grupują tysiące twardą spacją („1 182,89 zł”, „4 625,9 km”, „4 887 km”), żeby długa kwota nie łamała się w środku; jedna funkcja `TripsFormatting.number`
   (`count` dla liczników) obsługuje wszystkie ekrany i powiadomienia; eksport CSV i `plain` (też wartości wpisywane z powrotem w pola formularzy) nie grupują (C32 U4).
 - Kafelek liczby (`StatTile`) trzyma wartość w jednej linii: jednostka łączy się z liczbą twardą spacją, a za szeroka wartość zmniejsza czcionkę (do ok. 55 %) zamiast łamać „zł” do drugiej
@@ -795,6 +797,8 @@ Złączenie trasy z pogodą, pobieranie i ekran: `app/ui` (GPS, więc bez lustra
   nagłówków uwierzytelniających ani identyfikatorów; `User-Agent: toyota-companion`.
 - Prywatność: współrzędne startu trasy zaokrąglone do 0,01° (HALF_UP, ok. 1 km) – i w kluczu cache, i w żądaniu (klient
   zaokrągla jeszcze raz). Nigdy surowy GPS, VIN, konto, token ani id trasy. Ekran nie pokazuje położenia.
+- Ekran „Pogoda i spalanie”: kafelki „Trasy / km” raz, na górze (pod kartą pobierania), nie pod każdym wykresem; wiersz koszyka: nazwa, pod nią jedna krótka linia „24 trasy · 312,4 km”, po prawej duże l/100 km z podpisem jednostki,
+  a zł/100 km (albo „brak ceny”) idzie do linii pomocniczej pod wierszem razem z różnicą, udziałem prądu i ostrzeżeniem o małej próbie, żeby wiersz nie łamał się na 360 dp (C32 U11). Stopka z atrybucją ma własne tło i leży nad paskiem nawigacji systemu.
 - Przypisanie: trasa dostaje pogodę dnia (lokalna data startu w strefie telefonu) w punkcie startu. Brak współrzędnych (albo
   poza zakresem/NaN) lub brak wartości dla dnia → trasa „bez pogody”, liczona osobno, nie wpada do żadnego koszyka.
 - Koszyki (granice półotwarte): temperatura dnia (`temperature_2m_mean`) – silny mróz < −10, mróz −10…0, chłodno 0–10, łagodnie 10–20, ciepło ≥ 20 °C;
@@ -971,7 +975,8 @@ ekranie „Pogoda i spalanie” (§23).
 - Tydzień zaczyna się w poniedziałek (data lokalna startu trasy w strefie telefonu); 12 ostatnich tygodni, które mają trasy, od najstarszego; tydzień bez tras nie występuje. Do tygodnia wchodzą trasy z dodatnim,
   skończonym dystansem.
 - Na tydzień: liczba tras, km, km na prądzie (każda trasa przycięta do własnego dystansu; trasa bez danych o prądzie dodaje tylko km), udział w całych % oraz minuty na prądzie (suma `hdc.evTime`
-  tras, które go podają; bez żadnej – brak minut). Słupki: udział 0–100 % na stałej osi, pod słupkiem poniedziałek („26.10”, cały podpis; przy 12 słupkach na wąskim ekranie co drugi, patrz §10.4); pod słupkami lista tygodni od najnowszego.
+  tras, które go podają; bez żadnej – brak minut). Słupki: udział 0–100 % na stałej osi, pod słupkiem poniedziałek („26.10”, cały podpis; przy 12 słupkach na wąskim ekranie co drugi, patrz §10.4); pod słupkami lista tygodni od najnowszego: **jeden wiersz na tydzień** – po lewej „od 09.11 · 36,2 z 62,5 km · 7 tras” (liczba tras odmieniona),
+  po prawej udział („58 %”), pod spodem pasek udziału w kolorze oceny; minuty na prądzie zostają w modelu (`EvWeek.evMinutes`), ale nie są na liście (C32 U16).
 
 ## 37. Aktualizacja aplikacji z GitHuba (PRD F36, ADR-016)
 `core/update/AppUpdates.kt` (`GithubReleaseClient`, `AppVersion`), `app/ui/UpdateController.kt`, `app/update/AndroidApkInstaller.kt`, karta „Aktualizacja aplikacji” w „Opcjach”.
@@ -1061,7 +1066,9 @@ Domena: `core/domain/OwnershipOps.kt` (`ownershipCost`, `ownershipMonths`, model
 - Źródło: `GET /v1/vehicle/status` (pytoyoda `status.py:59-95`) – odczyt **cache w chmurze Toyoty**, bez `refresh_status()` i bez komend; auto nie jest budzone (AGENTS.md, PRD §6).
   Pola: `doors` (driver/passenger/rearLeft/rearRight/rearBack/hood) z `lockStatus`/`openStatus`, `windows` (4), `overallWarningCounts`, `lastUpdateTimestamp`.
 - Ekran z kafelka „Stan pojazdu” w menu statusu: odczyt **raz przy każdym otwarciu** (zwykły GET po dotknięciu), bez odpytywania w tle i bez `LaunchedEffect` z pętlą.
-  Karty: „Stan z …” + „Aktywne ostrzeżenia: N”, „Drzwi i maska”, „Okna”; części, których Toyota nie przysłała, po prostu nie ma na liście.
+  Karty: „Stan z …” + „Aktywne ostrzeżenia: N”, „Drzwi i maska”, „Okna” oraz „Stan techniczny” (§44); części, których Toyota nie przysłała, po prostu nie ma na liście.
+  Na górze karty stanu jedno zdanie (`vehicleSummary`): „Wszystko zamknięte i zablokowane”, gdy co najmniej jedna część jest zgłoszona, żadna nie jest otwarta ani odblokowana i żadna nie jest bez danych;
+  inaczej, gdy są odstępstwa, „Do sprawdzenia: N – otwarte lub odblokowane”; bez żadnego z tych przypadków zdania nie ma. Odstępstwa (otwarte, odblokowane) są w liście pogrubione w kolorze ostrzeżenia z palety (C32 U17).
 - Wartości: `status` `open`/`close` → „otwarte”/„zamknięte”, `locked`/`unlocked` → „zablokowane”/„odblokowane”; nieznana wartość i brak części = „brak danych”,
   nigdy zgadywanie. Maska raportuje tylko otwarcie (bez zamka). Kolejność drzwi i okien stała, niezależna od kolejności w JSON.
 - Błędy: 403/404 → „Toyota nie udostępnia tych danych dla tego auta.”; inny błąd → komunikat odczytu + „Spróbuj ponownie”; 200 bez payloadu → „Toyota nie przysłała tych danych.”.
@@ -1071,7 +1078,10 @@ Domena: `core/domain/OwnershipOps.kt` (`ownershipCost`, `ownershipMonths`, model
 ## §43 Lokalizacja (PRD F42, ADR-022)
 - Źródło: `GET /v1/location` (pytoyoda `location.py`) – ostatnia znana pozycja, aktualizowana przez Toyotę po zaparkowaniu; cache w chmurze, bez budzenia auta.
 - Ekran: nazwa miejsca (`displayName`, np. adres), **dokładne** współrzędne `54.36850, 18.61420` (kropka dziesiętna, 5 miejsc ≈ 1 m; `BigDecimal.valueOf` + HALF_UP,
-  więc 54.3685 daje 54.36850, bez artefaktów binarnych), „Pozycja z …”, „Ostatnia aktualizacja …” i przycisk „Pokaż na mapie” (jedna dokładna pozycja, tylko po dotknięciu).
+  więc 54.3685 daje 54.36850, bez artefaktów binarnych), „Pozycja z …”, „Ostatnia aktualizacja …” (tylko gdy różni się od czasu pozycji o co najmniej godzinę albo gdy brak czasu pozycji; minuta różnicy to ten sam moment) i przycisk „Pokaż na mapie” (jedna dokładna pozycja, tylko po dotknięciu).
+- Nazwa miejsca Toyoty: tekst `Last Parked` czyta się „Ostatnie parkowanie”; inna wartość zostaje bez zmian (referencja opisuje pole tylko jako „human-readable name”, więc żadnej innej wartości nie tłumaczymy na zgadywanie).
+  Gdy pozycja leży do 150 m (`PARKING_MATCH_M`) od znanego miejsca z „Postojów” (Dom, Praca; `knownPlaces`), nazwa tego miejsca stoi nad współrzędnymi. Porównanie liczy się **wyłącznie w pamięci** (`knownPlaceNear`, `distanceMeters`): dokładna pozycja
+  nie trafia do bazy, ustawień ani logów; miejsca idą z archiwum tras przez `loadTrips` w `AppRoot` i są zapominane razem z pozycją (C32 U8).
 - Dokładna pozycja to **świadomy wyjątek** od §18 (Postoje pokazują zaokrąglenie do ok. 100 m): decyzja właściciela 2026-11-08 (ADR-022).
   Pozycja i adres są **tylko w pamięci**: bez bazy, eksportu archiwum, CSV, `rememberSaveable`/zapisanego stanu, logów i komunikatów błędów; `reset()` przy wyjściu z ekranu i przy wylogowaniu.
   Mapa lub intent `geo:` tylko po dotknięciu, z dokładną pozycją (5 miejsc po przecinku; reszta aplikacji zostaje przy ok. 100 m): `MapScreen(exact = true)`, `ParkingFormatting.mapUri(…, exact = true)`; serwer kafelków OSM widzi oglądaną okolicę,
@@ -1080,7 +1090,8 @@ Domena: `core/domain/OwnershipOps.kt` (`ownershipCost`, `ownershipMonths`, model
 
 ## §44 Stan techniczny (PRD F43)
 - Źródło: `GET /v1/vehiclehealth/status` (pytoyoda `vehicle_health.py`) – ostrzeżenia i dane o oleju silnika z chmury Toyoty; bez budzenia auta.
-- Ekran z kafelka „Stan techniczny”: „Aktywne ostrzeżenia: N”, informacja, czy Toyota przysłała dane o oleju, „Ostrzeżenia z …”, podpowiedź o granicach danych.
+- „Stan techniczny” jest **kartą na ekranie „Stan pojazdu”** (§42), nie osobnym kafelkiem i ekranem (C32 U14): osobny odczyt (`RemoteDataController<VehicleHealth>`) i osobny komunikat błędu, więc awaria jednego odczytu nie czyści drugiego.
+  Karta: „Aktywne ostrzeżenia: N”, informacja, czy Toyota przysłała dane o oleju, „Ostrzeżenia z …”, podpowiedź o granicach danych (bez słowa „backend”).
 - Payload ma `warning` i `quantityOfEngOilIcon` jako `list[Any]` w referencji, więc aplikacja **liczy wpisy i nie interpretuje ich treści** (nie zgaduje kodów ani ikon).
   Znaczenie i dostępność pól zależą od sondy struktury odpowiedzi (HANDOFF); brak listy = brak danych, nie 0.
 - Błędy jak w §42; nic nie jest zapisywane w bazie ani w kopii.
@@ -1089,6 +1100,7 @@ Domena: `core/domain/OwnershipOps.kt` (`ownershipCost`, `ownershipMonths`, model
 - Źródło: `GET /v1/servicehistory/vehicle/summary` (pytoyoda `service_history.py:12-66`) – wpisy serwisowe zapisane przez Toyotę; odczyt **cache w chmurze**, bez `refresh_status()` i bez komend, więc auto nie jest budzone.
   Pliki: `core/toyota/ToyotaConst.kt` (`SERVICE_HISTORY_ENDPOINT`), `core/toyota/dto/ServiceHistoryDto.kt`, `ToyotaApi.getServiceHistory`, `core/toyota/VehicleDataMapper.kt` (`toServiceHistory`), `core/domain/VehicleService.kt` (`ServiceRecord`, `ServiceHistory`), `core/vehicle/VehicleDataGateway.kt`, `app/ui/ServiceFormatting.kt`, `app/ui/ServiceScreens.kt`, `app/ui/AppRoot.kt`, `app/ui/StatusScreen.kt`.
 - Ekran z kafelka „Historia serwisowa” w menu statusu: odczyt **raz przy każdym otwarciu** (zwykły GET), bez odpytywania w tle i bez `LaunchedEffect` z pętlą.
+- Wpis pokazuje wiersze etykieta–wartość (`serviceDetails`): „Przebieg”, „Kategoria (kod Toyoty)”, „Dealer”, „Czynności”. Kod kategorii (`MNT`, `VDE`) jest pokazany tak, jak go wysłała Toyota: **jego znaczenia nie tłumaczymy**, bo nie ma potwierdzonego źródła (C32 U9).
 - Wpis pokazuje: datę (`serviceDate`, `DD.MM.RRRR`), przebieg (`mileage` z jednostką `unit` – grupowany, bez jednostki gdy Toyota jej nie przysłała), kategorię (`serviceCategory`), czynności (`operationsPerformed`) i dealera. Lista od najnowszego wpisu; wpis bez daty sortuje się na końcu, nie znika.
 - **Decyzja właściciela 2026-11-09:** etykieta „Dealer” = `servicingDealer`, a gdy go brak – `serviceProvider`; gdy oba puste: „brak danych”. **Nie pokazujemy:** `serviceHistoryId`, `roNumber`, `notes`, `customerCreatedRecord`.
 - `operationsPerformed` jest `Any` w referencji, więc aplikacja **nie interpretuje treści**: tekst → jedna pozycja, tablica tekstów → lista, pusta tablica → brak pozycji, inny kształt → „Toyota nie przysłała opisu czynności.”.

@@ -72,7 +72,6 @@ fun StatusScreen(
     onShowParking: () -> Unit,
     onShowVehicleStatus: () -> Unit,
     onShowLocation: () -> Unit,
-    onShowVehicleHealth: () -> Unit,
     onShowServiceHistory: () -> Unit,
     onShowNotifications: () -> Unit,
     onShowDiagnostics: () -> Unit,
@@ -179,6 +178,34 @@ fun StatusScreen(
                     Text(if (state.syncing) Texts.SYNCING else Texts.SYNC_NOW_BUTTON)
                 }
 
+                // The menu sits right under the buttons, the cards below it (C32 U13): the tiles are what is tapped most (docs/SPEC.md §10.4). The default price shows its value, the others name the screen.
+                MenuGrid(
+                    listOf(
+                        Triple(AppIcons.Route, Texts.TRIPS_TITLE, onShowTrips),
+                        Triple(AppIcons.LocalGasStation, Texts.LOG_TITLE, onShowRefuelLog),
+                        Triple(AppIcons.BarChart, Texts.STATS_TITLE, onShowStats),
+                        Triple(AppIcons.Eco, Texts.STYLE_TITLE, onShowDrivingStyle),
+                        Triple(AppIcons.CalendarMonth, Texts.YEAR_TITLE, onShowYear),
+                        Triple(AppIcons.PartlyCloudyDay, Texts.WEATHER_TITLE, onShowWeather),
+                        Triple(AppIcons.ReceiptLong, Texts.EXPENSES_TITLE, onShowExpenses),
+                        Triple(AppIcons.LocalParking, Texts.PARKING_TITLE, onShowParking),
+                        Triple(AppIcons.DirectionsCar, Texts.VEHICLE_STATUS_TITLE, onShowVehicleStatus),
+                        Triple(AppIcons.LocationOn, Texts.LOCATION_TITLE, onShowLocation),
+                        Triple(AppIcons.History, Texts.SERVICE_TITLE, onShowServiceHistory),
+                        Triple(AppIcons.Info, Texts.NOTIFICATIONS_TITLE, onShowNotifications),
+                        Triple(AppIcons.FactCheck, Texts.DIAGNOSTICS_TITLE, onShowDiagnostics),
+                        Triple(AppIcons.Save, Texts.BACKUP_TITLE, onShowBackup),
+                        Triple(AppIcons.Settings, Texts.OPTIONS_TITLE, onShowOptions),
+                    ),
+                )
+                // The archive lives only on this phone (ADR-006); F8 asks for a copy (docs/SPEC.md §14.3).
+                when (backupReminder) {
+                    BackupReminder.Never -> ReminderCard(Texts.BACKUP_REMINDER_NEVER)
+                    is BackupReminder.Overdue -> ReminderCard(Texts.backupReminderOverdue(backupReminder.days))
+                    BackupReminder.None -> Unit
+                }
+                Text(lastBackupLine, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
                 if (status != null) {
                     // Refuel forecast from the archive, never from the car (PRD F14, docs/SPEC.md §20).
                     forecastLine?.let { line ->
@@ -194,35 +221,6 @@ fun StatusScreen(
                 // The monthly budget for fuel and expenses (PRD F48, docs/SPEC.md §49). It does not depend on the
                 // Toyota status, so it stays visible when the status is missing (a failed sync must not hide it).
                 BudgetCard(budget) { editingBudget = true }
-
-                // The menu: one tile per screen (docs/SPEC.md §10.4). The default price shows its value, the others name the screen.
-                MenuGrid(
-                    listOf(
-                        Triple(AppIcons.Route, Texts.TRIPS_TITLE, onShowTrips),
-                        Triple(AppIcons.LocalGasStation, Texts.LOG_TITLE, onShowRefuelLog),
-                        Triple(AppIcons.BarChart, Texts.STATS_TITLE, onShowStats),
-                        Triple(AppIcons.Eco, Texts.STYLE_TITLE, onShowDrivingStyle),
-                        Triple(AppIcons.CalendarMonth, Texts.YEAR_TITLE, onShowYear),
-                        Triple(AppIcons.PartlyCloudyDay, Texts.WEATHER_TITLE, onShowWeather),
-                        Triple(AppIcons.ReceiptLong, Texts.EXPENSES_TITLE, onShowExpenses),
-                        Triple(AppIcons.LocalParking, Texts.PARKING_TITLE, onShowParking),
-                        Triple(AppIcons.DirectionsCar, Texts.VEHICLE_STATUS_TITLE, onShowVehicleStatus),
-                        Triple(AppIcons.LocationOn, Texts.LOCATION_TITLE, onShowLocation),
-                        Triple(AppIcons.Build, Texts.HEALTH_TITLE, onShowVehicleHealth),
-                        Triple(AppIcons.History, Texts.SERVICE_TITLE, onShowServiceHistory),
-                        Triple(AppIcons.Info, Texts.NOTIFICATIONS_TITLE, onShowNotifications),
-                        Triple(AppIcons.FactCheck, Texts.DIAGNOSTICS_TITLE, onShowDiagnostics),
-                        Triple(AppIcons.Save, Texts.BACKUP_TITLE, onShowBackup),
-                        Triple(AppIcons.Settings, Texts.OPTIONS_TITLE, onShowOptions),
-                    ),
-                )
-                // The archive lives only on this phone (ADR-006); F8 asks for a copy (docs/SPEC.md §14.3).
-                when (backupReminder) {
-                    BackupReminder.Never -> ReminderCard(Texts.BACKUP_REMINDER_NEVER)
-                    is BackupReminder.Overdue -> ReminderCard(Texts.backupReminderOverdue(backupReminder.days))
-                    BackupReminder.None -> Unit
-                }
-                Text(lastBackupLine, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

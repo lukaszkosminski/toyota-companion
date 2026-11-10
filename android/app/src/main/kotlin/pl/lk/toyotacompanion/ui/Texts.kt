@@ -446,6 +446,13 @@ object Texts {
 
     fun statsEvTotal(share: String): String = Lang.pick("$share kilometrów na prądzie", "$share kilometers on battery")
     fun statsShareOfTrip(share: String): String = Lang.pick("$share na prądzie", "$share on battery")
+
+    /** A short count of trips with its noun: `24 trasy`, `1 trasa`, `5 tras` / `24 trips`. */
+    fun tripsShort(count: Int): String = Lang.pick(
+        "${TripsFormatting.count(count)} ${plPlural(count.toLong(), "trasa", "trasy", "tras")}",
+        "${TripsFormatting.count(count)} ${enPlural(count.toLong(), "trip", "trips")}",
+    )
+
     fun statsTrips(count: Int): String = Lang.pick("trasy: ${TripsFormatting.count(count)}", "trips: ${TripsFormatting.count(count)}")
     fun statsLeftOut(withoutData: Int, tooShort: Int): String = Lang.pick(
         "Pominięte – bez danych o prądzie: $withoutData, krótsze niż 1 km: $tooShort.",
@@ -607,8 +614,12 @@ object Texts {
         "Udział km na prądzie w każdym tygodniu (od poniedziałku), 12 ostatnich. Toyota nie podaje poziomu naładowania baterii hybrydowej ani napięcia akumulatora 12 V – to jedyny obraz baterii z danych tras.",
         "Share of km on battery in each week (from Monday), last 12 weeks. Toyota does not provide hybrid battery charge level or 12 V battery voltage – this is the only picture of the battery from trip data.",
     )
-    fun evOnBattery(percent: String): String = Lang.pick("$percent % na prądzie", "$percent % on battery")
-    fun evMinutes(minutes: Long): String = Lang.pick("$minutes min na prądzie", "$minutes min on battery")
+
+    /** The left side of a week row: `od 09.11 · 36,2 z 62,5 km · 7 tras`; the share stands on the right and the bar below (docs/SPEC.md §36). */
+    fun evWeekLine(date: String, evKm: String, km: String, trips: Int): String = Lang.pick(
+        "od $date · $evKm z $km km · ${TripsFormatting.count(trips)} ${plPlural(trips.toLong(), "trasa", "trasy", "tras")}",
+        "from $date · $evKm of $km km · ${TripsFormatting.count(trips)} ${enPlural(trips.toLong(), "trip", "trips")}",
+    )
 
     // Android Auto (docs/SPEC.md §35).
 
@@ -1452,6 +1463,15 @@ object Texts {
         "Active warnings: $count",
     )
 
+    /** Top of the vehicle status card when every reported door, window and the hood is shut and locked. */
+    val VEHICLE_ALL_CLOSED: String get() = Lang.pick("Wszystko zamknięte i zablokowane", "Everything is closed and locked")
+
+    /** Top of the card when [count] parts are open or unlocked; the parts themselves are in bold below. */
+    fun vehicleDeviations(count: Int): String = Lang.pick(
+        "Do sprawdzenia: $count – otwarte lub odblokowane",
+        "To check: $count – open or unlocked",
+    )
+
     fun vehicleUpdated(at: String): String = Lang.pick("Stan z $at", "State from $at")
 
     /** One component as Toyota reports it: open/closed and/or locked/unlocked; nothing known otherwise. */
@@ -1489,6 +1509,9 @@ object Texts {
     val LOCATION_COORDS_TITLE: String get() = Lang.pick("Współrzędne", "Coordinates")
     val LOCATION_PLACE_TITLE: String get() = Lang.pick("Miejsce", "Place")
 
+    /** Toyota's `Last Parked` name of the position. */
+    val LOCATION_LAST_PARKED: String get() = Lang.pick("Ostatnie parkowanie", "Last parked")
+
     fun locationCoords(lat: String, lon: String): String = "$lat, $lon"
 
     fun locationAcquired(at: String): String = Lang.pick("Pozycja z $at", "Position from $at")
@@ -1499,8 +1522,8 @@ object Texts {
 
     /** The payload is untyped in the reference, so the screen shows the count and says what it does not know. */
     val HEALTH_HINT: String get() = Lang.pick(
-        "Ostrzeżenia i dane o oleju z chmury Toyoty, bez budzenia auta. Szczegóły zależą od tego, co przysyła backend – aplikacja nie zgaduje ich treści.",
-        "Warnings and engine oil data from Toyota's cloud, without waking the car. The details depend on what the backend sends – the app does not guess them.",
+        "Ostrzeżenia i dane o oleju z chmury Toyoty, bez budzenia auta. Aplikacja pokazuje tylko liczbę ostrzeżeń i to, czy Toyota przysłała dane o oleju – nie zna ich treści.",
+        "Warnings and engine oil data from Toyota's cloud, without waking the car. The app shows only the number of warnings and whether Toyota sent oil data – it does not know their content.",
     )
     val HEALTH_EMPTY: String get() = Lang.pick("Toyota nie udostępniła stanu technicznego.", "Toyota did not share the vehicle health.")
     val HEALTH_READ_ERROR: String get() = Lang.pick("Nie udało się odczytać stanu technicznego.", "Could not read the vehicle health.")
@@ -1526,6 +1549,13 @@ object Texts {
 
     /** Toyota sent no readable operations list (the field is untyped in the reference). */
     val SERVICE_NO_OPERATIONS: String get() = Lang.pick("Toyota nie przysłała opisu czynności.", "Toyota sent no description of the operations.")
+
+    val SERVICE_MILEAGE_LABEL: String get() = Lang.pick("Przebieg", "Mileage")
+
+    /** The category is Toyota's own code (`MNT`, `VDE`); its meaning is not documented, so the label says it is a code. */
+    val SERVICE_CATEGORY_LABEL: String get() = Lang.pick("Kategoria (kod Toyoty)", "Category (Toyota code)")
+    val SERVICE_OPERATIONS_LABEL: String get() = Lang.pick("Czynności", "Operations")
+    val SERVICE_NO_OPERATIONS_SHORT: String get() = Lang.pick("brak opisu", "no description")
 
     /** One label for the dealer: `servicingDealer`, or `serviceProvider` when the dealer is missing (decision 2026-11-09). */
     val SERVICE_DEALER: String get() = "Dealer"

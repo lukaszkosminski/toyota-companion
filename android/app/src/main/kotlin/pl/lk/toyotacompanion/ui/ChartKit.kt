@@ -210,8 +210,9 @@ fun RingGauge(
 fun MeterRow(label: String, value: String, fraction: Float, color: Color, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(label, style = MaterialTheme.typography.bodyMedium)
-            Text(value, style = MaterialTheme.typography.labelLarge, color = readable(color))
+            // The label takes what the value leaves and wraps inside it; the value never wraps (the number stays whole).
+            Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f).padding(end = 8.dp))
+            Text(value, style = MaterialTheme.typography.labelLarge, color = readable(color), softWrap = false)
         }
         val track = MaterialTheme.colorScheme.surfaceContainerHighest
         Canvas(modifier = Modifier.fillMaxWidth().height(8.dp)) {

@@ -6,14 +6,19 @@ import pl.lk.toyotacompanion.core.domain.WeatherBucketStats
 
 /** Polish text of a weather bucket (PRD F15, docs/SPEC.md §23). Pure and independent of `Locale`. */
 object WeatherFormatting {
-    /** `trasy: 24 · 312,4 km · 4,38 l/100 km · 22,10 zł/100 km`; the price part is "brak ceny" without a price. */
+    /**
+     * `24 trasy · 312,4 km`: the short line under the name of a bucket (docs/SPEC.md §23). The consumption stands on the right as the big
+     * number and the price per 100 km is in [bucketDetails], so this line fits a 360 dp screen without wrapping.
+     */
     fun bucketLine(bucket: WeatherBucketStats): String =
-        listOfNotNull(
-            Texts.statsTrips(bucket.trips),
-            TripsFormatting.number(bucket.distanceKm, 1) + " km",
-            bucket.lPer100Km?.let { Texts.trafficConsumption(TripsFormatting.number(it, 2)) },
-            bucket.costPer100Km?.let { Texts.trafficCost(TripsFormatting.money(it)) } ?: Texts.NO_PRICE,
-        ).joinToString(Texts.SEPARATOR)
+        listOf(Texts.tripsShort(bucket.trips), TripsFormatting.number(bucket.distanceKm, 1) + " km").joinToString(Texts.SEPARATOR)
+
+    /** `22,10 zł/100 km`, or "brak ceny" without a price (never 0 zł). */
+    fun bucketCost(bucket: WeatherBucketStats): String =
+        bucket.costPer100Km?.let { Texts.trafficCost(TripsFormatting.money(it)) } ?: Texts.NO_PRICE
+
+    /** The helper line of a bucket: [bucketCost] first, then [bucketNote] when there is one; it wraps over the full width of the card. */
+    fun bucketDetails(bucket: WeatherBucketStats): String = listOfNotNull(bucketCost(bucket), bucketNote(bucket)).joinToString(Texts.SEPARATOR)
 
     /**
      * The second line: the gap to the reference, the share of electric driving (it differs between buckets and
