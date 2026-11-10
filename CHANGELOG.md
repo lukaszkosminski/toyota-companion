@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+
+## 0.2.8 (2026-11-10)
 - Status: menu kafelków wraca na dół pierwszej strony, pod karty (jak przed v0.2.7) – decyzja właściciela po wypróbowaniu układu z kafelkami u góry; przewinięcie nadal jest zapamiętywane po powrocie z podstrony
 - Kalkulator kosztu planowanej trasy (F52, SPEC §52, plan C33): na górze „Statystyk” wpisujesz kilometry i wybierasz rodzaj jazdy (cztery pasma tempa), a aplikacja pokazuje przedział litrów i zł z własnych tras tego rodzaju (kwartyle P25–P75 l/100 km; populacja: trasy o długości 0,5–2× wpisanych km, gdy ich co najmniej 10); cena z ostatniej wycenionej trasy albo ceny domyślnej; tylko lokalne archiwum
 
