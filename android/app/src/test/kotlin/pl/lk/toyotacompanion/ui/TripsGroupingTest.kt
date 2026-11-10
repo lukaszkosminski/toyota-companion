@@ -59,6 +59,27 @@ private fun amount(expected: String, actual: BigDecimal?, message: String = "") 
 /** docs/SPEC.md §10.2: months of the trip start in the given zone, newest month first. */
 class TripsGroupingTest {
     @Test
+    fun `the co2 of a month is its litres times the constant, rounded once`() {
+        val groups = groupTripsByMonth(
+            listOf(
+                stored("t1", Instant.parse("2026-10-10T08:00:00Z"), fuelL = "0.333"),
+                stored("t2", Instant.parse("2026-10-11T08:00:00Z"), fuelL = "0.333"),
+                stored("t3", Instant.parse("2026-09-11T08:00:00Z"), fuelL = "10.000"),
+            ),
+            WARSAW,
+        )
+        // 0.666 l * 2.3 = 1.5318 kg -> 1.5; summing the rounded trips (0.8 + 0.8) would have given 1.6.
+        assertEquals(BigDecimal("1.5"), groups[0].co2Kg)
+        assertEquals(BigDecimal("23.0"), groups[1].co2Kg)
+    }
+
+    @Test
+    fun `a month of trips on the battery only has zero co2`() {
+        val group = groupTripsByMonth(listOf(stored("t1", Instant.parse("2026-10-10T08:00:00Z"), fuelL = "0")), WARSAW).single()
+        assertEquals(BigDecimal("0.0"), group.co2Kg)
+    }
+
+    @Test
     fun `no trips means no months`() {
         assertEquals(emptyList(), groupTripsByMonth(emptyList(), WARSAW))
     }

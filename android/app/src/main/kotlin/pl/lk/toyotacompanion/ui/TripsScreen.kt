@@ -189,6 +189,8 @@ private fun MonthHeader(group: MonthGroup) {
                     Texts.SEPARATOR + (group.totalCost?.let { TripsFormatting.money(it) } ?: Texts.NO_PRICE),
                 style = MaterialTheme.typography.bodySmall,
             )
+            // On a line of its own: next to the litres and the cost the header would wrap on a narrow screen.
+            Text(Texts.co2(TripsFormatting.co2(group.co2Kg)), style = MaterialTheme.typography.bodySmall)
             if (group.tripsWithoutCost > 0) {
                 Text(Texts.tripsWithoutCost(group.tripsWithoutCost), style = MaterialTheme.typography.bodySmall)
             }

@@ -128,6 +128,37 @@ class UiReadabilityTest {
         assertEquals("05.01", EvWeeksFormatting.weekLabel(week.copy(weekStart = LocalDate.of(2026, 1, 5))))
     }
 
+    // ---- F51: CO2 ----
+
+    @Test
+    fun `co2 is in kilograms below a tonne and in tonnes from it`() {
+        assertEquals("0,0\u00A0kg", TripsFormatting.co2(BigDecimal("0.0")))
+        assertEquals("123,4\u00A0kg", TripsFormatting.co2(BigDecimal("123.4")))
+        assertEquals("999,9\u00A0kg", TripsFormatting.co2(BigDecimal("999.9")))
+        assertEquals("1,00\u00A0t", TripsFormatting.co2(BigDecimal("1000.0")))
+        assertEquals("1,23\u00A0t", TripsFormatting.co2(BigDecimal("1234.5")))
+        assertEquals("2,05\u00A0t", TripsFormatting.co2(BigDecimal("2050.0")))
+        // HALF_UP at the second decimal of the tonnes: 1.2350 t -> 1.24 t.
+        assertEquals("1,24\u00A0t", TripsFormatting.co2(BigDecimal("1235.0")))
+        assertEquals("12,35\u00A0t", TripsFormatting.co2(BigDecimal("12345.0")))
+    }
+
+    @Test
+    fun `the co2 unit never wraps away from its number`() {
+        for (kg in listOf("0.0", "5.5", "999.9", "1000.0", "98765.4")) {
+            assertFalse(TripsFormatting.co2(BigDecimal(kg)).contains(' '), kg)
+        }
+    }
+
+    @Test
+    fun `co2 texts read in both languages with the same unit`() {
+        assertEquals("Ślad CO₂: 123,4\u00A0kg", Texts.co2(TripsFormatting.co2(BigDecimal("123.4"))))
+        assertEquals("Szacunek ze spalonych litrów (ok. 2,3 kg CO₂ na litr benzyny); bez prądu, produkcji i utylizacji auta.", Texts.co2Hint("2,3"))
+        Lang.current = AppLanguage.EN
+        assertEquals("CO₂ footprint: 1,23\u00A0t", Texts.co2(TripsFormatting.co2(BigDecimal("1234.5"))))
+        assertTrue(Texts.co2Hint("2,3").startsWith("An estimate from the litres burned"))
+    }
+
     // ---- U7: one trend mark ----
 
     @Test

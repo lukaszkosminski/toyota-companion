@@ -116,6 +116,13 @@ object TripsFormatting {
     internal fun plain(value: BigDecimal, places: Int): String =
         value.setScale(places, RoundingMode.HALF_UP).toPlainString().replace('.', ',')
 
+    /**
+     * Estimated CO2 for display (PRD F51, docs/SPEC.md §51): kilograms below 1000 kg (`123,4 kg`), tonnes from 1000 kg (`2,05 t`, two
+     * places, HALF_UP). Grouped like [number]; the unit stays with its number on the same line (no-break space).
+     */
+    fun co2(kg: BigDecimal): String =
+        if (kg.abs() >= BigDecimal(1000)) number(kg.divide(BigDecimal(1000)), 2) + "\u00A0t" else number(kg, 1) + "\u00A0kg"
+
     /** `+0,61` / `-0,20` / `0,00`: a comma, an explicit plus for a positive value (docs/SPEC.md §22-§23). */
     internal fun signed(value: BigDecimal, places: Int): String {
         val text = plain(value, places)

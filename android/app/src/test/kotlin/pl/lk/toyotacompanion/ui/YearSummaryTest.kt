@@ -68,6 +68,28 @@ class YearSummaryTest {
     }
 
     @Test
+    fun `the co2 of a year comes from the unrounded litres`() {
+        val s = requireNotNull(yearSummary(TRIPS, 2026, WARSAW))
+        // 21.5 l * 2.3 = 49.45 kg -> 49.5 kg.
+        assertEquals(BigDecimal("49.5"), s.co2Kg)
+        // 0.333 l * 3 trips: the litres shown are 1.0 (rounded), the CO2 is taken from 0.999 l -> 2.3 kg, not from 1.0 l.
+        val small = listOf(
+            drive("a", "2026-05-10T08:00:00Z", 10.0, "0.333"),
+            drive("b", "2026-05-11T08:00:00Z", 10.0, "0.333"),
+            drive("c", "2026-05-12T08:00:00Z", 10.0, "0.333"),
+        )
+        assertEquals(BigDecimal("2.3"), requireNotNull(yearSummary(small, 2026, WARSAW)).co2Kg)
+    }
+
+    @Test
+    fun `the co2 line follows the cost and is in the share text`() {
+        val now = requireNotNull(yearSummary(TRIPS, 2026, WARSAW))
+        val lines = yearSummaryLines(now, null, WARSAW)
+        assertEquals("Ślad CO₂: 49,5\u00A0kg", lines[3])
+        assertTrue(yearSummaryShareText(now, null, WARSAW).contains("\nŚlad CO₂: 49,5\u00A0kg\n"))
+    }
+
+    @Test
     fun `a year without trips has no summary and without a price no amount`() {
         assertNull(yearSummary(TRIPS, 2024, WARSAW))
         val unpriced = requireNotNull(yearSummary(listOf(drive("a", "2026-05-10T08:00:00Z", 80.0, "4.0")), 2026, WARSAW))

@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
+import pl.lk.toyotacompanion.core.domain.CO2_KG_PER_LITER_GASOLINE
 
 /**
  * "Podsumowanie roku" (PRD F28, docs/SPEC.md §29): one page per year with the totals and the notable months, and a button
@@ -122,6 +123,12 @@ fun YearSummaryScreen(
                     } else {
                         Text(Texts.yearNoCost, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
+                    IconText(AppIcons.Eco, Texts.co2(TripsFormatting.co2(summary.co2Kg)))
+                    Text(
+                        Texts.co2Hint(TripsFormatting.number(CO2_KG_PER_LITER_GASOLINE, 1)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     IconText(AppIcons.Today, Texts.yearDays(summary.daysDriven))
                 }
 

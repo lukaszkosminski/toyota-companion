@@ -66,6 +66,9 @@
 - Powiadomienie budżetowe (F49, SPEC §49, plan C29): kanał „Budżet”, progi 80% i 100% raz na miesiąc i próg, trigger
   po udanej synchronizacji i po zmianie wydatków, przełącznik w „Opcjach” (domyślnie włączony); reuse `POST_NOTIFICATIONS`
   bez nowej prośby, treść bez VIN/GPS
+- Ślad CO₂ (F51, SPEC §51, plan C31): szacunek z przepalonych litrów (2,3 kg CO₂/l benzyny, źródło NRCan) w nagłówku miesiąca na liście
+  tras i w „Podsumowaniu roku” (ekran i tekst do udostępnienia), kg poniżej 1000 kg i tony od 1000 kg; bez prądu i produkcji auta, lokalnie, bez przechowywania.
+  Wersja na pojedynczą trasę poza zakresem (pozycja nie obejmuje już „na trasę”)
 
 ## NOW
 - Właściciel: test klienta na prawdziwym koncie `./gradlew -q :core:liveCheck` (docs/HANDOFF.md); przejście telefonu z wersji
@@ -81,7 +84,6 @@
   2. Krótkie trasy i zimny silnik: udział krótkich tras i o ile więcej paliwa na 100 km kosztują niż dłuższe
   3. Najlepsza godzina wyjazdu: dla powtarzanych odcinków (F16) czas, prędkość i spalanie wg godziny startu i dnia tygodnia
   4. Tygodniowe lub miesięczne podsumowanie w powiadomieniu: km, koszt, udział prądu, porównanie z poprzednim okresem
-  5. Ślad CO₂ z przepalonych litrów na trasę, miesiąc i rok
   6. Stacja przy tankowaniu: marka lub nazwa, średnia cena i faktyczne spalanie wg stacji
   7. Import historii tankowań i wydatków z CSV innych aplikacji (Fuelio, Drivvo)
   8. Zdjęcie paragonu przy tankowaniu lub wydatku (bez OCR; do decyzji, czy zdjęcia wchodzą do kopii archiwum)

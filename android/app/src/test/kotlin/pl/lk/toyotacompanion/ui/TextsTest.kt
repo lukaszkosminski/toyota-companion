@@ -302,6 +302,8 @@ class TextsTest {
                 Texts.BUDGET_ALERT_SETTING_TITLE,
                 Texts.BUDGET_ALERT_SETTING_SWITCH,
                 Texts.BUDGET_ALERT_SETTING_HINT,
+                Texts.co2("123,4\u00A0kg"),
+                Texts.co2Hint("2,3"),
             )
         for (text in all) {
             for (forbidden in listOf("token", "Token", "VIN1", "p@ss", "secret")) {
@@ -629,6 +631,7 @@ class TextsTest {
             Texts.budgetAlertWarn("październik 2026", "640,00", "800,00", 80, "160,00"),
             Texts.budgetAlertOver("październik 2026", "850,00", "800,00", 106, "50,00"),
             Texts.BUDGET_ALERT_SETTING_TITLE, Texts.BUDGET_ALERT_SETTING_SWITCH, Texts.BUDGET_ALERT_SETTING_HINT,
+            Texts.co2("123,4\u00A0kg"), Texts.co2Hint("2,3"),
         )
         val polish = all()
         Lang.current = AppLanguage.EN
@@ -652,6 +655,8 @@ class TextsTest {
         assertEquals("Budget", english[15])
         assertEquals("Budżet miesiąca: blisko limitu", polish[16])
         assertEquals("Monthly budget: close to the limit", english[16])
+        assertEquals("Ślad CO₂: 123,4\u00A0kg", polish[polish.size - 2])
+        assertEquals("CO₂ footprint: 123,4\u00A0kg", english[english.size - 2])
     }
 }
 

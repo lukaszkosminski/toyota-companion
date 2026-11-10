@@ -1194,3 +1194,22 @@ Domena: `core/domain/OwnershipOps.kt` (`ownershipCost`, `ownershipMonths`, model
   Pliki: `ui/BudgetAlert.kt` (czysta reguła progów), `notify/BudgetAlertNotifier.kt`, `ui/ExpensesController.kt`
   (`onChanged`), `ui/BudgetController.kt` (przełącznik), `ui/AppRoot.kt`, `AppContainer` (`syncRunner`, notifier),
   `settings/SettingsStore.kt`, `ui/OptionsScreen.kt`, `ui/Texts.kt`.
+
+## §51 Ślad CO₂ (PRD F51)
+Szacunek CO₂ z **przepalonych litrów**, wyliczany przy odczycie z lokalnego archiwum; nic nie jest zapisywane (bez Room, `settings` i sieci), auto nie jest budzone.
+- **Formuła i stała:** `co2Kg(litry) = litry × 2,3 kg CO₂/l`, kg z jednym miejscem po przecinku, `HALF_UP`; ujemne litry to błąd programisty (`IllegalArgumentException`/`ValueError`).
+  Stała `CO2_KG_PER_LITER_GASOLINE = 2,3` jest w `core/domain/Co2Ops.kt` z lustrem w `backend/app/domain/co2.py` (te same nazwy testów) i nigdzie indziej;
+  tekst podpowiedzi bierze ją ze stałej. Źródło: Natural Resources Canada, „Learn the facts: Fuel consumption and CO2” – „Burning 1 L of gasoline produces approximately 2.3 kg of CO2”.
+  To spalanie benzyny; nie jest to pomiar, tylko szacunek ze spalonych litrów.
+- **Zakres:** tylko litry z `Trip.fuelL` (komputer pokładowy). Jazda na prądzie nie dodaje CO₂, więc miesiąc wyłącznie na baterii daje 0,0 kg. Bez prądu (mix energetyczny),
+  produkcji i utylizacji auta, ogrzewania i paliw innych niż benzyna.
+- **Litry bez wcześniejszego zaokrąglenia:** miesiąc używa `MonthGroup.totalLiters` (suma `fuelL`), rok sumy `fuelL` sprzed zaokrąglenia do 0,1 l (nie `YearSummary.fuelL`), a CO₂ liczy się raz
+  z sumy, nie jako suma CO₂ tras (inaczej zaokrąglenia by się kumulowały).
+- **Jednostki w UI** (`TripsFormatting.co2`): poniżej 1000 kg – „123,4 kg”, od 1000 kg – tony „2,05 t” (kg/1000, dwa miejsca, `HALF_UP`); liczba grupowana jak w §10.4 (`number`), a jednostka
+  łączy się z liczbą twardą spacją, więc nie przechodzi do nowej linii.
+- **Gdzie:** nagłówek miesiąca na liście tras – **osobna linia** „Ślad CO₂: …” pod km/litrami/kosztem (obok nich nagłówek łamałby się na wąskim ekranie); „Podsumowanie roku” – linia
+  „Ślad CO₂: …” po koszcie (ekran i tekst do udostępnienia, razem z `yearSummaryLines`) oraz mała podpowiedź na ekranie „Szacunek ze spalonych litrów (ok. 2,3 kg CO₂ na litr benzyny); bez prądu,
+  produkcji i utylizacji auta.” (w tekście do udostępnienia jej nie ma). Teksty PL/EN: „Ślad CO₂” / „CO₂ footprint”.
+- **Prywatność:** zagregowana liczba bez VIN, GPS i nazw miejsc, bez sieci, logów i uprawnień.
+- **Pliki:** `core/domain/Co2Ops.kt`, `backend/app/domain/co2.py`, `ui/TripsGrouping.kt` (`MonthGroup.co2Kg`), `ui/YearSummary.kt` (`YearSummary.co2Kg`, `yearSummaryLines`),
+  `ui/TripsFormatting.kt` (`co2`), `ui/TripsScreen.kt`, `ui/YearSummaryScreen.kt`, `ui/Texts.kt`.

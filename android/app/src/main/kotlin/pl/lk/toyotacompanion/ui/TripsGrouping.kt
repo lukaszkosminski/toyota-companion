@@ -3,6 +3,7 @@ package pl.lk.toyotacompanion.ui
 import java.math.BigDecimal
 import java.time.ZoneId
 import pl.lk.toyotacompanion.core.domain.CostSource
+import pl.lk.toyotacompanion.core.domain.co2Kg
 import pl.lk.toyotacompanion.core.data.StoredTrip
 import pl.lk.toyotacompanion.core.domain.TripCost
 import pl.lk.toyotacompanion.core.domain.toBigDecimal
@@ -22,6 +23,8 @@ data class MonthKey(val year: Int, val month: Int) : Comparable<MonthKey> {
  * @param totalCost sum of the costs of the trips that have one; `null` when no trip of
  * the group has a cost — the header then says "brak ceny" instead of "0,00 zł"
  * @param tripsWithoutCost how many trips of the group have no price (the "bez ceny: N" note)
+ * @param co2Kg estimated CO2 of the burned litres of the month, kg with one decimal (PRD F51, docs/SPEC.md §51); from the
+ * unrounded [totalLiters], 0 for a month of trips on the battery only
  */
 data class MonthGroup(
     val month: MonthKey,
@@ -30,6 +33,7 @@ data class MonthGroup(
     val totalLiters: BigDecimal,
     val totalCost: BigDecimal?,
     val tripsWithoutCost: Int,
+    val co2Kg: BigDecimal,
 )
 
 /** A trip with no price worth showing (docs/SPEC.md §10.2). */
@@ -70,6 +74,6 @@ fun groupTripsByMonth(trips: List<StoredTrip>, zone: ZoneId): List<MonthGroup> {
                     cost = cost?.add(value) ?: value
                 }
             }
-            MonthGroup(month, group.toList(), km, liters, cost, missing)
+            MonthGroup(month, group.toList(), km, liters, cost, missing, co2Kg(liters))
         }
 }

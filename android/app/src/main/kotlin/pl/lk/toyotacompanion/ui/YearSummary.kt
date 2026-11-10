@@ -7,6 +7,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import pl.lk.toyotacompanion.core.data.StoredTrip
 import pl.lk.toyotacompanion.core.domain.OwnershipCost
+import pl.lk.toyotacompanion.core.domain.co2Kg
 import pl.lk.toyotacompanion.core.domain.ownershipCost
 import pl.lk.toyotacompanion.core.domain.ownershipMonths
 import pl.lk.toyotacompanion.core.domain.toBigDecimal
@@ -33,6 +34,8 @@ data class YearSummary(
     val bestMonth: MonthConsumption?,
     val worstMonth: MonthConsumption?,
     val dearestMonth: MonthCost?,
+    /** Estimated CO2 of the burned litres of the year, kg with one decimal; from the unrounded litres (PRD F51, docs/SPEC.md §51). */
+    val co2Kg: BigDecimal,
 )
 
 /** The years with at least one usable trip, newest first. */
@@ -88,6 +91,7 @@ fun yearSummary(trips: List<StoredTrip>, year: Int, zone: ZoneId): YearSummary? 
         bestMonth = view.months.minByOrNull { it.lPer100 },
         worstMonth = view.months.maxByOrNull { it.lPer100 },
         dearestMonth = view.monthCosts.filter { it.costPln != null }.maxByOrNull { it.costPln!! },
+        co2Kg = co2Kg(fuel),
     )
 }
 
@@ -103,6 +107,7 @@ fun yearSummaryLines(summary: YearSummary, previous: YearSummary?, zone: ZoneId)
         Texts.yearCost(TripsFormatting.money(it), summary.costPer100?.let { c -> TripsFormatting.money(c) }) +
             if (summary.tripsWithoutCost > 0) Texts.SEPARATOR + Texts.tripsWithoutCost(summary.tripsWithoutCost) else ""
     } ?: Texts.yearNoCost
+    lines += Texts.co2(TripsFormatting.co2(summary.co2Kg))
     summary.evSharePct?.let { lines += Texts.yearEv(TripsFormatting.number(it, 0)) }
     lines += Texts.yearDays(summary.daysDriven)
     val start = summary.longestTripStart

@@ -890,6 +890,11 @@ object Texts {
         val en = "Fuel cost: $total" + (per100?.let { " ($it/100 km)" } ?: "")
         return Lang.pick(pl, en)
     }
+    fun co2(amount: String): String = Lang.pick("Ślad CO₂: $amount", "CO₂ footprint: $amount")
+    fun co2Hint(perLiter: String): String = Lang.pick(
+        "Szacunek ze spalonych litrów (ok. $perLiter kg CO₂ na litr benzyny); bez prądu, produkcji i utylizacji auta.",
+        "An estimate from the litres burned (about $perLiter kg of CO₂ per litre of gasoline); without electricity or making and scrapping the car.",
+    )
     fun yearEv(percent: String): String = Lang.pick("Jazda na prądzie: $percent % km", "EV driving: $percent % km")
     fun yearDays(days: Int): String = Lang.pick("Dni z jazdą: $days", "Days driven: $days")
     fun yearLongest(km: String, start: String): String = Lang.pick(
