@@ -62,19 +62,34 @@
   (systemowy wybór pliku może wcześniej utworzyć pusty plik)
 - Budżet miesięczny (F48, SPEC §49, plan C28): karta „Budżet miesiąca” na statusie – jeden opcjonalny limit na telefon
   na paliwo (koszt jazdy z tras) i wydatki (data poniesienia), postęp z lokalnego archiwum, ostatnie dobre dane przy
-  błędzie; limit w `settings`, przeżywa wylogowanie; bez sieci i bez budzenia auta. Powiadomienie przy progu to osobny
-  krok (niżej)
+  błędzie; limit w `settings`, przeżywa wylogowanie; bez sieci i bez budzenia auta
+- Powiadomienie budżetowe (F49, SPEC §49, plan C29): kanał „Budżet”, progi 80% i 100% raz na miesiąc i próg, trigger
+  po udanej synchronizacji i po zmianie wydatków, przełącznik w „Opcjach” (domyślnie włączony); reuse `POST_NOTIFICATIONS`
+  bez nowej prośby, treść bez VIN/GPS
 
 ## NOW
-- W toku (2026-11-08, agenci): pola autostrady i przekroczeń prędkości w archiwum tras (PRD F40, Room v6) oraz ekrany
-  tylko do odczytu „Stan pojazdu”, „Lokalizacja”, „Stan techniczny” z chmury Toyoty, bez budzenia auta (SPEC §42–§44)
 - Właściciel: test klienta na prawdziwym koncie `./gradlew -q :core:liveCheck` (docs/HANDOFF.md); przejście telefonu z wersji
   debug na wydanie (eksport archiwum → odinstalowanie → instalacja → logowanie → import)
 
 ## NEXT
-- Drobne z przeglądu C22 (briefs/toyota-companion/C22-quality-review.md): D2–D14 – m.in. wyścig przeładowań w wydatkach
-  i pogodzie, data zależna od ustawień regionalnych, `collectAsState` bez cyklu życia, limit rozmiaru strony cen, testy stylu jazdy
-- Wydanie v0.2.3 po zakończeniu prac w toku
+- Wydanie kolejnej wersji po v0.2.6 z budżetem miesięcznym i jego powiadomieniem (F48–F49, SPEC §49) – na polecenie
+  właściciela
+- Propozycje zaakceptowane przez właściciela 2026-11-10 (tylko dane lokalne i już używane źródła, bez budzenia auta);
+  każda dostaje numer F, wpis w PRD/SPEC i plan przed kodem, w tej kolejności:
+  1. Kalkulator kosztu planowanej trasy: kilometry i rodzaj jazdy → litry i zł z własnego spalania w pasmach tempa
+     i temperatury (F19, F24) oraz ceny w baku
+  2. Krótkie trasy i zimny silnik: udział krótkich tras i o ile więcej paliwa na 100 km kosztują niż dłuższe
+  3. Najlepsza godzina wyjazdu: dla powtarzanych odcinków (F16) czas, prędkość i spalanie wg godziny startu i dnia tygodnia
+  4. Tygodniowe lub miesięczne podsumowanie w powiadomieniu: km, koszt, udział prądu, porównanie z poprzednim okresem
+  5. Ślad CO₂ z przepalonych litrów na trasę, miesiąc i rok
+  6. Stacja przy tankowaniu: marka lub nazwa, średnia cena i faktyczne spalanie wg stacji
+  7. Import historii tankowań i wydatków z CSV innych aplikacji (Fuelio, Drivvo)
+  8. Zdjęcie paragonu przy tankowaniu lub wydatku (bez OCR; do decyzji, czy zdjęcia wchodzą do kopii archiwum)
+  9. Utrata wartości auta w koszcie całkowitym (F38): cena zakupu i szacowana wartość wpisane ręcznie
+  10. Opony: dwa komplety, przebieg każdego z tras między wymianami, przypomnienie o wymianie wg temperatury (F15)
+  11. Odznaki i serie przy celach eco (F39) – najpierw sprawdzić, co już jest w SPEC
+- Pozostałe drobne z przeglądu C22: D3–D7, D12 i D13 zrobione (commit a982de8); D2, D8, D11, D14 do potwierdzenia
+  w kodzie; D9 i D10 są w LATER
 
 ## LATER (kolejność wg wartości / kosztu)
 - Automatyczna kopia archiwum do wybranego folderu (rotacja), przypomnienia serwisowe (przebieg, przegląd, OC), ewidencja
@@ -86,8 +101,6 @@
   - Lista kontrolek ostrzegawczych (`dashboard.warning_lights`: nazwa, status, kategoria) zamiast samej liczby w F43
     i powiadomienie o nowej kontrolce – do sprawdzenia, czy auto zwraca te dane
 - Propozycje z przeglądu C26 (2026-11-09), niewybrane; tylko dane i endpointy już obecne w projekcie, bez budzenia auta:
-  - Powiadomienie budżetowe przy progu (F48, §49): nowy kanał „Budżet” (`IMPORTANCE_DEFAULT`), progi 80%/100%, klucz
-    `RRRR-MM:80`/`:100`, trigger po synchronizacji i po zmianie wydatków; bez nowego uprawnienia, bez VIN/GPS – opis w §49
   - Historia i trend ceny paliwa: zapisywać lokalne snapshoty z istniejących pobrań trojmiasto.pl po dotknięciu
     (F22, §25) i porównywać ostatnio zapłaconą cenę z bieżącą ceną stacji
   - Powiadomienie o niskim paliwie: na podstawie ostatniej telemetrii (`distanceToEmptyKm`/poziom paliwa) po

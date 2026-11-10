@@ -6,8 +6,10 @@ import androidx.test.core.app.ApplicationProvider
 import java.math.BigDecimal
 import java.time.Instant
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -80,6 +82,36 @@ class SettingsStoreTest {
     fun `monthly_budget_of_the_wrong_type_reads_as_null`() {
         prefs.edit().putInt("monthly_budget", 800).commit()
         assertNull(store.monthlyBudget())
+    }
+
+    @Test
+    fun `the budget alert switch is on by default and round_trips`() {
+        assertTrue(store.budgetAlert())
+        store.saveBudgetAlert(false)
+        assertFalse(store.budgetAlert())
+        assertEquals(false, prefs.getBoolean("budget_alert", true))
+        store.saveBudgetAlert(true)
+        assertTrue(store.budgetAlert())
+    }
+
+    @Test
+    fun `the last budget alert key round_trips`() {
+        assertNull(store.lastBudgetAlert())
+        store.saveLastBudgetAlert("2026-10:80")
+        assertEquals("2026-10:80", store.lastBudgetAlert())
+        store.saveLastBudgetAlert("2026-10:100")
+        assertEquals("2026-10:100", store.lastBudgetAlert())
+    }
+
+    @Test
+    fun `the budget alert keys of the wrong type read as their defaults`() {
+        prefs.edit().putString("budget_alert", "off").putInt("budget_alert_last", 80).commit()
+        assertTrue(store.budgetAlert(), "zly typ = domyslnie wlaczone")
+        assertNull(store.lastBudgetAlert(), "zly typ = nic nie powiedziano")
+        store.saveBudgetAlert(false)
+        store.saveLastBudgetAlert("2026-10:80")
+        assertFalse(store.budgetAlert())
+        assertEquals("2026-10:80", store.lastBudgetAlert())
     }
 
     @Test

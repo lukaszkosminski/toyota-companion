@@ -112,7 +112,13 @@ class AppContainer(
     }
 
     val expensesController: pl.lk.toyotacompanion.ui.ExpensesController by lazy {
-        pl.lk.toyotacompanion.ui.ExpensesController(database.expenseDao(), uiScope, Dispatchers.IO)
+        pl.lk.toyotacompanion.ui.ExpensesController(
+            database.expenseDao(),
+            uiScope,
+            Dispatchers.IO,
+            // A new or removed expense changes the month's budget, so the thresholds are checked (PRD F49, §49).
+            onChanged = { budgetAlertNotifier.onExpensesChanged() },
+        )
     }
 
     /**
@@ -367,6 +373,8 @@ class AppContainer(
                 ecoGoalsController.refresh()
                 // New trips change the month's budget figures too (PRD F48, docs/SPEC.md §49).
                 budgetController.refresh()
+                // The month's budget may have crossed a threshold with the new trips (PRD F49, docs/SPEC.md §49).
+                budgetAlertNotifier.onSyncOutcome(outcome)
                 // New trips get their weather without a tap (docs/SPEC.md §23).
                 weatherController.autoFetch()
             }
@@ -573,11 +581,30 @@ class AppContainer(
         pl.lk.toyotacompanion.ui.BudgetController(
             readLimit = { settingsStore.monthlyBudget() },
             saveLimit = { settingsStore.saveMonthlyBudget(it) },
+            readAlert = { settingsStore.budgetAlert() },
+            saveAlert = { settingsStore.saveBudgetAlert(it) },
             readTrips = tripsLoader,
             readExpenses = { database.expenseDao().all().map { it.toExpense() } },
             zone = { ZoneId.systemDefault() },
             scope = uiScope,
             io = Dispatchers.IO,
+        )
+    }
+
+    /**
+     * The monthly budget notification (PRD F49, docs/SPEC.md §49): one 80% warning and one 100% alert per month.
+     * Triggered by a successful sync and by an expense change; reuses the existing notification permission and
+     * never touches the network or the car.
+     */
+    private val budgetAlertNotifier: pl.lk.toyotacompanion.notify.BudgetAlertNotifier by lazy {
+        pl.lk.toyotacompanion.notify.BudgetAlertNotifier(
+            context = context,
+            readLimit = { settingsStore.monthlyBudget() },
+            readTrips = tripsLoader,
+            readExpenses = { database.expenseDao().all().map { it.toExpense() } },
+            lastAlertKey = { settingsStore.lastBudgetAlert() },
+            markAlerted = { settingsStore.saveLastBudgetAlert(it) },
+            alertEnabled = { settingsStore.budgetAlert() },
         )
     }
 

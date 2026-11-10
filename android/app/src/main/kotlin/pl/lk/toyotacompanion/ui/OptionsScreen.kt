@@ -12,12 +12,14 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import java.math.BigDecimal
@@ -30,6 +32,8 @@ fun OptionsScreen(
     onSetLanguage: (AppLanguage) -> Unit,
     defaultPrice: BigDecimal?,
     onShowDefaultPrice: () -> Unit,
+    budgetAlert: Boolean,
+    onSetBudgetAlert: (Boolean) -> Unit,
     onBack: () -> Unit,
 ) {
     BackHandler(onBack = onBack)
@@ -58,6 +62,18 @@ fun OptionsScreen(
             DashboardCard(Texts.DEFAULT_PRICE_TITLE, AppIcons.Payments) {
                 Text(Texts.DEFAULT_PRICE_EXPLAINED, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedButton(onClick = onShowDefaultPrice) { Text(Texts.defaultPricePrompt(defaultPrice)) }
+            }
+            // The monthly budget notification (PRD F49, docs/SPEC.md §49): on by default, like the automatic weather.
+            DashboardCard(Texts.BUDGET_ALERT_SETTING_TITLE, AppIcons.Info) {
+                Text(
+                    Texts.BUDGET_ALERT_SETTING_HINT,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Switch(checked = budgetAlert, onCheckedChange = onSetBudgetAlert)
+                    Text(Texts.BUDGET_ALERT_SETTING_SWITCH, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                }
             }
             DashboardCard(Texts.UPDATE_TITLE, AppIcons.SystemUpdate) {
                 UpdateCardContent(

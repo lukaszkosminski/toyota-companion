@@ -808,6 +808,31 @@ object Texts {
     fun budgetRemaining(value: String): String = Lang.pick("Zostało: $value zł", "Left: $value zł")
     fun budgetOver(value: String): String = Lang.pick("Przekroczono o $value zł", "Over by $value zł")
 
+    // Powiadomienie o budżecie (PRD F49, docs/SPEC.md §49).
+
+    val BUDGET_ALERT_CHANNEL: String get() = Lang.pick("Budżet", "Budget")
+    val BUDGET_ALERT_WARN_TITLE: String get() = Lang.pick("Budżet miesiąca: blisko limitu", "Monthly budget: close to the limit")
+    val BUDGET_ALERT_OVER_TITLE: String get() = Lang.pick("Budżet miesiąca przekroczony", "Monthly budget exceeded")
+
+    /** The 80% warning: month, spent, limit, the whole percent and what is left (may be 0,00); amounts only, no VIN or place. */
+    fun budgetAlertWarn(month: String, spent: String, limit: String, percent: Int, left: String): String = Lang.pick(
+        "$month: wydano $spent z $limit zł ($percent%). Zostało $left zł.",
+        "$month: spent $spent of $limit zł ($percent%). Left: $left zł.",
+    )
+
+    /** The exceeded budget: the same facts plus how much over. */
+    fun budgetAlertOver(month: String, spent: String, limit: String, percent: Int, over: String): String = Lang.pick(
+        "$month: wydano $spent z $limit zł ($percent%), przekroczono o $over zł.",
+        "$month: spent $spent of $limit zł ($percent%), over by $over zł.",
+    )
+
+    val BUDGET_ALERT_SETTING_TITLE: String get() = Lang.pick("Powiadomienia o budżecie", "Budget notifications")
+    val BUDGET_ALERT_SETTING_SWITCH: String get() = Lang.pick("Powiadamiaj o budżecie", "Notify about the budget")
+    val BUDGET_ALERT_SETTING_HINT: String get() = Lang.pick(
+        "Jedno powiadomienie przy 80% i jedno przy przekroczeniu limitu, raz na miesiąc. Wymaga włączonych powiadomień aplikacji.",
+        "One notification at 80% and one when the limit is exceeded, once a month. Requires the app's notifications to be on.",
+    )
+
     // Spalanie deklarowane (docs/SPEC.md §30).
 
     val DECLARED_SET: String get() = Lang.pick("Ustaw spalanie deklarowane", "Set declared consumption")

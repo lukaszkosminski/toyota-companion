@@ -42,9 +42,17 @@ private class FakeBudget {
     var expenses: List<Expense> = listOf(expense("e"))
     var tripError: Exception? = null
     var tripGate: CompletableDeferred<Unit>? = null
+    var tripGates = ArrayDeque<CompletableDeferred<Unit>>()
+    var tripReads = 0
+    var tripsForCall: (Int) -> List<StoredTrip> = { trips }
     var saveCalls = 0
     var saved: BigDecimal? = null
     var savedSet = false
+    var alert = true
+
+    /** What a read that ran before a later toggle still returns (a stale read); `null` = the stored value. */
+    var staleAlert: Boolean? = null
+    var alertSaveCalls = 0
 
     fun readLimit(): BigDecimal? = limit
 
@@ -55,10 +63,19 @@ private class FakeBudget {
         limit = value
     }
 
+    fun readAlert(): Boolean = staleAlert ?: alert
+
+    fun saveAlert(on: Boolean) {
+        alertSaveCalls++
+        alert = on
+    }
+
     suspend fun readTrips(): List<StoredTrip> {
+        val call = ++tripReads
         tripGate?.await()
+        tripGates.removeFirstOrNull()?.await()
         tripError?.let { throw it }
-        return trips
+        return tripsForCall(call)
     }
 
     suspend fun readExpenses(): List<Expense> = expenses
@@ -69,6 +86,8 @@ class BudgetControllerTest {
     private fun controller(fake: FakeBudget, io: CoroutineDispatcher) = BudgetController(
         readLimit = fake::readLimit,
         saveLimit = fake::saveLimit,
+        readAlert = fake::readAlert,
+        saveAlert = fake::saveAlert,
         readTrips = { fake.readTrips() },
         readExpenses = { fake.readExpenses() },
         zone = { ZoneOffset.UTC },
@@ -217,6 +236,79 @@ class BudgetControllerTest {
         advanceUntilIdle()
 
         assertEquals(BudgetState(), c.state.value)
+    }
+
+    @Test
+    fun `the budget alert switch is read and saved`() = runTest {
+        val fake = FakeBudget().apply { alert = false }
+        val c = controller(fake, StandardTestDispatcher(testScheduler))
+        c.ensureLoaded()
+        advanceUntilIdle()
+
+        assertFalse(c.state.value.alertEnabled)
+
+        c.setAlert(true)
+
+        assertEquals(1, fake.alertSaveCalls)
+        assertTrue(fake.alert)
+        assertTrue(c.state.value.alertEnabled)
+    }
+
+    @Test
+    fun `a failed read keeps the alert switch`() = runTest {
+        val fake = FakeBudget().apply { alert = false; tripError = IllegalStateException("db") }
+        val c = controller(fake, StandardTestDispatcher(testScheduler))
+
+        c.ensureLoaded()
+        advanceUntilIdle()
+
+        assertFalse(c.state.value.alertEnabled)
+        assertTrue(c.state.value.failed)
+    }
+
+    @Test
+    fun `a refresh that was reading cannot undo the alert switch`() = runTest {
+        val fake = FakeBudget().apply { staleAlert = true }
+        val gate = CompletableDeferred<Unit>()
+        fake.tripGate = gate
+        val c = controller(fake, StandardTestDispatcher(testScheduler))
+
+        c.refresh()
+        advanceUntilIdle()
+        c.setAlert(false)
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        // The read saw the old switch, but the owner's tap wins; the figures of the read are kept and nothing hangs.
+        assertFalse(c.state.value.alertEnabled)
+        assertFalse(fake.alert)
+        assertFalse(c.state.value.loading)
+        assertEquals(BigDecimal("592.95"), c.state.value.progress?.spentPln)
+    }
+
+    @Test
+    fun `a slower first refresh never overwrites a newer one`() = runTest {
+        val fake = FakeBudget()
+        val first = CompletableDeferred<Unit>()
+        val second = CompletableDeferred<Unit>()
+        fake.tripGates.add(first)
+        fake.tripGates.add(second)
+        fake.tripsForCall = { call -> if (call == 1) emptyList() else listOf(stored("a")) }
+        val c = controller(fake, StandardTestDispatcher(testScheduler))
+
+        c.refresh()
+        advanceUntilIdle()
+        c.refresh()
+        advanceUntilIdle()
+
+        second.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(BigDecimal("592.95"), c.state.value.progress?.spentPln)
+
+        // The older read finishes later; its token no longer matches, so its figures are dropped.
+        first.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(BigDecimal("592.95"), c.state.value.progress?.spentPln)
     }
 
     @Test

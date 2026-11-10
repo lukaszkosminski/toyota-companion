@@ -23,6 +23,8 @@ class ExpensesController(
     private val dao: ExpenseDao,
     private val scope: CoroutineScope,
     private val io: CoroutineDispatcher,
+    /** Called after a successful write and reload, e.g. to look at the budget thresholds (PRD F49, docs/SPEC.md §49). */
+    private val onChanged: suspend () -> Unit = {},
 ) {
     private val ui = MutableStateFlow(ExpensesUiState())
     val state: StateFlow<ExpensesUiState> = ui.asStateFlow()
@@ -53,20 +55,34 @@ class ExpensesController(
         write { dao.delete(id) }
     }
 
-    /** One write in the queue, then the list again; a failed write keeps the rows on screen and marks the failure. */
+    /**
+     * One write in the queue, then the list again; a failed write keeps the rows on screen and marks the failure.
+     * [onChanged] runs after the queue is released (the next write never waits for the budget check) and only while no
+     * logout happened since the write was asked for.
+     */
     private fun write(change: suspend () -> Unit) {
         val startedIn = generation
         scope.launch {
-            queue.withLock {
+            val stored = queue.withLock {
                 try {
                     withContext(io) { change() }
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
                     if (generation == startedIn) ui.value = ui.value.copy(failed = true)
-                    return@withLock
+                    return@withLock false
                 }
                 reload(startedIn)
+                true
+            }
+            if (!stored || generation != startedIn) return@launch
+            // A new or removed expense changes the month's budget, so the thresholds are looked at again.
+            try {
+                onChanged()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // The listener must never turn a stored expense into a failed one.
             }
         }
     }

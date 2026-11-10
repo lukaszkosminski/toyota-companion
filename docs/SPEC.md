@@ -437,7 +437,8 @@ Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – �
   `DefaultPriceController` w scope'ie aplikacji.
 - Ten sam plik trzyma inne ustawienia telefonu, m.in. `monthly_budget` (budżet miesięczny, F48/§49) jako tekst
   `BigDecimal` z dwoma miejscami i wartością dodatnią; śmieci, zero, wartość ujemna albo zaokrąglająca się do 0,00
-  czytają się jak brak budżetu. Wylogowanie go nie usuwa (ADR-006).
+  czytają się jak brak budżetu. `budget_alert` (przełącznik powiadomienia, domyślnie on) i `budget_alert_last`
+  (klucz `RRRR-MM:80|100`) należą do F49/§49. Wylogowanie ich nie usuwa (ADR-006).
 
 ### §12.3 Ekran „Cena domyślna” (kryteria akceptacji)
 - Wejście: karta „Cena domyślna” w „Opcjach” (nie na ekranie statusu: to cena paliwa w baku przed pierwszym potwierdzonym
@@ -1169,10 +1170,21 @@ Domena: `core/domain/OwnershipOps.kt` (`ownershipCost`, `ownershipMonths`, model
 - Auto Backup (ADR-015): limit jest w `settings.xml` objętym kopią Google i transferem urządzenia, jak cena domyślna
   i cele eco; **nie jest sekretem**. Ręczny eksport archiwum (JSON) i arkusze CSV nie zawierają limitu (settings są
   poza archiwum). Karta nie wysyła nic sama; baza z trasami i wydatkami jest w Auto Backup, tak jak dotąd.
-- **Powiadomienie przy progu – osobny krok, nie w tej zmianie.** Istniejące kanały „Tankowania”
-  (`IMPORTANCE_HIGH`, tankowanie) i „Spalanie”/„Consumption” (`IMPORTANCE_DEFAULT`, rosnące spalanie) nie pasują do
-  budżetu. Następny krok: nowy kanał „Budżet” (`IMPORTANCE_DEFAULT`, teksty PL/EN), progi **80% (ostrzeżenie)**
-  i **100% (przekroczenie)**, klucz `RRRR-MM:80`/`RRRR-MM:100` w `SettingsStore` (wzorzec `lastConsumptionAlert`/
-  `KEY_ALERT`), trigger po udanej synchronizacji i po dodaniu/usunięciu wydatku (nie przy samym wejściu na status –
-  użytkownik widzi kartę), bez nowego uprawnienia (`POST_NOTIFICATIONS` jest już proszone raz w §13.2), treść tylko
-  kwota i procent, bez VIN/GPS. Odmowa uprawnienia nie psuje karty.
+- **Powiadomienie przy progu (PRD F49)**: kanał „Budżet” (`budget`, `IMPORTANCE_DEFAULT`), progi **80%** (ostrzeżenie)
+  i **100%** (przekroczenie). Próg 100 oznacza faktyczne przekroczenie (wydano > limit, `overBudget`); ostrzeżenie 80
+  zaczyna się od 79,5% według całego procentu HALF_UP i obejmuje też 99,95% oraz dokładnie limit (treść z kwotą
+  „Zostało X zł.”, także 0,00). Klucz `RRRR-MM:80`/`RRRR-MM:100` w `SettingsStore` (`budget_alert_last`); powiadamiamy
+  tylko, gdy dla tego miesiąca nie powiadomiono jeszcze tego lub wyższego progu (80 po 100 jest ciszą, 100 po 80
+  powiadomieniem; nowy miesiąc zaczyna od nowa). Klucz zapisywany **po** udanym `post`; bez uprawnienia, wyłączonych
+  powiadomień, wyciszonego kanału albo wyłączonego przełącznika nic nie jest oznaczane, więc włączenie później dostarczy
+  alert tego miesiąca. Trigger: udana synchronizacja (`SyncOutcome.Ok`) i udana zmiana wydatku (dodanie/usunięcie);
+  **nie** przy samym wejściu na status (użytkownik widzi kartę) i nie przy zmianie limitu; zmiana limitu nie zeruje
+  klucza miesiąca (po podniesieniu limitu po alercie 100 do końca miesiąca jest cisza). Kontrole są serializowane
+  (`Mutex`, klucz czytany w blokadzie), a odczyty, `canPost` i publikacja idą na wątku I/O. Reuse `POST_NOTIFICATIONS`
+  i jednorazowej prośby z §13.2 – bez nowej prośby i nowego uprawnienia; odmowa nie psuje karty ani synchronizacji.
+  Treść: miesiąc, wydane, limit, procent; przy 80% dodatkowo kwota „Zostało”, przy 100% kwota przekroczenia; bez VIN
+  i GPS. Przełącznik
+  `budget_alert` (domyślnie włączony, jak automatyczna pogoda) w „Opcjach”, przeżywa wylogowanie.
+  Pliki: `ui/BudgetAlert.kt` (czysta reguła progów), `notify/BudgetAlertNotifier.kt`, `ui/ExpensesController.kt`
+  (`onChanged`), `ui/BudgetController.kt` (przełącznik), `ui/AppRoot.kt`, `AppContainer` (`syncRunner`, notifier),
+  `settings/SettingsStore.kt`, `ui/OptionsScreen.kt`, `ui/Texts.kt`.

@@ -1,7 +1,8 @@
 # Changelog
 
 ## Unreleased
-- Budżet miesięczny (F48, SPEC §49, plan C28): karta „Budżet miesiąca” na ekranie statusu z jednym opcjonalnym limitem na telefon na paliwo i wydatki poza paliwem; postęp liczony tylko z lokalnego archiwum (koszt jazdy z tras, wydatki wg daty poniesienia), limit w ustawieniach telefonu przeżywa wylogowanie; karta niezależna od statusu Toyoty, bez sieci i bez budzenia auta; ostatnie dobre dane zostają przy błędzie odczytu; powiadomienie przy progu to osobny krok (opisany w §49)
+- Budżet miesięczny (F48, SPEC §49, plan C28): karta „Budżet miesiąca” na ekranie statusu z jednym opcjonalnym limitem na telefon na paliwo i wydatki poza paliwem; postęp liczony tylko z lokalnego archiwum (koszt jazdy z tras, wydatki wg daty poniesienia), limit w ustawieniach telefonu przeżywa wylogowanie; karta niezależna od statusu Toyoty, bez sieci i bez budzenia auta; ostatnie dobre dane zostają przy błędzie odczytu
+- Powiadomienie o budżecie (F49, SPEC §49, plan C29): kanał „Budżet”, jedno ostrzeżenie od 80% (cały procent HALF_UP, treść z kwotą „Zostało”) i jedno przy faktycznym przekroczeniu limitu (wydano > limit), raz na miesiąc i próg; kontrole serializowane, publikacja poza wątkiem UI (80 po 100 ciszą, 100 po 80 powiadomieniem); trigger po udanej synchronizacji i po zmianie wydatków; przełącznik w „Opcjach” domyślnie włączony; reuse `POST_NOTIFICATIONS` i jednej prośby z §13.2, treść tylko miesiąc/kwoty/procent bez VIN i GPS
 
 ## 0.2.6 (2026-11-09)
 - Eksport CSV tankowań i wydatków (F47, SPEC §48, plan C27): dwa nowe arkusze w sekcji „Arkusz kalkulacyjny” obok tras – potwierdzone tankowania (data, licznik, poziomy, litry, cena, koszt, źródło litrów, „do pełna”) i wydatki poza paliwem (data, kategoria, kwota, notatka); ten sam format polskiego arkusza, bez VIN, GPS i `id`; przy pustej liście aplikacja nic nie zapisuje (systemowy wybór pliku może wcześniej utworzyć pusty plik), a eksport nie zmienia daty kopii archiwum

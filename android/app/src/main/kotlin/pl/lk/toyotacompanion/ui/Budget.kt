@@ -29,6 +29,8 @@ data class BudgetState(
     val loading: Boolean = true,
     /** The last read failed; the limit stays, the figures may be the last good ones. */
     val failed: Boolean = false,
+    /** The owner's switch for the monthly budget notification (PRD F49, docs/SPEC.md §49); on by default. */
+    val alertEnabled: Boolean = true,
 )
 
 /** Result of reading the typed budget limit. */

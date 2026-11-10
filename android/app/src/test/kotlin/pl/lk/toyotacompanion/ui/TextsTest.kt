@@ -294,6 +294,14 @@ class TextsTest {
                 Texts.budgetExpenses("250,50"),
                 Texts.budgetRemaining("207,05"),
                 Texts.budgetOver("50,00"),
+                Texts.BUDGET_ALERT_CHANNEL,
+                Texts.BUDGET_ALERT_WARN_TITLE,
+                Texts.BUDGET_ALERT_OVER_TITLE,
+                Texts.budgetAlertWarn("październik 2026", "640,00", "800,00", 80, "160,00"),
+                Texts.budgetAlertOver("październik 2026", "850,00", "800,00", 106, "50,00"),
+                Texts.BUDGET_ALERT_SETTING_TITLE,
+                Texts.BUDGET_ALERT_SETTING_SWITCH,
+                Texts.BUDGET_ALERT_SETTING_HINT,
             )
         for (text in all) {
             for (forbidden in listOf("token", "Token", "VIN1", "p@ss", "secret")) {
@@ -617,6 +625,10 @@ class TextsTest {
             Texts.budgetCaption("listopad 2026", "800,00", 74),
             Texts.budgetFuel("342,45"), Texts.budgetExpenses("250,50"),
             Texts.budgetRemaining("207,05"), Texts.budgetOver("50,00"),
+            Texts.BUDGET_ALERT_CHANNEL, Texts.BUDGET_ALERT_WARN_TITLE, Texts.BUDGET_ALERT_OVER_TITLE,
+            Texts.budgetAlertWarn("październik 2026", "640,00", "800,00", 80, "160,00"),
+            Texts.budgetAlertOver("październik 2026", "850,00", "800,00", 106, "50,00"),
+            Texts.BUDGET_ALERT_SETTING_TITLE, Texts.BUDGET_ALERT_SETTING_SWITCH, Texts.BUDGET_ALERT_SETTING_HINT,
         )
         val polish = all()
         Lang.current = AppLanguage.EN
@@ -636,6 +648,10 @@ class TextsTest {
         assertEquals("Budget limit [zł]", english[6], "the field must not be identical in both languages")
         assertEquals("listopad 2026: 74% z 800,00 zł", polish[10])
         assertEquals("listopad 2026: 74% of 800,00 zł", english[10], "the month and limit are arguments of the caller")
+        assertEquals("Budżet", polish[15])
+        assertEquals("Budget", english[15])
+        assertEquals("Budżet miesiąca: blisko limitu", polish[16])
+        assertEquals("Monthly budget: close to the limit", english[16])
     }
 }
 

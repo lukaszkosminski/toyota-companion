@@ -122,6 +122,33 @@ class SettingsStore(private val prefs: SharedPreferences) {
         prefs.edit { if (value == null) remove(KEY_MONTHLY_BUDGET) else putString(KEY_MONTHLY_BUDGET, value.toPlainString()) }
     }
 
+    /**
+     * Whether the monthly budget notification is on (PRD F49, docs/SPEC.md §49); on by default, like the automatic
+     * weather. A phone setting, not account data: it survives logging out.
+     */
+    fun budgetAlert(): Boolean = try {
+        prefs.getBoolean(KEY_BUDGET_ALERT, true)
+    } catch (e: ClassCastException) {
+        // Something else was stored under the key: read as the default, so the budget card never fails over it.
+        true
+    }
+
+    fun saveBudgetAlert(on: Boolean) {
+        prefs.edit { putBoolean(KEY_BUDGET_ALERT, on) }
+    }
+
+    /** `YYYY-MM:80` or `YYYY-MM:100` of the last budget notification, `null` when nothing was told (docs/SPEC.md §49). */
+    fun lastBudgetAlert(): String? = try {
+        prefs.getString(KEY_BUDGET_ALERT_LAST, null)
+    } catch (e: ClassCastException) {
+        // Something else was stored under the key: read as "nothing told yet".
+        null
+    }
+
+    fun saveLastBudgetAlert(key: String) {
+        prefs.edit { putString(KEY_BUDGET_ALERT_LAST, key) }
+    }
+
     /** Month (`YYYY-MM`) of the last "consumption keeps rising" notification (docs/SPEC.md §31). */
     fun lastConsumptionAlert(): String? = prefs.getString(KEY_ALERT, null)
 
@@ -206,6 +233,8 @@ class SettingsStore(private val prefs: SharedPreferences) {
         const val KEY_ECO_CONSUMPTION = "eco_goal_consumption"
         const val KEY_ECO_EV = "eco_goal_ev_pct"
         const val KEY_MONTHLY_BUDGET = "monthly_budget"
+        const val KEY_BUDGET_ALERT = "budget_alert"
+        const val KEY_BUDGET_ALERT_LAST = "budget_alert_last"
         const val KEY_ALERT = "consumption_alert"
         const val KEY_NOTIFIED_REFUELS = "refuel_notified_ids"
         const val KEY_NOTIFICATIONS_ASKED = "notifications_asked"

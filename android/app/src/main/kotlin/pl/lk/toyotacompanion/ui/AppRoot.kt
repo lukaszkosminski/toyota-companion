@@ -286,6 +286,8 @@ fun AppRoot(
                         onSetLanguage = onSetLanguage,
                         defaultPrice = priceState.price,
                         onShowDefaultPrice = { screen = Screen.DefaultPrice },
+                        budgetAlert = budgetState.alertEnabled,
+                        onSetBudgetAlert = budget::setAlert,
                         onBack = { screen = Screen.Status },
                     )
                     Screen.Expenses -> ExpensesScreen(

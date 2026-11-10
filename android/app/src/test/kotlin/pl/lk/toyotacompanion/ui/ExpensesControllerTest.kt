@@ -160,6 +160,87 @@ class ExpensesControllerTest {
     }
 
     @Test
+    fun `a successful write notifies the budget listener, a failed one does not`() = runTest {
+        val dao = FakeExpenseDao().apply { rows["a"] = entity("a", 20_000) }
+        var calls = 0
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val c = ExpensesController(
+            dao,
+            CoroutineScope(SupervisorJob() + dispatcher),
+            dispatcher,
+            onChanged = { calls++ },
+        )
+
+        assertTrue(c.add(LocalDate.ofEpochDay(20_001), ExpenseCategory.FEES, "20", ""))
+        advanceUntilIdle()
+        assertEquals(1, calls)
+
+        c.delete("a")
+        advanceUntilIdle()
+        assertEquals(2, calls)
+
+        dao.failWrite = true
+        assertTrue(c.add(LocalDate.ofEpochDay(20_002), ExpenseCategory.OTHER, "5", ""))
+        advanceUntilIdle()
+        assertEquals(2, calls, "a failed write must not look like a change")
+    }
+
+    private fun TestScope.listening(dao: ExpenseDao, onChanged: suspend () -> Unit): ExpensesController {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        return ExpensesController(dao, CoroutineScope(SupervisorJob() + dispatcher), dispatcher, onChanged = onChanged)
+    }
+
+    @Test
+    fun `a slow listener does not hold the next write`() = runTest {
+        val dao = FakeExpenseDao()
+        val gate = CompletableDeferred<Unit>()
+        var calls = 0
+        val c = listening(dao) {
+            calls++
+            gate.await()
+        }
+
+        assertTrue(c.add(LocalDate.ofEpochDay(20_001), ExpenseCategory.FEES, "20", ""))
+        advanceUntilIdle()
+        assertEquals(1, calls)
+        // The first listener is still waiting; the next write must not queue behind it.
+        assertTrue(c.add(LocalDate.ofEpochDay(20_002), ExpenseCategory.OTHER, "5", ""))
+        advanceUntilIdle()
+
+        assertEquals(2, calls)
+        assertEquals(2, dao.rows.size)
+        assertEquals(2, c.state.value.expenses.size)
+        gate.complete(Unit)
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun `the listener is not called after a reset`() = runTest {
+        val dao = FakeExpenseDao()
+        var calls = 0
+        val c = listening(dao) { calls++ }
+
+        assertTrue(c.add(LocalDate.ofEpochDay(20_001), ExpenseCategory.FEES, "20", ""))
+        c.reset()
+        advanceUntilIdle()
+
+        assertEquals(0, calls)
+        assertEquals(emptyList(), c.state.value.expenses)
+    }
+
+    @Test
+    fun `a listener that throws does not turn a stored expense into a failed one`() = runTest {
+        val dao = FakeExpenseDao()
+        val c = listening(dao) { throw IllegalStateException("budget") }
+
+        assertTrue(c.add(LocalDate.ofEpochDay(20_001), ExpenseCategory.FEES, "20", ""))
+        advanceUntilIdle()
+
+        assertEquals(1, c.state.value.expenses.size)
+        assertFalse(c.state.value.failed)
+    }
+
+    @Test
     fun `a write that fails marks the failure and keeps what was stored`() = runTest {
         val dao = FakeExpenseDao().apply { rows["a"] = entity("a", 20_000) }
         val c = controller(dao)
