@@ -87,3 +87,6 @@ Właściciel zatwierdził U13, U8, U9, U11, U12, U14, U16, U17 (decyzje w polece
 
 U21 (Dziennik tankowań) wycofane 2026-11-10: ekran już pokazuje litry i kwotę, gdy tankowanie je ma; wpis właściciela
 z 29.10 ma tylko cenę za litr, więc uwaga była błędną diagnozą agenta głównego, nie brakiem w ekranie.
+
+U13 wycofane 2026-11-10 po wydaniu v0.2.7: właściciel chce kafelki na dole pierwszej strony, jak wcześniej. Zostaje U6
+(zapamiętane przewinięcie).

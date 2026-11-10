@@ -312,7 +312,7 @@ Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – �
 - Kolejność: stan (chip świeżości, godzina ostatniej synchronizacji, linia „Telemetria: N odczytów”), liczniki w dwóch rzędach po dwa
   (Trasy / Poziom paliwa / Przebieg / Oczekujące tankowania),
   błąd synchronizacji (jeśli jest), przycisk ceny oczekującego tankowania (jeśli jest), przycisk „Synchronizuj teraz” na pełną szerokość
-  (gest przeciągnięcia w dół robi to samo), potem **menu kafelków** (z przypomnieniem o kopii i linią „Ostatnia kopia archiwum”), a pod nim karty: „Prognoza” (🔮), „Spalanie” (⛽), cel miesiąca, „Koszty miesięczne” (💰) i budżet (C32 U13).
+  (gest przeciągnięcia w dół robi to samo), potem karty: „Prognoza” (🔮), „Spalanie” (⛽), cel miesiąca, „Koszty miesięczne” (💰) i budżet, a na dole pierwszej strony **menu kafelków** (z przypomnieniem o kopii i linią „Ostatnia kopia archiwum”). Kafelki wróciły na dół decyzją właściciela z 2026-11-10 (propozycja U13 z przeglądu C32 wycofana po wypróbowaniu w v0.2.7); ekran pamięta przewinięcie po powrocie z podstrony (§9.3), więc kafelki zostają pod ręką.
 - Karta to zaokrąglony kontener z ikoną i tytułem, jedno miejsce na odstępy, kształty i typografię (`DashboardCard`, `Headline`, `Pill`, `MenuTile` w `ui/Dashboard.kt`); kolory z motywu
   (jasny, ciemny i dynamiczny). Spalanie: duża liczba „4,13 l/100 km” z podpisem, trend jako kolorowa pigułka (rosnący – kolor błędu, malejący – kolor główny, stabilny – neutralny),
   słupki z zaokrąglonymi górami; kierunek trendu w pigułce pokazuje tylko ikona (tekst „rosnące (+8,2 %)” bez strzałki; strzałka zostaje w linii widżetu). Koszty: duża suma „1 182,89 zł”, słupki od zera, trzy najnowsze miesiące w szczegółach, reszta za „Pokaż wszystkie miesiące (N)”.

@@ -178,7 +178,24 @@ fun StatusScreen(
                     Text(if (state.syncing) Texts.SYNCING else Texts.SYNC_NOW_BUTTON)
                 }
 
-                // The menu sits right under the buttons, the cards below it (C32 U13): the tiles are what is tapped most (docs/SPEC.md §10.4). The default price shows its value, the others name the screen.
+                if (status != null) {
+                    // Refuel forecast from the archive, never from the car (PRD F14, docs/SPEC.md §20).
+                    forecastLine?.let { line ->
+                        DashboardCard(Texts.FORECAST_CARD_TITLE, AppIcons.EventUpcoming) { Text(line, style = MaterialTheme.typography.bodyLarge) }
+                    }
+                    // Average consumption of the whole archive and the monthly bars (docs/SPEC.md §24).
+                    ConsumptionCard(consumption, declaredConsumption, onSetDeclared, onSetEcoGoal = if (ecoGoals.goals.any) null else ({ editingEcoGoals = true }))
+                    // The monthly eco goals (PRD F39, docs/SPEC.md §40).
+                    EcoGoalsCard(ecoGoals) { editingEcoGoals = true }
+                    CostsCard(consumption)
+                }
+
+                // The monthly budget for fuel and expenses (PRD F48, docs/SPEC.md §49). It does not depend on the
+                // Toyota status, so it stays visible when the status is missing (a failed sync must not hide it).
+                BudgetCard(budget) { editingBudget = true }
+
+                // The menu closes the first screen, under the cards, as the owner wants it (docs/SPEC.md §10.4); the scroll position
+                // is kept across sub-screens, so the tiles stay in reach. The default price shows its value, the others name the screen.
                 MenuGrid(
                     listOf(
                         Triple(AppIcons.Route, Texts.TRIPS_TITLE, onShowTrips),
@@ -205,22 +222,6 @@ fun StatusScreen(
                     BackupReminder.None -> Unit
                 }
                 Text(lastBackupLine, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-                if (status != null) {
-                    // Refuel forecast from the archive, never from the car (PRD F14, docs/SPEC.md §20).
-                    forecastLine?.let { line ->
-                        DashboardCard(Texts.FORECAST_CARD_TITLE, AppIcons.EventUpcoming) { Text(line, style = MaterialTheme.typography.bodyLarge) }
-                    }
-                    // Average consumption of the whole archive and the monthly bars (docs/SPEC.md §24).
-                    ConsumptionCard(consumption, declaredConsumption, onSetDeclared, onSetEcoGoal = if (ecoGoals.goals.any) null else ({ editingEcoGoals = true }))
-                    // The monthly eco goals (PRD F39, docs/SPEC.md §40).
-                    EcoGoalsCard(ecoGoals) { editingEcoGoals = true }
-                    CostsCard(consumption)
-                }
-
-                // The monthly budget for fuel and expenses (PRD F48, docs/SPEC.md §49). It does not depend on the
-                // Toyota status, so it stays visible when the status is missing (a failed sync must not hide it).
-                BudgetCard(budget) { editingBudget = true }
             }
         }
     }
