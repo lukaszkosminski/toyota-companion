@@ -1,7 +1,6 @@
 package pl.lk.toyotacompanion.ui
 
 import java.math.BigDecimal
-import java.math.RoundingMode
 import java.time.Instant
 import java.time.ZoneId
 import pl.lk.toyotacompanion.core.domain.toBigDecimal
@@ -21,12 +20,12 @@ object RefuelFormatting {
     fun levelJump(levelBefore: Int, levelAfter: Int): String = "$levelBefore% \u2192 $levelAfter%"
 
     /**
-     * Odometer as whole kilometres with a plain space as the thousand separator,
-     * e.g. `12 345 km`. Rounded `HALF_UP` to whole kilometres; no `Locale` and no
-     * `NumberFormat`, so the separator cannot turn into a dot or a comma.
+     * Odometer as whole kilometres with a no-break space as the thousand separator
+     * ([TripsFormatting.number]), e.g. `12 345 km`. Rounded `HALF_UP` to whole kilometres; no
+     * `Locale` and no `NumberFormat`, so the separator cannot turn into a dot or a comma.
      */
     fun odometer(odometerKm: Double): String =
-        groupThousands(toBigDecimal(odometerKm).setScale(0, RoundingMode.HALF_UP).toPlainString()) + " km"
+        TripsFormatting.number(toBigDecimal(odometerKm), 0) + " km"
 
     /**
      * Liters for the form field, e.g. `14,19`: the full precision of the domain
@@ -38,16 +37,4 @@ object RefuelFormatting {
 
     /** Liters for reading, e.g. `14,19 l` — the same precision as [litersInput]. */
     fun liters(liters: BigDecimal): String = litersInput(liters) + " l"
-
-    private fun groupThousands(plain: String): String {
-        val sign = if (plain.startsWith('-')) "-" else ""
-        val digits = plain.removePrefix("-")
-        val first = (digits.length - 1) % 3 + 1
-        val out = StringBuilder(digits.length + digits.length / 3)
-        for (index in digits.indices) {
-            if (index > 0 && (index - first) % 3 == 0) out.append(' ')
-            out.append(digits[index])
-        }
-        return sign + out
-    }
 }

@@ -65,11 +65,11 @@ fun budgetAlertTitle(alert: BudgetAlert): String =
 fun budgetAlertText(alert: BudgetAlert): String {
     val progress = alert.progress
     val month = TripsFormatting.monthLabel(alert.month)
-    val spent = TripsFormatting.plain(progress.spentPln, 2)
-    val limit = TripsFormatting.plain(progress.limitPln, 2)
+    val spent = TripsFormatting.number(progress.spentPln, 2)
+    val limit = TripsFormatting.number(progress.limitPln, 2)
     return if (alert.thresholdPct >= BUDGET_ALERT_OVER_PCT) {
-        Texts.budgetAlertOver(month, spent, limit, progress.percentUsed, TripsFormatting.plain(progress.remainingPln.abs(), 2))
+        Texts.budgetAlertOver(month, spent, limit, progress.percentUsed, TripsFormatting.number(progress.remainingPln.abs(), 2))
     } else {
-        Texts.budgetAlertWarn(month, spent, limit, progress.percentUsed, TripsFormatting.plain(progress.remainingPln, 2))
+        Texts.budgetAlertWarn(month, spent, limit, progress.percentUsed, TripsFormatting.number(progress.remainingPln, 2))
     }
 }

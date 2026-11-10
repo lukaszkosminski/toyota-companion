@@ -34,18 +34,18 @@ class RefuelFormattingTest {
     }
 
     @Test
-    fun `odometer groups thousands with a plain space`() {
+    fun `odometer groups thousands with a no-break space`() {
         assertEquals("0 km", RefuelFormatting.odometer(0.0))
         assertEquals("999 km", RefuelFormatting.odometer(999.4))
-        assertEquals("1 000 km", RefuelFormatting.odometer(999.5))
-        assertEquals("12 345 km", RefuelFormatting.odometer(12_345.0))
-        assertEquals("1 234 567 km", RefuelFormatting.odometer(1_234_567.4))
+        assertEquals("1\u00A0000 km", RefuelFormatting.odometer(999.5))
+        assertEquals("12\u00A0345 km", RefuelFormatting.odometer(12_345.0))
+        assertEquals("1\u00A0234\u00A0567 km", RefuelFormatting.odometer(1_234_567.4))
     }
 
     @Test
     fun `odometer rounds half up to whole kilometres`() {
-        assertEquals("12 346 km", RefuelFormatting.odometer(12_345.5))
-        assertEquals("12 345 km", RefuelFormatting.odometer(12_345.49))
+        assertEquals("12\u00A0346 km", RefuelFormatting.odometer(12_345.5))
+        assertEquals("12\u00A0345 km", RefuelFormatting.odometer(12_345.49))
     }
 
     @Test
@@ -72,7 +72,7 @@ class RefuelFormattingTest {
         try {
             for (locale in listOf(Locale.US, Locale.FRANCE, Locale.GERMANY)) {
                 Locale.setDefault(locale)
-                assertEquals("12 345 km", RefuelFormatting.odometer(12_345.0), locale.toString())
+                assertEquals("12\u00A0345 km", RefuelFormatting.odometer(12_345.0), locale.toString())
                 assertEquals("20% \u2192 80%", RefuelFormatting.levelJump(20, 80), locale.toString())
                 assertEquals("14,19", RefuelFormatting.litersInput(BigDecimal("14.190")), locale.toString())
                 assertEquals("14,19 l", RefuelFormatting.liters(BigDecimal("14.190")), locale.toString())

@@ -4,17 +4,23 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -64,9 +70,29 @@ object Palette {
 /** One vertical bar of [BarChart]: [value] drives the height, [top] is printed above it, [label] below. */
 data class ChartBar(val value: Float, val label: String, val top: String? = null, val color: Color? = null)
 
+/** The gap kept between two printed labels of a [BarChart], in dp. */
+private const val LABEL_GAP_DP = 4f
+
+/**
+ * Every how many bars a label of [labelWidthPx] fits when the bars are [pitchPx] apart (bar plus spacing): 1 when each bar can print
+ * its own label, 2 when every second one can, and so on. [gapPx] is the space left between two neighbouring labels.
+ */
+internal fun barLabelStride(labelWidthPx: Float, pitchPx: Float, gapPx: Float): Int {
+    if (pitchPx <= 0f || labelWidthPx <= 0f) return 1
+    return kotlin.math.ceil((labelWidthPx + gapPx) / pitchPx).toInt().coerceAtLeast(1)
+}
+
+/** Whether the bar at [index] of [count] prints its label; the newest (last) bar always does, then every [stride]-th one going back. */
+internal fun barShowsLabel(index: Int, count: Int, stride: Int): Boolean = (count - 1 - index) % stride.coerceAtLeast(1) == 0
+
 /**
  * Vertical bars drawn on a canvas with a faint baseline grid; [max] fixes the axis (default: the tallest bar). A value of
  * zero or less draws no bar, only the baseline. A screen reader reads each column (top text and label) as one item.
+ *
+ * Text is never cut or wrapped inside a narrow column: the value above and the label below are laid out on one line at their own
+ * width (centred under the bar), and when the widest label is wider than the room one bar has, only every second (third, ...) bar
+ * prints its label - counted back from the newest - while the others keep theirs for the screen reader only. So twelve weekly
+ * `24.08` labels on a 360 dp screen, or `sty 27`, stay whole in either language and at a larger system font.
  */
 @Composable
 fun BarChart(
@@ -79,25 +105,47 @@ fun BarChart(
     if (bars.isEmpty()) return
     val axis = (max ?: bars.maxOf { it.value }).coerceAtLeast(0.0001f)
     val grid = MaterialTheme.colorScheme.outlineVariant
-    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.Bottom) {
-        for (bar in bars) {
-            val barColor = bar.color ?: color
-            Column(modifier = Modifier.weight(1f).semantics(mergeDescendants = true) {}, horizontalAlignment = Alignment.CenterHorizontally) {
-                if (bar.top != null) Text(bar.top, style = MaterialTheme.typography.labelSmall, maxLines = 1)
-                Canvas(modifier = Modifier.fillMaxWidth().height(height)) {
-                    drawLine(grid, Offset(0f, size.height), Offset(size.width, size.height), strokeWidth = 2f)
-                    if (bar.value <= 0f) return@Canvas
-                    // A small positive value keeps a visible stub; zero is no bar at all.
-                    val h = size.height * (bar.value / axis).coerceIn(0.02f, 1f)
-                    val w = size.width * 0.7f
-                    drawRoundRect(
-                        brush = Brush.verticalGradient(listOf(barColor, barColor.copy(alpha = 0.55f)), startY = size.height - h, endY = size.height),
-                        topLeft = Offset((size.width - w) / 2f, size.height - h),
-                        size = Size(w, h),
-                        cornerRadius = CornerRadius(8f, 8f),
+    val labelStyle = MaterialTheme.typography.labelSmall
+    val measurer = rememberTextMeasurer()
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val spacingPx = with(density) { 4.dp.toPx() }
+        val pitchPx = (with(density) { maxWidth.toPx() } + spacingPx) / bars.size
+        val widest = remember(bars.map { it.label }, labelStyle, density) {
+            bars.maxOf { measurer.measure(it.label, labelStyle, softWrap = false, maxLines = 1).size.width }
+        }
+        val stride = barLabelStride(widest.toFloat(), pitchPx, with(density) { LABEL_GAP_DP.dp.toPx() })
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.Bottom) {
+            bars.forEachIndexed { index, bar ->
+                val barColor = bar.color ?: color
+                Column(modifier = Modifier.weight(1f).semantics(mergeDescendants = true) {}, horizontalAlignment = Alignment.CenterHorizontally) {
+                    if (bar.top != null) {
+                        Text(bar.top, style = labelStyle, maxLines = 1, softWrap = false, modifier = Modifier.wrapContentWidth(unbounded = true))
+                    }
+                    Canvas(modifier = Modifier.fillMaxWidth().height(height)) {
+                        drawLine(grid, Offset(0f, size.height), Offset(size.width, size.height), strokeWidth = 2f)
+                        if (bar.value <= 0f) return@Canvas
+                        // A small positive value keeps a visible stub; zero is no bar at all.
+                        val h = size.height * (bar.value / axis).coerceIn(0.02f, 1f)
+                        val w = size.width * 0.7f
+                        drawRoundRect(
+                            brush = Brush.verticalGradient(listOf(barColor, barColor.copy(alpha = 0.55f)), startY = size.height - h, endY = size.height),
+                            topLeft = Offset((size.width - w) / 2f, size.height - h),
+                            size = Size(w, h),
+                            cornerRadius = CornerRadius(8f, 8f),
+                        )
+                    }
+                    Text(
+                        bar.label,
+                        style = labelStyle,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        softWrap = false,
+                        // A label that is skipped is only transparent: it still has its place and is still read aloud.
+                        color = if (barShowsLabel(index, bars.size, stride)) Color.Unspecified else Color.Transparent,
+                        modifier = Modifier.wrapContentWidth(unbounded = true),
                     )
                 }
-                Text(bar.label, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = 1)
             }
         }
     }
@@ -185,19 +233,43 @@ fun IconBadge(icon: ImageVector, color: Color, modifier: Modifier = Modifier) {
     ) { Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp), tint = readable(color, tint = tint)) }
 }
 
-/** A small number tile: [value] big in a readable tone of [color] on its tint, [caption] under it. Put several in a [Row] with weight. */
+/**
+ * [value] with its unit kept together: the last ordinary space (`1 263,84 zł`) becomes a no-break space, so the unit never lands on a
+ * line of its own. The thousands inside the number already use no-break spaces ([TripsFormatting.number]).
+ */
+internal fun keepUnitTogether(value: String): String {
+    val at = value.lastIndexOf(' ')
+    return if (at < 0) value else value.substring(0, at) + "\u00A0" + value.substring(at + 1)
+}
+
+/**
+ * A small number tile: [value] big in a readable tone of [color] on its tint, [caption] under it. Put several in a [Row] with weight.
+ * The value is one line: when it is wider than the tile (`1 263,84 zł` in a third of the screen) its font shrinks step by step instead of
+ * wrapping, so the tiles of a row keep the same height.
+ */
 @Composable
 fun StatTile(value: String, caption: String, color: Color, modifier: Modifier = Modifier) {
+    var scale by remember(value) { mutableFloatStateOf(1f) }
+    val style = MaterialTheme.typography.titleLarge
     Column(
         modifier = modifier
             .background(color.copy(alpha = 0.12f), MaterialTheme.shapes.medium)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Text(value, style = MaterialTheme.typography.titleLarge, color = readable(color, tint = color.copy(alpha = 0.12f)))
+        Text(
+            keepUnitTogether(value),
+            style = style.copy(fontSize = style.fontSize * scale, lineHeight = style.lineHeight * scale),
+            color = readable(color, tint = color.copy(alpha = 0.12f)),
+            maxLines = 1,
+            softWrap = false,
+            onTextLayout = { if (it.didOverflowWidth && scale > MIN_TILE_SCALE) scale *= 0.92f },
+        )
         Text(caption, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
+
+private const val MIN_TILE_SCALE = 0.55f
 
 /** A tinted strip with a section title and an icon, to open a group of rows inside a long list. */
 @Composable

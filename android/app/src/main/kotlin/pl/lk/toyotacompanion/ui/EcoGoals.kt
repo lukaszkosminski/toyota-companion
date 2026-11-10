@@ -126,8 +126,8 @@ fun ecoConsumptionLine(month: EcoMonth): String? {
     val result = month.consumption ?: return null
     val actual = result.actual ?: return null
     return Texts.ecoConsumptionLine(
-        TripsFormatting.plain(actual, 2),
-        TripsFormatting.plain(result.goal, 2),
+        TripsFormatting.number(actual, 2),
+        TripsFormatting.number(result.goal, 2),
         result.met?.let { mark(it) },
     )
 }
@@ -136,20 +136,20 @@ fun ecoConsumptionLine(month: EcoMonth): String? {
 fun ecoEvLine(month: EcoMonth): String? {
     val result = month.ev ?: return null
     val actual = result.actual ?: return Texts.ECO_NO_EV_DATA
-    return Texts.ecoEvLine(TripsFormatting.plain(actual, 0), TripsFormatting.plain(result.goal, 0), result.met?.let { mark(it) })
+    return Texts.ecoEvLine(TripsFormatting.number(actual, 0), TripsFormatting.number(result.goal, 0), result.met?.let { mark(it) })
 }
 
 /** The lines of the card for the month in progress: the figures, or one "too little driving" line. */
 fun ecoCurrentLines(progress: EcoProgress): List<String> {
     val month = progress.current
-    if (!month.enoughDriving) return listOf(Texts.ecoTooLittle(TripsFormatting.plain(month.km, 0)))
+    if (!month.enoughDriving) return listOf(Texts.ecoTooLittle(TripsFormatting.number(month.km, 0)))
     return listOfNotNull(ecoConsumptionLine(month), ecoEvLine(month))
 }
 
 /** `Poprzedni miesiąc: cel spalania – osiągnięty; cel jazdy na prądzie – nieosiągnięty`; `null` without a previous month with trips. */
 fun ecoPreviousLine(progress: EcoProgress): String? {
     val month = progress.previous ?: return null
-    if (!month.enoughDriving) return Texts.ecoPreviousTooLittle(TripsFormatting.plain(month.km, 0))
+    if (!month.enoughDriving) return Texts.ecoPreviousTooLittle(TripsFormatting.number(month.km, 0))
     val parts = listOfNotNull(
         month.consumption?.met?.let { Texts.ecoPreviousConsumption(it) },
         month.ev?.met?.let { Texts.ecoPreviousEv(it) },
@@ -161,21 +161,21 @@ fun ecoPreviousLine(progress: EcoProgress): String? {
 fun ecoWidgetLine(progress: EcoProgress?): String {
     if (progress == null) return ""
     val month = progress.current
-    if (!month.enoughDriving) return Texts.ecoWidget(Texts.ecoWidgetTooLittle(TripsFormatting.plain(month.km, 0)))
+    if (!month.enoughDriving) return Texts.ecoWidget(Texts.ecoWidgetTooLittle(TripsFormatting.number(month.km, 0)))
     val parts = ArrayList<String>()
     val consumption = month.consumption
     val consumptionActual = consumption?.actual
     if (consumption != null && consumptionActual != null) {
         parts += Texts.ecoWidgetConsumption(
-            TripsFormatting.plain(consumptionActual, 2),
-            TripsFormatting.plain(consumption.goal, 2),
+            TripsFormatting.number(consumptionActual, 2),
+            TripsFormatting.number(consumption.goal, 2),
             consumption.met?.let(::mark),
         )
     }
     val ev = month.ev
     val evActual = ev?.actual
     if (ev != null && evActual != null) {
-        parts += Texts.ecoWidgetEv(TripsFormatting.plain(evActual, 0), TripsFormatting.plain(ev.goal, 0), ev.met?.let(::mark))
+        parts += Texts.ecoWidgetEv(TripsFormatting.number(evActual, 0), TripsFormatting.number(ev.goal, 0), ev.met?.let(::mark))
     }
     return if (parts.isEmpty()) "" else Texts.ecoWidget(parts.joinToString(Texts.SEPARATOR))
 }

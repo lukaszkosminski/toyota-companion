@@ -38,24 +38,24 @@ fun BudgetCard(state: BudgetState, onEdit: () -> Unit) {
         val month = state.month
         if (progress != null && month != null) {
             Headline(
-                TripsFormatting.plain(progress.spentPln, 2),
+                TripsFormatting.number(progress.spentPln, 2),
                 "zł",
                 Texts.budgetCaption(
                     TripsFormatting.monthLabel(month),
-                    TripsFormatting.plain(progress.limitPln, 2),
+                    TripsFormatting.number(progress.limitPln, 2),
                     progress.percentUsed,
                 ),
             )
-            Text(Texts.budgetFuel(TripsFormatting.plain(progress.fuelPln, 2)), style = MaterialTheme.typography.bodyMedium)
-            Text(Texts.budgetExpenses(TripsFormatting.plain(progress.expensesPln, 2)), style = MaterialTheme.typography.bodyMedium)
+            Text(Texts.budgetFuel(TripsFormatting.number(progress.fuelPln, 2)), style = MaterialTheme.typography.bodyMedium)
+            Text(Texts.budgetExpenses(TripsFormatting.number(progress.expensesPln, 2)), style = MaterialTheme.typography.bodyMedium)
             if (progress.overBudget) {
                 Text(
-                    Texts.budgetOver(TripsFormatting.plain(progress.remainingPln.abs(), 2)),
+                    Texts.budgetOver(TripsFormatting.number(progress.remainingPln.abs(), 2)),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
                 )
             } else {
-                Text(Texts.budgetRemaining(TripsFormatting.plain(progress.remainingPln, 2)), style = MaterialTheme.typography.bodyMedium)
+                Text(Texts.budgetRemaining(TripsFormatting.number(progress.remainingPln, 2)), style = MaterialTheme.typography.bodyMedium)
             }
             if (state.failed) {
                 Text(Texts.BUDGET_READ_ERROR, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)

@@ -17,11 +17,11 @@ object ConsumptionFormatting {
         return if (month.month == 1) name + " " + (month.year % 100).toString().padStart(2, '0') else name
     }
 
-    /** `Średnio z całego okresu: 4,12 l/100 km (2 412,3 km)`; the km part without a thousands separator quirk. */
+    /** `Średnio z całego okresu: 4,12 l/100 km (2 412 km)`. */
     fun overallLine(view: ConsumptionView): String =
         Texts.consumptionOverall(
-            TripsFormatting.plain(requireNotNull(view.overall), 2),
-            TripsFormatting.plain(view.overallKm, 0),
+            TripsFormatting.number(requireNotNull(view.overall), 2),
+            TripsFormatting.number(view.overallKm, 0),
         )
 
     /** `↗ rosnące (+8,2 %)`, `↘ malejące (-6,0 %)` or `→ stabilne`; `null` without a trend. */
@@ -34,6 +34,13 @@ object ConsumptionFormatting {
             ConsumptionTrend.STEADY -> Texts.consumptionSteady(signed(change))
         }
     }
+
+    /**
+     * The trend for a pill that has its own trend icon: [trendLine] without the `Trend: ` label and the arrow, e.g. `rosnące (+8,2 %)`,
+     * so the direction is shown once.
+     */
+    fun trendPillText(view: ConsumptionView): String? =
+        trendLine(view)?.substringAfter(": ")?.dropWhile { it == '\u2197' || it == '\u2198' || it == '\u2192' || it == ' ' }
 
     /**
      * Where the bars start: 70 % of the lowest month, rounded down to 0.1 l/100 km, so that the differences between
@@ -54,17 +61,17 @@ object ConsumptionFormatting {
     }
 
     private fun signed(value: BigDecimal): String {
-        val text = TripsFormatting.plain(value, 1)
+        val text = TripsFormatting.number(value, 1)
         return if (value.signum() > 0) "+$text" else text
     }
 
     /** Money of a month on the bar label: whole zloty, `–` without a price. */
-    fun costLabel(cost: MonthCost): String = cost.costPln?.let { TripsFormatting.plain(it, 0) } ?: "–"
+    fun costLabel(cost: MonthCost): String = cost.costPln?.let { TripsFormatting.number(it, 0) } ?: "–"
 
     /** `października 2026`-free line of a month: `paź: 217,90 zł · 776,4 km · 28,07 zł/100 km` (+ the unpriced count). */
     fun costLine(cost: MonthCost): String = listOfNotNull(
         monthShort(cost.month) + ": " + (cost.costPln?.let { TripsFormatting.money(it) } ?: Texts.NO_PRICE),
-        TripsFormatting.plain(cost.distanceKm, 1) + " km",
+        TripsFormatting.number(cost.distanceKm, 1) + " km",
         cost.costPer100?.let { Texts.trafficCost(TripsFormatting.money(it)) },
         if (cost.tripsWithoutCost > 0) Texts.tripsWithoutCost(cost.tripsWithoutCost) else null,
     ).joinToString(Texts.SEPARATOR)

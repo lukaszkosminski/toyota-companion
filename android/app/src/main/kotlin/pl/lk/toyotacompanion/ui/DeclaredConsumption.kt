@@ -40,7 +40,7 @@ fun declaredComparison(own: BigDecimal?, declared: BigDecimal?): String? {
         change.startsWith("-") -> Texts.DECLARED_LESS
         else -> Texts.DECLARED_SAME
     }
-    return Texts.declaredVersus(TripsFormatting.plain(requireNotNull(declared), 2), change, word)
+    return Texts.declaredVersus(TripsFormatting.number(requireNotNull(declared), 2), change, word)
 }
 
 /** The declared consumption of the owner's car (docs/SPEC.md §30): a value kept in the settings and shown on the card. */

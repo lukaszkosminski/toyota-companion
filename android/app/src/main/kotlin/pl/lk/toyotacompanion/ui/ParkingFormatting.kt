@@ -45,10 +45,11 @@ object ParkingFormatting {
         RefuelFormatting.time(stop.from, zone) + " – " + RefuelFormatting.time(stop.to, zone) +
             Texts.SEPARATOR + duration(stop.duration)
 
-    /** One place: `postoje: 12 · razem 3 d 4 h · ostatnio 29.10 14:05`. */
-    fun placeLine(place: ParkingPlace, zone: ZoneId): String =
-        Texts.parkingStops(place.stops) + Texts.SEPARATOR + Texts.parkingTotal(duration(place.total)) +
-            Texts.SEPARATOR + Texts.parkingLast(RefuelFormatting.time(place.lastStop, zone))
+    /**
+     * One place: `ostatnio 29.10 14:05`. The number of stops and the total time are the label and the value of the meter row under it
+     * (`postoje: 12` / `3 d 4 h`), so they are not repeated here.
+     */
+    fun placeLine(place: ParkingPlace, zone: ZoneId): String = Texts.parkingLast(RefuelFormatting.time(place.lastStop, zone))
 }
 
 /** The archived trips behind the parking diary: one vehicle, from `SyncEngine.trips`. */

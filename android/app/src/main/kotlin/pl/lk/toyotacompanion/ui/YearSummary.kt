@@ -97,22 +97,22 @@ fun yearSummary(trips: List<StoredTrip>, year: Int, zone: ZoneId): YearSummary? 
  */
 fun yearSummaryLines(summary: YearSummary, previous: YearSummary?, zone: ZoneId): List<String> {
     val lines = ArrayList<String>()
-    lines += Texts.yearTotals(summary.trips, TripsFormatting.plain(summary.distanceKm, 0), TripsFormatting.plain(summary.fuelL, 0))
-    summary.lPer100?.let { lines += Texts.yearAverage(TripsFormatting.plain(it, 2)) }
+    lines += Texts.yearTotals(summary.trips, TripsFormatting.number(summary.distanceKm, 0), TripsFormatting.number(summary.fuelL, 0))
+    summary.lPer100?.let { lines += Texts.yearAverage(TripsFormatting.number(it, 2)) }
     lines += summary.costPln?.let {
         Texts.yearCost(TripsFormatting.money(it), summary.costPer100?.let { c -> TripsFormatting.money(c) }) +
             if (summary.tripsWithoutCost > 0) Texts.SEPARATOR + Texts.tripsWithoutCost(summary.tripsWithoutCost) else ""
     } ?: Texts.yearNoCost
-    summary.evSharePct?.let { lines += Texts.yearEv(TripsFormatting.plain(it, 0)) }
+    summary.evSharePct?.let { lines += Texts.yearEv(TripsFormatting.number(it, 0)) }
     lines += Texts.yearDays(summary.daysDriven)
     val start = summary.longestTripStart
     val longest = summary.longestTripKm
     if (longest != null && start != null) {
-        lines += Texts.yearLongest(TripsFormatting.plain(longest, 1), RefuelFormatting.time(start, zone))
+        lines += Texts.yearLongest(TripsFormatting.number(longest, 1), RefuelFormatting.time(start, zone))
     }
-    summary.bestMonth?.let { lines += Texts.yearBest(TripsFormatting.monthLabel(it.month), TripsFormatting.plain(it.lPer100, 2)) }
+    summary.bestMonth?.let { lines += Texts.yearBest(TripsFormatting.monthLabel(it.month), TripsFormatting.number(it.lPer100, 2)) }
     summary.worstMonth?.takeIf { it.month != summary.bestMonth?.month }?.let {
-        lines += Texts.yearWorst(TripsFormatting.monthLabel(it.month), TripsFormatting.plain(it.lPer100, 2))
+        lines += Texts.yearWorst(TripsFormatting.monthLabel(it.month), TripsFormatting.number(it.lPer100, 2))
     }
     summary.dearestMonth?.let {
         lines += Texts.yearDearest(TripsFormatting.monthLabel(it.month), TripsFormatting.money(requireNotNull(it.costPln)))
@@ -174,7 +174,7 @@ fun ownershipLines(ownership: YearOwnership?, previous: YearOwnership?): List<St
     lines += Texts.ownershipSplit(
         TripsFormatting.money(cost.fuelPln),
         TripsFormatting.money(cost.expensesPln),
-        cost.fuelSharePct?.let { TripsFormatting.plain(it, 0) },
+        cost.fuelSharePct?.let { TripsFormatting.number(it, 0) },
     )
     if (ownership.topCategories.isNotEmpty()) {
         lines += Texts.ownershipTop(

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -93,6 +94,11 @@ fun StatusScreen(
     onShowBackup: () -> Unit,
     onLogout: () -> Unit,
     askNotificationPermission: suspend () -> Boolean,
+    /**
+     * The scroll position of the status screen. Owned by the caller, so it outlives this composition: opening a tile and coming back
+     * lands where the tile was, not at the top; the caller makes a new one for each login.
+     */
+    scrollState: ScrollState = rememberScrollState(),
 ) {
     var confirmLogout by remember { mutableStateOf(false) }
     var editingEcoGoals by rememberSaveable { mutableStateOf(false) }
@@ -124,7 +130,7 @@ fun StatusScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -280,7 +286,7 @@ private fun StatRow(status: SyncStatus, fuelLevelPct: Int?) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                StatTile(status.tripsStored.toString(), Texts.STAT_TRIPS, Palette.Blue, Modifier.weight(1f))
+                StatTile(TripsFormatting.count(status.tripsStored), Texts.STAT_TRIPS, Palette.Blue, Modifier.weight(1f))
                 StatTile(fuelLevelPct?.let { Texts.fuelLevel(it) } ?: "–", Texts.STAT_FUEL_LEVEL, Palette.Teal, Modifier.weight(1f))
             }
             Row(

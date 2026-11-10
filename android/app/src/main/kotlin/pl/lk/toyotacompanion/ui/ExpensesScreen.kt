@@ -105,7 +105,7 @@ fun ExpensesScreen(
                             val otherShare = if (sum.signum() > 0) other.toFloat() / sum.toFloat() else 0f
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                                 RingGauge(otherShare, color = Palette.Violet) {
-                                    Text(TripsFormatting.plain(BigDecimal(otherShare * 100.0), 0) + "%", style = MaterialTheme.typography.titleMedium)
+                                    Text(TripsFormatting.number(BigDecimal(otherShare * 100.0), 0) + "%", style = MaterialTheme.typography.titleMedium)
                                 }
                                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -139,7 +139,7 @@ fun ExpensesScreen(
                         item {
                             DashboardCard(Texts.EXPENSES_BY_MONTH, AppIcons.BarChart) {
                                 BarChart(
-                                    months.map { ChartBar(it.total.toFloat(), ConsumptionFormatting.monthShort(it.month), TripsFormatting.plain(it.total, 0)) },
+                                    months.map { ChartBar(it.total.toFloat(), ConsumptionFormatting.monthShort(it.month), TripsFormatting.number(it.total, 0)) },
                                     color = Palette.Violet,
                                 )
                             }

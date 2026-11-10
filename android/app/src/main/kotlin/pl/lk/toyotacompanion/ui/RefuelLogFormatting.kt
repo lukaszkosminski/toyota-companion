@@ -8,12 +8,12 @@ import pl.lk.toyotacompanion.core.domain.Refuel
 
 /**
  * Polish text of the refuel log (docs/SPEC.md §15.2). Pure and independent of
- * `Locale`: every number goes through [TripsFormatting.plain] (HALF_UP, comma).
+ * `Locale`: every number goes through [TripsFormatting.number] (HALF_UP, comma).
  */
 object RefuelLogFormatting {
 
     /** Fuel economy, e.g. `4,82 l/100 km`. */
-    fun consumption(value: BigDecimal): String = TripsFormatting.plain(value, 2) + " l/100 km"
+    fun consumption(value: BigDecimal): String = TripsFormatting.number(value, 2) + " l/100 km"
 
     /**
      * Difference of the actual economy against the computer, e.g. `+6,9 %` or `−3,2 %`
@@ -25,11 +25,11 @@ object RefuelLogFormatting {
             -1 -> "\u2212"
             else -> ""
         }
-        return sign + TripsFormatting.plain(pct.abs(), 1) + " %"
+        return sign + TripsFormatting.number(pct.abs(), 1) + " %"
     }
 
     /** Distance with one decimal, e.g. `612,4 km`. */
-    fun distance(value: BigDecimal): String = TripsFormatting.plain(value, 1) + " km"
+    fun distance(value: BigDecimal): String = TripsFormatting.number(value, 1) + " km"
 
     /** Liters of one refuel and where they come from, e.g. `30,5 l z paragonu`; `null` without liters. */
     fun litersLine(refuel: Refuel): String? {

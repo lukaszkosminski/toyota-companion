@@ -74,7 +74,7 @@ fun DrivingStyleScreen(
                             BarChart(
                                 months.map {
                                     val score = it.score.toFloat()
-                                    ChartBar(score, TripsFormatting.monthLabel(it.month), DrivingStyleFormatting.points(it.score), Palette.score(score / 100f))
+                                    ChartBar(score, ConsumptionFormatting.monthShort(it.month), DrivingStyleFormatting.points(it.score), Palette.score(score / 100f))
                                 },
                                 max = 100f,
                             )
@@ -95,12 +95,12 @@ fun DrivingStyleScreen(
                     DashboardCard(Texts.STYLE_ROUTES_SECTION, AppIcons.Route) {
                         if (view.routes.isEmpty()) Text(Texts.styleRoutesNone(MIN_ROUTE_TRIPS))
                         view.routes.forEachIndexed { i, route ->
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 IconBadge(AppIcons.LocationOn, Palette.Series[i % Palette.Series.size])
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(Texts.styleRoute(route.number), style = MaterialTheme.typography.titleSmall)
                                     Text(
-                                        Texts.styleRouteLine(TripsFormatting.plain(route.typicalKm, 1) + " km", route.trips, route.usualHour),
+                                        Texts.styleRouteLine(TripsFormatting.number(route.typicalKm, 1) + " km", route.trips, route.usualHour),
                                         style = MaterialTheme.typography.bodyMedium,
                                     )
                                     val facts = Texts.styleRouteFacts(
@@ -108,8 +108,9 @@ fun DrivingStyleScreen(
                                         route.usualLPer100Km?.let { RefuelLogFormatting.consumption(it) },
                                     )
                                     if (facts.isNotEmpty()) Text(facts, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    // Under the text, not beside it: next to the text the button left it ~100 px and every word wrapped.
+                                    TextButton(onClick = { onShowHeat(route.tripIds) }) { IconLabel(AppIcons.Map, Texts.HEAT_BUTTON) }
                                 }
-                                TextButton(onClick = { onShowHeat(route.tripIds) }) { IconLabel(AppIcons.Map, Texts.HEAT_BUTTON) }
                             }
                         }
                     }

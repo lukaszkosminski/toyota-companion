@@ -45,11 +45,11 @@ object DrivingStyleFormatting {
         return sum.divide(weight, 10, RoundingMode.HALF_UP).setScale(1, RoundingMode.HALF_UP)
     }
 
-    fun points(value: BigDecimal): String = TripsFormatting.plain(value, 1)
+    fun points(value: BigDecimal): String = TripsFormatting.number(value, 1)
 
     /** `+32,5 %` — the excess of an anomaly; a negative value keeps its own sign. */
     fun excess(pct: BigDecimal): String =
-        (if (pct.signum() < 0) "\u2212" else "+") + TripsFormatting.plain(pct.abs(), 1) + " %"
+        (if (pct.signum() < 0) "\u2212" else "+") + TripsFormatting.number(pct.abs(), 1) + " %"
 
     /** A distance that can be counted: finite and positive (a broken row must not break the screen). */
     private fun usableKm(stored: StoredTrip): BigDecimal? =

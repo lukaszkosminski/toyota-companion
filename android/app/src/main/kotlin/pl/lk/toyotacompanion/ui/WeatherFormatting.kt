@@ -10,8 +10,8 @@ object WeatherFormatting {
     fun bucketLine(bucket: WeatherBucketStats): String =
         listOfNotNull(
             Texts.statsTrips(bucket.trips),
-            TripsFormatting.plain(bucket.distanceKm, 1) + " km",
-            bucket.lPer100Km?.let { Texts.trafficConsumption(TripsFormatting.plain(it, 2)) },
+            TripsFormatting.number(bucket.distanceKm, 1) + " km",
+            bucket.lPer100Km?.let { Texts.trafficConsumption(TripsFormatting.number(it, 2)) },
             bucket.costPer100Km?.let { Texts.trafficCost(TripsFormatting.money(it)) } ?: Texts.NO_PRICE,
         ).joinToString(Texts.SEPARATOR)
 
@@ -24,7 +24,7 @@ object WeatherFormatting {
         bucket.deltaLPer100Km?.let { parts += Texts.weatherDelta(TripsFormatting.signed(it, 2)) }
         val ev = evShare(bucket)
         if (ev != null) parts += Texts.weatherEv(ev)
-        bucket.windMaxKmh?.let { parts += Texts.weatherWind(TripsFormatting.plain(it, 0)) }
+        bucket.windMaxKmh?.let { parts += Texts.weatherWind(TripsFormatting.number(it, 0)) }
         if (bucket.tooFewTrips) parts += Texts.WEATHER_TOO_FEW
         return if (parts.isEmpty()) null else parts.joinToString(Texts.SEPARATOR)
     }
@@ -42,7 +42,7 @@ object WeatherFormatting {
     fun cellText(cell: MatrixCell?): String = when {
         cell == null -> "–"
         !cell.enough -> Texts.matrixTooFew(cell.trips)
-        else -> Texts.matrixCell(TripsFormatting.plain(cell.lPer100, 2), cell.trips)
+        else -> Texts.matrixCell(TripsFormatting.number(cell.lPer100, 2), cell.trips)
     }
 
     /** `mróz 5,41 l (12) · chłodno 4,90 l (30) · łagodnie – · ciepło 3,8 l (9)` for one speed band. */

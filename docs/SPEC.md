@@ -224,7 +224,8 @@ Ekran logowania MyToyota i ekran statusu synchronizacji. Wymaganie właściciela
 - Wygląd (C1b): `Scaffold` z `TopAppBar` (tytuł + „Wyloguj” jako przycisk tekstowy w `actions`),
   liczniki w jednej karcie, dwa rzędy po dwa (Trasy / Poziom paliwa / Przebieg / Oczekujące tankowania – liczba + podpis),
   chip stanu (`aktualne`/`nieaktualne`/`brak synchronizacji`/`wymaga logowania`), czas ostatniego
-  sukcesu, linia „Telemetria: N odczytów” i `HorizontalDivider`; „Wyloguj” najpierw pokazuje `AlertDialog` z potwierdzeniem
+  sukcesu, linia „Telemetria: N odczytów” i `HorizontalDivider`; pozycja przewinięcia ekranu należy do `AppRoot` (`ScrollState`), więc po wejściu w kafelek
+  i powrocie ekran wraca na to samo miejsce, a wylogowanie podbija „epokę” i kolejne logowanie zaczyna od góry (C32 U6); „Wyloguj” najpierw pokazuje `AlertDialog` z potwierdzeniem
   (archiwum Room zostaje), dopiero „Wyloguj” w oknie wykonuje wylogowanie.
 - Wynik „Synchronizuj teraz” jest stosowany tylko, gdy ekran nadal pokazuje status – spóźniony wynik po „Wyloguj” nie przywraca ekranu statusu.
 - „Synchronizuj teraz” nigdy nie zostaje w stanie „synchronizuję”: wyjątek z `SyncRunner` kończy się jak błąd
@@ -310,10 +311,14 @@ Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – �
   (gest przeciągnięcia w dół robi to samo), potem karty: „Prognoza” (🔮), „Spalanie” (⛽) i „Koszty miesięczne” (💰), na końcu menu.
 - Karta to zaokrąglony kontener z ikoną i tytułem, jedno miejsce na odstępy, kształty i typografię (`DashboardCard`, `Headline`, `Pill`, `MenuTile` w `ui/Dashboard.kt`); kolory z motywu
   (jasny, ciemny i dynamiczny). Spalanie: duża liczba „4,13 l/100 km” z podpisem, trend jako kolorowa pigułka (rosnący – kolor błędu, malejący – kolor główny, stabilny – neutralny),
-  słupki z zaokrąglonymi górami. Koszty: duża suma „1 182,89 zł”, słupki od zera, trzy najnowsze miesiące w szczegółach, reszta za „Pokaż wszystkie miesiące (N)”.
+  słupki z zaokrąglonymi górami; kierunek trendu w pigułce pokazuje tylko ikona (tekst „rosnące (+8,2 %)” bez strzałki; strzałka zostaje w linii widżetu). Koszty: duża suma „1 182,89 zł”, słupki od zera, trzy najnowsze miesiące w szczegółach, reszta za „Pokaż wszystkie miesiące (N)”.
 - Menu to kafelki po dwa w rzędzie, o równej wysokości w rzędzie, z ikoną nad etykietą, każdy kafelek co najmniej 88 dp wysoki: Trasy, Dziennik tankowań, Statystyki, Styl jazdy,
   Podsumowanie roku, Pogoda i spalanie, Wydatki, Postoje, Kopia i eksport oraz Opcje. Cena domyślna nie ma kafelka: to cena paliwa w baku przed pierwszym potwierdzonym tankowaniem (trasy sprzed niego i mieszanie z pierwszym tankowaniem, §4), więc jest w „Opcjach” (§12.3). Przypomnienie o kopii zostaje pod menu.
-- Liczby do wyświetlania grupują tysiące twardą spacją („1 182,89 zł”, „4 625,9 km”), żeby długa kwota nie łamała się w środku; eksport CSV i formy `plain` nie grupują.
+- Liczby do wyświetlania grupują tysiące twardą spacją („1 182,89 zł”, „4 625,9 km”, „4 887 km”), żeby długa kwota nie łamała się w środku; jedna funkcja `TripsFormatting.number`
+  (`count` dla liczników) obsługuje wszystkie ekrany i powiadomienia; eksport CSV i `plain` (też wartości wpisywane z powrotem w pola formularzy) nie grupują (C32 U4).
+- Kafelek liczby (`StatTile`) trzyma wartość w jednej linii: jednostka łączy się z liczbą twardą spacją, a za szeroka wartość zmniejsza czcionkę (do ok. 55 %) zamiast łamać „zł” do drugiej
+  linii (C32 U5). Wykres słupkowy (`BarChart`) nie ucina podpisów: wartość i podpis są w jednej linii o własnej szerokości, a gdy najszerszy podpis nie mieści się pod słupkiem, drukuje się
+  co drugi (trzeci…) licząc od najnowszego; pominięte podpisy zostają dla czytnika ekranu (C32 U2–U3).
 - Kontrast (WCAG AA): tekst w kolorze palety (`Palette` w `ui/ChartKit.kt`: wartości `StatTile`, `MeterRow`, tytuł `SectionHeader`, etykieta `MenuTile`, treść `Pill`, kolorowe wiersze
   ekranów) idzie przez `readable` z `ui/Contrast.kt`: ta sama barwa przyciemniana (jasny motyw) albo rozjaśniana (ciemny) aż do 4,5:1 względem `surfaceContainerHigh`, z tłem kafelka
   lub pigułki nałożonym na kartę. Wypełnienia (słupki, pierścienie, paski) zostają w kolorach palety. Kolor główny jasnego motywu to czerwień Toyoty przyciemniona do `#C8001A`
@@ -364,7 +369,7 @@ Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – �
 - Litry do pola: `RefuelFormatting.litersInput` – pełna precyzja domeny bez zer końcowych (`14,19`, `25,8`, `30`),
   przecinek, bez `Locale`; `liters` dodaje ` l`.
 - Lista tankowań: czas `29.10 14:05` (strefa jako parametr, przez `TripsFormatting.startDateTime`), poziom
-  `20% → 80%`, przebieg `12 345 km` — zwyczajna spacja jako separator tysięcy, `HALF_UP` do pełnych kilometrów,
+  `20% → 80%`, przebieg `12 345 km` — twarda spacja jako separator tysięcy (`TripsFormatting.number`), `HALF_UP` do pełnych kilometrów,
   bez `Locale`.
 
 ### §11.3 Ekrany „Tankowania” i formularz (kryteria akceptacji)
@@ -710,7 +715,7 @@ Domena: Python `app/domain/tripstats.py`, Kotlin `core/domain/TripStatsOps.kt` �
   → pominięta; koniec i start dalej niż 150 m (haversine) → `unmatched` (brak trasy w archiwum); brak współrzędnych →
   postój bez położenia; inaczej postój w średnim punkcie obu końców. Miejsca: postoje z położeniem łączone zachłannie
   od najstarszego z pierwszym miejscem, którego środek (pierwszy postój) jest ≤ 150 m; sortowane po łącznym czasie.
-  Ekran: miejsca (`54.372, 18.638` – 0,001°, ok. 100 m), 50 ostatnich postojów, liczniki pominiętych. Położenie tylko
+  Ekran: miejsca (`54.372, 18.638` – 0,001°, ok. 100 m; liczba postojów i łączny czas tylko w pasku miejsca, linia pod nazwą mówi „ostatnio …”), 50 ostatnich postojów, liczniki pominiętych. Położenie tylko
   na tym ekranie – nie w logach, CSV ani nazwach plików. Jedyny wyjątek (decyzja właściciela 2026-11-01): przycisk
   „Otwórz w mapie” przy miejscu wysyła intent `geo:` z położeniem zaokrąglonym tak jak na ekranie, wyłącznie po
   dotknięciu; bez aplikacji z mapą – komunikat. Nic nie pyta auta o pozycję (`refresh_status()` zakazany).
@@ -723,10 +728,11 @@ w Pythonie.
   współrzędnych pomijane. Wzorzec się nie przesuwa, a trasa trafia do **najstarszej** pasującej grupy, nie do
   najbliższej. Odcinek od 3 przejazdów, od najczęstszego (remis – jeżdżony najpóźniej); ekran pokazuje 10, a anomalie
   dotyczą tylko pokazanych odcinków (numer anomalii = numer na ekranie).
+- **Układ wiersza odcinka:** tekst zajmuje całą szerokość kolumny, a przycisk „Pokaż przebiegi na mapie” stoi pod tekstem (nie obok; obok zostawiał ok. 100 px i łamał każde słowo; C32 U1).
 - **Bez położenia na ekranie:** odcinek opisany numerem, typową długością (mediana km), liczbą przejazdów, typową
   godziną startu (najczęstsza pełna godzina, czas lokalny), średnim wynikiem eco ważonym dystansem i medianą l/100 km.
 - **Wynik eco po miesiącach** (`DrivingStyle.kt`): średnia `scoreGlobal` Toyoty ważona dystansem, 0,1 pkt, miesiąc startu
-  w strefie listy tras, od najnowszego; trasy bez wyniku pominięte.
+  w strefie listy tras, od najnowszego; trasy bez wyniku pominięte. Podpisy słupków to skróty miesięcy jak na statusie („kwi”, „cze”; styczeń z rokiem), nie pełne nazwy (C32 U3).
 - **Anomalie:** w pokazanym odcinku z ≥ 5 przejazdami (≥ 2 km, paliwo > 0) przejazd, którego l/100 km przekracza medianę
   odcinka o ≥ 25 %; mediana 0 (jazda na prądzie) – brak anomalii. „Przejazdy” odcinka to wszystkie trasy, mediana
   spalania liczy się tylko z przejazdów ≥ 2 km z paliwem > 0; trasy z dystansem niezapisanym poprawnie są pomijane. Od najnowszej, do 20. Aplikacja nie rozpoznaje
@@ -965,7 +971,7 @@ ekranie „Pogoda i spalanie” (§23).
 - Tydzień zaczyna się w poniedziałek (data lokalna startu trasy w strefie telefonu); 12 ostatnich tygodni, które mają trasy, od najstarszego; tydzień bez tras nie występuje. Do tygodnia wchodzą trasy z dodatnim,
   skończonym dystansem.
 - Na tydzień: liczba tras, km, km na prądzie (każda trasa przycięta do własnego dystansu; trasa bez danych o prądzie dodaje tylko km), udział w całych % oraz minuty na prądzie (suma `hdc.evTime`
-  tras, które go podają; bez żadnej – brak minut). Słupki: udział 0–100 % na stałej osi, pod słupkiem poniedziałek („26.10”); pod słupkami lista tygodni od najnowszego.
+  tras, które go podają; bez żadnej – brak minut). Słupki: udział 0–100 % na stałej osi, pod słupkiem poniedziałek („26.10”, cały podpis; przy 12 słupkach na wąskim ekranie co drugi, patrz §10.4); pod słupkami lista tygodni od najnowszego.
 
 ## 37. Aktualizacja aplikacji z GitHuba (PRD F36, ADR-016)
 `core/update/AppUpdates.kt` (`GithubReleaseClient`, `AppVersion`), `app/ui/UpdateController.kt`, `app/update/AndroidApkInstaller.kt`, karta „Aktualizacja aplikacji” w „Opcjach”.

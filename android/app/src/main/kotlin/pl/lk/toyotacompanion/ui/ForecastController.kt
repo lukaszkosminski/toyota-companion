@@ -25,8 +25,8 @@ fun forecastLine(timed: TimedForecast?, zone: ZoneId): String? {
     val forecast = timed.forecast
     val now = timed.at
     val left = Texts.forecastLeft(
-        TripsFormatting.plain(forecast.litersLeft, 1) + " l",
-        TripsFormatting.plain(forecast.levelPct, 0) + " %",
+        TripsFormatting.number(forecast.litersLeft, 1) + " l",
+        TripsFormatting.number(forecast.levelPct, 0) + " %",
     )
     if (forecast.kmToReserve.signum() <= 0) return Texts.FORECAST_RESERVE + Texts.SEPARATOR + left
     val days = forecast.daysToReserve.min(java.math.BigDecimal(FORECAST_HORIZON_DAYS + 1))
@@ -41,7 +41,7 @@ fun forecastLine(timed: TimedForecast?, zone: ZoneId): String? {
         Texts.forecastWhen(days, date)
     }
     return whenText + Texts.SEPARATOR + left + Texts.SEPARATOR +
-        Texts.forecastRange(TripsFormatting.plain(forecast.kmToReserve, 0) + " km")
+        Texts.forecastRange(TripsFormatting.number(forecast.kmToReserve, 0) + " km")
 }
 
 /**

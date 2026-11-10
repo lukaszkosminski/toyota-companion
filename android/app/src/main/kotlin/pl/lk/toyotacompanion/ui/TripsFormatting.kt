@@ -53,10 +53,10 @@ object TripsFormatting {
         }
 
     /** Trip cost: `3,68 zł`. */
-    fun money(value: BigDecimal): String = fixed(value, 2) + " zł"
+    fun money(value: BigDecimal): String = number(value, 2) + " zł"
 
     /** Fuel price: `6,14 zł/l`. */
-    fun pricePerLiter(value: BigDecimal): String = fixed(value, 2) + " zł/l"
+    fun pricePerLiter(value: BigDecimal): String = number(value, 2) + " zł/l"
 
     /**
      * Line under the cost of a trip (docs/SPEC.md §10.3): `6,14 zł/l`, or `6,14 zł/l · cena
@@ -73,10 +73,10 @@ object TripsFormatting {
     }
 
     /** Fuel amount: `0,60 l`. */
-    fun liters(value: BigDecimal): String = fixed(value, 2) + " l"
+    fun liters(value: BigDecimal): String = number(value, 2) + " l"
 
     /** Distance: `12,3 km`. */
-    fun kilometers(value: BigDecimal): String = fixed(value, 1) + " km"
+    fun kilometers(value: BigDecimal): String = number(value, 1) + " km"
 
     /** Distance from the `Double` field — via `toBigDecimal`, no binary float summation. */
     fun kilometers(value: Double): String = kilometers(toBigDecimal(value))
@@ -99,8 +99,11 @@ object TripsFormatting {
         return "${two(date.dayOfMonth)}.${two(date.monthValue)}"
     }
 
+    /** A whole count for display, grouped like [number]: `1 024`. */
+    fun count(value: Int): String = number(BigDecimal(value), 0)
+
     /** `123 456` – the odometer as whole kilometres, grouped with a no-break space (docs/SPEC.md §9.3). */
-    fun odometer(km: Double): String = fixed(BigDecimal(km).setScale(0, RoundingMode.HALF_UP), 0)
+    fun odometer(km: Double): String = number(BigDecimal(km).setScale(0, RoundingMode.HALF_UP), 0)
 
     /** All month names — the test checks that there are twelve and that they differ. */
     fun monthNames(): List<String> = MONTHS_NOMINATIVE
@@ -124,10 +127,11 @@ object TripsFormatting {
         (if (value.setScale(2, RoundingMode.HALF_UP).signum() > 0) "+" else "") + money(value)
 
     /**
-     * The display form of a number: the comma of [plain] and a no-break space between the thousands (`1 182,89`), so a long amount
-     * reads at a glance and never wraps in the middle. The CSV export keeps [plain], without grouping.
+     * The display form of a number, the one every screen and notification uses: the comma of [plain] and a no-break space between
+     * the thousands (`4 887,2`), so a long amount reads at a glance and never wraps in the middle. [plain] (no grouping) stays for
+     * the CSV export and for text a form field takes back.
      */
-    private fun fixed(value: BigDecimal, places: Int): String {
+    fun number(value: BigDecimal, places: Int): String {
         val text = plain(value, places)
         val sign = if (text.startsWith("-")) "-" else ""
         val digits = text.removePrefix("-")

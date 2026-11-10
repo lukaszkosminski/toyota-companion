@@ -16,11 +16,11 @@ fun tripDriveExtrasLine(record: TripRecord): String? {
     val parts = ArrayList<String>(2)
     val highway = record.highwayLengthM
     if (highway != null && highway > 0) {
-        parts += Texts.driveHighway(TripsFormatting.plain(km(highway), 1))
+        parts += Texts.driveHighway(TripsFormatting.number(km(highway), 1))
     }
     val overspeed = record.overspeedLengthM
     if (overspeed != null && overspeed > 0) {
-        parts += Texts.driveOverspeed(TripsFormatting.plain(km(overspeed), 1), sharePct(overspeed, record.trip.distanceKm))
+        parts += Texts.driveOverspeed(TripsFormatting.number(km(overspeed), 1), sharePct(overspeed, record.trip.distanceKm))
     }
     return if (parts.isEmpty()) null else parts.joinToString(Texts.SEPARATOR)
 }
@@ -32,5 +32,5 @@ private fun sharePct(overspeedM: Long, distanceKm: Double): String {
     if (!distanceKm.isFinite() || distanceKm <= 0.0) return "0"
     val share = BigDecimal(overspeedM).multiply(HUNDRED)
         .divide(BigDecimal(distanceKm * 1000.0), 0, RoundingMode.HALF_UP)
-    return TripsFormatting.plain(share.min(HUNDRED), 0)
+    return TripsFormatting.number(share.min(HUNDRED), 0)
 }

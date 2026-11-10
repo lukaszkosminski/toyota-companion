@@ -88,13 +88,13 @@ fun YearSummaryScreen(
                     val l = summary.lPer100
                     if (l != null) {
                         Headline(
-                            TripsFormatting.plain(l, 2),
+                            TripsFormatting.number(l, 2),
                             "l/100 km",
-                            Texts.yearTotals(summary.trips, TripsFormatting.plain(summary.distanceKm, 0), TripsFormatting.plain(summary.fuelL, 0)),
+                            Texts.yearTotals(summary.trips, TripsFormatting.number(summary.distanceKm, 0), TripsFormatting.number(summary.fuelL, 0)),
                         )
                     } else {
                         Headline(
-                            TripsFormatting.plain(summary.distanceKm, 0),
+                            TripsFormatting.number(summary.distanceKm, 0),
                             "km",
                             Texts.statsTrips(summary.trips),
                         )
@@ -104,8 +104,8 @@ fun YearSummaryScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        StatTile(TripsFormatting.plain(summary.distanceKm, 0) + " km", Texts.STAT_TRIPS, Palette.Blue, Modifier.weight(1f))
-                        StatTile(TripsFormatting.plain(summary.fuelL, 0) + " l", Texts.REFUEL_FIELD_LITERS, Palette.Orange, Modifier.weight(1f))
+                        StatTile(TripsFormatting.number(summary.distanceKm, 0) + " km", Texts.STAT_TRIPS, Palette.Blue, Modifier.weight(1f))
+                        StatTile(TripsFormatting.number(summary.fuelL, 0) + " l", Texts.REFUEL_FIELD_LITERS, Palette.Orange, Modifier.weight(1f))
                         val cost = summary.costPln
                         if (cost != null) {
                             StatTile(TripsFormatting.money(cost), Texts.REFUEL_FIELD_TOTAL, Palette.Violet, Modifier.weight(1f))
@@ -130,9 +130,9 @@ fun YearSummaryScreen(
                     DashboardCard(Texts.STATS_EV_SECTION, AppIcons.Bolt) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             RingGauge(ev.toFloat() / 100f, color = Palette.Green) {
-                                Text(TripsFormatting.plain(ev, 0) + "%", style = MaterialTheme.typography.titleMedium)
+                                Text(TripsFormatting.number(ev, 0) + "%", style = MaterialTheme.typography.titleMedium)
                             }
-                            Text(Texts.yearEv(TripsFormatting.plain(ev, 0)), style = MaterialTheme.typography.bodyLarge)
+                            Text(Texts.yearEv(TripsFormatting.number(ev, 0)), style = MaterialTheme.typography.bodyLarge)
                         }
                     }
                 }
@@ -149,24 +149,24 @@ fun YearSummaryScreen(
                         if (longestKm != null && longestStart != null) {
                             IconText(
                                 AppIcons.Route,
-                                Texts.yearLongest(TripsFormatting.plain(longestKm, 1), RefuelFormatting.time(longestStart, zone)),
+                                Texts.yearLongest(TripsFormatting.number(longestKm, 1), RefuelFormatting.time(longestStart, zone)),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                         }
                         // The best and the worst month of the year side by side, l/100 km (§29).
                         val monthBars = listOfNotNull(
                             summary.bestMonth?.let {
-                                ChartBar(it.lPer100.toFloat(), ConsumptionFormatting.monthShort(it.month), TripsFormatting.plain(it.lPer100, 2), Palette.Green)
+                                ChartBar(it.lPer100.toFloat(), ConsumptionFormatting.monthShort(it.month), TripsFormatting.number(it.lPer100, 2), Palette.Green)
                             },
                             summary.worstMonth?.takeIf { it.month != summary.bestMonth?.month }?.let {
-                                ChartBar(it.lPer100.toFloat(), ConsumptionFormatting.monthShort(it.month), TripsFormatting.plain(it.lPer100, 2), Palette.Red)
+                                ChartBar(it.lPer100.toFloat(), ConsumptionFormatting.monthShort(it.month), TripsFormatting.number(it.lPer100, 2), Palette.Red)
                             },
                         )
                         if (monthBars.size > 1) BarChart(monthBars)
                         summary.bestMonth?.let {
                             IconText(
                                 AppIcons.ThumbUp,
-                                Texts.yearBest(TripsFormatting.monthLabel(it.month), TripsFormatting.plain(it.lPer100, 2)),
+                                Texts.yearBest(TripsFormatting.monthLabel(it.month), TripsFormatting.number(it.lPer100, 2)),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = readable(Palette.Green),
                             )
@@ -174,7 +174,7 @@ fun YearSummaryScreen(
                         summary.worstMonth?.takeIf { it.month != summary.bestMonth?.month }?.let {
                             IconText(
                                 AppIcons.ThumbDown,
-                                Texts.yearWorst(TripsFormatting.monthLabel(it.month), TripsFormatting.plain(it.lPer100, 2)),
+                                Texts.yearWorst(TripsFormatting.monthLabel(it.month), TripsFormatting.number(it.lPer100, 2)),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = readable(Palette.Red),
                             )
@@ -207,7 +207,7 @@ fun YearSummaryScreen(
                 if (ownershipLines.isNotEmpty()) {
                     DashboardCard(Texts.OWNERSHIP_TITLE, AppIcons.Payments) {
                         val share = state.ownership?.cost?.fuelSharePct
-                        if (share != null) MeterRow(Texts.OWNERSHIP_FUEL_SHARE, TripsFormatting.plain(share, 0) + " %", share.toFloat() / 100f, Palette.Orange)
+                        if (share != null) MeterRow(Texts.OWNERSHIP_FUEL_SHARE, TripsFormatting.number(share, 0) + " %", share.toFloat() / 100f, Palette.Orange)
                         ownershipLines.forEach { Text(it, style = MaterialTheme.typography.bodyMedium) }
                         Text(Texts.OWNERSHIP_NOTE, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -217,8 +217,8 @@ fun YearSummaryScreen(
                 if (previous != null) {
                     DashboardCard(Texts.STATS_YEAR_OVER_YEAR, AppIcons.TrendingUp) {
                         val kmBars = listOf(
-                            ChartBar(previous.distanceKm.toFloat(), previous.year.toString(), TripsFormatting.plain(previous.distanceKm, 0), Palette.Series[0]),
-                            ChartBar(summary.distanceKm.toFloat(), summary.year.toString(), TripsFormatting.plain(summary.distanceKm, 0), Palette.Blue),
+                            ChartBar(previous.distanceKm.toFloat(), previous.year.toString(), TripsFormatting.number(previous.distanceKm, 0), Palette.Series[0]),
+                            ChartBar(summary.distanceKm.toFloat(), summary.year.toString(), TripsFormatting.number(summary.distanceKm, 0), Palette.Blue),
                         )
                         BarChart(kmBars)
 

@@ -1,10 +1,12 @@
 package pl.lk.toyotacompanion.ui
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -82,6 +84,10 @@ fun AppRoot(
     val budgetState by budget.state.collectAsState()
     val heatState by heat.state.collectAsState()
     var screen by rememberSaveable { mutableStateOf(Screen.Status) }
+    // The status screen is left for every tile and left in composition each time, so its scroll position lives here: coming back from
+    // a sub-page lands on the tile that was tapped. A logout bumps the epoch, so the next login starts at the top.
+    var statusScrollEpoch by remember { mutableIntStateOf(0) }
+    val statusScroll = rememberSaveable(statusScrollEpoch, saver = ScrollState.Saver) { ScrollState(0) }
     // The map in the app (docs/SPEC.md §26): [origin ordinal, then per point: label index, lat, lon] with the positions
     // already rounded, so no raw coordinate lands in the saved state.
     var mapData by rememberSaveable { mutableStateOf<DoubleArray?>(null) }
@@ -116,6 +122,7 @@ fun AppRoot(
     LaunchedEffect(loggedIn) {
         if (!loggedIn) {
             screen = Screen.Status
+            statusScrollEpoch++
             editedRefuelId = null
             refuel.reset()
             defaultPrice.reset()
@@ -218,6 +225,7 @@ fun AppRoot(
                 when (screen) {
                     Screen.Status -> StatusScreen(
                         state = current,
+                        scrollState = statusScroll,
                         // The tile shows the fuel now: the newest reading adjusted by the trips since then (§20.2).
                         fuelLevelPct = forecastState?.forecast?.levelPct?.toInt(),
                         onSyncNow = session::syncNow,

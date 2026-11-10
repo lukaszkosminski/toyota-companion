@@ -74,7 +74,7 @@ fun StatsScreen(
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             if (share != null) {
                                 RingGauge(share.toFloat() / 100f, color = Palette.Green) {
-                                    Text(TripsFormatting.plain(share, 0) + "%", style = MaterialTheme.typography.titleMedium)
+                                    Text(TripsFormatting.number(share, 0) + "%", style = MaterialTheme.typography.titleMedium)
                                 }
                             }
                             Text(Texts.statsEvTotal(StatsFormatting.share(view.evShare)), style = MaterialTheme.typography.bodyLarge)
@@ -110,7 +110,7 @@ fun StatsScreen(
                             val pair = listOf(yoy.first, yoy.second)
                             val maxKm = pair.maxOf { it.distanceKm.toFloat() }
                             pair.forEachIndexed { i, p ->
-                                MeterRow(p.year.toString(), TripsFormatting.plain(p.distanceKm, 0) + " km", p.distanceKm.toFloat() / maxKm.coerceAtLeast(1f), Palette.Series[i])
+                                MeterRow(p.year.toString(), TripsFormatting.number(p.distanceKm, 0) + " km", p.distanceKm.toFloat() / maxKm.coerceAtLeast(1f), Palette.Series[i])
                             }
                             PeriodRow(yoy.first)
                             PeriodRow(yoy.second)
@@ -130,7 +130,7 @@ fun StatsScreen(
                             view.tripTypes.forEachIndexed { i, summary ->
                                 MeterRow(
                                     Texts.tripTypeName(summary.type),
-                                    TripsFormatting.plain(summary.distanceKm, 1) + " km",
+                                    TripsFormatting.number(summary.distanceKm, 1) + " km",
                                     summary.distanceKm.toFloat() / maxKm,
                                     Palette.Series[i % Palette.Series.size],
                                 )
@@ -150,7 +150,13 @@ fun StatsScreen(
                 if (view.evWeeks.isNotEmpty()) {
                     item {
                         DashboardCard(Texts.EV_WEEKS_SECTION, AppIcons.BatteryChargingFull) {
-                            EvWeeksBars(view.evWeeks)
+                            BarChart(
+                                view.evWeeks.map {
+                                    ChartBar(it.evSharePct.toFloat(), EvWeeksFormatting.weekLabel(it), it.evSharePct.toPlainString(), Palette.score(it.evSharePct.toFloat() / 100f))
+                                },
+                                max = 100f,
+                                height = 72.dp,
+                            )
                             Text(Texts.EV_WEEKS_HINT, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             view.evWeeks.asReversed().forEach { week ->
                                 Text(EvWeeksFormatting.line(week), style = MaterialTheme.typography.bodySmall)
@@ -176,16 +182,16 @@ fun StatsScreen(
                                 }
                                 MeterRow(
                                     Texts.trafficClassName(row.trafficClass),
-                                    TripsFormatting.plain(row.litresPer100, 2) + " l/100 km",
+                                    TripsFormatting.number(row.litresPer100, 2) + " l/100 km",
                                     row.litresPer100.toFloat() / maxL,
                                     color,
                                 )
                                 Text(
                                     listOfNotNull(
                                         Texts.statsTrips(row.trips),
-                                        TripsFormatting.plain(row.distanceKm, 1) + " km",
+                                        TripsFormatting.number(row.distanceKm, 1) + " km",
                                         row.costPer100?.let { Texts.trafficCost(TripsFormatting.money(it)) } ?: Texts.NO_PRICE,
-                                        row.evSharePct?.let { Texts.weatherEv(TripsFormatting.plain(it, 0) + " %") },
+                                        row.evSharePct?.let { Texts.weatherEv(TripsFormatting.number(it, 0) + " %") },
                                     ).joinToString(Texts.SEPARATOR),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -208,7 +214,7 @@ fun StatsScreen(
                     DashboardCard(Texts.STATS_YEARS, AppIcons.CalendarMonth) {
                         val years = view.years
                         BarChart(
-                            years.map { ChartBar(it.distanceKm.toFloat(), it.year.toString(), TripsFormatting.plain(it.distanceKm, 0)) },
+                            years.map { ChartBar(it.distanceKm.toFloat(), it.year.toString(), TripsFormatting.number(it.distanceKm, 0)) },
                             color = Palette.Blue,
                         )
                         years.asReversed().forEach { PeriodRow(it) }
@@ -239,27 +245,4 @@ private fun Message(innerPadding: PaddingValues, content: @Composable () -> Unit
         modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
         contentAlignment = Alignment.Center,
     ) { content() }
-}
-
-/** One bar per week: the share of kilometres on the battery, 0-100 % on a fixed axis, the percent above and the Monday below. */
-@Composable
-private fun EvWeeksBars(weeks: List<EvWeek>) {
-    androidx.compose.foundation.layout.Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalAlignment = Alignment.Bottom,
-    ) {
-        for (week in weeks) {
-            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(week.evSharePct.toPlainString(), style = MaterialTheme.typography.labelSmall)
-                Box(
-                    modifier = Modifier
-                        .width(14.dp)
-                        .height(72.dp * (week.evSharePct.toFloat() / 100f).coerceIn(0.03f, 1f))
-                        .background(Palette.score(week.evSharePct.toFloat() / 100f), androidx.compose.foundation.shape.RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)),
-                )
-                Text(EvWeeksFormatting.weekLabel(week), style = MaterialTheme.typography.labelSmall)
-            }
-        }
-    }
 }

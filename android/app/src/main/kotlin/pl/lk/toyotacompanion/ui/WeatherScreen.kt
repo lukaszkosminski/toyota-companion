@@ -140,7 +140,7 @@ private fun ImpactCard(title: String, icon: ImageVector, impact: WeatherImpact) 
     DashboardCard(title, icon) {
         val bars = impact.buckets.mapNotNull { bucket ->
             val litres = bucket.lPer100Km ?: return@mapNotNull null
-            ChartBar(litres.toFloat(), bucketEmoji(bucket.bucket), TripsFormatting.plain(litres, 2), bucketColor(bucket.bucket))
+            ChartBar(litres.toFloat(), bucketEmoji(bucket.bucket), TripsFormatting.number(litres, 2), bucketColor(bucket.bucket))
         }
         // Two bars is the least that shows a difference; one bucket alone is only a number.
         if (bars.size > 1) BarChart(bars)
@@ -150,7 +150,7 @@ private fun ImpactCard(title: String, icon: ImageVector, impact: WeatherImpact) 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 StatTile(impact.buckets.sumOf { it.trips }.toString(), Texts.STAT_TRIPS, Palette.Blue, Modifier.weight(1f))
                 StatTile(
-                    TripsFormatting.plain(impact.buckets.fold(BigDecimal.ZERO) { sum, bucket -> sum + bucket.distanceKm }, 0),
+                    TripsFormatting.number(impact.buckets.fold(BigDecimal.ZERO) { sum, bucket -> sum + bucket.distanceKm }, 0),
                     "km",
                     Palette.Violet,
                     Modifier.weight(1f),
@@ -184,7 +184,7 @@ private fun BucketRow(bucket: WeatherBucketStats) {
                 Text(WeatherFormatting.bucketLine(bucket), style = MaterialTheme.typography.bodyMedium)
             }
             bucket.lPer100Km?.let {
-                Text(TripsFormatting.plain(it, 2), style = MaterialTheme.typography.titleMedium, color = readable(color))
+                Text(TripsFormatting.number(it, 2), style = MaterialTheme.typography.titleMedium, color = readable(color))
             }
         }
         WeatherFormatting.bucketNote(bucket)?.let {
@@ -222,7 +222,7 @@ private fun MatrixCard(rows: List<MatrixRow>) {
                     ChartBar(
                         cell.lPer100.toFloat(),
                         bucketEmoji(bucket.name.lowercase()),
-                        TripsFormatting.plain(cell.lPer100, 1),
+                        TripsFormatting.number(cell.lPer100, 1),
                         if (cell.enough) bucketColor(bucket.name.lowercase()) else muted,
                     )
                 }

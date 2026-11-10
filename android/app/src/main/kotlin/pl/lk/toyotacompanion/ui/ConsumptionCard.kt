@@ -51,11 +51,11 @@ fun ConsumptionCard(
     if (editing) DeclaredDialog(onSave = onSetDeclared, onDismiss = { editing = false })
     DashboardCard(Texts.CONSUMPTION_TITLE, AppIcons.LocalGasStation) {
         Headline(
-            TripsFormatting.plain(view.overall, 2),
+            TripsFormatting.number(view.overall, 2),
             "l/100 km",
             Texts.consumptionCaption(TripsFormatting.kilometers(view.overallKm)),
         )
-        ConsumptionFormatting.trendLine(view)?.let { line ->
+        ConsumptionFormatting.trendPillText(view)?.let { line ->
             val scheme = MaterialTheme.colorScheme
             // A rising average is the bad news of this card, a falling one the good news.
             val (container, content) = when (view.trend) {
@@ -64,7 +64,7 @@ fun ConsumptionCard(
                 else -> scheme.surfaceVariant to scheme.onSurfaceVariant
             }
             Pill(
-                line.removePrefix("Trend: "),
+                line,
                 container,
                 content,
                 icon = when (view.trend) {
@@ -83,10 +83,10 @@ fun ConsumptionCard(
             val top = view.months.maxOf { it.lPer100 }
             val base = ConsumptionFormatting.axisBase(view.months)
             Bars(
-                bars = view.months.map { BarData(TripsFormatting.plain(it.lPer100, 1), ConsumptionFormatting.monthShort(it.month), ConsumptionFormatting.barShare(it.lPer100, top, base), consumptionColor(it.lPer100.toFloat(), view.overall.toFloat())) },
+                bars = view.months.map { BarData(TripsFormatting.number(it.lPer100, 1), ConsumptionFormatting.monthShort(it.month), ConsumptionFormatting.barShare(it.lPer100, top, base), consumptionColor(it.lPer100.toFloat(), view.overall.toFloat())) },
                 color = MaterialTheme.colorScheme.primary,
             )
-            Text(Texts.consumptionHint(TripsFormatting.plain(base, 1)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(Texts.consumptionHint(TripsFormatting.number(base, 1)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

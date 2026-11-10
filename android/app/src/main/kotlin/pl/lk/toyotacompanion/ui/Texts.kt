@@ -446,7 +446,7 @@ object Texts {
 
     fun statsEvTotal(share: String): String = Lang.pick("$share kilometrów na prądzie", "$share kilometers on battery")
     fun statsShareOfTrip(share: String): String = Lang.pick("$share na prądzie", "$share on battery")
-    fun statsTrips(count: Int): String = Lang.pick("trasy: $count", "trips: $count")
+    fun statsTrips(count: Int): String = Lang.pick("trasy: ${TripsFormatting.count(count)}", "trips: ${TripsFormatting.count(count)}")
     fun statsLeftOut(withoutData: Int, tooShort: Int): String = Lang.pick(
         "Pominięte – bez danych o prądzie: $withoutData, krótsze niż 1 km: $tooShort.",
         "Skipped – without EV data: $withoutData, shorter than 1 km: $tooShort.",
@@ -544,13 +544,13 @@ object Texts {
     )
 
     fun styleEco(score: String, trips: Int): String = Lang.pick(
-        "$score pkt · ocenione trasy: $trips",
-        "$score pts · rated trips: $trips",
+        "$score pkt · ocenione trasy: ${TripsFormatting.count(trips)}",
+        "$score pts · rated trips: ${TripsFormatting.count(trips)}",
     )
     fun styleRoute(number: Int): String = Lang.pick("Odcinek $number", "Route $number")
     fun styleRouteLine(km: String, trips: Int, hour: String?): String {
-        val pl = "ok. $km · przejazdy: $trips" + (hour?.let { " · zwykle ok. $it" } ?: "")
-        val en = "approx. $km · trips: $trips" + (hour?.let { " · usually approx. $it" } ?: "")
+        val pl = "ok. $km · przejazdy: ${TripsFormatting.count(trips)}" + (hour?.let { " · zwykle ok. $it" } ?: "")
+        val en = "approx. $km · trips: ${TripsFormatting.count(trips)}" + (hour?.let { " · usually approx. $it" } ?: "")
         return Lang.pick(pl, en)
     }
     fun styleRouteFacts(eco: String?, usual: String?): String = if (Lang.isEnglish) {
@@ -639,8 +639,8 @@ object Texts {
             "None of the ${heat.total} trips of this route has a saved route. Save them using the button on the \"Trips\" screen.",
         )
         is HeatState.Ready -> {
-            val min = TripsFormatting.plain(heat.minLPer100, 1)
-            val max = TripsFormatting.plain(heat.maxLPer100, 1)
+            val min = TripsFormatting.number(heat.minLPer100, 1)
+            val max = TripsFormatting.number(heat.maxLPer100, 1)
             val linesCount = heat.lines.size
             val total = heat.total
             Lang.pick(
@@ -878,8 +878,8 @@ object Texts {
         "Toyota Companion – year $year summary",
     )
     fun yearTotals(trips: Int, km: String, litres: String): String = Lang.pick(
-        "Trasy: $trips · $km km · $litres l paliwa",
-        "Trips: $trips · $km km · $litres l fuel",
+        "Trasy: ${TripsFormatting.count(trips)} · $km km · $litres l paliwa",
+        "Trips: ${TripsFormatting.count(trips)} · $km km · $litres l fuel",
     )
     fun yearAverage(litres: String): String = Lang.pick(
         "Średnie spalanie: $litres l/100 km",
@@ -956,10 +956,10 @@ object Texts {
         "Brak tras z pogodą i prędkością. Pobierz pogodę.",
         "No trips with weather and speed. Fetch weather.",
     )
-    fun matrixCell(litres: String, trips: Int): String = "$litres l ($trips)"
+    fun matrixCell(litres: String, trips: Int): String = "$litres l (${TripsFormatting.count(trips)})"
     fun matrixTooFew(trips: Int): String = Lang.pick(
-        "$trips ${plPlural(trips.toLong(), "trasa", "trasy", "tras")} – za mało",
-        "$trips ${enPlural(trips.toLong(), "trip", "trips")} – too few",
+        "${TripsFormatting.count(trips)} ${plPlural(trips.toLong(), "trasa", "trasy", "tras")} – za mało",
+        "${TripsFormatting.count(trips)} ${enPlural(trips.toLong(), "trip", "trips")} – too few",
     )
     fun matrixBucketShort(bucket: pl.lk.toyotacompanion.core.domain.TemperatureBucket): String = when (bucket) {
         pl.lk.toyotacompanion.core.domain.TemperatureBucket.DEEP_FROST -> Lang.pick("silny mróz", "deep frost")
@@ -1170,7 +1170,7 @@ object Texts {
     val PARKING_NO_MAP_APP: String get() = Lang.pick("Brak aplikacji z mapą.", "No map app available.")
     val PARKING_NO_POSITION: String get() = Lang.pick("bez położenia", "no location")
 
-    fun parkingStops(count: Int): String = Lang.pick("postoje: $count", "parking stops: $count")
+    fun parkingStops(count: Int): String = Lang.pick("postoje: ${TripsFormatting.count(count)}", "parking stops: ${TripsFormatting.count(count)}")
     fun parkingTotal(duration: String): String = Lang.pick("razem $duration", "total $duration")
     fun parkingLast(time: String): String = Lang.pick("ostatnio $time", "last $time")
     fun parkingSkipped(unmatched: Int, longGaps: Int): String = Lang.pick(

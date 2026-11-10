@@ -86,7 +86,7 @@ object StationPriceFormatting {
         price.price95 == null -> Texts.priceNone(station.name)
         else -> Texts.priceFound(
             station.name,
-            TripsFormatting.plain(requireNotNull(price.price95), 2),
+            TripsFormatting.number(requireNotNull(price.price95), 2),
             when (price.age) {
                 PriceAge.TODAY -> Texts.PRICE_AGE_TODAY
                 PriceAge.YESTERDAY -> Texts.PRICE_AGE_YESTERDAY

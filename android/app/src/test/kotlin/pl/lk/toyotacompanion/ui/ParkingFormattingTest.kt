@@ -92,7 +92,7 @@ class ParkingFormattingTest {
     }
 
     @Test
-    fun a_place_line_counts_the_stops_the_total_and_the_last_visit() {
+    fun a_place_line_has_only_the_last_visit_because_the_meter_row_shows_the_stops_and_the_total() {
         val place = ParkingPlace(
             lat = PARK_LAT,
             lon = PARK_LON,
@@ -100,11 +100,11 @@ class ParkingFormattingTest {
             total = Duration.ofDays(3).plusHours(4),
             lastStop = FROM,
         )
-        assertEquals(
-            Texts.parkingStops(12) + Texts.SEPARATOR + Texts.parkingTotal("3 d 4 h") +
-                Texts.SEPARATOR + Texts.parkingLast("29.10 14:05"),
-            ParkingFormatting.placeLine(place, WARSAW),
-        )
+        val line = ParkingFormatting.placeLine(place, WARSAW)
+        assertEquals(Texts.parkingLast("29.10 14:05"), line)
+        // The count and the time are the label and the value of the meter row under the line; saying them twice was C32 U10.
+        assertFalse(line.contains(Texts.parkingStops(12)), line)
+        assertFalse(line.contains("3 d 4 h"), line)
     }
 
     @Test

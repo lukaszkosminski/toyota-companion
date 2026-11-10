@@ -43,6 +43,6 @@ fun risingConsumptionAlert(view: ConsumptionView, today: LocalDate): RisingAlert
 
 /** The notification text: the three values and the rise, plus the hint. */
 fun risingAlertText(alert: RisingAlert): String = Texts.alertRising(
-    alert.months.joinToString(" → ") { TripsFormatting.plain(it.lPer100, 1) },
+    alert.months.joinToString(" → ") { TripsFormatting.number(it.lPer100, 1) },
     TripsFormatting.signed(alert.totalPct, 0),
 )

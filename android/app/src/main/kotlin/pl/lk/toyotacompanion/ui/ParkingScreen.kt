@@ -79,8 +79,8 @@ fun ParkingScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            StatTile("${log.places.size}", Texts.PARKING_PLACES, Palette.Blue, Modifier.weight(1f))
-                            StatTile("${log.stops.size}", Texts.PARKING_RECENT, Palette.Teal, Modifier.weight(1f))
+                            StatTile(TripsFormatting.count(log.places.size), Texts.PARKING_PLACES, Palette.Blue, Modifier.weight(1f))
+                            StatTile(TripsFormatting.count(log.stops.size), Texts.PARKING_RECENT, Palette.Teal, Modifier.weight(1f))
                         }
                         IconText(
                             AppIcons.Lock,
