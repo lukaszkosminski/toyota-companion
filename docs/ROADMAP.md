@@ -1,6 +1,7 @@
 # Roadmap
 
 ## DONE
+- Najlepsza godzina wyjazdu (F53, SPEC §53, plan C34): w „Stylu jazdy” pod „Ten sam odcinek” do 5 najczęstszych odcinków z ≥ 5 przejazdami; mediana czasu przejazdu i l/100 km (Σ litrów / Σ km) wg pasma godziny startu (5–7 … 18–21, noc 21–5) i dnia (robocze, weekend); komórka od 3 przejazdów, wniosek od 2 komórek; czas lokalny strefy listy; tylko lokalne archiwum
 - Kalkulator kosztu planowanej trasy (F52, SPEC §52, plan C33): przedział litrów i zł z pasm tempa F19 i z własnego archiwum; bez temperatury i sezonu (wersja 2, F24)
 - Narzędzia jakości i CI (ruff, mypy, pytest, gitleaks)
 - Port domeny do Kotlina (`android/core`, Python 76 / Kotlin 76 testów domeny, nazwy 1:1)
@@ -83,7 +84,6 @@
 - Propozycje zaakceptowane przez właściciela 2026-11-10 (tylko dane lokalne i już używane źródła, bez budzenia auta);
   każda dostaje numer F, wpis w PRD/SPEC i plan przed kodem, w tej kolejności:
   1. (zrobione jako F52, bez temperatury – patrz DONE) Kalkulator kosztu planowanej trasy
-  3. Najlepsza godzina wyjazdu: dla powtarzanych odcinków (F16) czas, prędkość i spalanie wg godziny startu i dnia tygodnia
   4. Tygodniowe lub miesięczne podsumowanie w powiadomieniu: km, koszt, udział prądu, porównanie z poprzednim okresem
   6. Stacja przy tankowaniu: marka lub nazwa, średnia cena i faktyczne spalanie wg stacji
   7. Import historii tankowań i wydatków z CSV innych aplikacji (Fuelio, Drivvo)

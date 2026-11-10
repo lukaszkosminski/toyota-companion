@@ -114,3 +114,17 @@ logów ani nazw. Karta nie pokazuje dat ani godzin pojedynczych tras, tylko zbio
 3. Dni: dwie grupy (robocze/weekend) – akceptujesz, czy siedem dni mimo mniejszej próby?
 4. Czy karta ma być w „Statystykach” (propozycja), czy w „Stylu jazdy”?
 5. Strefa 21–5 jako jedno pasmo nocne – wystarczy, czy rozbić na 21–24 i 0–5?
+
+## 11. Korekty przy implementacji (2026-11-10)
+
+Odpowiedzi właściciela: numer F53 zostaje; minimum 5 przejazdów na odcinek i 3 w komórce; dwa dni: robocze i weekend; karta w „Stylu jazdy” pod
+„Ten sam odcinek”; noc 21–5 jako jedno pasmo; najwyżej 5 odcinków; wniosek od 2 komórek. Krytyczna ocena planu:
+
+- **Strefa i zmiana czasu:** pasmo liczone z godziny **lokalnej** startu w strefie listy (`atZone`), nie z UTC. Test: 05:30 UTC w lipcu to 07:30 w Warszawie (pasmo 7–9).
+- **Przejazd przez północ:** pasmo i dzień z **początku** przejazdu, nie z końca. Test: start 21:50 w piątek to noc robocza, mimo końca po północy.
+- **Mediana:** liczona z **sekund**, dla parzystej liczby średnia dwóch środkowych, dopiero potem zaokrąglenie do minuty HALF_UP. Test: 15 i 16 min daje 16.
+- **Średnia prędkość** z planu usunięta z wierszy komórek: wiersz ma być krótki (czas, spalanie, liczba), a prędkość nie była o nic pytana.
+- **Wybór odcinków:** plan mówił o wszystkich odcinkach; wybrane najwyżej 5 najczęstszych z ≥ 5 przejazdami, numeracja „Odcinek N” taka sama jak na liście „Ten sam odcinek”.
+- **Gdzie kod:** `SameRoutes` zostaje w `app/ui` (bez przenoszenia); domena dostaje tylko przejazdy jednego odcinka, więc nie trzeba przenosić współrzędnych ani ich dopasowania.
+- **Implementacja:** `core/domain/BestTimeOps.kt` + `BestTimeOpsTest.kt` (13), `backend/app/domain/besttime.py` + `tests/test_domain_besttime.py` (13, te same nazwy),
+  `ui/BestTimeFormatting.kt` + `BestTimeFormattingTest.kt` (9), `DrivingStyleController.kt` (`bestTimeRoutes`, `BestTimeRoute`), karta w `DrivingStyleScreen.kt`, teksty w `Texts.kt`.

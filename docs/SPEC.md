@@ -1267,3 +1267,24 @@ Ekran: karta na górze „Statystyk” (`ui/PlannedTripFormatting.kt`, `StatsScr
 - **Linia pomocnicza wyniku** mówi, której populacji użyto: „z 37 podobnych tras” (długość 0,5–2×) albo „z 212 tras tego rodzaju (za mało podobnej długości)”.
 - **Poza zakresem wersji 1:** temperatura i sezon (F24), mapy, GPS, zapisywanie planów, powiadomienia.
 - **Prywatność:** tylko lokalne archiwum i ustawienia; nic nie jest zapisywane ani logowane; bez sieci i budzenia auta.
+
+## §53 Najlepsza godzina wyjazdu (PRD F53)
+Plan: `briefs/toyota-companion/C34-plan.md`. Domena: `core/domain/BestTimeOps.kt` (`bestTimeGrid`, `departureBandOf`, `dayKindOf`, `medianMinutes`) z lustrem
+`backend/app/domain/besttime.py` (te same nazwy testów). Odcinki wybiera app (`sameRoutes`, bez zmian), a siatka dostaje gotowe przejazdy, więc `SameRoutes` nie idzie do domeny.
+Ekran: karta „Najlepsza godzina wyjazdu” w „Stylu jazdy”, zaraz pod „Ten sam odcinek” (`ui/BestTimeFormatting.kt`, `DrivingStyleScreen.kt`, `DrivingStyleController.kt` – `bestTimes`).
+- **Odcinki:** te same co F12 (`sameRoutes`, 300 m, kierunek, numeracja „Odcinek N” zgodna z listą na ekranie). Pokazywane są najwyżej **5** najczęstszych
+  z co najmniej **5** przejazdami (`BEST_TIME_ROUTES_SHOWN`, `BEST_TIME_MIN_ROUTE_TRIPS`). Trasy bez czterech współrzędnych nie należą do żadnego odcinka.
+- **Pasma godziny startu** (lokalny czas strefy listy, dolna granica włącznie): 5–7, 7–9, 9–12, 12–15, 15–18, 18–21 i **noc 21–5 jako jedno pasmo** przez północ.
+  O paśmie decyduje **godzina startu**; przejazd przez północ należy do pasma swojego startu. Zmiana czasu jest obsługiwana przez strefę (godzina lokalna, nie UTC).
+- **Dzień:** robocze (poniedziałek–piątek) albo weekend (sobota, niedziela), wg daty startu w strefie.
+- **Komórka** = odcinek × dzień × pasmo, pokazywana od **3 przejazdów** (`BEST_TIME_MIN_CELL_TRIPS`); puste komórki nie są pokazywane.
+- **Miara:** mediana czasu przejazdu (`koniec − start`); dla parzystej liczby – średnia dwóch środkowych wartości; zaokrąglona do **całej minuty** (HALF_UP) od
+  sekund, nie od minut. **Nie średnia**, żeby jeden korek nie przesuwał wyniku.
+- **Spalanie** komórki = Σ litrów × 100 / Σ km (0,01 l/100 km), nie średnia ze stawek; przejazdy z 0 l wchodzą (jazda na prądzie, jak w F19); przejazd bez dodatniego czasu,
+  dystansu lub z ujemnym paliwem jest pomijany.
+- **Wniosek** (na górze odcinka, jedna linia): „Najszybciej: robocze 9–12, mediana 17 min; najwolniej: robocze 7–9, 24 min” – tylko gdy są **co najmniej 2 komórki** z danymi.
+  Gdy różnica median jest mniejsza niż 2 min: „Czas podobny o każdej porze”. Przy jednej komórce – notatka, że porównanie wymaga dwóch pasm; przy zerze – notatka o zbyt małej liczbie przejazdów.
+- **Wiersze:** jeden na komórkę z danymi: nazwa („robocze 9–12”), po prawej mediana („17 min”), pasek proporcjonalny do czasu (najwolniejsza komórka = pełny pasek, najszybsza na zielono), pod spodem „5 przejazdów · 6,20 l/100 km”.
+  Odmiana „przejazd / przejazdy / przejazdów”. Liczby przez `TripsFormatting.number`/`count`.
+- **Poza zakresem:** prognoza ruchu i pogody, sezon, powiadomienia, zapisywanie wyników, zmiana progów F12.
+- **Prywatność:** czasy, dystanse i paliwo z archiwum; współrzędne tylko do dopasowania odcinka w pamięci (jak F12); karta nie pokazuje dat ani godzin pojedynczych tras.

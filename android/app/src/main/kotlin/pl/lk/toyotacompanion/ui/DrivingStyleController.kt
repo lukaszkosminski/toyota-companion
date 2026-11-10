@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import pl.lk.toyotacompanion.core.data.StoredTrip
+import pl.lk.toyotacompanion.core.domain.BestTimeGrid
+import pl.lk.toyotacompanion.core.domain.bestTimeGrid
 
 /** How many routes the screen shows. */
 const val ROUTES_SHOWN: Int = 10
@@ -28,12 +30,17 @@ data class RouteSummary(
     val tripIds: List<String> = emptyList(),
 )
 
+/** A repeated route with the best time to leave (PRD F53, docs/SPEC.md §53): [number] is the route number on the screen. */
+data class BestTimeRoute(val number: Int, val typicalKm: BigDecimal, val trips: Int, val grid: BestTimeGrid)
+
 /** Everything "Styl jazdy" shows (docs/SPEC.md §19). Route numbers are the order of [routes], 1-based. */
 data class DrivingStyleView(
     val months: List<MonthScore>,
     val routes: List<RouteSummary>,
     val anomalies: List<FuelAnomaly>,
     val tripCount: Int,
+    /** The most driven routes (at most [BEST_TIME_ROUTES_SHOWN]) with at least [BEST_TIME_MIN_ROUTE_TRIPS] trips each (PRD F53). */
+    val bestTimes: List<BestTimeRoute> = emptyList(),
 )
 
 data class DrivingStyleUiState(val loading: Boolean = true, val view: DrivingStyleView? = null, val loadFailed: Boolean = false)
@@ -58,6 +65,7 @@ fun computeDrivingStyle(trips: List<StoredTrip>, zone: ZoneId): DrivingStyleView
         // routeIndex is the index in `groups`, so route number = routeIndex + 1 on screen.
         anomalies = fuelAnomalies(groups),
         tripCount = trips.size,
+        bestTimes = bestTimeRoutes(groups, zone),
     )
 }
 
@@ -113,3 +121,28 @@ class DrivingStyleController(
         ui.value = DrivingStyleUiState()
     }
 }
+
+/** A route needs this many trips for its best time to leave (PRD F53, docs/SPEC.md §53). */
+const val BEST_TIME_MIN_ROUTE_TRIPS: Int = 5
+
+/** At most this many of the most driven routes get a best time. */
+const val BEST_TIME_ROUTES_SHOWN: Int = 5
+
+/**
+ * The best time to leave of the routes that have enough trips (PRD F53). [groups] are the routes on the screen, most driven first; a route with
+ * fewer than [BEST_TIME_MIN_ROUTE_TRIPS] trips gets none. The grid is built from the trips of the route only.
+ */
+internal fun bestTimeRoutes(groups: List<RouteGroup>, zone: ZoneId): List<BestTimeRoute> = groups
+    .mapIndexedNotNull { index, group ->
+        if (group.trips.size < BEST_TIME_MIN_ROUTE_TRIPS) {
+            null
+        } else {
+            BestTimeRoute(
+                number = index + 1,
+                typicalKm = DrivingStyleFormatting.typicalKm(group),
+                trips = group.trips.size,
+                grid = bestTimeGrid(group.trips.map { it.record.trip }, zone),
+            )
+        }
+    }
+    .take(BEST_TIME_ROUTES_SHOWN)

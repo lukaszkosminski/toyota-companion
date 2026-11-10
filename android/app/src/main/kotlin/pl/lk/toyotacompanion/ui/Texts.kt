@@ -608,6 +608,62 @@ object Texts {
     fun consumptionFalling(change: String): String = Lang.pick("Trend: ↘ malejące ($change %)", "Trend: ↘ falling ($change %)")
     fun consumptionSteady(change: String): String = Lang.pick("Trend: → stabilne ($change %)", "Trend: → steady ($change %)")
 
+    // Najlepsza godzina wyjazdu (PRD F53, docs/SPEC.md §53).
+
+    val BEST_TIME_TITLE: String get() = Lang.pick("Najlepsza godzina wyjazdu", "Best time to leave")
+    val BEST_TIME_HINT: String get() = Lang.pick(
+        "Dla powtarzanych odcinków: mediana czasu przejazdu i spalanie wg godziny startu. Tylko własne trasy, bez prognozy ruchu.",
+        "For repeated routes: the median drive time and the consumption by the hour of the start. Your own trips only, no traffic forecast.",
+    )
+    val BEST_TIME_NOT_ENOUGH: String get() = Lang.pick(
+        "Za mało przejazdów w tym samym pasmie godzin, żeby porównać (potrzeba 3 w pasmie).",
+        "Too few trips in the same band of hours to compare (3 in a band are needed).",
+    )
+    val BEST_TIME_ONE_CELL: String get() = Lang.pick(
+        "Dane tylko z jednego pasma godzin – porównanie wymaga dwóch.",
+        "Data from one band of hours only – a comparison needs two.",
+    )
+
+    /** `robocze` or `weekend`: the day kind of a cell. */
+    fun bestTimeDay(day: pl.lk.toyotacompanion.core.domain.DayKind): String = when (day) {
+        pl.lk.toyotacompanion.core.domain.DayKind.WORKING -> Lang.pick("robocze", "weekdays")
+        pl.lk.toyotacompanion.core.domain.DayKind.WEEKEND -> Lang.pick("weekend", "weekend")
+    }
+
+    /** The band of hours of a cell, `9–12`; the night band reads `21–5`. */
+    fun bestTimeBand(band: pl.lk.toyotacompanion.core.domain.DepartureBand): String = when (band) {
+        pl.lk.toyotacompanion.core.domain.DepartureBand.H5_7 -> "5–7"
+        pl.lk.toyotacompanion.core.domain.DepartureBand.H7_9 -> "7–9"
+        pl.lk.toyotacompanion.core.domain.DepartureBand.H9_12 -> "9–12"
+        pl.lk.toyotacompanion.core.domain.DepartureBand.H12_15 -> "12–15"
+        pl.lk.toyotacompanion.core.domain.DepartureBand.H15_18 -> "15–18"
+        pl.lk.toyotacompanion.core.domain.DepartureBand.H18_21 -> "18–21"
+        pl.lk.toyotacompanion.core.domain.DepartureBand.NIGHT -> "21–5"
+    }
+
+    /** `Najszybciej: robocze 9–12, mediana 17 min; najwolniej: robocze 7–9, 24 min`. */
+    fun bestTimeConclusion(fastest: String, fastestMinutes: String, slowest: String, slowestMinutes: String): String = Lang.pick(
+        "Najszybciej: $fastest, mediana $fastestMinutes min; najwolniej: $slowest, $slowestMinutes min",
+        "Fastest: $fastest, median $fastestMinutes min; slowest: $slowest, $slowestMinutes min",
+    )
+
+    fun bestTimeNoDifference(minutes: String): String = Lang.pick(
+        "Czas podobny o każdej porze: różnica poniżej 2 min (mediana ok. $minutes min).",
+        "Similar at every time: under 2 min apart (median about $minutes min).",
+    )
+
+    /** `17 min`. */
+    fun bestTimeMinutes(minutes: Long): String = Lang.pick("$minutes min", "$minutes min")
+
+    /** `5 przejazdów` / `1 przejazd` / `22 przejazdy`, the counted noun declined by the number. */
+    fun bestTimeTrips(count: Int): String = Lang.pick(
+        "${TripsFormatting.count(count)} ${plPlural(count.toLong(), "przejazd", "przejazdy", "przejazdów")}",
+        "${TripsFormatting.count(count)} ${enPlural(count.toLong(), "trip", "trips")}",
+    )
+
+    /** `Odcinek 2 · 9,4 km · 14 przejazdów`. */
+    fun bestTimeRouteTitle(number: Int, km: String, trips: String): String = styleRoute(number) + SEPARATOR + km + SEPARATOR + trips
+
     // Kalkulator kosztu planowanej trasy (PRD F52, docs/SPEC.md §52).
 
     val PLANNED_TITLE: String get() = Lang.pick("Kalkulator trasy", "Trip cost calculator")

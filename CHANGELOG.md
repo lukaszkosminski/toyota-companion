@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Najlepsza godzina wyjazdu (F53, SPEC §53, plan C34): w „Stylu jazdy” pod „Ten sam odcinek” do 5 najczęstszych odcinków z co najmniej 5 przejazdami: mediana czasu przejazdu i l/100 km wg pasma godziny startu (5–7 … 18–21, noc 21–5) i dnia (robocze, weekend); wniosek „najszybciej / najwolniej” od 2 komórek; tylko lokalne archiwum
 
 ## 0.2.8 (2026-11-10)
 - Status: menu kafelków wraca na dół pierwszej strony, pod karty (jak przed v0.2.7) – decyzja właściciela po wypróbowaniu układu z kafelkami u góry; przewinięcie nadal jest zapamiętywane po powrocie z podstrony

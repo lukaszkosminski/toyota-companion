@@ -116,6 +116,11 @@ fun DrivingStyleScreen(
                     }
                 }
 
+                // The best time to leave of the repeated routes, under them (PRD F53, docs/SPEC.md §53).
+                if (view.bestTimes.isNotEmpty()) {
+                    item { BestTimeCard(view.bestTimes) }
+                }
+
                 item {
                     DashboardCard(Texts.STYLE_ANOMALIES_SECTION, AppIcons.Warning) {
                         Text(Texts.STYLE_ANOMALIES_HINT, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -137,6 +142,44 @@ fun DrivingStyleScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * "Najlepsza godzina wyjazdu" (PRD F53): per route one conclusion line when two or more cells have data, then one row per cell with data
+ * (day and band, median drive time, a bar against the fastest, and the trips and litres per 100 km). No empty cells, no positions.
+ */
+@Composable
+private fun BestTimeCard(routes: List<BestTimeRoute>) {
+    DashboardCard(Texts.BEST_TIME_TITLE, AppIcons.Schedule) {
+        Text(Texts.BEST_TIME_HINT, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        routes.forEach { route ->
+            val grid = route.grid
+            val fastest = grid.fastest?.medianMinutes ?: grid.cells.minOfOrNull { it.medianMinutes } ?: 0L
+            // The bar is the drive time itself, so a longer bar is a longer drive.
+            val slowest = grid.cells.maxOfOrNull { it.medianMinutes } ?: 0L
+            Text(
+                BestTimeFormatting.routeTitle(route.number, route.typicalKm, route.trips),
+                style = MaterialTheme.typography.titleSmall,
+            )
+            BestTimeFormatting.conclusion(grid)?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+            BestTimeFormatting.shortNote(grid)?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            grid.cells.forEach { cell ->
+                MeterRow(
+                    BestTimeFormatting.cellName(cell),
+                    BestTimeFormatting.medianValue(cell),
+                    BestTimeFormatting.fraction(cell, slowest),
+                    if (cell.medianMinutes == fastest) Palette.Green else Palette.Blue,
+                )
+                Text(
+                    BestTimeFormatting.helper(cell),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
