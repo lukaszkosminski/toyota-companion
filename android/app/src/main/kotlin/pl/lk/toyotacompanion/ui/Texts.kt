@@ -166,6 +166,12 @@ object Texts {
     val REFUEL_FIELD_LITERS: String get() = Lang.pick("Litry", "Liters")
     val REFUEL_FIELD_TOTAL: String get() = Lang.pick("Kwota", "Total cost")
 
+    /** Optional name/brand of the station at a refuel (PRD F57, docs/SPEC.md §57). */
+    val REFUEL_FIELD_STATION: String get() = Lang.pick("Stacja (opcjonalnie)", "Station (optional)")
+
+    /** Head of the chips with stations the owner used before. */
+    val STATION_SUGGESTIONS_LABEL: String get() = Lang.pick("Ostatnie stacje", "Recent stations")
+
     /** Only usable when the liters are known (docs/SPEC.md §11.3). */
     val REFUEL_FILLED_FULL: String get() = Lang.pick("Do pełna", "Filled to full")
 
@@ -1512,6 +1518,25 @@ object Texts {
     /** Header of the open interval at the top of the log. */
     val LOG_CURRENT: String get() = Lang.pick("Bieżący odcinek", "Current interval")
 
+    // Stacje w dzienniku tankowań (PRD F57, docs/SPEC.md §57).
+
+    val STATION_CARD_TITLE: String get() = Lang.pick("Stacje", "Stations")
+    val STATION_CARD_HINT: String get() = Lang.pick(
+        "Spalanie liczone od tankowania do pełna, które otwiera odcinek; przy małej liczbie odcinków to tylko orientacja.",
+        "Consumption counted from the fill-to-full that opens the interval; with few intervals it is only indicative.",
+    )
+    fun stationRefuels(count: Int): String = Lang.pick("tankowań: $count", "refuels: $count")
+    fun stationAveragePrice(price: String): String = Lang.pick("średnia cena: $price zł/l", "average price: $price zł/l")
+    fun stationConsumption(value: String, intervals: Int): String = Lang.pick(
+        "spalanie: $value l/100 km · odcinki: $intervals · orientacyjnie",
+        "consumption: $value l/100 km · intervals: $intervals · indicative",
+    )
+    fun stationTooFewIntervals(count: Int): String = Lang.pick(
+        "spalanie: za mało danych · odcinki: $count",
+        "consumption: too few intervals · intervals: $count",
+    )
+    fun stationWithout(count: Int): String = Lang.pick("Bez stacji: $count", "Without a station: $count")
+
     fun economyCompared(actual: String, computer: String, difference: String): String = Lang.pick(
         "Spalanie: faktyczne $actual · komputer $computer ($difference)",
         "Consumption: actual $actual · computer $computer ($difference)",
@@ -1531,6 +1556,7 @@ object Texts {
     )
     val AMEND_FIELD_LITERS: String get() = Lang.pick("Litry z paragonu", "Liters from receipt")
     val AMEND_FIELD_TOTAL: String get() = Lang.pick("Kwota z paragonu (opcjonalnie)", "Total cost from receipt (optional)")
+    val AMEND_FIELD_STATION: String get() = Lang.pick("Stacja (opcjonalnie)", "Station (optional)")
     val AMEND_SAVE: String get() = Lang.pick("Zapisz", "Save")
     val AMEND_CANCEL: String get() = Lang.pick("Anuluj", "Cancel")
     val AMEND_LITERS_REQUIRED: String get() = Lang.pick("Podaj litry z paragonu.", "Enter liters from receipt.")
@@ -1610,6 +1636,7 @@ object Texts {
         Lang.pick("Koszt [zł]", "Cost [zł]"),
         Lang.pick("Źródło litrów", "Liters source"),
         Lang.pick("Do pełna", "Filled to full"),
+        Lang.pick("Stacja", "Station"),
     )
 
     /** Header of the expense sheet (PRD F47, docs/SPEC.md §48). */

@@ -2,7 +2,7 @@
 
 A private companion app for Android for a hybrid Toyota in Europe. It reads data from the MyToyota account through the unofficial API (the Toyota client is a Kotlin port of [pytoyoda](https://github.com/pytoyoda/pytoyoda) v6.0.0), archives trips indefinitely, calculates the fuel cost of every trip and shows consumption, statistics and weather. It was built for one owner of one car (PRD §3) and runs entirely on the phone, with no server of its own.
 
-The source of truth is the documents in [`docs/`](docs/), which are written in Polish: the [PRD](docs/PRD.md) (features F1–F55) and the [SPEC](docs/SPEC.md) (acceptance criteria). The description below is a short summary; where they differ, the docs win. The app itself is in Polish, with an English UI language available in "Opcje" (Options).
+The source of truth is the documents in [`docs/`](docs/), which are written in Polish: the [PRD](docs/PRD.md) (features F1–F57) and the [SPEC](docs/SPEC.md) (acceptance criteria). The description below is a short summary; where they differ, the docs win. The app itself is in Polish, with an English UI language available in "Opcje" (Options).
 
 ## Features
 
@@ -21,6 +21,7 @@ The source of truth is the documents in [`docs/`](docs/), which are written in P
 - Eco goals: an optional monthly goal for consumption and for the share of electric driving, with progress on the status screen and in the widget (F39, SPEC §40).
 - Monthly budget: one optional limit per phone for fuel and non-fuel expenses, with progress on the status screen counted only from the local archive (F48, SPEC §49); one notification from 80% of the limit and one when it is exceeded, once per month and threshold, with a switch in Options (F49).
 - Tyres: summer and winter set with the date of each fitting, the mileage of each set from the archive, optional monthly and kilometre thresholds with a reminder, counted from the fitting day (F56, SPEC §56).
+- Station per refuel (F57, SPEC §57): an optional station name at refuelling with suggestions of recent stations; the refuel log shows, per station, the number of refuels, the weighted average price and an indicative consumption from three intervals; the name goes to the CSV and the archive but never to logs, notifications or diagnostics.
 - Period summary notification: off by default; one notification after each completed week or month with km, cost, litres per 100 km and the share on battery, and the comparison with the period before in the expanded view (F54, SPEC §54).
 - Best time to leave: for the most driven repeated routes, the median drive time and litres per 100 km by the hour of the start and the day (working days or weekend), in the driving style screen (F53, SPEC §53).
 - Trip cost calculator: kilometres and a kind of drive give a range of litres and zloty from your own trips of that kind, quartiles of the consumption, with the price of the last priced trip or the default price (F52, SPEC §52).

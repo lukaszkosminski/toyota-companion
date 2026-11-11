@@ -207,6 +207,8 @@ private data class RefuelDto(
     @Serializable(with = RefuelStatusName::class) val status: RefuelStatus,
     @Serializable(with = LitersSourceName::class) val litersSource: LitersSource? = null,
     val filledToFull: Boolean? = null,
+    /** Added after version 1 without bumping it: an old file has no key and reads as null. */
+    val station: String? = null,
 )
 
 @Serializable
@@ -382,6 +384,7 @@ private fun ArchiveRefuel.toDto(): RefuelDto = RefuelDto(
     status = refuel.status,
     litersSource = refuel.litersSource,
     filledToFull = refuel.filledToFull,
+    station = refuel.station,
 )
 
 private fun RefuelDto.toArchiveRefuel(): ArchiveRefuel = ArchiveRefuel(
@@ -398,6 +401,7 @@ private fun RefuelDto.toArchiveRefuel(): ArchiveRefuel = ArchiveRefuel(
         status = status,
         litersSource = litersSource,
         filledToFull = filledToFull,
+        station = station,
     ),
 )
 

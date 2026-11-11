@@ -16,6 +16,7 @@ from .models import (
     round_money,
     round_price,
 )
+from .stations import normalize_station
 
 DecimalLike = Decimal | float | int | str | None
 PositiveDecimalLike = Decimal | float | int | str
@@ -88,6 +89,7 @@ def confirm_refuel(
     total_cost: DecimalLike = None,
     liters_source: LitersSource | None = None,
     filled_to_full: bool | None = None,
+    station: str | None = None,
 ) -> Refuel:
     """Return a copy of ``refuel`` with ``status="confirmed"`` and finalized
     money fields.
@@ -185,6 +187,7 @@ def confirm_refuel(
         status="confirmed",
         liters_source=liters_source_v,
         filled_to_full=(filled_to_full if filled_to_full is not None else refuel.filled_to_full),
+        station=normalize_station(station),
     )
 
 

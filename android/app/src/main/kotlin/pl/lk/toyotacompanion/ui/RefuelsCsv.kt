@@ -37,6 +37,8 @@ fun refuelsCsv(refuels: List<Refuel>, zone: ZoneId): String {
                     refuel.totalCost?.let { TripsFormatting.plain(it, 2) } ?: "",
                     refuel.litersSource?.let { litersSourceLabel(it) } ?: "",
                     refuel.filledToFull?.let { if (it) Texts.CSV_YES else Texts.CSV_NO } ?: "",
+                    // Text from the owner: csvCell guards it against a spreadsheet formula (docs/SPEC.md §14.4).
+                    refuel.station ?: "",
                 ),
             ),
         )

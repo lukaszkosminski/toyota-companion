@@ -221,9 +221,12 @@ fun AppRoot(
                     RefuelPromptDialog(
                         entry = shown,
                         priceText = promptState.priceText,
+                        stationText = promptState.stationText,
+                        stationSuggestions = promptState.stationSuggestions,
                         error = promptState.error,
                         busy = promptState.busy,
                         onPriceChange = prompt::priceChanged,
+                        onStationChange = prompt::stationChanged,
                         onSave = prompt::save,
                         onLater = prompt::later,
                         onMore = prompt::more,

@@ -81,6 +81,10 @@ fun RefuelFormScreen(
     var filledToFull by rememberSaveable(id) { mutableStateOf(false) }
     // The liters field holds the sensor estimate the user accepted (docs/SPEC.md §11.3, PRD F2a).
     var litersFromEstimate by rememberSaveable(id) { mutableStateOf(false) }
+    // Optional station (PRD F57); the picker only fills the field while it is empty or still
+    // holds the name it put there, so a hand-typed name is never overwritten.
+    var stationText by rememberSaveable(id) { mutableStateOf("") }
+    var stationFromPicker by rememberSaveable(id) { mutableStateOf("") }
     var asksAboutDismissing by remember(id) { mutableStateOf(false) }
     val priceFocus = remember { FocusRequester() }
 
@@ -148,6 +152,12 @@ fun RefuelFormScreen(
                         controller = prices,
                         onPrice = { priceText = it },
                         modifier = Modifier.fillMaxWidth(),
+                        onStation = { name ->
+                            if (stationText.isBlank() || stationText == stationFromPicker) {
+                                stationText = name
+                                stationFromPicker = name
+                            }
+                        },
                     )
                     OutlinedTextField(
                         value = priceText,
@@ -223,6 +233,14 @@ fun RefuelFormScreen(
                         modifier = Modifier.fillMaxWidth(),
                     )
 
+                    StationField(
+                        value = stationText,
+                        onValueChange = { stationText = it },
+                        suggestions = state.stationSuggestions,
+                        enabled = !busy,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -241,7 +259,15 @@ fun RefuelFormScreen(
 
                     Button(
                         onClick = {
-                            controller.confirm(id, priceText, litersText, totalText, filledToFull, litersFromEstimate)
+                            controller.confirm(
+                                id,
+                                priceText,
+                                litersText,
+                                totalText,
+                                filledToFull,
+                                litersFromEstimate,
+                                stationText,
+                            )
                         },
                         enabled = !busy,
                         modifier = Modifier.fillMaxWidth(),

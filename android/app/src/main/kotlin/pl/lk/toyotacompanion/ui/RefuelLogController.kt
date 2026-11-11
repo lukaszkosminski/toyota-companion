@@ -42,7 +42,13 @@ data class RefuelLogUiState(
  */
 class RefuelLogController(
     private val read: suspend () -> RefuelLog,
-    private val amend: suspend (id: String, liters: BigDecimal, totalCost: BigDecimal?, filledToFull: Boolean) -> RefuelChange,
+    private val amend: suspend (
+        id: String,
+        liters: BigDecimal,
+        totalCost: BigDecimal?,
+        filledToFull: Boolean,
+        station: String?,
+    ) -> RefuelChange,
     private val scope: CoroutineScope,
     private val io: CoroutineDispatcher,
     private val readLevels: suspend () -> List<pl.lk.toyotacompanion.core.domain.FuelReading> = { emptyList() },
@@ -80,7 +86,13 @@ class RefuelLogController(
      * required, the total is optional; a second click while a write runs is ignored. On
      * success the log is read again, so the economy card shows the correction at once.
      */
-    fun amendLiters(id: String, litersText: String, totalText: String, filledToFull: Boolean) {
+    fun amendLiters(
+        id: String,
+        litersText: String,
+        totalText: String,
+        filledToFull: Boolean,
+        stationText: String = "",
+    ) {
         val shown = ui.value
         if (shown.busyId != null) return
         val liters = (parseRefuelAmount(litersText) as? RefuelAmount.Given)?.value
@@ -100,7 +112,7 @@ class RefuelLogController(
         ui.value = shown.copy(busyId = id, amendError = null, amendedId = null)
         scope.launch {
             val change: RefuelChange? = try {
-                withContext(io) { amend(id, liters, total, filledToFull) }
+                withContext(io) { amend(id, liters, total, filledToFull, stationText.ifBlank { null }) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

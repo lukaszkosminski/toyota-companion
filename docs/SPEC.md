@@ -1356,3 +1356,26 @@ Dane: trzy klucze tekstowe w `SettingsStore` (`tyre_changes`, `tyre_thresholds`,
 - **Wariant temperaturowy** („średnia dobowa poniżej 7 °C przez N dni”) **odłożony**: cache pogody F15 ma tylko dni z trasami (`ui/WeatherController.kt`),
   więc ciągłego szeregu dziennego nie ma. Wpisany do ROADMAP LATER z warunkiem.
 - **Prywatność:** daty, przebiegi i liczby miesięcy; bez VIN, GPS i nazw miejsc; bez sieci i budzenia auta; bez nowego uprawnienia.
+
+## §57 Stacja przy tankowaniu (PRD F57)
+Plan: `briefs/toyota-companion/C38-plan.md`. Domena: `core/domain/StationOps.kt` (`normalizeStation`, `stationSummaries`, `stationSuggestions`)
+z lustrem `backend/app/domain/stations.py` (te same nazwy testów). Ekrany: `ui/StationInput.kt` (pole i podpowiedzi), `ui/RefuelPromptDialog.kt`,
+`ui/RefuelFormScreen.kt`, `ui/RefuelLogScreen.kt` (wiersze stacji i licznik „Bez stacji”).
+- **Model:** pole `station` na tankowaniu (`Refuel.station`, tekst lub brak). Room v8: kolumna `refuels.station` TEXT NULL,
+  `AutoMigration(7, 8)`; stare wiersze dostają NULL. Schemat `app/schemas/.../8.json` z builda, w repo.
+- **Normalizacja:** przycięcie, sklejenie spacji w jedną, pusta nazwa to brak stacji, nazwa cięta do 60 znaków (`STATION_MAX_LENGTH`) i bez spacji na końcu.
+  Nazwy równe bez względu na wielkość liter to jedna stacja (klucz `lowercase(Locale.ROOT)`, w Pythonie `lower()`); pokazywana jest pisownia z najnowszego tankowania.
+- **Wiersze:** tylko potwierdzone tankowania; bez stacji nie są wierszem, tylko licznik „Bez stacji”. Sortowanie: liczba tankowań malejąco, potem nazwa.
+- **Średnia cena:** `Σ koszt / Σ litry` po tankowaniach z obiema wartościami (litry > 0, koszt podany), od jednego tankowania; wiersz bez obu pól nie zmienia średniej.
+- **Spalanie:** interwał należy do stacji **otwarcia** (tankowanie startowe), tylko `OK` i zamknięty, z podanymi litrami. Spalanie = `Σ litry / Σ km × 100`
+  (pulowane, nie średnia średnich). Pokazywane dopiero od `STATION_MIN_INTERVALS` = 3 interwałów i opisane jako orientacyjne.
+- **Podpowiedzi:** `stationSuggestions` – najczęstsze, potem najnowsze; do 6 (`STATION_SUGGESTIONS`); okno „Wykryto tankowanie” pokazuje 4 pierwsze.
+- **Okno „Wykryto tankowanie”:** cena pierwsza i z fokusem klawiatury (`ShowKeyboardOnFocus`), stacja pod ceną i opcjonalna (zapis bez stacji działa);
+  treść przewijana z `imePadding`, więc przy klawiaturze da się dojść do każdego pola.
+- **Formularz i korekta:** pole stacji po cenie; chipsy ostatnich stacji przewijane poziomo; wybór chipa tylko wypełnia pole. W korekcie w arkuszu tankowań stacja jest edytowalna.
+- **Archiwum:** `RefuelDto.station` opcjonalne. Stary plik bez pola czyta się z `station = null`, nowy plik z polem – ze stacją. `ARCHIVE_VERSION` zostaje 1
+  (nieznany klucz jest ignorowany, testowane w `ArchiveFileTest`).
+- **CSV:** ostatnia kolumna „Stacja” / „Station”, przez `csvCell`: wartość zaczynająca się od `=`, `+`, `-` lub `@` (poza samą liczbą) dostaje apostrof;
+  z wiodącą spacją albo średnikiem jest w cudzysłowie. Test `=SUM(1)`, ` +1` i `-2` w `RefuelsCsvTest`.
+- **Prywatność:** nazwa stacji nie trafia do logów, powiadomień, tekstów udostępnianych ani diagnostyki; jest tylko na ekranach
+  i w plikach CSV/archiwum, które właściciel sam eksportuje. Bez sieci i bez budzenia auta.

@@ -35,6 +35,8 @@ data class Refuel(
     val status: RefuelStatus,
     val litersSource: LitersSource? = null,
     val filledToFull: Boolean? = null,
+    /** Optional name or brand of the station (PRD F57, docs/SPEC.md §57); null when the owner gave none. */
+    val station: String? = null,
 )
 
 /** A driven trip. Immutable. */

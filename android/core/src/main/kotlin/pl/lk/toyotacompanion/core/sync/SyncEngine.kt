@@ -34,6 +34,7 @@ import pl.lk.toyotacompanion.core.domain.fuelEconomyIntervals
 import pl.lk.toyotacompanion.core.domain.recomputeCosts
 import pl.lk.toyotacompanion.core.domain.refuelForecast
 import pl.lk.toyotacompanion.core.domain.RefuelForecast
+import pl.lk.toyotacompanion.core.domain.stationSuggestions as domainStationSuggestions
 import pl.lk.toyotacompanion.core.toyota.ToyotaApiException
 import pl.lk.toyotacompanion.core.toyota.ToyotaDataException
 import pl.lk.toyotacompanion.core.toyota.ToyotaLoginException
@@ -205,6 +206,7 @@ class SyncEngine(
         totalCost: BigDecimal? = null,
         filledToFull: Boolean? = null,
         litersSource: LitersSource? = null,
+        station: String? = null,
     ): RefuelChange = editRefuel(id) { stored ->
         domainConfirmRefuel(
             stored,
@@ -213,6 +215,7 @@ class SyncEngine(
             totalCost = totalCost,
             filledToFull = filledToFull,
             litersSource = litersSource,
+            station = station,
         )
     }
 
@@ -232,6 +235,7 @@ class SyncEngine(
         liters: BigDecimal,
         totalCost: BigDecimal? = null,
         filledToFull: Boolean,
+        station: String? = null,
     ): RefuelChange = editRefuel(
         id,
         required = RefuelStatus.CONFIRMED,
@@ -245,6 +249,7 @@ class SyncEngine(
             totalCost = totalCost,
             litersSource = LitersSource.RECEIPT,
             filledToFull = filledToFull,
+            station = station,
         )
     }
 
@@ -318,6 +323,16 @@ class SyncEngine(
     suspend fun confirmedRefuels(): List<Refuel> {
         val vin = state.get().vin ?: return emptyList()
         return confirmedOnly(refuels.all(vin)).sortedWith(compareBy({ it.ts }, { it.id }))
+    }
+
+    /**
+     * Station names the owner already used in this vehicle, most often first, then the
+     * most recent (PRD F57, docs/SPEC.md §57). A plain read like [refuelLog]: no network,
+     * no mutex, no new stored data.
+     */
+    suspend fun stationSuggestions(): List<String> {
+        val vin = state.get().vin ?: return emptyList()
+        return domainStationSuggestions(confirmedOnly(refuels.all(vin)))
     }
 
     /** The one filter both reads share, so the log and the CSV can never disagree on what a "confirmed" refuel is. */

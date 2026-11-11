@@ -144,6 +144,38 @@ class ArchiveFileTest {
     }
 
     @Test
+    fun `a file written before the station field reads its refuels with no station`() {
+        val withStation = snapshot().let { base ->
+            base.copy(refuels = base.refuels.map { it.copy(refuel = it.refuel.copy(station = "Orlen Gdańsk")) })
+        }
+        val text = String(encodeArchive(withStation), Charsets.UTF_8)
+        val old = text.replace(Regex(""","station":"[^"]*""""), "")
+        assertTrue(old != text, "the field is in the new file")
+        assertTrue("station" !in old, "the old file has no station key")
+
+        val decoded = assertIs<ArchiveDecode.Ok>(decodeArchive(old.toByteArray(Charsets.UTF_8)))
+
+        assertTrue(decoded.snapshot.refuels.all { it.refuel.station == null })
+        assertEquals(snapshot().refuels, decoded.snapshot.refuels)
+    }
+
+    @Test
+    fun `a file with a station reads it back on every refuel that has one`() {
+        val base = snapshot()
+        val withStation = base.copy(
+            refuels = base.refuels.mapIndexed { index, it ->
+                if (index == 0) it.copy(refuel = it.refuel.copy(station = "=SUM(1) Orlen")) else it
+            },
+        )
+
+        val decoded = assertIs<ArchiveDecode.Ok>(decodeArchive(encodeArchive(withStation)))
+
+        assertEquals(withStation, decoded.snapshot)
+        assertEquals("=SUM(1) Orlen", decoded.snapshot.refuels[0].refuel.station)
+        assertNull(decoded.snapshot.refuels[1].refuel.station)
+    }
+
+    @Test
     fun `a file written before the motorway and speeding columns reads them as not reported`() {
         val text = String(encodeArchive(snapshot()), Charsets.UTF_8)
         val old = text.replace(Regex(""","(overspeedLengthM|overspeedDurationS|highwayLengthM|highwayDurationS)":[0-9]+"""), "")

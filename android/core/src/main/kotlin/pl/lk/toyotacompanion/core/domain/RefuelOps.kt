@@ -60,6 +60,7 @@ fun confirmRefuel(
     totalCost: BigDecimal? = null,
     litersSource: LitersSource? = null,
     filledToFull: Boolean? = null,
+    station: String? = null,
 ): Refuel {
     val litersWasProvided = liters != null
     val given = setOfNotNull(
@@ -128,6 +129,7 @@ fun confirmRefuel(
         status = RefuelStatus.CONFIRMED,
         litersSource = litersSourceV,
         filledToFull = filledToFull ?: refuel.filledToFull,
+        station = normalizeStation(station),
     )
 }
 

@@ -29,6 +29,9 @@ data class RefuelPromptUiState(
     val loading: Boolean = true,
     val entry: Refuel? = null,
     val priceText: String = "",
+    /** Optional station typed or picked in the dialog (PRD F57, docs/SPEC.md §57). */
+    val stationText: String = "",
+    val stationSuggestions: List<String> = emptyList(),
     val error: String? = null,
     val busy: Boolean = false,
     val formRequest: Refuel? = null,
@@ -49,11 +52,13 @@ data class RefuelPromptUiState(
  */
 class RefuelPromptController(
     private val pending: suspend () -> List<Refuel>,
-    private val confirmRefuel: suspend (id: String, pricePerLiter: BigDecimal) -> RefuelChange,
+    private val confirmRefuel: suspend (id: String, pricePerLiter: BigDecimal, station: String?) -> RefuelChange,
     private val onResolved: (String) -> Unit = {},
     private val onSaved: () -> Unit = {},
     private val scope: CoroutineScope,
     private val io: CoroutineDispatcher,
+    /** Names the dialog suggests under the station field (`SyncEngine.stationSuggestions`). */
+    private val stations: suspend () -> List<String> = { emptyList() },
 ) {
     private val ui = MutableStateFlow(RefuelPromptUiState())
     val state: StateFlow<RefuelPromptUiState> = ui.asStateFlow()
@@ -94,8 +99,8 @@ class RefuelPromptController(
     fun refresh() {
         val startedIn = generation
         scope.launch {
-            val read: Result<List<Refuel>> = try {
-                Result.success(withContext(io) { pending() })
+            val read: Result<Pair<List<Refuel>, List<String>>> = try {
+                Result.success(withContext(io) { pending() to stations() })
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -104,7 +109,10 @@ class RefuelPromptController(
             if (generation != startedIn) return@launch
             // A failed read keeps whatever is on screen; the prompt never shows
             // database text (docs/SECURITY.md).
-            if (read.isSuccess) applyRead(read.getOrThrow())
+            if (read.isSuccess) {
+                val (list, stationNames) = read.getOrThrow()
+                applyRead(list, stationNames)
+            }
         }
     }
 
@@ -116,7 +124,7 @@ class RefuelPromptController(
      */
     fun screenChanged() {
         if (ui.value.loading) return
-        applyRead(waiting)
+        applyRead(waiting, ui.value.stationSuggestions)
     }
 
     /**
@@ -126,12 +134,19 @@ class RefuelPromptController(
     fun resolvedElsewhere(id: String) {
         waiting = waiting.filterNot { it.id == id }
         val shown = ui.value
-        if (shown.entry?.id == id && !shown.busy) ui.value = shown.copy(entry = null, priceText = "", error = null)
+        if (shown.entry?.id == id && !shown.busy) {
+            ui.value = shown.copy(entry = null, priceText = "", stationText = "", error = null)
+        }
     }
 
     /** The keyboard holds [text]; an error message disappears with the next keystroke. */
     fun priceChanged(text: String) {
         ui.value = ui.value.copy(priceText = text, error = null)
+    }
+
+    /** The station field holds [text] (PRD F57, docs/SPEC.md §57). */
+    fun stationChanged(text: String) {
+        ui.value = ui.value.copy(stationText = text, error = null)
     }
 
     /** Saves the price with the rules of §11.2 and moves on to the next entry. */
@@ -141,7 +156,7 @@ class RefuelPromptController(
         if (shown.busy) return
         when (val check = checkRefuelForm(shown.priceText, "", "")) {
             is RefuelFormCheck.Invalid -> ui.value = shown.copy(error = check.message)
-            is RefuelFormCheck.Valid -> write(entry, requireNotNull(check.price))
+            is RefuelFormCheck.Valid -> write(entry, requireNotNull(check.price), shown.stationText)
         }
     }
 
@@ -149,7 +164,7 @@ class RefuelPromptController(
     fun later() {
         val entry = ui.value.entry ?: return
         deferred.add(entry.id)
-        ui.value = ui.value.copy(entry = null, priceText = "", error = null)
+        ui.value = ui.value.copy(entry = null, priceText = "", stationText = "", error = null)
     }
 
     /** "Więcej": the full form of C3, with liters and total cost. */
@@ -185,12 +200,12 @@ class RefuelPromptController(
         ui.value = RefuelPromptUiState()
     }
 
-    private fun write(entry: Refuel, price: BigDecimal) {
+    private fun write(entry: Refuel, price: BigDecimal, station: String) {
         val startedIn = generation
         ui.value = ui.value.copy(busy = true, error = null)
         scope.launch {
             val change: RefuelChange? = try {
-                withContext(io) { confirmRefuel(entry.id, price) }
+                withContext(io) { confirmRefuel(entry.id, price, station.ifBlank { null }) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -223,11 +238,17 @@ class RefuelPromptController(
 
     /** After a write the dialog shows the next waiting entry or disappears. */
     private fun afterWrite() {
-        ui.value = ui.value.copy(busy = false, priceText = "", error = null, entry = null)
+        ui.value = ui.value.copy(
+            busy = false,
+            priceText = "",
+            stationText = "",
+            error = null,
+            entry = null,
+        )
         refresh()
     }
 
-    private fun applyRead(list: List<Refuel>) {
+    private fun applyRead(list: List<Refuel>, stationNames: List<String>) {
         val shown = ui.value
         waiting = list
         val target = refuelPromptTarget(
@@ -248,9 +269,16 @@ class RefuelPromptController(
             }
         }
         ui.value = if (next?.id == shown.entry?.id) {
-            ui.value.copy(loading = false, entry = next)
+            ui.value.copy(loading = false, entry = next, stationSuggestions = stationNames)
         } else {
-            ui.value.copy(loading = false, entry = next, priceText = "", error = null)
+            ui.value.copy(
+                loading = false,
+                entry = next,
+                priceText = "",
+                stationText = "",
+                stationSuggestions = stationNames,
+                error = null,
+            )
         }
         // The prompt takes over: the same question must not also beep as a
         // notification while the user is looking at the dialog (docs/SPEC.md §13.1).

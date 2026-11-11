@@ -28,7 +28,13 @@ import pl.lk.toyotacompanion.core.prices.StationPrice
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StationPricePicker(controller: StationPriceController, onPrice: (String) -> Unit, modifier: Modifier = Modifier) {
+fun StationPricePicker(
+    controller: StationPriceController,
+    onPrice: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    /** The name of the station whose price was chosen; the form may use it as the refuel station (PRD F57). */
+    onStation: (String) -> Unit = {},
+) {
     val state by controller.state.collectAsState()
     // Empty = by hand. Saved, so a rotation keeps the choice.
     var chosen by rememberSaveable { mutableStateOf("") }
@@ -59,6 +65,7 @@ fun StationPricePicker(controller: StationPriceController, onPrice: (String) -> 
                     onClick = {
                         chosen = station.id
                         delivered = ""
+                        onStation(station.name)
                         controller.ensureFresh()
                     },
                     label = { Text(station.name) },

@@ -35,6 +35,8 @@ data class RefuelUiState(
     val formError: String? = null,
     val formFieldErrors: List<RefuelFieldError> = emptyList(),
     val savedId: String? = null,
+    /** Station names this vehicle used before, most often first (PRD F57, docs/SPEC.md §57). */
+    val stationSuggestions: List<String> = emptyList(),
 )
 
 /**
@@ -65,11 +67,14 @@ class RefuelController(
         totalCost: BigDecimal?,
         filledToFull: Boolean?,
         litersSource: LitersSource?,
+        station: String?,
     ) -> RefuelChange,
     private val dismissRefuel: suspend (id: String) -> RefuelChange,
     private val onResolved: (String) -> Unit = {},
     private val scope: CoroutineScope,
     private val io: CoroutineDispatcher,
+    /** Names the form suggests under the station field (`SyncEngine.stationSuggestions`). */
+    private val stations: suspend () -> List<String> = { emptyList() },
 ) {
     private val ui = MutableStateFlow(RefuelUiState())
     val state: StateFlow<RefuelUiState> = ui.asStateFlow()
@@ -85,8 +90,8 @@ class RefuelController(
     fun reload() {
         val startedIn = generation
         scope.launch {
-            val read: Result<List<Refuel>> = try {
-                Result.success(withContext(io) { pending() })
+            val read: Result<Pair<List<Refuel>, List<String>>> = try {
+                Result.success(withContext(io) { pending() to stations() })
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -94,7 +99,13 @@ class RefuelController(
             }
             if (generation != startedIn) return@launch
             ui.value = if (read.isSuccess) {
-                ui.value.copy(loading = false, refuels = read.getOrThrow(), loadFailed = false)
+                val (refuels, stationNames) = read.getOrThrow()
+                ui.value.copy(
+                    loading = false,
+                    refuels = refuels,
+                    loadFailed = false,
+                    stationSuggestions = stationNames,
+                )
             } else {
                 ui.value.copy(loading = false, loadFailed = true)
             }
@@ -127,6 +138,7 @@ class RefuelController(
         totalText: String,
         filledToFull: Boolean?,
         litersFromEstimate: Boolean = false,
+        stationText: String = "",
     ) {
         val shown = ui.value
         if (shown.busyId != null) return
@@ -144,6 +156,7 @@ class RefuelController(
                     check.total,
                     check.liters?.let { filledToFull },
                     check.litersSource,
+                    stationText,
                 )
             }
         }

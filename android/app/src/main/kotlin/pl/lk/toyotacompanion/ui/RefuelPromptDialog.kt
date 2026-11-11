@@ -3,7 +3,10 @@ package pl.lk.toyotacompanion.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -23,11 +26,13 @@ import pl.lk.toyotacompanion.core.domain.Refuel
 /**
  * The question that pops up when a refuel waiting for a price is seen while the
  * app is open (docs/SPEC.md §13.3, PRD F2c): one line about the entry, one field
- * for the price, and three ways out — save, "Później" (this entry only), "Więcej"
- * (the full form of C3).
+ * for the price, an optional station (PRD F57), and three ways out — save,
+ * "Później" (this entry only), "Więcej" (the full form of C3).
  *
- * Only the price is asked for here: liters and total cost need the room of
- * [RefuelFormScreen], which is also where the notification lands.
+ * Only the price and the station are asked for here: liters and total cost need
+ * the room of [RefuelFormScreen], which is also where the notification lands.
+ * The whole content scrolls, so a small screen with the keyboard open still
+ * reaches the buttons.
  *
  * @param zone zone the timestamp of [entry] is shown in.
  */
@@ -35,9 +40,12 @@ import pl.lk.toyotacompanion.core.domain.Refuel
 fun RefuelPromptDialog(
     entry: Refuel,
     priceText: String,
+    stationText: String,
+    stationSuggestions: List<String>,
     error: String?,
     busy: Boolean,
     onPriceChange: (String) -> Unit,
+    onStationChange: (String) -> Unit,
     onSave: () -> Unit,
     onLater: () -> Unit,
     onMore: () -> Unit,
@@ -52,7 +60,12 @@ fun RefuelPromptDialog(
         onDismissRequest = onLater,
         title = { Text(Texts.REFUEL_NOTIFICATION_TITLE) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                modifier = Modifier
+                    .imePadding()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 Text(
                     Texts.refuelPromptBody(
                         RefuelFormatting.time(entry.ts, zone),
@@ -68,6 +81,12 @@ fun RefuelPromptDialog(
                     isError = error != null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.focusRequester(priceFocus),
+                )
+                StationField(
+                    value = stationText,
+                    onValueChange = onStationChange,
+                    suggestions = stationSuggestions.take(4),
+                    enabled = !busy,
                 )
                 // The message stays inside the dialog: the answer is still being typed.
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }

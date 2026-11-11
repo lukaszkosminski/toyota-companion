@@ -435,8 +435,8 @@ class AppContainer(
     val refuelController: RefuelController by lazy {
         RefuelController(
             pending = { syncEngine.pendingRefuels() },
-            confirmRefuel = { id, price, liters, total, filledToFull, litersSource ->
-                syncEngine.confirmRefuel(id, price, liters, total, filledToFull, litersSource)
+            confirmRefuel = { id, price, liters, total, filledToFull, litersSource, station ->
+                syncEngine.confirmRefuel(id, price, liters, total, filledToFull, litersSource, station)
             },
             dismissRefuel = { id -> syncEngine.dismissRefuel(id) },
             onResolved = { id ->
@@ -445,6 +445,7 @@ class AppContainer(
             },
             scope = uiScope,
             io = Dispatchers.IO,
+            stations = { syncEngine.stationSuggestions() },
         )
     }
 
@@ -475,11 +476,12 @@ class AppContainer(
     val refuelPromptController: RefuelPromptController by lazy {
         RefuelPromptController(
             pending = { syncEngine.pendingRefuels() },
-            confirmRefuel = { id, price -> syncEngine.confirmRefuel(id, price, null, null, null) },
+            confirmRefuel = { id, price, station -> syncEngine.confirmRefuel(id, price, null, null, null, station = station) },
             onResolved = { id -> uiScope.launch { refuelNotifier.cancel(id) } },
             onSaved = { session.reload() },
             scope = uiScope,
             io = Dispatchers.IO,
+            stations = { syncEngine.stationSuggestions() },
         )
     }
 
@@ -754,7 +756,9 @@ class AppContainer(
     val refuelLogController: RefuelLogController by lazy {
         RefuelLogController(
             read = { syncEngine.refuelLog() },
-            amend = { id, liters, total, full -> syncEngine.amendRefuel(id, liters, total, full) },
+            amend = { id, liters, total, full, station ->
+                syncEngine.amendRefuel(id, liters, total, full, station)
+            },
             scope = uiScope,
             io = Dispatchers.IO,
             readLevels = { syncEngine.fuelLevels() },

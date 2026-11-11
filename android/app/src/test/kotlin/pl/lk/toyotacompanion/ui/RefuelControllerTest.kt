@@ -43,6 +43,9 @@ private class FakeWrites {
     var lastPrice: BigDecimal? = null
     var lastFilledToFull: Boolean? = null
     var lastLitersSource: LitersSource? = null
+    var lastStation: String? = null
+    /** Names the form suggests under the station field (PRD F57). */
+    var stations: List<String> = listOf("WATIS", "Auchan")
 
     /** Holds a write open, like a synchronization that still holds the mutex. */
     var gate: CompletableDeferred<Unit>? = null
@@ -63,11 +66,13 @@ private class FakeWrites {
         totalCost: BigDecimal?,
         filledToFull: Boolean?,
         litersSource: LitersSource?,
+        station: String?,
     ): RefuelChange {
         confirmCalls++
         lastPrice = pricePerLiter
         lastFilledToFull = filledToFull
         lastLitersSource = litersSource
+        lastStation = station
         gate?.await()
         writeError?.let { throw it }
         list = emptyList()
@@ -93,13 +98,14 @@ class RefuelControllerTest {
 
     private fun controller(writes: FakeWrites, io: CoroutineDispatcher) = RefuelController(
         pending = { writes.pending() },
-        confirmRefuel = { id, price, liters, total, filled, source ->
-            writes.confirm(id, price, liters, total, filled, source)
+        confirmRefuel = { id, price, liters, total, filled, source, station ->
+            writes.confirm(id, price, liters, total, filled, source, station)
         },
         dismissRefuel = { id -> writes.dismiss(id) },
         onResolved = { id -> resolved.add(id) },
         scope = CoroutineScope(SupervisorJob() + io),
         io = io,
+        stations = { writes.stations },
     )
 
     @Test
@@ -113,6 +119,37 @@ class RefuelControllerTest {
         val state = controller.state.value
         assertEquals(listOf("r1", "r2"), state.refuels.map { it.id })
         assertTrue(!state.loading && !state.loadFailed)
+    }
+
+    @Test
+    fun `reload also reads the station suggestions`() = runTest {
+        val writes = FakeWrites().apply { stations = listOf("WATIS", "Auchan") }
+        val controller = controller(writes, StandardTestDispatcher(testScheduler))
+
+        controller.reload()
+        advanceUntilIdle()
+
+        assertEquals(listOf("WATIS", "Auchan"), controller.state.value.stationSuggestions)
+    }
+
+    @Test
+    fun `saving sends the typed station`() = runTest {
+        val writes = FakeWrites()
+        val controller = controller(writes, StandardTestDispatcher(testScheduler))
+        controller.reload()
+        advanceUntilIdle()
+
+        controller.confirm(
+            "r1",
+            "6,19",
+            "30",
+            "",
+            filledToFull = true,
+            stationText = "  Auchan  ",
+        )
+        advanceUntilIdle()
+
+        assertEquals("  Auchan  ", writes.lastStation, "the domain normalizes the name")
     }
 
     @Test

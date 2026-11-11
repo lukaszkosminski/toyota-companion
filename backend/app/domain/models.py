@@ -94,6 +94,27 @@ class Refuel:
     status: RefuelStatus
     liters_source: LitersSource | None = None
     filled_to_full: bool | None = None
+    station: str | None = None
+
+
+@dataclass(frozen=True)
+class StationSummary:
+    """One station in the refuel log (PRD F57, docs/SPEC.md §57).
+
+    ``l_per_100km`` is the pooled ``sum(liters) / sum(distance) * 100`` of the
+    closed ``ok`` intervals whose opening full refuel belongs to this station.
+    It is ``None`` until ``min_intervals`` such intervals exist: a smaller sample
+    is not a measurement. ``avg_price_per_liter`` is
+    ``sum(total_cost) / sum(liters)`` over confirmed refuels carrying both values.
+    """
+
+    name: str
+    refuels: int
+    priced_refuels: int
+    avg_price_per_liter: Decimal | None
+    intervals: int
+    distance_km: Decimal
+    l_per_100km: Decimal | None
 
 
 @dataclass(frozen=True)

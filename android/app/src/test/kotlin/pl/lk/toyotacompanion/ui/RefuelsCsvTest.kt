@@ -40,6 +40,7 @@ private fun refuel(
     total: String? = "186.32",
     source: LitersSource? = LitersSource.RECEIPT,
     filledToFull: Boolean? = true,
+    station: String? = null,
 ): Refuel = Refuel(
     id = id,
     ts = ts,
@@ -52,6 +53,7 @@ private fun refuel(
     status = RefuelStatus.CONFIRMED,
     litersSource = source,
     filledToFull = filledToFull,
+    station = station,
 )
 
 private fun headerLine(): String = Texts.CSV_REFUELS_HEADER.joinToString(";")
@@ -74,7 +76,7 @@ class RefuelsCsvTest {
     fun `the file starts with the header from the texts and holds no byte order mark`() {
         val text = refuelsCsv(listOf(refuel("r1")), UTC)
 
-        assertEquals(9, Texts.CSV_REFUELS_HEADER.size)
+        assertEquals(10, Texts.CSV_REFUELS_HEADER.size)
         assertEquals(headerLine(), text.split(CRLF)[0])
         assertFalse(text.startsWith(CSV_BOM), "the BOM is added when the text becomes bytes")
         assertTrue(text.endsWith(CRLF), "RFC 4180 line end")
@@ -90,7 +92,7 @@ class RefuelsCsvTest {
         val row = refuelsCsv(listOf(refuel("r1")), UTC).split(CRLF)[1]
 
         assertEquals(
-            "2026-10-29 14:05;12345,6;20;80;30,100;6,190;186,32;z paragonu;tak",
+            "2026-10-29 14:05;12345,6;20;80;30,100;6,190;186,32;z paragonu;tak;",
             row,
         )
     }
@@ -99,7 +101,7 @@ class RefuelsCsvTest {
     fun `a cost is only the stored total, never liters times price`() {
         val row = refuelsCsv(listOf(refuel("r1", total = null)), UTC).split(CRLF)[1]
 
-        assertEquals("2026-10-29 14:05;12345,6;20;80;30,100;6,190;;z paragonu;tak", row)
+        assertEquals("2026-10-29 14:05;12345,6;20;80;30,100;6,190;;z paragonu;tak;", row)
     }
 
     @Test
@@ -117,7 +119,7 @@ class RefuelsCsvTest {
             UTC,
         ).split(CRLF)[1]
 
-        assertEquals("2026-10-29 14:05;12345,7;20;80;14,190;6,005;1,01;z paragonu;tak", row)
+        assertEquals("2026-10-29 14:05;12345,7;20;80;14,190;6,005;1,01;z paragonu;tak;", row)
     }
 
     @Test
@@ -140,7 +142,7 @@ class RefuelsCsvTest {
             UTC,
         ).split(CRLF)[1]
 
-        assertEquals("2026-10-29 14:05;12345,6;20;80;;;;;", row)
+        assertEquals("2026-10-29 14:05;12345,6;20;80;;;;;;", row)
     }
 
     @Test
@@ -154,21 +156,41 @@ class RefuelsCsvTest {
             UTC,
         ).split(CRLF).filter { it.isNotEmpty() }.drop(1)
 
-        assertTrue(rows[0].endsWith(";z paragonu;tak"))
-        assertTrue(rows[1].endsWith(";wyliczone z paragonu;nie"))
-        assertTrue(rows[2].endsWith(";szacunek z czujnika;"))
+        assertTrue(rows[0].endsWith(";z paragonu;tak;"))
+        assertTrue(rows[1].endsWith(";wyliczone z paragonu;nie;"))
+        assertTrue(rows[2].endsWith(";szacunek z czujnika;;"))
     }
 
     @Test
     fun `the times follow the zone of the screen, including a day boundary`() {
         val row = refuelsCsv(listOf(refuel("r1")), WARSAW).split(CRLF)[1]
-        assertEquals("2026-10-29 15:05;12345,6;20;80;30,100;6,190;186,32;z paragonu;tak", row)
+        assertEquals("2026-10-29 15:05;12345,6;20;80;30,100;6,190;186,32;z paragonu;tak;", row)
 
         val acrossMidnight = refuelsCsv(
             listOf(refuel("r1", ts = Instant.parse("2026-10-29T23:30:00Z"))),
             WARSAW,
         ).split(CRLF)[1]
         assertTrue(acrossMidnight.startsWith("2026-10-30 00:30;"))
+    }
+
+    @Test
+    fun `a station that starts like a formula is guarded in the last cell`() {
+        val rows = refuelsCsv(
+            listOf(
+                refuel("a", station = "=SUM(1)"),
+                refuel("b", station = " +1"),
+                refuel("c", station = "-2"),
+                refuel("d", station = "Orlen; Gdańsk"),
+            ),
+            UTC,
+        ).split(CRLF).filter { it.isNotEmpty() }.drop(1)
+
+        // A formula is prefixed with an apostrophe; a leading space makes the cell quoted (RFC 4180).
+        assertTrue(rows[0].endsWith(";'=SUM(1)"), rows[0])
+        assertTrue(rows[1].endsWith(";\"' +1\""), rows[1])
+        // "-2" is a plain number, not a formula, so it stays as the owner typed it.
+        assertTrue(rows[2].endsWith(";-2"), rows[2])
+        assertTrue(rows[3].endsWith(";\"Orlen; Gdańsk\""), rows[3])
     }
 
     @Test
@@ -219,12 +241,12 @@ class RefuelsCsvTest {
             val rows = text.split(CRLF).filter { it.isNotEmpty() }.drop(1)
 
             assertEquals(
-                "Date;Odometer [km];Level before [%];Level after [%];Liters [l];Price [zł/l];Cost [zł];Liters source;Filled to full",
+                "Date;Odometer [km];Level before [%];Level after [%];Liters [l];Price [zł/l];Cost [zł];Liters source;Filled to full;Station",
                 text.split(CRLF)[0],
             )
-            assertTrue(rows[0].endsWith(";from receipt;yes"))
-            assertTrue(rows[1].endsWith(";calculated from receipt;no"))
-            assertTrue(rows[2].endsWith(";sensor estimate;"))
+            assertTrue(rows[0].endsWith(";from receipt;yes;"))
+            assertTrue(rows[1].endsWith(";calculated from receipt;no;"))
+            assertTrue(rows[2].endsWith(";sensor estimate;;"))
         } finally {
             Lang.current = AppLanguage.PL
         }

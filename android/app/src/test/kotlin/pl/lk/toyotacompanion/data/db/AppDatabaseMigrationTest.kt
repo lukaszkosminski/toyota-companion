@@ -24,7 +24,7 @@ import pl.lk.toyotacompanion.core.domain.LitersSource
 import pl.lk.toyotacompanion.core.domain.RefuelStatus
 
 private const val SCHEMA_DIR = "schemas/pl.lk.toyotacompanion.data.db.AppDatabase"
-private const val CURRENT_VERSION = 7
+private const val CURRENT_VERSION = 8
 
 /**
  * The archive cannot be fetched from Toyota again once it is older than ~12 months, so every committed schema
@@ -135,6 +135,18 @@ class AppDatabaseMigrationTest {
         assertEquals(429, written.lastErrorStatus)
         assertEquals("VIN1", written.vin)
         assertEquals("no network", written.lastErrorMessage)
+    }
+
+    @Test
+    fun `version 7 keeps its refuels and gives them no station, and the station can be written afterwards`() = runTest {
+        val db = migrate(7)
+        assertArchiveKept(db, 7)
+        val refuel = assertNotNull(db.refuelDao().byId("r1"))
+        assertNull(refuel.station)
+        assertNull(assertNotNull(db.refuelDao().byId("r2")).station)
+        db.refuelDao().updateKeepingVin(refuel.copy(station = "Orlen Gdańsk"))
+        assertEquals("Orlen Gdańsk", assertNotNull(db.refuelDao().byId("r1")).station)
+        assertEquals("VIN1", assertNotNull(db.refuelDao().byId("r1")).vin)
     }
 
     @Test

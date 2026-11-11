@@ -43,6 +43,10 @@ import java.time.ZoneId
 import pl.lk.toyotacompanion.core.domain.EconomyInterval
 import pl.lk.toyotacompanion.core.domain.EconomyStatus
 import pl.lk.toyotacompanion.core.domain.Refuel
+import pl.lk.toyotacompanion.core.domain.StationSummary
+import pl.lk.toyotacompanion.core.domain.normalizeStation
+import pl.lk.toyotacompanion.core.domain.stationSuggestions
+import pl.lk.toyotacompanion.core.domain.stationSummaries
 
 /**
  * "Dziennik tankowań" (PRD F9, docs/SPEC.md §15.2): confirmed refuels, newest first,
@@ -125,6 +129,15 @@ fun RefuelLogScreen(
                         }
                     }
                     if (open != null) item(key = "open") { EconomyCard(open, title = Texts.LOG_CURRENT) }
+                    val stationRows = stationSummaries(log.refuels, log.intervals)
+                    if (stationRows.isNotEmpty() || log.refuels.any { normalizeStation(it.station) == null }) {
+                        item(key = "stations") {
+                            StationCard(
+                                stations = stationRows,
+                                withoutStation = log.refuels.count { normalizeStation(it.station) == null },
+                            )
+                        }
+                    }
                     items(log.refuels, key = { it.id }) { refuel ->
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             RefuelRow(
@@ -149,7 +162,10 @@ fun RefuelLogScreen(
             refuel = amending,
             busy = state.busyId == amending.id,
             error = state.amendError,
-            onSave = { liters, total, full -> controller.amendLiters(amending.id, liters, total, full) },
+            stationSuggestions = stationSuggestions(state.log.refuels),
+            onSave = { liters, total, full, station ->
+                controller.amendLiters(amending.id, liters, total, full, station)
+            },
             onDismiss = {
                 controller.amendDismissed()
                 amendingId = null
@@ -175,12 +191,15 @@ private fun AmendDialog(
     refuel: Refuel,
     busy: Boolean,
     error: String?,
-    onSave: (liters: String, total: String, filledToFull: Boolean) -> Unit,
+    stationSuggestions: List<String>,
+    onSave: (liters: String, total: String, filledToFull: Boolean, station: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var litersText by rememberSaveable(refuel.id) { mutableStateOf("") }
     var totalText by rememberSaveable(refuel.id) { mutableStateOf("") }
     var full by rememberSaveable(refuel.id) { mutableStateOf(refuel.filledToFull == true) }
+    // Prefilled with the stored name; empty means "clear it" (PRD F57).
+    var stationText by rememberSaveable(refuel.id) { mutableStateOf(refuel.station ?: "") }
     val litersGiven = parseRefuelAmount(litersText) is RefuelAmount.Given
     AlertDialog(
         onDismissRequest = { if (!busy) onDismiss() },
@@ -204,6 +223,13 @@ private fun AmendDialog(
                     enabled = !busy,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )
+                StationField(
+                    value = stationText,
+                    onValueChange = { stationText = it },
+                    suggestions = stationSuggestions,
+                    enabled = !busy,
+                    label = Texts.AMEND_FIELD_STATION,
+                )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(Texts.REFUEL_FILLED_FULL, modifier = Modifier.weight(1f))
                     // Shows the stored mark even before liters are typed; only liters make it editable.
@@ -213,7 +239,10 @@ private fun AmendDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(litersText, totalText, full && litersGiven) }, enabled = !busy) {
+            TextButton(
+                onClick = { onSave(litersText, totalText, full && litersGiven, stationText) },
+                enabled = !busy,
+            ) {
                 Text(Texts.AMEND_SAVE)
             }
         },
@@ -252,8 +281,57 @@ private fun RefuelRow(refuel: Refuel, zone: ZoneId, busy: Boolean, onAmend: () -
                     refuel.totalCost?.let { TripsFormatting.money(it) },
                 )
                 if (money.isNotEmpty()) IconText(AppIcons.Payments, money.joinToString(Texts.SEPARATOR), color = readable(Palette.Green))
+                // The owner's own name; it never goes to shared texts or notifications (PRD F57).
+                refuel.station?.let { IconText(AppIcons.LocationOn, it) }
                 TextButton(onClick = onAmend, enabled = !busy) { IconLabel(AppIcons.Edit, Texts.AMEND_BUTTON) }
             }
+        }
+    }
+}
+
+@Composable
+private fun StationCard(stations: List<StationSummary>, withoutStation: Int) {
+    DashboardCard(Texts.STATION_CARD_TITLE, AppIcons.LocationOn) {
+        Text(
+            Texts.STATION_CARD_HINT,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        for (station in stations) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(station.name, style = MaterialTheme.typography.titleSmall)
+                Text(Texts.stationRefuels(station.refuels), style = MaterialTheme.typography.bodySmall)
+                station.avgPricePerLiter?.let {
+                    Text(
+                        Texts.stationAveragePrice(TripsFormatting.number(it, 2)),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                // A local value: the smart cast does not work on a property of another module.
+                val consumption = station.lPer100Km
+                if (consumption != null) {
+                    Text(
+                        Texts.stationConsumption(
+                            TripsFormatting.number(consumption, 2),
+                            station.intervals,
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                } else {
+                    Text(
+                        Texts.stationTooFewIntervals(station.intervals),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                Text(
+                    RefuelLogFormatting.distance(station.distanceKm),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        if (withoutStation > 0) {
+            Text(Texts.stationWithout(withoutStation), style = MaterialTheme.typography.bodySmall)
         }
     }
 }

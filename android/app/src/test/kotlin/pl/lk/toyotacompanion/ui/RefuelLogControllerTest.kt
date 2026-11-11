@@ -53,7 +53,13 @@ private class FakeRead {
     }
 }
 
-private data class Call(val id: String, val liters: BigDecimal, val total: BigDecimal?, val full: Boolean)
+private data class Call(
+    val id: String,
+    val liters: BigDecimal,
+    val total: BigDecimal?,
+    val full: Boolean,
+    val station: String? = null,
+)
 
 /** The write behind "Popraw litry": records the calls and answers what the test decided. */
 private class FakeAmend {
@@ -62,8 +68,14 @@ private class FakeAmend {
     var gate: CompletableDeferred<Unit>? = null
     val calls = mutableListOf<Call>()
 
-    suspend fun amend(id: String, liters: BigDecimal, total: BigDecimal?, full: Boolean): RefuelChange {
-        calls += Call(id, liters, total, full)
+    suspend fun amend(
+        id: String,
+        liters: BigDecimal,
+        total: BigDecimal?,
+        full: Boolean,
+        station: String?,
+    ): RefuelChange {
+        calls += Call(id, liters, total, full, station)
         gate?.await()
         error?.let { throw it }
         return answer
@@ -79,7 +91,7 @@ class RefuelLogControllerTest {
 
     private fun controller(read: FakeRead, io: CoroutineDispatcher, amend: FakeAmend = FakeAmend()) = RefuelLogController(
         read = { read.read() },
-        amend = { id, liters, total, full -> amend.amend(id, liters, total, full) },
+        amend = { id, liters, total, full, station -> amend.amend(id, liters, total, full, station) },
         scope = CoroutineScope(SupervisorJob() + io),
         io = io,
     )
@@ -113,6 +125,20 @@ class RefuelLogControllerTest {
         advanceUntilIdle()
 
         assertEquals(Call("r1", BigDecimal("30"), BigDecimal("186.00"), false), amend.calls.single())
+    }
+
+    @Test
+    fun `the correction can set, replace and clear the station`() = runTest {
+        val amend = FakeAmend()
+        val controller = controller(FakeRead(), StandardTestDispatcher(testScheduler), amend)
+
+        controller.amendLiters("r1", "30", "", filledToFull = true, stationText = "  Auchan  ")
+        advanceUntilIdle()
+        controller.amendLiters("r1", "30", "", filledToFull = true, stationText = "")
+        advanceUntilIdle()
+
+        assertEquals("  Auchan  ", amend.calls[0].station, "the domain normalizes the name")
+        assertNull(amend.calls[1].station, "an empty field clears the station")
     }
 
     @Test

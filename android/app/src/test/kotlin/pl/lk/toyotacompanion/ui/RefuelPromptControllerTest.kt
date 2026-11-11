@@ -39,6 +39,7 @@ private class FakePending {
     var answer: RefuelChange = RefuelChange.Done(refuel("r1").copy(status = RefuelStatus.CONFIRMED), 3)
     var writeError: Exception? = null
     var lastPrice: BigDecimal? = null
+    var lastStation: String? = null
     var confirmCalls = 0
 
     /** Holds a write open, like a synchronization that still holds the mutex. */
@@ -49,9 +50,10 @@ private class FakePending {
         return list
     }
 
-    suspend fun confirm(id: String, price: BigDecimal): RefuelChange {
+    suspend fun confirm(id: String, price: BigDecimal, station: String?): RefuelChange {
         confirmCalls++
         lastPrice = price
+        lastStation = station
         gate?.await()
         writeError?.let { throw it }
         // The archive stops listing what it has taken (docs/SPEC.md §11.1).
@@ -73,11 +75,12 @@ class RefuelPromptControllerTest {
         saved: MutableList<Unit> = mutableListOf(),
     ): RefuelPromptController = RefuelPromptController(
         pending = { fake.pending() },
-        confirmRefuel = { id, price -> fake.confirm(id, price) },
+        confirmRefuel = { id, price, station -> fake.confirm(id, price, station) },
         onResolved = { id -> resolved.add(id) },
         onSaved = { saved.add(Unit) },
         scope = CoroutineScope(SupervisorJob() + dispatcher),
         io = dispatcher,
+        stations = { listOf("WATIS", "Auchan") },
     )
 
     @Test
@@ -151,6 +154,59 @@ class RefuelPromptControllerTest {
         assertEquals(1, saved.size, "session.reload after a write (docs/SPEC.md §13.3)")
         assertEquals("r2", prompt.state.value.entry?.id, "the next waiting entry")
         assertEquals("", prompt.state.value.priceText, "the field of the next question is empty")
+    }
+
+    @Test
+    fun `saving passes the station and the next question starts without one`() = runTest {
+        val fake = FakePending().apply {
+            list = listOf(refuel("r1"), refuel("r2"))
+            answer = RefuelChange.Done(refuel("r1").copy(status = RefuelStatus.CONFIRMED), 3)
+        }
+        val prompt = controller(fake, StandardTestDispatcher(testScheduler))
+        prompt.ensureLoaded()
+        advanceUntilIdle()
+        assertEquals(listOf("WATIS", "Auchan"), prompt.state.value.stationSuggestions)
+
+        prompt.priceChanged("6,19")
+        prompt.stationChanged("  Auchan  ")
+        prompt.save()
+        advanceUntilIdle()
+
+        assertEquals("  Auchan  ", fake.lastStation, "the domain normalizes the name, not the dialog")
+        assertEquals("r2", prompt.state.value.entry?.id)
+        assertEquals("", prompt.state.value.stationText, "the next question starts without a station")
+    }
+
+    @Test
+    fun `an empty station is not saved as a name`() = runTest {
+        val fake = FakePending().apply {
+            answer = RefuelChange.Done(refuel("r1").copy(status = RefuelStatus.CONFIRMED), 3)
+        }
+        val prompt = controller(fake, StandardTestDispatcher(testScheduler))
+        prompt.ensureLoaded()
+        advanceUntilIdle()
+
+        prompt.priceChanged("6,19")
+        prompt.stationChanged("   ")
+        prompt.save()
+        advanceUntilIdle()
+
+        assertNull(fake.lastStation, "blank means no station (PRD F57)")
+    }
+
+    @Test
+    fun `later drops the station typed for that entry`() = runTest {
+        val fake = FakePending()
+        val prompt = controller(fake, StandardTestDispatcher(testScheduler))
+        prompt.ensureLoaded()
+        advanceUntilIdle()
+
+        prompt.priceChanged("6,19")
+        prompt.stationChanged("WATIS")
+        prompt.later()
+        advanceUntilIdle()
+        assertNull(prompt.state.value.entry)
+        assertEquals("", prompt.state.value.stationText, "the entry is put off with its fields")
     }
 
     @Test

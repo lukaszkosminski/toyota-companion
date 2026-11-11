@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+
+## 0.2.10 (2026-11-11)
+- Stacja przy tankowaniu (F57, SPEC §57, plan C38): opcjonalne pole „Stacja” przy tankowaniu (okno „Wykryto tankowanie”, formularz, korekta) z podpowiedziami ostatnich stacji; w „Dzienniku tankowań” wiersz na stację z liczbą tankowań, średnią ceną i orientacyjnym spalaniem od 3 interwałów; nazwa w CSV (ostatnia kolumna, z ochroną przed formułą) i w archiwum (stare pliki czytane bez błędu); baza Room v8 (migracja 7→8)
 - Opony (F56): można usunąć błędnie wpisaną ostatnią zmianę kompletu (po potwierdzeniu; zapomina wysłane dla niej przypomnienia); linia „trasy sprzed pierwszej zmiany” podaje liczbę tras z odmianą; literówka „komplektu” poprawiona na „kompletu”
 - Opony: dwa komplety, przebieg i przypomnienie (F56, SPEC §56, plan C37): w „Wydatkach” karta z datami zmian letniego i zimowego kompletu (opcjonalny przebieg z licznika), przebiegiem każdego kompletu z archiwum tras od daty zmiany i progami miesięcznymi oraz kilometrowymi (domyślnie puste); przypomnienie po synchronizacji raz na komplet i próg; ustawienia telefonu, bez bazy i bez eksportu JSON; wariant wg temperatur odłożony do LATER
 

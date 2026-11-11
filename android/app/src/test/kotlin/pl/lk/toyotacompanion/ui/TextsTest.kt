@@ -389,9 +389,9 @@ class TextsTest {
 
     @Test
     fun `the refuel and expense csv headers are fixed words`() {
-        assertEquals(9, Texts.CSV_REFUELS_HEADER.size)
+        assertEquals(10, Texts.CSV_REFUELS_HEADER.size)
         assertEquals(
-            listOf("Data", "Licznik [km]", "Poziom przed [%]", "Poziom po [%]", "Litry [l]", "Cena [zł/l]", "Koszt [zł]", "Źródło litrów", "Do pełna"),
+            listOf("Data", "Licznik [km]", "Poziom przed [%]", "Poziom po [%]", "Litry [l]", "Cena [zł/l]", "Koszt [zł]", "Źródło litrów", "Do pełna", "Stacja"),
             Texts.CSV_REFUELS_HEADER,
         )
         assertEquals(4, Texts.CSV_EXPENSES_HEADER.size)
@@ -426,7 +426,7 @@ class TextsTest {
             assertTrue(pl.isNotBlank() && en.isNotBlank())
             assertTrue(pl != en, "untranslated: $pl")
         }
-        assertEquals("Date;Odometer [km];Level before [%];Level after [%];Liters [l];Price [zł/l];Cost [zł];Liters source;Filled to full", english[6])
+        assertEquals("Date;Odometer [km];Level before [%];Level after [%];Liters [l];Price [zł/l];Cost [zł];Liters source;Filled to full;Station", english[6])
         assertEquals("Date;Category;Amount [zł];Note", english[7])
     }
 
