@@ -47,6 +47,7 @@ class MainActivity : ComponentActivity() {
                 container.defaultPriceController,
                 container.refuelPromptController,
                 container.backupController,
+                container.autoBackup,
                 container.refuelLogController,
                 container.receiptRepository,
                 container.statsController,

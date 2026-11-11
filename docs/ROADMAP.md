@@ -1,6 +1,8 @@
 # Roadmap
 
 ## DONE
+- Automatyczna kopia archiwum do folderu (F60, SPEC §60, plan C42): folder wybierany raz, jedna kopia dziennie po udanej
+  synchronizacji, 10 ostatnich, bez nowych uprawnień; zrobione zamiast wstrzymanego importu z innych aplikacji
 - Zdjęcie paragonu przy tankowaniu lub wydatku (F59, SPEC §59, plan C40, wariant a): systemowy wybór zdjęcia bez uprawnień; JPEG do 1600 px bez metadanych w prywatnym katalogu; zdjęć nie ma w kopii, archiwum ani CSV; Room v9
 - Serie i rekordy przy celach eco (F58, SPEC §58, plan C39): w „Cel miesiąca” kolejne pełne miesiące z celem spalania i jazdy na prądzie, najdłuższa seria w nawiasie; od trzech pełnych miesięcy najniższe spalanie i najwyższy udział prądu; miesiąc poniżej 50 km pomijany; zmiana celu zaczyna serię od jego miesiąca
 - Stacja przy tankowaniu (F57, SPEC §57, plan C38): pole „Stacja” przy tankowaniu z podpowiedziami; w „Dzienniku tankowań” liczba tankowań, średnia cena i orientacyjne spalanie wg stacji od 3 interwałów; CSV i archiwum z polem stacji (Room v8, migracja 7→8)
@@ -53,7 +55,8 @@
   v0.2.7 (2026-11-10: budżet miesięczny i jego powiadomienie, krótkie trasy i zimny silnik, ślad CO₂ – F48–F51, SPEC §49–§51;
   czytelność statusu i podstron z przeglądu C32), v0.2.8 (2026-11-10: kalkulator kosztu trasy – F52, SPEC §52; kafelki z powrotem na dole statusu), v0.2.9 (2026-11-11: najlepsza godzina wyjazdu, podsumowanie okresu w powiadomieniu,
   utrata wartości auta w koszcie całkowitym – F53–F55, SPEC §53–§55), v0.2.10 (2026-11-11: opony i stacja przy tankowaniu –
-  F56–F57, SPEC §56–§57, baza Room 8), v0.2.11 (2026-11-11: serie i rekordy celów eco, zdjęcie paragonu – F58–F59, SPEC §58–§59, baza Room 9), v0.2.12 (2026-11-11: poprawki z przeglądu jakości C41)
+  F56–F57, SPEC §56–§57, baza Room 8), v0.2.11 (2026-11-11: serie i rekordy celów eco, zdjęcie paragonu – F58–F59, SPEC §58–§59, baza Room 9), v0.2.12 (2026-11-11: poprawki z przeglądu jakości C41),
+  v0.2.13 (2026-11-11: automatyczna kopia archiwum do folderu – F60, SPEC §60)
 - Wydatki poza paliwem (F37, §38, ADR-018), koszt całkowity auta (F38, §39, ADR-020), cele eco (F39, §40)
 - Jakość (C22): wspólna kopia listy tras po synchronizacji zamiast kilku pełnych odczytów (§10.1)
 - Historia serwisowa z Toyoty (`/v1/servicehistory/vehicle/summary`) jako kafelek „Historia serwisowa” (F44, SPEC §45,
@@ -99,7 +102,7 @@
 
 ## LATER (kolejność wg wartości / kosztu)
 - Przypomnienie o oponach wg temperatur (wariant B z C37, F56): „średnia dobowa poniżej 7 °C przez N kolejnych dni”. Warunek: źródło ciągłego dziennego szeregu temperatur (dziś cache F15 ma tylko dni z trasami), czyli zgoda na dzienne pobieranie z Open-Meteo albo inny czujnik; bez tego nie ma uczciwej reguły
-- Automatyczna kopia archiwum do wybranego folderu (rotacja), przypomnienia serwisowe (przebieg, przegląd, OC), ewidencja
+- Przypomnienia serwisowe (przebieg, przegląd, OC), ewidencja
   przebiegu (kilometrówka) – propozycje z 2026-11-08, niewybrane
 - Przeniesienie logiki domenowej z `app/ui` do `core/domain` z lustrem w Pythonie przy okazji zmian (C22 D9), podział
   największych plików (D10)

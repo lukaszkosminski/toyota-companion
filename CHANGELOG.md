@@ -1,13 +1,16 @@
 # Changelog
 
+## Unreleased
+
+## 0.2.13 (2026-11-11)
+- Automatyczna kopia archiwum do folderu (F60, SPEC §60, plan C42): w „Kopia i eksport” wybierasz raz folder, a aplikacja po pierwszej udanej synchronizacji dnia zapisuje tam kopię archiwum (`toyota-companion-RRRR-MM-DD.json`, ten sam plik co ręczny eksport) i trzyma 10 ostatnich; kasuje tylko własne starsze kopie, inne pliki w folderze zostają; kopia liczy się dla przypomnienia o kopii; bez nowych uprawnień i bez sieci; plik nie jest szyfrowany i zawiera trasy z położeniem oraz VIN
+
 ## 0.2.12 (2026-11-11)
 - Okna „Cele eco”, „Budżet miesiąca” i „Spalanie deklarowane” przewijają się z otwartą klawiaturą, więc „Zapisz” jest zawsze osiągalny na małym ekranie
 - Korekta tankowania: dopóki zdjęcie paragonu się wczytuje, widać wskaźnik zamiast przycisku „Dodaj zdjęcie paragonu”, więc nie da się przypadkiem podmienić istniejącego zdjęcia
 - Formularz wydatku zamknięty w trakcie importu zdjęcia nie zostawia kopii bez wpisu (pliki-sieroty i tak sprząta start aplikacji)
 - Testy: reguła obrotu zdjęcia z EXIF (jednostkowo i na prawdziwym pliku), kontroler opon (7 przypadków: dodanie, odmowy, usunięcie ostatniej zmiany z zapomnieniem przypomnień, progi, błąd odczytu, wylogowanie), odnośnik zdjęcia w wierszu wydatku
 - Dokumentacja: nazwa stacji jest kolumną bazy, więc trafia do Auto Backup tak jak trasy i tankowania (SECURITY, SPEC §57); README podaje zakres F1–F59 i §1–§59; kolejność wierszy PRD
-
-## Unreleased
 
 ## 0.2.11 (2026-11-11)
 - Zdjęcie paragonu przy tankowaniu lub wydatku (F59, SPEC §59, plan C40, wariant a): systemowy wybór zdjęcia bez uprawnień i bez aparatu w aplikacji; zdjęcie skalowane do 1600 px i zapisane jako JPEG bez metadanych w prywatnym katalogu; ikona i podgląd w aplikacji; usunięcie wpisu kasuje zdjęcie; przy starcie sprzątanie osieroconych plików i odnośników; zdjęć nie ma w kopii Auto Backup, archiwum JSON ani CSV; baza Room v9 (migracja 8→9)

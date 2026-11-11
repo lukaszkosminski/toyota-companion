@@ -66,6 +66,10 @@ fun backupDate(at: Instant, zone: ZoneId): String {
         day.monthValue.toString().padStart(2, '0') + "." + day.year.toString()
 }
 
+/** A day for the screen, e.g. `31.10.2026`; no `Locale` (docs/SPEC.md §14.3). */
+fun backupDay(day: java.time.LocalDate): String =
+    day.dayOfMonth.toString().padStart(2, '0') + "." + day.monthValue.toString().padStart(2, '0') + "." + day.year.toString()
+
 /** Days after which the status screen asks for a new copy (PRD F8). */
 const val BACKUP_REMINDER_DAYS: Long = 30
 

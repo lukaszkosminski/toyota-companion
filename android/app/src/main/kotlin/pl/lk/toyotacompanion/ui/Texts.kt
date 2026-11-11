@@ -350,6 +350,30 @@ object Texts {
     /** Caption under the date of the last archive copy on the backup screen. */
     val BACKUP_LAST: String get() = Lang.pick("Ostatnia kopia", "Last backup")
 
+    // Automatyczna kopia do folderu (PRD F60, docs/SPEC.md §60).
+
+    val AUTO_COPY_TITLE: String get() = Lang.pick("Automatyczna kopia", "Automatic copy")
+    val AUTO_COPY_BODY: String get() = Lang.pick(
+        "Po pierwszej udanej synchronizacji dnia aplikacja zapisuje kopię archiwum w wybranym folderze i trzyma 10 ostatnich. " +
+            "Plik zawiera to samo co ręczny eksport, także trasy z położeniem i VIN.",
+        "After the first successful sync of a day the app saves an archive copy in the chosen folder and keeps the last 10. " +
+            "The file holds the same as a manual export, including trips with location and the VIN.",
+    )
+    val AUTO_COPY_CHOOSE: String get() = Lang.pick("Wybierz folder", "Choose a folder")
+    val AUTO_COPY_CHANGE: String get() = Lang.pick("Zmień folder", "Change the folder")
+    val AUTO_COPY_OFF: String get() = Lang.pick("Wyłącz", "Turn off")
+    val AUTO_COPY_NONE: String get() = Lang.pick("Wyłączona – nie wybrano folderu.", "Off – no folder chosen.")
+    val AUTO_COPY_FAILED: String get() = Lang.pick(
+        "Ostatnia automatyczna kopia się nie udała. Sprawdź, czy folder nadal istnieje, albo wybierz go ponownie.",
+        "The last automatic copy failed. Check that the folder still exists, or choose it again.",
+    )
+    val AUTO_COPY_WAITING: String get() = Lang.pick(
+        "Pierwsza kopia powstanie po następnej synchronizacji.",
+        "The first copy is made after the next sync.",
+    )
+    fun autoCopyFolder(name: String): String = Lang.pick("Folder: $name", "Folder: $name")
+    fun autoCopyLast(date: String): String = Lang.pick("Ostatnia automatyczna kopia: $date", "Last automatic copy: $date")
+
     val BACKUP_EXPORT: String get() = Lang.pick("Eksportuj archiwum", "Export archive")
     val BACKUP_IMPORT: String get() = Lang.pick("Importuj archiwum", "Import archive")
 

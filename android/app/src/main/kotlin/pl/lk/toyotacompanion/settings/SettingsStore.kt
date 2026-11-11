@@ -370,6 +370,35 @@ class SettingsStore(private val prefs: SharedPreferences) {
         return if (millis < 0) null else Instant.ofEpochMilli(millis)
     }
 
+    /**
+     * The folder of the automatic archive copy (PRD F60, docs/SPEC.md §60) as the text of the system picker's `Uri`; `null` when the
+     * copy is off or the stored value is not a text. A phone setting: it survives logging out.
+     */
+    fun autoBackupFolder(): String? = try {
+        prefs.getString(KEY_AUTO_BACKUP_FOLDER, null)?.takeIf { it.isNotBlank() }
+    } catch (e: ClassCastException) {
+        null
+    }
+
+    fun saveAutoBackupFolder(folder: String?) {
+        prefs.edit { if (folder == null) remove(KEY_AUTO_BACKUP_FOLDER) else putString(KEY_AUTO_BACKUP_FOLDER, folder) }
+    }
+
+    /** The day of the last automatic copy (PRD F60) as an epoch day; `null` when none or garbage. */
+    fun autoBackupLastDay(): java.time.LocalDate? {
+        val day = try {
+            prefs.getLong(KEY_AUTO_BACKUP_LAST, Long.MIN_VALUE)
+        } catch (e: ClassCastException) {
+            return null
+        }
+        // A sane range only: a garbage number must not become a date thousands of years away.
+        return if (day in 0..100_000) java.time.LocalDate.ofEpochDay(day) else null
+    }
+
+    fun saveAutoBackupLastDay(day: java.time.LocalDate?) {
+        prefs.edit { if (day == null) remove(KEY_AUTO_BACKUP_LAST) else putLong(KEY_AUTO_BACKUP_LAST, day.toEpochDay()) }
+    }
+
     /** Stores the moment of a successful archive export. */
     fun saveLastArchiveExport(at: Instant) {
         prefs.edit { putLong(KEY_LAST_ARCHIVE_EXPORT, at.toEpochMilli()) }
@@ -409,5 +438,7 @@ class SettingsStore(private val prefs: SharedPreferences) {
         const val KEY_NOTIFIED_REFUELS = "refuel_notified_ids"
         const val KEY_NOTIFICATIONS_ASKED = "notifications_asked"
         const val KEY_LAST_ARCHIVE_EXPORT = "last_archive_export"
+        const val KEY_AUTO_BACKUP_FOLDER = "auto_backup_folder"
+        const val KEY_AUTO_BACKUP_LAST = "auto_backup_last"
     }
 }

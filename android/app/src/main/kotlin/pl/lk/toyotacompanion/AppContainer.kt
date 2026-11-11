@@ -3,6 +3,7 @@ package pl.lk.toyotacompanion
 import android.app.backup.BackupManager
 import android.content.Context
 import android.os.Build
+import android.provider.DocumentsContract
 import android.util.Log
 import androidx.core.net.toUri
 import androidx.room3.Room
@@ -409,6 +410,8 @@ class AppContainer(
                 periodSummaryNotifier.onSyncOutcome(outcome)
                 // The tyre reminder, once per set and kind (PRD F56, docs/SPEC.md §56).
                 tyreReminderNotifier.onSyncOutcome(outcome)
+                // One archive copy a day into the owner's folder, when one is set (PRD F60, docs/SPEC.md §60).
+                autoBackup.runAfterSync()
                 // New trips get their weather without a tap (docs/SPEC.md §23).
                 weatherController.autoFetch()
             }
@@ -514,6 +517,82 @@ class AppContainer(
         )
     }
 
+    /** The whole archive as the backup file sees it: the expenses live in the app's own table and travel in the same file. */
+    private suspend fun archiveSnapshot(): pl.lk.toyotacompanion.core.data.ArchiveSnapshot =
+        syncEngine.exportArchive().copy(
+            expenses = database.expenseDao().all().map {
+                pl.lk.toyotacompanion.core.data.ArchiveExpense(it.id, it.dateEpochDay, it.category, it.amountPln, it.note)
+            },
+        )
+
+    /** The children of a picked folder as name to document `Uri`; the provider is asked, nothing is cached. */
+    private fun folderChildren(folder: String): Map<String, android.net.Uri> {
+        val tree = folder.toUri()
+        val parentId = DocumentsContract.getTreeDocumentId(tree)
+        val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, parentId)
+        val result = LinkedHashMap<String, android.net.Uri>()
+        context.contentResolver.query(
+            children,
+            arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME),
+            null,
+            null,
+            null,
+        )?.use { cursor ->
+            while (cursor.moveToNext()) {
+                val id = cursor.getString(0) ?: continue
+                val name = cursor.getString(1) ?: continue
+                result[name] = DocumentsContract.buildDocumentUriUsingTree(tree, id)
+            }
+        }
+        return result
+    }
+
+    /**
+     * The automatic archive copy into a folder the owner picked (PRD F60, docs/SPEC.md §60). The folder is the tree `Uri` of the system
+     * picker with a persisted grant; no storage permission, no network. A copy written here counts as a backup for the reminder of §14.3.
+     */
+    val autoBackup: pl.lk.toyotacompanion.ui.AutoBackup by lazy {
+        pl.lk.toyotacompanion.ui.AutoBackup(
+            readFolder = { settingsStore.autoBackupFolder() },
+            saveFolder = { settingsStore.saveAutoBackupFolder(it) },
+            readLastCopy = { settingsStore.autoBackupLastDay() },
+            saveLastCopy = { settingsStore.saveAutoBackupLastDay(it) },
+            folderName = { folder ->
+                try {
+                    val tree = folder.toUri()
+                    val self = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
+                    context.contentResolver.query(self, arrayOf(DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null)
+                        ?.use { if (it.moveToFirst()) it.getString(0) else null }
+                } catch (e: Exception) {
+                    // A folder that is gone or lost its grant has no name; the card then shows the failure of the copy.
+                    null
+                } ?: "?"
+            },
+            writeCopy = { folder, name, bytes ->
+                val tree = folder.toUri()
+                // The same day written again (a retry after a failure) replaces the file instead of adding "(1)".
+                val target = folderChildren(folder)[name]
+                    ?: DocumentsContract.createDocument(
+                        context.contentResolver,
+                        DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree)),
+                        "application/json",
+                        name,
+                    )
+                    ?: throw IOException("no document")
+                val out = context.contentResolver.openOutputStream(target, "wt") ?: throw IOException("no output stream")
+                out.use { it.write(bytes) }
+            },
+            listCopies = { folder -> folderChildren(folder).keys.toList() },
+            deleteCopy = { folder, name ->
+                folderChildren(folder)[name]?.let { DocumentsContract.deleteDocument(context.contentResolver, it) }
+            },
+            export = { pl.lk.toyotacompanion.core.data.encodeArchive(archiveSnapshot()) },
+            saveLastExport = { at -> settingsStore.saveLastArchiveExport(at) },
+            scope = uiScope,
+            io = Dispatchers.IO,
+        )
+    }
+
     /**
      * Backup of the whole archive (PRD F7, F8, docs/SPEC.md §14). The file is the
      * `Uri` of the system picker, opened through the `ContentResolver`; reading stops
@@ -522,14 +601,7 @@ class AppContainer(
      */
     val backupController: BackupController by lazy {
         BackupController(
-            // The expenses live in the app's own table, next to the archive; they travel in the same file.
-            export = {
-                syncEngine.exportArchive().copy(
-                    expenses = database.expenseDao().all().map {
-                        pl.lk.toyotacompanion.core.data.ArchiveExpense(it.id, it.dateEpochDay, it.category, it.amountPln, it.note)
-                    },
-                )
-            },
+            export = { archiveSnapshot() },
             import = { snapshot ->
                 val done = syncEngine.importArchive(snapshot)
                 // Added only when the id is new, like the other rows: an import never overwrites what the phone has.

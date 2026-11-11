@@ -2,7 +2,7 @@
 
 A private companion app for Android for a hybrid Toyota in Europe. It reads data from the MyToyota account through the unofficial API (the Toyota client is a Kotlin port of [pytoyoda](https://github.com/pytoyoda/pytoyoda) v6.0.0), archives trips indefinitely, calculates the fuel cost of every trip and shows consumption, statistics and weather. It was built for one owner of one car (PRD §3) and runs entirely on the phone, with no server of its own.
 
-The source of truth is the documents in [`docs/`](docs/), which are written in Polish: the [PRD](docs/PRD.md) (features F1–F59) and the [SPEC](docs/SPEC.md) (acceptance criteria). The description below is a short summary; where they differ, the docs win. The app itself is in Polish, with an English UI language available in "Opcje" (Options).
+The source of truth is the documents in [`docs/`](docs/), which are written in Polish: the [PRD](docs/PRD.md) (features F1–F60) and the [SPEC](docs/SPEC.md) (acceptance criteria). The description below is a short summary; where they differ, the docs win. The app itself is in Polish, with an English UI language available in "Opcje" (Options).
 
 ## Features
 
@@ -24,6 +24,7 @@ The source of truth is the documents in [`docs/`](docs/), which are written in P
 - Station per refuel (F57, SPEC §57): an optional station name at refuelling with suggestions of recent stations; the refuel log shows, per station, the number of refuels, the weighted average price and an indicative consumption from three intervals; the name goes to the CSV and the archive but never to logs, notifications or diagnostics.
 - Streaks and records of the eco goals (F58, SPEC §58): in the goal card, the number of consecutive full months with the consumption goal or the electric goal met, the best streak in brackets, and from three full months the lowest consumption and the highest electric share; a month under 50 km is skipped; computed from the local archive only.
 - Receipt photos (F59, SPEC §59): an optional photo of the receipt for a refuel correction or an expense, picked from the system photo picker without any permission; stored in the app's private folder at a reduced size and without metadata; never in the backup, the archive file or the CSV.
+- Automatic archive copy (F60, SPEC §60): pick a folder once and the app saves one dated archive copy a day after a successful sync, keeping the last 10; no storage permission, the file is the same as a manual export.
 - Period summary notification: off by default; one notification after each completed week or month with km, cost, litres per 100 km and the share on battery, and the comparison with the period before in the expanded view (F54, SPEC §54).
 - Best time to leave: for the most driven repeated routes, the median drive time and litres per 100 km by the hour of the start and the day (working days or weekend), in the driving style screen (F53, SPEC §53).
 - Trip cost calculator: kilometres and a kind of drive give a range of litres and zloty from your own trips of that kind, quartiles of the consumption, with the price of the last priced trip or the default price (F52, SPEC §52).
@@ -120,8 +121,8 @@ docs/           project documentation (in Polish)
 
 | Document | Contents |
 |---|---|
-| [docs/PRD.md](docs/PRD.md) | requirements and features F1–F59, out of scope |
-| [docs/SPEC.md](docs/SPEC.md) | specification and acceptance criteria (§1–§59) |
+| [docs/PRD.md](docs/PRD.md) | requirements and features F1–F60, out of scope |
+| [docs/SPEC.md](docs/SPEC.md) | specification and acceptance criteria (§1–§60) |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | components, rules and dependency failures |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | decisions (ADR-001 – ADR-020) |
 | [docs/SECURITY.md](docs/SECURITY.md) | protected data, flows to external services, encryption |

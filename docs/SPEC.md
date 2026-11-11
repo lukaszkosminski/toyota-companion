@@ -1426,3 +1426,29 @@ pliki), `receipts/ReceiptStore.kt` (odczyt, skalowanie, zapis JPEG, podgląd), `
 - **Prywatność:** paragon może mieć dane karty i NIP; zdjęcie zostaje w prywatnym katalogu aplikacji (docs/SECURITY.md).
 - **Obrót i podgląd (przegląd przed wydaniem):** obrót zapisany przez aparat tylko w EXIF jest nanoszony na piksele przed zapisem, bo metadane
   są usuwane; podgląd w formularzu ma najwyżej 160 dp wysokości, żeby przyciski pod nim były na ekranie, pełne zdjęcie pokazuje okno podglądu.
+
+## §60 Automatyczna kopia archiwum do folderu (PRD F60)
+Plan: `briefs/toyota-companion/C42-plan.md`. Logika: `ui/AutoBackupOps.kt` (`autoCopyName`, `autoCopyDate`, `shouldCopyToday`,
+`copiesToDelete`), kontroler `ui/AutoBackup.kt`, karta w `ui/BackupScreen.kt`, dostęp do folderu w `AppContainer`
+(`DocumentsContract`, bez dodatkowej biblioteki). Ustawienia: `auto_backup_folder` (tekst `Uri` drzewa) i `auto_backup_last`
+(dzień ostatniej kopii) w `SettingsStore`.
+- **Folder:** wybierany raz systemowym wybierakiem (`OpenDocumentTree`); aplikacja bierze trwałe uprawnienie odczytu i zapisu do tego
+  jednego folderu. Bez uprawnienia do pamięci w Manifeście. Folder bez trwałego uprawnienia nie jest zapisywany.
+- **Kiedy:** po udanej synchronizacji (`SyncOutcome.Ok`), gdy folder jest ustawiony i dzisiejszego dnia (strefa telefonu) nie było
+  jeszcze kopii. Jedna kopia dziennie, bez własnego alarmu. Kopia z datą w przyszłości (cofnięty zegar) nie blokuje dzisiejszej.
+- **Plik:** `toyota-companion-RRRR-MM-DD.json`, ta sama treść co ręczny eksport (§14), więc da się go zaimportować. Plik o tej
+  nazwie jest zastępowany (ponowna próba po błędzie nie tworzy „(1)”).
+- **Rotacja:** po zapisie zostaje 10 najnowszych plików o nazwie tego wzorca (data z nazwy); starsze są kasowane. Każdy inny plik
+  w folderze jest nietykalny. Błąd listowania albo kasowania nie jest błędem kopii.
+- **Wynik:** udana kopia zapisuje dzień i datę ostatniego eksportu (§14.3), więc przypomnienie o kopii przestaje napominać.
+  Nieudana nie zapisuje nic (następna synchronizacja spróbuje znowu), nie psuje synchronizacji i pokazuje na karcie jedno zdanie
+  bez treści wyjątku i bez ścieżki.
+- **Karta „Automatyczna kopia”:** bez folderu – „Wyłączona” i „Wybierz folder”; z folderem – nazwa folderu, dzień ostatniej kopii
+  albo „Pierwsza kopia powstanie po następnej synchronizacji”, „Zmień folder” i „Wyłącz”. Zmiana folderu zeruje dzień ostatniej kopii, więc nowy folder dostaje kopię przy najbliższej
+  synchronizacji, także tego samego dnia. Wyłączenie zapomina folder i dzień;
+  pliki w folderze zostają.
+- **Wylogowanie:** folder to ustawienie telefonu i zostaje; po wylogowaniu nie ma synchronizacji, więc nie ma też kopii.
+- **Prywatność:** kopia zawiera to samo co ręczny eksport (trasy z położeniem, VIN, tankowania, wydatki) i leży tam, gdzie wskazał
+  właściciel; jeśli folder synchronizuje inna aplikacja (np. chmura), to ona wysyła plik, nie ta aplikacja. `Uri` folderu nie
+  trafia do logów, diagnostyki ani komunikatów.
+- **Poza zakresem:** liczba kopii do wyboru, szyfrowanie, kopia o stałej godzinie, kopia zdjęć paragonów (§59).

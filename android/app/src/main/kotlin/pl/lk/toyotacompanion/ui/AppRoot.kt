@@ -42,6 +42,7 @@ fun AppRoot(
     defaultPrice: DefaultPriceController,
     prompt: RefuelPromptController,
     backup: BackupController,
+    autoBackup: AutoBackup,
     refuelLog: RefuelLogController,
     receipts: pl.lk.toyotacompanion.receipts.ReceiptRepository,
     stats: StatsController,
@@ -134,6 +135,7 @@ fun AppRoot(
             defaultPrice.reset()
             prompt.reset()
             backup.reset()
+            autoBackup.reset()
             refuelLog.reset()
             stats.reset()
             parking.reset()
@@ -401,6 +403,7 @@ fun AppRoot(
                     // Leaving refreshes the counters: an import may have added trips (docs/SPEC.md §14.2).
                     Screen.Backup -> BackupScreen(
                         controller = backup,
+                        autoBackup = autoBackup,
                         hasTrips = (current.status?.tripsStored ?: 0) > 0,
                         onBack = {
                             screen = Screen.Status

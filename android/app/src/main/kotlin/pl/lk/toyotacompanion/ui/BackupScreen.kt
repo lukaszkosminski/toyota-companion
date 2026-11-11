@@ -1,5 +1,6 @@
 package pl.lk.toyotacompanion.ui
 
+import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -29,6 +30,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import java.time.LocalDate
 import java.time.ZoneId
@@ -46,6 +48,7 @@ private val ARCHIVE_MIME_TYPES = arrayOf("application/json", "application/octet-
 @Composable
 fun BackupScreen(
     controller: BackupController,
+    autoBackup: AutoBackup,
     hasTrips: Boolean,
     onBack: () -> Unit,
     zone: ZoneId = ZoneId.systemDefault(),
@@ -53,6 +56,25 @@ fun BackupScreen(
     BackHandler(onBack = onBack)
     val state by controller.state.collectAsState()
     var warnsBeforeExport by rememberSaveable { mutableStateOf(false) }
+    // The automatic copy (PRD F60, docs/SPEC.md §60): its folder and last day are read when the screen opens.
+    val autoState by autoBackup.state.collectAsState()
+    LaunchedEffect(Unit) { autoBackup.load() }
+    val context = LocalContext.current
+    val pickFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) {
+            // Without the persisted grant the folder would be unreachable after the next start of the app.
+            val granted = try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                )
+                true
+            } catch (e: SecurityException) {
+                false
+            }
+            if (granted) autoBackup.chooseFolder(uri.toString())
+        }
+    }
 
     val createFile = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) {
         uri -> if (uri != null) controller.exportTo(uri.toString())
@@ -146,6 +168,30 @@ fun BackupScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     IconLabel(AppIcons.ReceiptLong, Texts.CSV_EXPORT_EXPENSES)
+                }
+            }
+
+            // The automatic copy into a folder of the owner's choice (PRD F60, docs/SPEC.md §60).
+            DashboardCard(Texts.AUTO_COPY_TITLE, AppIcons.History) {
+                Text(Texts.AUTO_COPY_BODY, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                val folder = autoState.folderName
+                if (folder == null) {
+                    Text(Texts.AUTO_COPY_NONE, style = MaterialTheme.typography.bodyMedium)
+                    OutlinedButton(onClick = { pickFolder.launch(null) }, modifier = Modifier.fillMaxWidth()) {
+                        IconLabel(AppIcons.Save, Texts.AUTO_COPY_CHOOSE)
+                    }
+                } else {
+                    Text(Texts.autoCopyFolder(folder), style = MaterialTheme.typography.bodyLarge)
+                    val last = autoState.lastCopy
+                    Text(
+                        if (last != null) Texts.autoCopyLast(backupDay(last)) else Texts.AUTO_COPY_WAITING,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    if (autoState.failed) Box { ErrorCard(Texts.AUTO_COPY_FAILED) }
+                    OutlinedButton(onClick = { pickFolder.launch(null) }, modifier = Modifier.fillMaxWidth()) {
+                        IconLabel(AppIcons.Save, Texts.AUTO_COPY_CHANGE)
+                    }
+                    TextButton(onClick = { autoBackup.disable() }) { Text(Texts.AUTO_COPY_OFF) }
                 }
             }
 

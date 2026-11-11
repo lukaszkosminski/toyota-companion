@@ -116,6 +116,27 @@ class SettingsStoreTest {
     }
 
     @Test
+    fun `the automatic copy folder and day round trip, and garbage reads as none`() {
+        assertNull(store.autoBackupFolder())
+        assertNull(store.autoBackupLastDay())
+        store.saveAutoBackupFolder("content://tree/home")
+        store.saveAutoBackupLastDay(java.time.LocalDate.parse("2026-11-11"))
+        assertEquals("content://tree/home", store.autoBackupFolder())
+        assertEquals(java.time.LocalDate.parse("2026-11-11"), store.autoBackupLastDay())
+
+        store.saveAutoBackupFolder(null)
+        store.saveAutoBackupLastDay(null)
+        assertNull(store.autoBackupFolder())
+        assertNull(store.autoBackupLastDay())
+
+        prefs.edit().putInt("auto_backup_folder", 7).putString("auto_backup_last", "yesterday").commit()
+        assertNull(store.autoBackupFolder(), "zly typ = brak folderu")
+        assertNull(store.autoBackupLastDay(), "zly typ = brak daty")
+        prefs.edit().remove("auto_backup_last").putLong("auto_backup_last", 9_999_999_999L).commit()
+        assertNull(store.autoBackupLastDay(), "liczba spoza zakresu = brak daty")
+    }
+
+    @Test
     fun `nothing_is_stored_before_the_first_save`() {
         assertNotNull(prefs.all)
         assertEquals(0, prefs.all.size, "pusty plik to brak ceny, nie blad")
