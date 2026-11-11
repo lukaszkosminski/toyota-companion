@@ -72,7 +72,7 @@ fun BackupScreen(
             } catch (e: SecurityException) {
                 false
             }
-            if (granted) autoBackup.chooseFolder(uri.toString())
+            if (granted) autoBackup.chooseFolder(uri.toString()) else autoBackup.folderRefused()
         }
     }
 
@@ -177,6 +177,7 @@ fun BackupScreen(
                 val folder = autoState.folderName
                 if (folder == null) {
                     Text(Texts.AUTO_COPY_NONE, style = MaterialTheme.typography.bodyMedium)
+                    if (autoState.failed) Box { ErrorCard(Texts.AUTO_COPY_REFUSED) }
                     OutlinedButton(onClick = { pickFolder.launch(null) }, modifier = Modifier.fillMaxWidth()) {
                         IconLabel(AppIcons.Save, Texts.AUTO_COPY_CHOOSE)
                     }

@@ -1439,7 +1439,12 @@ Plan: `briefs/toyota-companion/C42-plan.md`. Logika: `ui/AutoBackupOps.kt` (`aut
 - **Plik:** `toyota-companion-RRRR-MM-DD.json`, ta sama treść co ręczny eksport (§14), więc da się go zaimportować. Plik o tej
   nazwie jest zastępowany (ponowna próba po błędzie nie tworzy „(1)”).
 - **Rotacja:** po zapisie zostaje 10 najnowszych plików o nazwie tego wzorca (data z nazwy); starsze są kasowane. Każdy inny plik
-  w folderze jest nietykalny. Błąd listowania albo kasowania nie jest błędem kopii.
+  w folderze jest nietykalny, podfoldery nie są nigdy brane pod uwagę (nawet o nazwie wzorca). Kopia zapisana przed chwilą zostaje
+  zawsze i zajmuje jedno z dziesięciu miejsc – także wtedy, gdy w folderze leżą pliki z późniejszą datą (cofnięty zegar).
+  Błąd listowania albo kasowania nie jest błędem kopii.
+- **Dostawca folderu:** jeśli zapisze plik pod inną nazwą („… (1).json”), aplikacja próbuje przywrócić nazwę z datą; dostawca,
+  który tego nie pozwala, zostawia swoją nazwę i taki plik nie jest rotowany. Zmiana albo wyłączenie folderu oddaje trwałe
+  uprawnienie do poprzedniego. Gdy system nie da trwałego dostępu do wybranego folderu, karta mówi to wprost i nic nie zapisuje.
 - **Wynik:** udana kopia zapisuje dzień i datę ostatniego eksportu (§14.3), więc przypomnienie o kopii przestaje napominać.
   Nieudana nie zapisuje nic (następna synchronizacja spróbuje znowu), nie psuje synchronizacji i pokazuje na karcie jedno zdanie
   bez treści wyjątku i bez ścieżki.

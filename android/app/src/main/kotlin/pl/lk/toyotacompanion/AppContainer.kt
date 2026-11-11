@@ -525,7 +525,7 @@ class AppContainer(
             },
         )
 
-    /** The children of a picked folder as name to document `Uri`; the provider is asked, nothing is cached. */
+    /** The files (never the sub-folders) of a picked folder as name to document `Uri`; the provider is asked, nothing is cached. */
     private fun folderChildren(folder: String): Map<String, android.net.Uri> {
         val tree = folder.toUri()
         val parentId = DocumentsContract.getTreeDocumentId(tree)
@@ -533,7 +533,11 @@ class AppContainer(
         val result = LinkedHashMap<String, android.net.Uri>()
         context.contentResolver.query(
             children,
-            arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME),
+            arrayOf(
+                DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                DocumentsContract.Document.COLUMN_MIME_TYPE,
+            ),
             null,
             null,
             null,
@@ -541,6 +545,8 @@ class AppContainer(
             while (cursor.moveToNext()) {
                 val id = cursor.getString(0) ?: continue
                 val name = cursor.getString(1) ?: continue
+                // A folder that happens to carry a copy's name is not a copy: deleting it would take its contents along.
+                if (cursor.getString(2) == DocumentsContract.Document.MIME_TYPE_DIR) continue
                 result[name] = DocumentsContract.buildDocumentUriUsingTree(tree, id)
             }
         }
@@ -554,7 +560,21 @@ class AppContainer(
     val autoBackup: pl.lk.toyotacompanion.ui.AutoBackup by lazy {
         pl.lk.toyotacompanion.ui.AutoBackup(
             readFolder = { settingsStore.autoBackupFolder() },
-            saveFolder = { settingsStore.saveAutoBackupFolder(it) },
+            saveFolder = { next ->
+                // The grant of a folder that is no longer used is given back: Android keeps only a limited number of them.
+                val previous = settingsStore.autoBackupFolder()
+                if (previous != null && previous != next) {
+                    try {
+                        context.contentResolver.releasePersistableUriPermission(
+                            previous.toUri(),
+                            android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                        )
+                    } catch (e: SecurityException) {
+                        // It was already gone.
+                    }
+                }
+                settingsStore.saveAutoBackupFolder(next)
+            },
             readLastCopy = { settingsStore.autoBackupLastDay() },
             saveLastCopy = { settingsStore.saveAutoBackupLastDay(it) },
             folderName = { folder ->
@@ -581,6 +601,15 @@ class AppContainer(
                     ?: throw IOException("no document")
                 val out = context.contentResolver.openOutputStream(target, "wt") ?: throw IOException("no output stream")
                 out.use { it.write(bytes) }
+                // A provider may store the file under another name ("… (1).json", a doubled extension); the rotation knows only the
+                // dated name, so the file is given it back. A provider that refuses keeps its own name - the copy itself is written.
+                if (name !in folderChildren(folder)) {
+                    try {
+                        DocumentsContract.renameDocument(context.contentResolver, target, name)
+                    } catch (e: Exception) {
+                        // Not every provider can rename.
+                    }
+                }
             },
             listCopies = { folder -> folderChildren(folder).keys.toList() },
             deleteCopy = { folder, name ->

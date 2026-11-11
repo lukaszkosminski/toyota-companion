@@ -97,8 +97,14 @@ class AutoBackup(
                 // A new folder has no copy of today yet, whatever the old one had: the next sync writes one there.
                 saveLastCopy(null)
             }
+            ui.value = ui.value.copy(failed = false)
             load()
         }
+    }
+
+    /** The system did not give a lasting access to the picked folder: nothing is stored and the card says so. */
+    fun folderRefused() {
+        ui.value = ui.value.copy(failed = true)
     }
 
     /** Turns the automatic copy off: the folder is forgotten, its files stay. */
@@ -134,7 +140,7 @@ class AutoBackup(
                 // The copy is written and counted; tidying the folder afterwards is best effort and never a failed run.
                 try {
                     val existing = withContext(io) { listCopies(folder) }
-                    for (name in copiesToDelete(existing)) {
+                    for (name in copiesToDelete(existing, justWritten = autoCopyName(day))) {
                         try {
                             withContext(io) { deleteCopy(folder, name) }
                         } catch (e: CancellationException) {

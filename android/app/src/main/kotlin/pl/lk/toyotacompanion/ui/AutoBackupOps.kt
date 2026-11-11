@@ -32,11 +32,13 @@ fun shouldCopyToday(hasFolder: Boolean, lastCopy: LocalDate?, today: LocalDate):
  * The copies to delete from [existing] so that only the newest [keep] stay: names of this app, newest day first, the rest left out.
  * Anything that is not a copy of this app is never returned.
  */
-fun copiesToDelete(existing: List<String>, keep: Int = AUTO_COPY_KEEP): List<String> {
-    if (keep <= 0) return existing.filter { autoCopyDate(it) != null }
-    val ours = existing.mapNotNull { name -> autoCopyDate(name)?.let { it to name } }
+fun copiesToDelete(existing: List<String>, keep: Int = AUTO_COPY_KEEP, justWritten: String? = null): List<String> {
+    // The copy written a moment ago always stays and takes one of the places: with ten files dated in the future (a clock that was
+    // moved back) it would otherwise be the oldest one and be deleted right after it was written.
+    val ours = existing.filter { it != justWritten }.mapNotNull { name -> autoCopyDate(name)?.let { it to name } }
         .sortedByDescending { it.first }
-    return ours.drop(keep).map { it.second }
+    val places = (if (justWritten != null && justWritten in existing) keep - 1 else keep).coerceAtLeast(0)
+    return ours.drop(places).map { it.second }
 }
 
 /** `2026-11-11`, the day part of a copy name; no `Locale` (docs/SPEC.md §14.3). */

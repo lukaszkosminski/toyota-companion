@@ -56,7 +56,7 @@
   czytelność statusu i podstron z przeglądu C32), v0.2.8 (2026-11-10: kalkulator kosztu trasy – F52, SPEC §52; kafelki z powrotem na dole statusu), v0.2.9 (2026-11-11: najlepsza godzina wyjazdu, podsumowanie okresu w powiadomieniu,
   utrata wartości auta w koszcie całkowitym – F53–F55, SPEC §53–§55), v0.2.10 (2026-11-11: opony i stacja przy tankowaniu –
   F56–F57, SPEC §56–§57, baza Room 8), v0.2.11 (2026-11-11: serie i rekordy celów eco, zdjęcie paragonu – F58–F59, SPEC §58–§59, baza Room 9), v0.2.12 (2026-11-11: poprawki z przeglądu jakości C41),
-  v0.2.13 (2026-11-11: automatyczna kopia archiwum do folderu – F60, SPEC §60)
+  v0.2.13 i v0.2.14 (2026-11-11: automatyczna kopia archiwum do folderu – F60, SPEC §60, z poprawkami z przeglądu)
 - Wydatki poza paliwem (F37, §38, ADR-018), koszt całkowity auta (F38, §39, ADR-020), cele eco (F39, §40)
 - Jakość (C22): wspólna kopia listy tras po synchronizacji zamiast kilku pełnych odczytów (§10.1)
 - Historia serwisowa z Toyoty (`/v1/servicehistory/vehicle/summary`) jako kafelek „Historia serwisowa” (F44, SPEC §45,

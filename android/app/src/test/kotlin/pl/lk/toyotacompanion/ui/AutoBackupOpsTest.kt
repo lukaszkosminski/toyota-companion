@@ -61,4 +61,21 @@ class AutoBackupOpsTest {
         assertEquals(AUTO_COPY_KEEP, names.size)
         assertTrue(copiesToDelete(names).isEmpty())
     }
+
+    @Test
+    fun `the copy just written is never deleted, even among newer dated files`() {
+        // A clock moved back: ten copies dated after "today" already sit in the folder.
+        val future = (1..10).map { autoCopyName(LocalDate.parse("2026-12-%02d".format(it))) }
+        val today = autoCopyName(LocalDate.parse("2026-11-11"))
+        val toDelete = copiesToDelete(future + today, justWritten = today)
+        assertFalse(today in toDelete, "today's copy stays")
+        assertEquals(listOf("toyota-companion-2026-12-01.json"), toDelete, "the oldest of the others makes room")
+    }
+
+    @Test
+    fun `with nothing to keep only the copy just written stays`() {
+        val names = (1..3).map { autoCopyName(LocalDate.parse("2026-11-0$it")) }
+        assertEquals(names.sorted(), copiesToDelete(names, keep = 0).sorted())
+        assertEquals(names.take(2).sorted(), copiesToDelete(names, keep = 0, justWritten = names[2]).sorted())
+    }
 }

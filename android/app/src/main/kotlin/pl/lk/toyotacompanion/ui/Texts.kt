@@ -367,6 +367,10 @@ object Texts {
         "Ostatnia automatyczna kopia się nie udała. Sprawdź, czy folder nadal istnieje, albo wybierz go ponownie.",
         "The last automatic copy failed. Check that the folder still exists, or choose it again.",
     )
+    val AUTO_COPY_REFUSED: String get() = Lang.pick(
+        "System nie dał trwałego dostępu do tego folderu. Wybierz inny folder.",
+        "The system gave no lasting access to this folder. Choose another one.",
+    )
     val AUTO_COPY_WAITING: String get() = Lang.pick(
         "Pierwsza kopia powstanie po następnej synchronizacji.",
         "The first copy is made after the next sync.",

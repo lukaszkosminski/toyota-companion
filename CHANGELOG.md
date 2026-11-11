@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 0.2.14 (2026-11-11)
+- Automatyczna kopia (F60), poprawki z przeglądu agenta 3: kopia zapisana przed chwilą nigdy nie jest kasowana przez rotację (dotąd mogła, gdy w folderze leżało 10 plików z późniejszą datą); podfolder o nazwie kopii nie jest brany do rotacji; plik zapisany przez dostawcę pod inną nazwą dostaje z powrotem nazwę z datą, jeśli dostawca na to pozwala; zmiana albo wyłączenie folderu oddaje uprawnienie do poprzedniego; odmowa trwałego dostępu do folderu jest pokazana na karcie
+
 ## 0.2.13 (2026-11-11)
 - Automatyczna kopia archiwum do folderu (F60, SPEC §60, plan C42): w „Kopia i eksport” wybierasz raz folder, a aplikacja po pierwszej udanej synchronizacji dnia zapisuje tam kopię archiwum (`toyota-companion-RRRR-MM-DD.json`, ten sam plik co ręczny eksport) i trzyma 10 ostatnich; kasuje tylko własne starsze kopie, inne pliki w folderze zostają; kopia liczy się dla przypomnienia o kopii; bez nowych uprawnień i bez sieci; plik nie jest szyfrowany i zawiera trasy z położeniem oraz VIN
 
