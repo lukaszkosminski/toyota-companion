@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Opony (F56): można usunąć błędnie wpisaną ostatnią zmianę kompletu (po potwierdzeniu; zapomina wysłane dla niej przypomnienia); linia „trasy sprzed pierwszej zmiany” podaje liczbę tras z odmianą; literówka „komplektu” poprawiona na „kompletu”
+- Opony: dwa komplety, przebieg i przypomnienie (F56, SPEC §56, plan C37): w „Wydatkach” karta z datami zmian letniego i zimowego kompletu (opcjonalny przebieg z licznika), przebiegiem każdego kompletu z archiwum tras od daty zmiany i progami miesięcznymi oraz kilometrowymi (domyślnie puste); przypomnienie po synchronizacji raz na komplet i próg; ustawienia telefonu, bez bazy i bez eksportu JSON; wariant wg temperatur odłożony do LATER
 
 ## 0.2.9 (2026-11-11)
 - „Opcje” przewijają się: po dodaniu kart „Wartość auta” i „Podsumowanie okresu” ekran nie mieścił się już na jednej stronie

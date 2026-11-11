@@ -233,6 +233,42 @@ class SettingsStore(private val prefs: SharedPreferences) {
         prefs.edit { putString(KEY_PERIOD_SUMMARY_LAST, key) }
     }
 
+    /**
+     * The tyre fittings as text (PRD F56, docs/SPEC.md §56), parsed by the core; a value of the wrong type reads as none. A phone setting, so it is
+     * in Auto Backup like the budget and is not part of the archive export.
+     */
+    fun tyreChangesText(): String? = try {
+        prefs.getString(KEY_TYRE_CHANGES, null)
+    } catch (e: ClassCastException) {
+        null
+    }
+
+    fun saveTyreChangesText(text: String) {
+        prefs.edit { putString(KEY_TYRE_CHANGES, text) }
+    }
+
+    /** The reminder thresholds per set as text (PRD F56); the same rules as [tyreChangesText]. */
+    fun tyreThresholdsText(): String? = try {
+        prefs.getString(KEY_TYRE_THRESHOLDS, null)
+    } catch (e: ClassCastException) {
+        null
+    }
+
+    fun saveTyreThresholdsText(text: String) {
+        prefs.edit { putString(KEY_TYRE_THRESHOLDS, text) }
+    }
+
+    /** The tyre reminder keys already sent, as text (PRD F56, one per set, fitting day and kind). */
+    fun tyreReminderKeysText(): String? = try {
+        prefs.getString(KEY_TYRE_REMINDER_KEYS, null)
+    } catch (e: ClassCastException) {
+        null
+    }
+
+    fun saveTyreReminderKeysText(text: String) {
+        prefs.edit { putString(KEY_TYRE_REMINDER_KEYS, text) }
+    }
+
     /** Month (`YYYY-MM`) of the last "consumption keeps rising" notification (docs/SPEC.md §31). */
     fun lastConsumptionAlert(): String? = prefs.getString(KEY_ALERT, null)
 
@@ -325,6 +361,9 @@ class SettingsStore(private val prefs: SharedPreferences) {
         const val KEY_BUDGET_ALERT_LAST = "budget_alert_last"
         const val KEY_PERIOD_SUMMARY = "period_summary"
         const val KEY_PERIOD_SUMMARY_LAST = "period_summary_last"
+        const val KEY_TYRE_CHANGES = "tyre_changes"
+        const val KEY_TYRE_THRESHOLDS = "tyre_thresholds"
+        const val KEY_TYRE_REMINDER_KEYS = "tyre_reminder_keys"
         const val KEY_ALERT = "consumption_alert"
         const val KEY_NOTIFIED_REFUELS = "refuel_notified_ids"
         const val KEY_NOTIFICATIONS_ASKED = "notifications_asked"

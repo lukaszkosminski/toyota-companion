@@ -667,6 +667,73 @@ object Texts {
         Lang.pick("Wobec poprzedniego miesiąca: $parts", "Compared with the previous month: $parts")
     }
 
+    // Opony: dwa komplety, przebieg i przypomnienie (PRD F56, docs/SPEC.md §56).
+
+    val TYRE_TITLE: String get() = Lang.pick("Opony", "Tyres")
+    val TYRE_HINT: String get() = Lang.pick(
+        "Zapisz, kiedy założono letni albo zimowy komplet. Przebieg kompletu to trasy z archiwum od tej daty do następnej zmiany.",
+        "Record when the summer or winter set went on. A set's mileage is its trips in the archive from that day to the next change.",
+    )
+    val TYRE_EMPTY: String get() = Lang.pick("Dodaj datę założenia letniego albo zimowego kompletu.", "Add the day the summer or winter set went on.")
+    val TYRE_CHANGE_BUTTON: String get() = Lang.pick("Zmiana kompletu", "Tyre change")
+    val TYRE_REMOVE_BUTTON: String get() = Lang.pick("Usuń ostatnią zmianę", "Remove the last change")
+    val TYRE_REMOVE_TITLE: String get() = Lang.pick("Usunąć zmianę?", "Remove the change?")
+    val TYRE_REMOVE_CONFIRM: String get() = Lang.pick("Usuń", "Remove")
+
+    /** The confirmation of a removal: which fitting, and that its sent reminders are forgotten. */
+    fun tyreRemoveBody(set: String, day: String): String = Lang.pick(
+        "Usunąć zmianę: $set z $day? Wysłane dla niej przypomnienia zostaną zapomniane.",
+        "Remove the change: $set from $day? Reminders already sent for it will be forgotten.",
+    )
+
+    val TYRE_FIRST_BUTTON: String get() = Lang.pick("Dodaj pierwszą zmianę", "Add the first change")
+    val TYRE_THRESHOLDS_BUTTON: String get() = Lang.pick("Progi przypomnienia", "Reminder thresholds")
+    val TYRE_ON_NOW_TITLE: String get() = Lang.pick("Na aucie teraz", "On the car now")
+    val TYRE_HISTORY_TITLE: String get() = Lang.pick("Zmiany", "Changes")
+    val TYRE_CHANGE_TITLE: String get() = Lang.pick("Zmiana kompletu", "Tyre change")
+    val TYRE_ODOMETER_FIELD: String get() = Lang.pick("Przebieg z licznika (opcjonalnie)", "Odometer (optional)")
+    val TYRE_THRESHOLDS_TITLE: String get() = Lang.pick("Progi przypomnienia", "Reminder thresholds")
+    val TYRE_THRESHOLDS_HINT: String get() = Lang.pick(
+        "Puste pole = bez przypomnienia. Liczy się od założenia: pełne miesiące albo kilometry tras z archiwum.",
+        "An empty field means no reminder. Counted from the fitting: full months or kilometres of the archive's trips.",
+    )
+    val TYRE_MONTHS_FIELD: String get() = Lang.pick("Miesiące", "Months")
+    val TYRE_KM_FIELD: String get() = Lang.pick("Kilometry", "Kilometres")
+    val TYRE_ERR_ODOMETER: String get() = Lang.pick("Przebieg musi być liczbą całkowitą.", "The odometer must be a whole number.")
+    val TYRE_ERR_FUTURE: String get() = Lang.pick("Data zmiany nie może być w przyszłości.", "The day cannot be in the future.")
+    val TYRE_ERR_DUPLICATE: String get() = Lang.pick("Jest już zmiana tego dnia.", "There is already a change on that day.")
+    val TYRE_ERR_BEFORE_LAST: String get() = Lang.pick("Data jest przed ostatnią zmianą.", "The day is before the last change.")
+    val TYRE_ERR_THRESHOLD: String get() = Lang.pick("Progi: wpisz liczby całkowite, np. 6 albo 15000.", "Thresholds: enter whole numbers, e.g. 6 or 15000.")
+    val TYRE_REMINDER_CHANNEL: String get() = Lang.pick("Opony", "Tyres")
+    val TYRE_REMINDER_TITLE: String get() = Lang.pick("Opony: czas na zmianę kompletu", "Tyres: time to change the set")
+
+    fun tyreSetName(set: pl.lk.toyotacompanion.core.domain.TyreSet): String = when (set) {
+        pl.lk.toyotacompanion.core.domain.TyreSet.SUMMER -> Lang.pick("Letni", "Summer")
+        pl.lk.toyotacompanion.core.domain.TyreSet.WINTER -> Lang.pick("Zimowy", "Winter")
+    }
+
+    /** `3 miesiące` etc.: the count is grouped and the noun declined. */
+    fun tyreMonths(count: Int): String = Lang.pick(
+        "${TripsFormatting.count(count)} ${plPlural(count.toLong(), "miesiąc", "miesiące", "miesięcy")}",
+        "${TripsFormatting.count(count)} ${enPlural(count.toLong(), "month", "months")}",
+    )
+
+    /** `Przed pierwszą zmianą (bez kompletu): 592 trasy · 4 887 km`: the count is declined by the number, the km come formatted. */
+    fun tyreBeforeFirst(trips: Int, km: String): String = Lang.pick(
+        "Przed pierwszą zmianą (bez kompletu): ${TripsFormatting.count(trips)} ${plPlural(trips.toLong(), "trasa", "trasy", "tras")} · $km km",
+        "Before the first change (no set): ${TripsFormatting.count(trips)} ${enPlural(trips.toLong(), "trip", "trips")} · $km km",
+    )
+
+    fun tyreReminderMonths(set: String, months: String): String = Lang.pick(
+        "$set: $months od założenia",
+        "$set: $months since fitting",
+    )
+
+    fun tyreReminderKm(set: String, km: String): String = Lang.pick(
+        "$set: $km od założenia",
+        "$set: $km since fitting",
+    )
+
     // Najlepsza godzina wyjazdu (PRD F53, docs/SPEC.md §53).
 
     val BEST_TIME_TITLE: String get() = Lang.pick("Najlepsza godzina wyjazdu", "Best time to leave")

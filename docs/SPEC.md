@@ -1332,3 +1332,27 @@ Plan: `briefs/toyota-companion/C36-plan.md`. Domena: `core/domain/ValueLossOps.k
 - **Poza zakresem:** wycena z internetu, krzywa degresywna, wiele aut na VIN, koszt energii, zmiany Room i Gradle.
 - **Prywatność:** cena i wartość auta to dane właściciela, nie sekret; tylko w pliku `settings`, bez archiwum, CSV i logów; bez sieci i budzenia auta;
   karta nie pokazuje VIN.
+
+## §56 Opony: dwa komplety, przebieg i przypomnienie (PRD F56)
+Plan: `briefs/toyota-companion/C37-plan.md`. Domena: `core/domain/TyreOps.kt` (`parseTyreChanges`, `formatTyreChanges`, `parseTyreThresholds`,
+`tyreUsage`, `dueTyreReminders`, `tyreReminderKey`, `checkTyreChange`) z lustrem `backend/app/domain/tyres.py` (te same nazwy testów). Ekran: karta „Opony”
+na górze „Wydatków” (`ui/TyreCard.kt`, `ui/TyreController.kt`, `ui/TyreFormatting.kt`), bez kafelka. Powiadomienie: `notify/TyreReminderNotifier.kt`.
+Dane: trzy klucze tekstowe w `SettingsStore` (`tyre_changes`, `tyre_thresholds`, `tyre_reminder_keys`); bez Room, bez wpisu do eksportu JSON
+(Auto Backup obejmuje je jak inne ustawienia).
+- **Ekran:** karta „Opony” jest zawsze pierwszą pozycją jednej przewijanej listy „Wydatków” (także bez wydatków i bez zmian: wtedy zachęta i przycisk „Dodaj pierwszą zmianę”), pod pływającym przyciskiem zostaje odstęp.
+- **Zmiany:** `RRRR-MM-DD|S|przebieg` (S letni, W zimowy; przebieg opcjonalny). Wpis z błędną datą, literą albo przebiegiem jest pominięty;
+  drugi wpis tego samego dnia odrzucony; odczyt posortowany od najstarszego. Śmieci w ustawieniu czytają się jako brak zmian.
+- **Usuwanie:** „Usuń ostatnią zmianę” (widoczne, gdy są zmiany) kasuje najnowszą zmianę po potwierdzeniu i zapomina wysłane przypomnienia tylko tej zmiany (klucze z jej datą i literą), więc ponowne dodanie tej samej zmiany może przypomnieć ponownie.
+- **Przed pierwszą zmianą:** trasy sprzed pierwszej zmiany są podane jako „592 trasy · 4 887 km” (odmiana liczby tras), bez przypisania do kompletu.
+- **Walidacja formularza:** data nie w przyszłości, nie ta sama co inna zmiana, nie przed ostatnią zmianą; przebieg pusty albo liczba całkowita.
+  Data wybierana kalendarzem jak w wydatkach.
+- **Przypisanie tras:** trasa należy do kompletu wg **lokalnej daty startu** w strefie telefonu, od dnia zmiany do dnia następnej zmiany
+  (komplet na aucie teraz trwa do dziś). Trasy przed pierwszą zmianą nie należą do żadnego kompletu i są liczone osobno. Trasy bez dodatniego dystansu są pomijane.
+- **Progi:** per komplet, puste = brak przypomnienia tego rodzaju. Miesiące to pełne miesiące od dnia założenia; kilometry to przebieg tras
+  z archiwum od dnia założenia (suma zaokrąglona do 0,1 km). Przypomnienie dotyczy tylko kompletu **na aucie teraz** (nie zdjętego).
+- **Przypomnienie:** po udanej synchronizacji, między 8:00 a 22:00 czasu telefonu (`SUMMARY_FROM_HOUR`/`SUMMARY_UNTIL_HOUR`); klucz
+  `LETNI:RRRR-MM-DD:MONTHS|KM` (`SUMMER:2026-04-15:MONTHS`) zapisywany po udanym `post`, raz na komplet, dzień założenia i rodzaj progu.
+  Zmiana progu nie wysyła ponownie. Kanał „Opony” (`IMPORTANCE_LOW`, ID 903); wyciszony kanał nie zużywa klucza. Bez uprawnienia nic nie jest oznaczane.
+- **Wariant temperaturowy** („średnia dobowa poniżej 7 °C przez N dni”) **odłożony**: cache pogody F15 ma tylko dni z trasami (`ui/WeatherController.kt`),
+  więc ciągłego szeregu dziennego nie ma. Wpisany do ROADMAP LATER z warunkiem.
+- **Prywatność:** daty, przebiegi i liczby miesięcy; bez VIN, GPS i nazw miejsc; bez sieci i budzenia auta; bez nowego uprawnienia.

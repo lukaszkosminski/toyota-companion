@@ -56,6 +56,7 @@ fun AppRoot(
     ecoGoals: EcoGoalsController,
     budget: BudgetController,
     periodSummary: PeriodSummarySettings,
+    tyres: TyreController,
     carValuation: CarValuationController,
     backfill: RouteBackfillController,
     heat: RouteHeatController,
@@ -146,6 +147,7 @@ fun AppRoot(
             tripRoute.close()
             yearSummary.reset()
             expenses.reset()
+            tyres.reset()
             exactMap = null
             vehicleStatus.reset()
             location.reset()
@@ -311,6 +313,7 @@ fun AppRoot(
                         onBack = { screen = Screen.Status },
                     )
                     Screen.Expenses -> ExpensesScreen(
+                        tyres = tyres,
                         controller = expenses,
                         fuelTotal = consumptionState?.totalCost,
                         fuelByMonth = consumptionState?.monthCosts.orEmpty()

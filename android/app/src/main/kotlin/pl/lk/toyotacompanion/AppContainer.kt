@@ -378,6 +378,8 @@ class AppContainer(
                 budgetAlertNotifier.onSyncOutcome(outcome)
                 // The last completed week or month, once (PRD F54, docs/SPEC.md §54).
                 periodSummaryNotifier.onSyncOutcome(outcome)
+                // The tyre reminder, once per set and kind (PRD F56, docs/SPEC.md §56).
+                tyreReminderNotifier.onSyncOutcome(outcome)
                 // New trips get their weather without a tap (docs/SPEC.md §23).
                 weatherController.autoFetch()
             }
@@ -614,6 +616,33 @@ class AppContainer(
             period = { settingsStore.periodSummaryKind() },
             lastKey = { settingsStore.lastPeriodSummary() },
             markSent = { settingsStore.saveLastPeriodSummary(it) },
+        )
+    }
+
+    /** The tyre reminder (PRD F56, docs/SPEC.md §56): the thresholds and the keys are settings; the archive is read on IO. */
+    private val tyreReminderNotifier: pl.lk.toyotacompanion.notify.TyreReminderNotifier by lazy {
+        pl.lk.toyotacompanion.notify.TyreReminderNotifier(
+            context = context,
+            readTrips = tripsLoader,
+            readChangesText = { settingsStore.tyreChangesText() },
+            readThresholdsText = { settingsStore.tyreThresholdsText() },
+            readKeysText = { settingsStore.tyreReminderKeysText() },
+            saveKeysText = { settingsStore.saveTyreReminderKeysText(it) },
+        )
+    }
+
+    /** The tyre card of "Wydatki" (PRD F56): fittings, mileage and thresholds, all on the phone. */
+    val tyreController: pl.lk.toyotacompanion.ui.TyreController by lazy {
+        pl.lk.toyotacompanion.ui.TyreController(
+            readTrips = tripsLoader,
+            readChangesText = { settingsStore.tyreChangesText() },
+            saveChangesText = { settingsStore.saveTyreChangesText(it) },
+            readThresholdsText = { settingsStore.tyreThresholdsText() },
+            saveThresholdsText = { settingsStore.saveTyreThresholdsText(it) },
+            readKeysText = { settingsStore.tyreReminderKeysText() },
+            saveKeysText = { settingsStore.saveTyreReminderKeysText(it) },
+            scope = uiScope,
+            io = Dispatchers.IO,
         )
     }
 

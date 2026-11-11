@@ -231,4 +231,15 @@ class SettingsStoreTest {
         store.savePeriodSummaryKind(null)
         assertNull(store.periodSummaryKind())
     }
+
+    @Test
+    fun `the_tyre_texts_round_trip_and_start_empty`() {
+        assertNull(store.tyreChangesText())
+        store.saveTyreChangesText("2026-04-15|S|1234")
+        assertEquals("2026-04-15|S|1234", store.tyreChangesText())
+        store.saveTyreThresholdsText("S:6:15000;W::")
+        assertEquals("S:6:15000;W::", store.tyreThresholdsText())
+        store.saveTyreReminderKeysText("SUMMER:2026-04-15:MONTHS")
+        assertEquals("SUMMER:2026-04-15:MONTHS", store.tyreReminderKeysText())
+    }
 }

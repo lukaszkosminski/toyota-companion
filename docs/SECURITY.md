@@ -10,6 +10,7 @@
 ## Zasady
 - Sekrety nigdy w repo, logach ani w aplikacji Android. `.env`, `credentials.json`, `*.db` w `.gitignore`.
 - Logi nie zawierają haseł, tokenów, VIN ani współrzędnych GPS.
+- Opony (F56, SPEC §56): daty zmian kompletów, przebiegi i progi są w `settings` (Auto Backup), nie w bazie ani w eksporcie JSON; przypomnienie bez VIN, GPS i sieci.
 - Podsumowanie okresu (F54, SPEC §54) to lokalne liczby z archiwum i wydatków: treść bez VIN, GPS i nazw miejsc; wybór okresu i ostatni wysłany klucz są w `settings` (Auto Backup), bez sieci.
 - Komunikaty błędów i raport diagnostyki przechodzą `ToyotaSecrets.sanitize`: zasłania wartości kluczy kończących się na `password`, `secret`, `token`, `token_id`, `code`, `authorization`, `vin` (więc także `access_token`, `refreshToken`, `client_secret`, z `Bearer`/`Basic`); woli zasłonić za dużo (`errorcode=503`) niż pokazać sekret; zwykłe słowo „token” w zdaniu zostaje.
 - `android:allowBackup="true"` z listą dozwolonych plików (ADR-015): Auto Backup kopiuje na Dysk Google właściciela tylko bazę archiwum i `settings`; plik `secrets` (login, tokeny) jest wykluczony. Ręczny eksport (F7) zostaje.

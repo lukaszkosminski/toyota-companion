@@ -1,6 +1,7 @@
 # Roadmap
 
 ## DONE
+- Opony: dwa komplety, przebieg i przypomnienie (F56, SPEC §56, plan C37): ręcznie wpisane zmiany letni/zimowy z datą i opcjonalnym przebiegiem, przebieg kompletu z archiwum (trasy od daty zmiany do następnej), progi miesięczne i kilometrowe (puste = brak), przypomnienie po synchronizacji raz na komplet i próg; karta w „Wydatkach”; ustawienia telefonu, bez Room i bez JSON
 - Podsumowanie okresu w powiadomieniu (F54, SPEC §54, plan C35): raz po zakończonym tygodniu (pon.–nd.) albo miesiącu, pierwsza synchronizacja po jego końcu, między 8:00 a 22:00; km, koszt (paliwo i wydatki), l/100 km, udział prądu i porównanie z poprzednim okresem w rozwinięciu; domyślnie wyłączone; tylko lokalne archiwum
 - Utrata wartości auta w koszcie całkowitym (F55, SPEC §55, plan C36): cena zakupu, data zakupu, szacowana wartość i data wyceny w „Opcjach” (ustawienie telefonu, bez VIN); strata liniowo w dniach od zakupu do wyceny, po dacie wyceny nie rośnie, wartość ≥ cena = 0 zł; osobne wiersze „Utrata wartości (szacunek)” i „Z utratą wartości” w „Podsumowaniu roku”, podpowiedź przy wycenie starszej niż 12 miesięcy; tylko lokalne dane, bez sieci
 - Najlepsza godzina wyjazdu (F53, SPEC §53, plan C34): w „Stylu jazdy” pod „Ten sam odcinek” do 5 najczęstszych odcinków z ≥ 5 przejazdami; mediana czasu przejazdu i l/100 km (Σ litrów / Σ km) wg pasma godziny startu (5–7 … 18–21, noc 21–5) i dnia (robocze, weekend); komórka od 3 przejazdów, wniosek od 2 komórek; czas lokalny strefy listy; tylko lokalne archiwum
@@ -90,12 +91,12 @@
   6. Stacja przy tankowaniu: marka lub nazwa, średnia cena i faktyczne spalanie wg stacji
   7. Import historii tankowań i wydatków z CSV innych aplikacji (Fuelio, Drivvo)
   8. Zdjęcie paragonu przy tankowaniu lub wydatku (bez OCR; do decyzji, czy zdjęcia wchodzą do kopii archiwum)
-  10. Opony: dwa komplety, przebieg każdego z tras między wymianami, przypomnienie o wymianie wg temperatury (F15)
   11. Odznaki i serie przy celach eco (F39) – najpierw sprawdzić, co już jest w SPEC
 - Pozostałe drobne z przeglądu C22: D3–D7, D12 i D13 zrobione (commit a982de8); D2, D8, D11, D14 do potwierdzenia
   w kodzie; D9 i D10 są w LATER
 
 ## LATER (kolejność wg wartości / kosztu)
+- Przypomnienie o oponach wg temperatur (wariant B z C37, F56): „średnia dobowa poniżej 7 °C przez N kolejnych dni”. Warunek: źródło ciągłego dziennego szeregu temperatur (dziś cache F15 ma tylko dni z trasami), czyli zgoda na dzienne pobieranie z Open-Meteo albo inny czujnik; bez tego nie ma uczciwej reguły
 - Automatyczna kopia archiwum do wybranego folderu (rotacja), przypomnienia serwisowe (przebieg, przegląd, OC), ewidencja
   przebiegu (kilometrówka) – propozycje z 2026-11-08, niewybrane
 - Przeniesienie logiki domenowej z `app/ui` do `core/domain` z lustrem w Pythonie przy okazji zmian (C22 D9), podział
