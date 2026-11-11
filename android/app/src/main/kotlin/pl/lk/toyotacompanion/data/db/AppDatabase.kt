@@ -22,9 +22,9 @@ import androidx.room3.ColumnTypeConverters
         TripRouteEntity::class,
         ExpenseEntity::class,
     ],
-    version = 8,
+    version = 9,
     // 1 -> 2 adds the `weather` table (§23), 2 -> 3 the `trip_routes` table (§27), 3 -> 4 the `weather_code` column, 4 -> 5 the `expenses` table, 5 -> 6 the overspeed and motorway columns of `trips` (docs/SPEC.md §41), 6 -> 7 the per-step diagnostic timestamps and the HTTP status of `sync_state` (docs/SPEC.md §47), 7 -> 8 the optional `station` of `refuels` (docs/SPEC.md §57); the other archive tables are untouched.
-    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3), AutoMigration(from = 3, to = 4), AutoMigration(from = 4, to = 5), AutoMigration(from = 5, to = 6), AutoMigration(from = 6, to = 7), AutoMigration(from = 7, to = 8)],
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3), AutoMigration(from = 3, to = 4), AutoMigration(from = 4, to = 5), AutoMigration(from = 5, to = 6), AutoMigration(from = 6, to = 7), AutoMigration(from = 7, to = 8), AutoMigration(from = 8, to = 9)],
     exportSchema = true,
 )
 @ColumnTypeConverters(Converters::class)

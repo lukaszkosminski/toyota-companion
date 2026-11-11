@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -39,7 +41,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import java.time.ZoneId
+import pl.lk.toyotacompanion.receipts.ReceiptException
+import pl.lk.toyotacompanion.receipts.ReceiptOwner
+import pl.lk.toyotacompanion.receipts.ReceiptRepository
+import pl.lk.toyotacompanion.receipts.receiptKey
 import pl.lk.toyotacompanion.core.domain.EconomyInterval
 import pl.lk.toyotacompanion.core.domain.EconomyStatus
 import pl.lk.toyotacompanion.core.domain.Refuel
@@ -59,10 +74,15 @@ import pl.lk.toyotacompanion.core.domain.stationSummaries
 fun RefuelLogScreen(
     controller: RefuelLogController,
     onBack: () -> Unit,
+    receipts: ReceiptRepository,
     zone: ZoneId = ZoneId.systemDefault(),
 ) {
     BackHandler(onBack = onBack)
     val state by controller.state.collectAsState()
+    // The receipt photos (PRD F59): which entries have one, and the one shown in the window.
+    val receiptIds by receipts.attached.collectAsState()
+    LaunchedEffect(Unit) { receipts.refresh() }
+    var viewingRefuel by rememberSaveable { mutableStateOf<String?>(null) }
     // Which confirmed refuel the correction dialog edits; an id is not a secret.
     var amendingId by rememberSaveable { mutableStateOf<String?>(null) }
     // The navigation callback reads the log; this only covers a screen restored after a process death.
@@ -144,6 +164,8 @@ fun RefuelLogScreen(
                                 refuel = refuel,
                                 zone = zone,
                                 busy = state.busyId != null,
+                                hasPhoto = receiptKey(ReceiptOwner.REFUEL, refuel.id) in receiptIds,
+                                onShowPhoto = { viewingRefuel = refuel.id },
                                 onAmend = {
                                     controller.amendDismissed()
                                     amendingId = refuel.id
@@ -160,6 +182,7 @@ fun RefuelLogScreen(
     if (amending != null) {
         AmendDialog(
             refuel = amending,
+            receipts = receipts,
             busy = state.busyId == amending.id,
             error = state.amendError,
             stationSuggestions = stationSuggestions(state.log.refuels),
@@ -171,6 +194,9 @@ fun RefuelLogScreen(
                 amendingId = null
             },
         )
+    }
+    viewingRefuel?.let { id ->
+        ReceiptViewerDialog(ReceiptOwner.REFUEL, id, receipts) { viewingRefuel = null }
     }
     // The write went through: the dialog closes, the fresh log shows the correction.
     LaunchedEffect(state.amendedId) {
@@ -189,6 +215,7 @@ fun RefuelLogScreen(
 @Composable
 private fun AmendDialog(
     refuel: Refuel,
+    receipts: ReceiptRepository,
     busy: Boolean,
     error: String?,
     stationSuggestions: List<String>,
@@ -201,11 +228,31 @@ private fun AmendDialog(
     // Prefilled with the stored name; empty means "clear it" (PRD F57).
     var stationText by rememberSaveable(refuel.id) { mutableStateOf(refuel.station ?: "") }
     val litersGiven = parseRefuelAmount(litersText) is RefuelAmount.Given
+    // The photo is linked at once, not by Save: it is a separate write (PRD F59), so it can fail on its own.
+    val scope = rememberCoroutineScope()
+    var photoVersion by rememberSaveable(refuel.id) { mutableIntStateOf(0) }
+    val photo by produceState<String?>(null, refuel.id, photoVersion) { value = receipts.nameOf(ReceiptOwner.REFUEL, refuel.id) }
+    var photoError by rememberSaveable(refuel.id) { mutableStateOf(false) }
+    val pickPhoto = rememberReceiptPicker { uri ->
+        photoError = false
+        scope.launch {
+            try {
+                receipts.attach(ReceiptOwner.REFUEL, refuel.id, uri)
+                photoVersion++
+            } catch (e: ReceiptException) {
+                photoError = true
+            }
+        }
+    }
     AlertDialog(
         onDismissRequest = { if (!busy) onDismiss() },
         title = { Text(Texts.AMEND_TITLE) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Scrolls with the keyboard open, like the expense form: a small screen must reach every field.
+            Column(
+                modifier = Modifier.imePadding().verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 Text(Texts.AMEND_BODY, style = MaterialTheme.typography.bodyMedium)
                 OutlinedTextField(
                     value = litersText,
@@ -236,6 +283,24 @@ private fun AmendDialog(
                     Switch(checked = full, onCheckedChange = { full = it }, enabled = litersGiven && !busy)
                 }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+                val current = photo
+                if (current != null) {
+                    ReceiptImage(current, receipts, RECEIPT_AMEND_SIDE, Modifier.heightIn(max = 160.dp))
+                    TextButton(
+                        onClick = {
+                            scope.launch {
+                                receipts.remove(ReceiptOwner.REFUEL, refuel.id)
+                                photoVersion++
+                            }
+                        },
+                        enabled = !busy,
+                    ) { IconLabel(AppIcons.Delete, Texts.RECEIPT_REMOVE) }
+                } else {
+                    OutlinedButton(onClick = pickPhoto, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+                        IconLabel(AppIcons.Description, Texts.RECEIPT_ADD)
+                    }
+                }
+                if (photoError) Text(Texts.RECEIPT_IMPORT_ERROR, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
         },
         confirmButton = {
@@ -261,7 +326,14 @@ private fun Centered(innerPadding: PaddingValues, content: @Composable () -> Uni
 }
 
 @Composable
-private fun RefuelRow(refuel: Refuel, zone: ZoneId, busy: Boolean, onAmend: () -> Unit) {
+private fun RefuelRow(
+    refuel: Refuel,
+    zone: ZoneId,
+    busy: Boolean,
+    hasPhoto: Boolean,
+    onShowPhoto: () -> Unit,
+    onAmend: () -> Unit,
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -283,7 +355,12 @@ private fun RefuelRow(refuel: Refuel, zone: ZoneId, busy: Boolean, onAmend: () -
                 if (money.isNotEmpty()) IconText(AppIcons.Payments, money.joinToString(Texts.SEPARATOR), color = readable(Palette.Green))
                 // The owner's own name; it never goes to shared texts or notifications (PRD F57).
                 refuel.station?.let { IconText(AppIcons.LocationOn, it) }
-                TextButton(onClick = onAmend, enabled = !busy) { IconLabel(AppIcons.Edit, Texts.AMEND_BUTTON) }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = onAmend, enabled = !busy) { IconLabel(AppIcons.Edit, Texts.AMEND_BUTTON) }
+                    if (hasPhoto) {
+                        IconButton(onClick = onShowPhoto) { Icon(AppIcons.Description, contentDescription = Texts.RECEIPT_SHOW) }
+                    }
+                }
             }
         }
     }
@@ -353,3 +430,6 @@ private fun EconomyCard(interval: EconomyInterval, title: String?) {
 
 /** The level chart shows the newest readings only (one every 30 minutes would be thousands of points). */
 private const val LEVEL_CHART_MAX_POINTS = 400
+
+/** The side of the receipt thumbnail in the correction dialog, in pixels. */
+private const val RECEIPT_AMEND_SIDE = 480

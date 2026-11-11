@@ -24,7 +24,7 @@ import pl.lk.toyotacompanion.core.domain.LitersSource
 import pl.lk.toyotacompanion.core.domain.RefuelStatus
 
 private const val SCHEMA_DIR = "schemas/pl.lk.toyotacompanion.data.db.AppDatabase"
-private const val CURRENT_VERSION = 8
+private const val CURRENT_VERSION = 9
 
 /**
  * The archive cannot be fetched from Toyota again once it is older than ~12 months, so every committed schema
@@ -147,6 +147,22 @@ class AppDatabaseMigrationTest {
         db.refuelDao().updateKeepingVin(refuel.copy(station = "Orlen Gdańsk"))
         assertEquals("Orlen Gdańsk", assertNotNull(db.refuelDao().byId("r1")).station)
         assertEquals("VIN1", assertNotNull(db.refuelDao().byId("r1")).vin)
+    }
+
+    @Test
+    fun `version 8 gets the receipt links empty and keeps them out of the correction`() = runTest {
+        val db = migrate(8)
+        assertArchiveKept(db, 8)
+        val refuel = assertNotNull(db.refuelDao().byId("r1"))
+        assertNull(refuel.receiptFile)
+        assertNull(db.expenseDao().all().single().receiptFile)
+
+        assertEquals(1, db.refuelDao().setReceipt("r1", "2b1e6c3a-1111-4222-8333-944455556666.jpg"))
+        assertEquals("2b1e6c3a-1111-4222-8333-944455556666.jpg", db.refuelDao().receiptOf("r1"))
+        // A correction writes the whole row from the domain, which has no photo: the link must survive it.
+        db.refuelDao().updateKeepingVin(refuel.copy(station = "Orlen", receiptFile = null))
+        assertEquals("2b1e6c3a-1111-4222-8333-944455556666.jpg", db.refuelDao().receiptOf("r1"))
+        assertEquals("Orlen", assertNotNull(db.refuelDao().byId("r1")).station)
     }
 
     @Test

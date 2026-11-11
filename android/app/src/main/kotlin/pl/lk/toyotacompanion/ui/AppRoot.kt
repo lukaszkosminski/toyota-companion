@@ -43,6 +43,7 @@ fun AppRoot(
     prompt: RefuelPromptController,
     backup: BackupController,
     refuelLog: RefuelLogController,
+    receipts: pl.lk.toyotacompanion.receipts.ReceiptRepository,
     stats: StatsController,
     parking: ParkingController,
     drivingStyle: DrivingStyleController,
@@ -316,6 +317,7 @@ fun AppRoot(
                         onBack = { screen = Screen.Status },
                     )
                     Screen.Expenses -> ExpensesScreen(
+                        receipts = receipts,
                         tyres = tyres,
                         controller = expenses,
                         fuelTotal = consumptionState?.totalCost,
@@ -392,6 +394,7 @@ fun AppRoot(
 
                     Screen.RefuelLog -> RefuelLogScreen(
                         controller = refuelLog,
+                        receipts = receipts,
                         onBack = { screen = Screen.Status },
                     )
 

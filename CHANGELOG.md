@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+
+## 0.2.11 (2026-11-11)
+- Zdjęcie paragonu przy tankowaniu lub wydatku (F59, SPEC §59, plan C40, wariant a): systemowy wybór zdjęcia bez uprawnień i bez aparatu w aplikacji; zdjęcie skalowane do 1600 px i zapisane jako JPEG bez metadanych w prywatnym katalogu; ikona i podgląd w aplikacji; usunięcie wpisu kasuje zdjęcie; przy starcie sprzątanie osieroconych plików i odnośników; zdjęć nie ma w kopii Auto Backup, archiwum JSON ani CSV; baza Room v9 (migracja 8→9)
 - Serie i rekordy przy celach eco (F58, SPEC §58, plan C39): w karcie „Cel miesiąca” liczba kolejnych pełnych miesięcy z osiągniętym celem spalania i jazdy na prądzie (najdłuższa w nawiasie), a od trzech pełnych miesięcy z jazdą najniższe spalanie i najwyższy udział prądu; miesiąc poniżej 50 km pomijany; zmiana celu zaczyna serię od jego miesiąca
 
 ## 0.2.10 (2026-11-11)

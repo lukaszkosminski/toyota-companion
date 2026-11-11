@@ -25,6 +25,8 @@ class ExpensesController(
     private val io: CoroutineDispatcher,
     /** Called after a successful write and reload, e.g. to look at the budget thresholds (PRD F49, docs/SPEC.md §49). */
     private val onChanged: suspend () -> Unit = {},
+    /** Deletes the row and its receipt photo (PRD F59); the default only deletes the row. */
+    private val deleteExpense: suspend (String) -> Unit = { dao.delete(it) },
 ) {
     private val ui = MutableStateFlow(ExpensesUiState())
     val state: StateFlow<ExpensesUiState> = ui.asStateFlow()
@@ -44,15 +46,28 @@ class ExpensesController(
     }
 
     /** True when the entry was accepted; the amount is validated here so the form only shows "invalid". */
-    fun add(date: LocalDate, category: ExpenseCategory, amountText: String, note: String): Boolean {
+    fun add(
+        date: LocalDate,
+        category: ExpenseCategory,
+        amountText: String,
+        note: String,
+        receiptFile: String? = null,
+    ): Boolean {
         val amount = parseExpenseAmount(amountText) ?: return false
-        val entity = ExpenseEntity(UUID.randomUUID().toString(), date.toEpochDay(), category.name, amount, note.trim().ifEmpty { null })
+        val entity = ExpenseEntity(
+            UUID.randomUUID().toString(),
+            date.toEpochDay(),
+            category.name,
+            amount,
+            note.trim().ifEmpty { null },
+            receiptFile,
+        )
         write { dao.upsert(entity) }
         return true
     }
 
     fun delete(id: String) {
-        write { dao.delete(id) }
+        write { deleteExpense(id) }
     }
 
     /**

@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import pl.lk.toyotacompanion.data.db.ExpenseDao
 import pl.lk.toyotacompanion.data.db.ExpenseEntity
+import pl.lk.toyotacompanion.data.db.ReceiptRef
 
 /** The table behind the controller: an in-memory list that fails on demand. */
 private class FakeExpenseDao : ExpenseDao() {
@@ -35,6 +36,17 @@ private class FakeExpenseDao : ExpenseDao() {
     override suspend fun insertAllIfAbsent(entities: List<ExpenseEntity>) {
         for (e in entities) rows.putIfAbsent(e.id, e)
     }
+
+    // The photo links are not part of these tests (PRD F59): the fake keeps no links.
+    override suspend fun setReceipt(id: String, name: String?): Int = 0
+
+    override suspend fun receiptOf(id: String): String? = null
+
+    override suspend fun receiptRefs(): List<ReceiptRef> = emptyList()
+
+    override suspend fun receiptNames(): List<String> = emptyList()
+
+    override suspend fun clearReceipt(name: String) = Unit
 
     override suspend fun all(): List<ExpenseEntity> {
         reads++

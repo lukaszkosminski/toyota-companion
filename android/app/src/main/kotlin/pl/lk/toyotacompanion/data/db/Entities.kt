@@ -142,6 +142,8 @@ data class RefuelEntity(
     @ColumnInfo(name = "liters_source") val litersSource: LitersSource?,
     @ColumnInfo(name = "filled_to_full") val filledToFull: Boolean?,
     val station: String? = null,
+    /** The name of the receipt photo in `filesDir/receipts`; never in the archive or the CSV (PRD F59). */
+    @ColumnInfo(name = "receipt_file") val receiptFile: String? = null,
 ) {
     fun toDomain(): Refuel = Refuel(
         id, ts, odometerKm, levelBefore, levelAfter, liters, pricePerLiter, totalCost, status, litersSource, filledToFull,
@@ -307,4 +309,6 @@ data class ExpenseEntity(
     val category: String,
     @ColumnInfo(name = "amount_pln") val amountPln: BigDecimal,
     val note: String?,
+    /** The name of the receipt photo in `filesDir/receipts`; never in the archive or the CSV (PRD F59). */
+    @ColumnInfo(name = "receipt_file") val receiptFile: String? = null,
 )

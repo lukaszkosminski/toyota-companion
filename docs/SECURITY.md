@@ -31,6 +31,7 @@
   Nazwy plików nie zawierają VIN.
 - Ekran „Postoje” (F17, SPEC §18) jako jedyny pokazuje położenie: zaokrąglone do 0,001° (ok. 100 m), liczone z tras w
   archiwum; współrzędne nie trafiają do logów, CSV ani nazw plików; jedyne wyjście to mapa po dotknięciu trasy na liście lub „Otwórz w mapie” w „Postojach” (SPEC §26: kafelki OpenStreetMap z okolicy punktów zaokrąglonych do ok. 100 m; WebView zamknięty na pozostały ruch) oraz intent `geo:` z tą samą zaokrągloną wartością po dotknięciu „Otwórz w innej aplikacji z mapą”.
+- Zdjęcia paragonów (F59, SPEC §59): paragon może zawierać dane karty i NIP, więc zdjęcie leży tylko w prywatnym katalogu aplikacji, nie wchodzi do kopii, eksportu ani udostępniania, a metadane (EXIF z GPS) są usuwane przy zapisie.
 - Stacja przy tankowaniu (F57, SPEC §57): nazwa wpisana przez właściciela jest zapisana tylko lokalnie (w tankowaniu i archiwum), nie trafia do logów, powiadomień, tekstów udostępnianych ani diagnostyki, a w CSV jest chroniona przed wstrzyknięciem formuły.
 - Ceny stacji (F22, SPEC §25): jedno zwykłe `GET` publicznej strony trojmiasto.pl po dotknięciu stacji; bez parametrów, cookie, konta, położenia i VIN; komunikaty błędów bez treści strony i adresu.
 - Przebieg trasy (F23, SPEC §27): dociągany z Toyoty tylko po otwarciu mapy tej trasy, jednym zwykłym `GET` (jak synchronizacja, bez `refresh_status`); zapisany lokalnie z dokładnością ok. 1 m, poza eksportem i CSV; na ekranie tylko mapa, a serwer kafelków OSM widzi oglądaną okolicę.

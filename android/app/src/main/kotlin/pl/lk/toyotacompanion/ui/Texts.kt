@@ -1711,6 +1711,24 @@ object Texts {
     val EXPENSE_AMOUNT_INVALID: String get() = Lang.pick("Podaj kwotę, np. 350 lub 1234,50.", "Enter an amount, e.g. 350 or 1234.50.")
     val EXPENSE_SAVE: String get() = Lang.pick("Zapisz", "Save")
     val EXPENSE_CANCEL: String get() = Lang.pick("Anuluj", "Cancel")
+    val RECEIPT_TITLE: String get() = Lang.pick("Zdjęcie paragonu", "Receipt photo")
+    val RECEIPT_ADD: String get() = Lang.pick("Dodaj zdjęcie paragonu", "Add receipt photo")
+    val RECEIPT_REMOVE: String get() = Lang.pick("Usuń zdjęcie", "Remove photo")
+    val RECEIPT_CLOSE: String get() = Lang.pick("Zamknij", "Close")
+    val RECEIPT_SHOW: String get() = Lang.pick("Pokaż zdjęcie paragonu", "Show the receipt photo")
+    val RECEIPT_MISSING: String get() = Lang.pick("Zdjęcia nie ma na tym telefonie.", "The photo is not on this phone.")
+    val RECEIPT_IMPORT_ERROR: String get() = Lang.pick(
+        "Nie udało się wczytać zdjęcia. Wpis zostaje bez zmian.",
+        "The photo could not be read. The entry is unchanged.",
+    )
+    val RECEIPT_SAVE_ERROR: String get() = Lang.pick(
+        "Nie udało się zapisać zdjęcia. Wpis zostaje bez zmian.",
+        "The photo could not be saved. The entry is unchanged.",
+    )
+    val RECEIPT_BACKUP_NOTE: String get() = Lang.pick(
+        "Zdjęcia paragonów zostają tylko na tym telefonie: nie wchodzą do kopii, do pliku archiwum ani do CSV.",
+        "Receipt photos stay only on this phone: they are not in the backup, the archive file or the CSV.",
+    )
     val EXPENSE_DELETE: String get() = Lang.pick("Usuń", "Delete")
     val OPTIONS_TITLE: String get() = Lang.pick("Opcje", "Options")
     val LANGUAGE_TITLE: String get() = Lang.pick("Język / Language", "Language / Język")

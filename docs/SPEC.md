@@ -1397,3 +1397,30 @@ Teksty: `ui/Texts.kt` (PL/EN, odmiana „miesiąc/miesiące/miesięcy”); karta
   i `Rekordy: najniższe spalanie 3,92 l/100 km (wrzesień 2026) · najwyższy udział prądu 61 % (sierpień 2026)`. Liczby przez `TripsFormatting.number`.
 - **Widżet (§32) i Android Auto bez zmian**; cele i daty są w ustawieniach telefonu, poza archiwum, eksportem JSON i CSV (jak §40).
 - **Prywatność i dane:** wartości pochodne z lokalnego archiwum, bez zapisu historii, bez sieci i bez budzenia auta; bez VIN i GPS.
+
+## §59 Zdjęcie paragonu przy tankowaniu lub wydatku (PRD F59)
+Plan: `briefs/toyota-companion/C40-plan.md`, wariant (a). Pliki: `receipts/ReceiptFiles.kt` (reguły czyste: nazwa, rozmiary, osierocone i brakujące
+pliki), `receipts/ReceiptStore.kt` (odczyt, skalowanie, zapis JPEG, podgląd), `receipts/ReceiptRepository.kt` (odnośniki w Room, sprzątanie),
+`ui/ReceiptUi.kt` (wybór, miniatura, okno podglądu). Bez OCR, bez sieci, bez nowych zależności i bez nowego uprawnienia.
+- **Wybór:** systemowy Photo Picker (`PickVisualMedia`, tylko obrazy). Aplikacja nie prosi o uprawnienie do zdjęć ani o aparat; zdjęcie robi
+  się aplikacją aparatu i wybiera z galerii. Brak `FileProvider`.
+- **Zapis:** `filesDir/receipts/<UUID>.jpg`. Dekodowanie z `inSampleSize` (`sampleSize`), skalowanie do najwyżej 1600 px dłuższego boku
+  (`scaledSize`, bez powiększania), zapis JPEG jakości 80 przez `Bitmap` do pliku tymczasowego `tmp-<UUID>` i zmiana nazwy. Ponowny zapis
+  usuwa metadane, w tym EXIF z GPS. Test `ReceiptStoreTest` wstrzykuje do źródła blok EXIF z tekstem GPS i sprawdza, że w zapisanym pliku go nie ma.
+- **Wątki i pamięć:** dekodowanie i zapis na tle (`Dispatchers.IO`), pod jednym mutexem repozytorium; podgląd i miniatury dekodowane osobno z mniejszym limitem.
+- **Model:** kolumna `receipt_file` TEXT NULL w `refuels` i `expenses`; Room v9 (`AutoMigration(8, 9)`), istniejące wiersze z `NULL`.
+- **Tankowanie:** w korekcie zdjęcie dodaje się i usuwa od razu, jako osobny zapis (nie czeka na „Zapisz”); korekta nie kasuje odnośnika.
+  Odrzucenie tankowania zostawia wpis i zdjęcie (wpis tylko zmienia status).
+- **Wydatek:** zdjęcie w formularzu jest kopiowane od razu, a odnośnik zapisuje się przy „Zapisz”. Anulowanie formularza kasuje kopię.
+  Usunięcie wydatku kasuje też zdjęcie.
+- **Okno podglądu:** w aplikacji, przewijane; bez udostępniania na zewnątrz. Ikona w wierszu tylko gdy jest zdjęcie.
+- **Sprzątanie przy starcie** (`ReceiptRepository.sweep`): odnośnik do brakującego pliku jest czyszczony (wpis zostaje; tak działa przywrócenie
+  kopii z innego telefonu, bo baza wraca z nazwami, a plików nie ma); plik bez odnośnika jest usuwany; pliki `tmp-` też.
+- **Poza zakresem kopii:** zdjęcia nie są w Auto Backup (reguły `backup_rules.xml` i `data_extraction_rules.xml` bez zmian), nie są w eksporcie JSON
+  archiwum ani w CSV, nie są w tekstach udostępnianych, logach, powiadomieniach ani diagnostyce. Ekran „Kopia i eksport” ma jedno zdanie o tym.
+  Nazwa pliku nie idzie do archiwum, więc po imporcie na innym telefonie nie zostaje martwy odnośnik (sprzątanie go czyści).
+- **Ograniczenia:** rozmiar pliku nie jest zmierzony na urządzeniu (rząd kilkuset kB przy 1600 px, JPEG 80). Plik zapisany przez formularz, który
+  nie doszedł do zapisu, zostaje do następnego startu. Wybór zdjęcia i aparat do sprawdzenia na emulatorze.
+- **Prywatność:** paragon może mieć dane karty i NIP; zdjęcie zostaje w prywatnym katalogu aplikacji (docs/SECURITY.md).
+- **Obrót i podgląd (przegląd przed wydaniem):** obrót zapisany przez aparat tylko w EXIF jest nanoszony na piksele przed zapisem, bo metadane
+  są usuwane; podgląd w formularzu ma najwyżej 160 dp wysokości, żeby przyciski pod nim były na ekranie, pełne zdjęcie pokazuje okno podglądu.

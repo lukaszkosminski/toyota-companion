@@ -90,6 +90,7 @@ fun BackupScreen(
         ) {
             DashboardCard(Texts.BACKUP_TITLE, AppIcons.Save) {
                 Text(Texts.BACKUP_EXPLANATION, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(Texts.RECEIPT_BACKUP_NOTE, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 val last = state.lastExport
                 if (last != null) {
                     StatTile(backupDate(last, zone), Texts.BACKUP_LAST, Palette.Green)

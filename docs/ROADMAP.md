@@ -1,6 +1,7 @@
 # Roadmap
 
 ## DONE
+- Zdjęcie paragonu przy tankowaniu lub wydatku (F59, SPEC §59, plan C40, wariant a): systemowy wybór zdjęcia bez uprawnień; JPEG do 1600 px bez metadanych w prywatnym katalogu; zdjęć nie ma w kopii, archiwum ani CSV; Room v9
 - Serie i rekordy przy celach eco (F58, SPEC §58, plan C39): w „Cel miesiąca” kolejne pełne miesiące z celem spalania i jazdy na prądzie, najdłuższa seria w nawiasie; od trzech pełnych miesięcy najniższe spalanie i najwyższy udział prądu; miesiąc poniżej 50 km pomijany; zmiana celu zaczyna serię od jego miesiąca
 - Stacja przy tankowaniu (F57, SPEC §57, plan C38): pole „Stacja” przy tankowaniu z podpowiedziami; w „Dzienniku tankowań” liczba tankowań, średnia cena i orientacyjne spalanie wg stacji od 3 interwałów; CSV i archiwum z polem stacji (Room v8, migracja 7→8)
 - Opony: dwa komplety, przebieg i przypomnienie (F56, SPEC §56, plan C37): ręcznie wpisane zmiany letni/zimowy z datą i opcjonalnym przebiegiem, przebieg kompletu z archiwum (trasy od daty zmiany do następnej), progi miesięczne i kilometrowe (puste = brak), przypomnienie po synchronizacji raz na komplet i próg; karta w „Wydatkach”; ustawienia telefonu, bez Room i bez JSON
@@ -52,7 +53,7 @@
   v0.2.7 (2026-11-10: budżet miesięczny i jego powiadomienie, krótkie trasy i zimny silnik, ślad CO₂ – F48–F51, SPEC §49–§51;
   czytelność statusu i podstron z przeglądu C32), v0.2.8 (2026-11-10: kalkulator kosztu trasy – F52, SPEC §52; kafelki z powrotem na dole statusu), v0.2.9 (2026-11-11: najlepsza godzina wyjazdu, podsumowanie okresu w powiadomieniu,
   utrata wartości auta w koszcie całkowitym – F53–F55, SPEC §53–§55), v0.2.10 (2026-11-11: opony i stacja przy tankowaniu –
-  F56–F57, SPEC §56–§57, baza Room 8)
+  F56–F57, SPEC §56–§57, baza Room 8), v0.2.11 (2026-11-11: serie i rekordy celów eco, zdjęcie paragonu – F58–F59, SPEC §58–§59, baza Room 9)
 - Wydatki poza paliwem (F37, §38, ADR-018), koszt całkowity auta (F38, §39, ADR-020), cele eco (F39, §40)
 - Jakość (C22): wspólna kopia listy tras po synchronizacji zamiast kilku pełnych odczytów (§10.1)
 - Historia serwisowa z Toyoty (`/v1/servicehistory/vehicle/summary`) jako kafelek „Historia serwisowa” (F44, SPEC §45,
@@ -93,7 +94,6 @@
   1. (zrobione jako F52, bez temperatury – patrz DONE) Kalkulator kosztu planowanej trasy
   7. Import historii tankowań i wydatków z CSV innych aplikacji (Fuelio, Drivvo) – wstrzymane 2026-11-11: właściciel nie ma
      pliku eksportu z żadnej z nich, a formatu nie zgadujemy; wróci, gdy pojawi się prawdziwy plik
-  8. Zdjęcie paragonu przy tankowaniu lub wydatku (bez OCR; do decyzji, czy zdjęcia wchodzą do kopii archiwum)
 - Pozostałe drobne z przeglądu C22: D3–D7, D12 i D13 zrobione (commit a982de8); D2, D8, D11, D14 do potwierdzenia
   w kodzie; D9 i D10 są w LATER
 

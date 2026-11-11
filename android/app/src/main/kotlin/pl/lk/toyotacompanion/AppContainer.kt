@@ -12,6 +12,7 @@ import java.io.IOException
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -103,6 +104,16 @@ class AppContainer(
     init {
         // One small preference read, so the very first frame already speaks the chosen language.
         pl.lk.toyotacompanion.ui.Lang.current = pl.lk.toyotacompanion.ui.AppLanguage.fromTag(settingsStore.language())
+        // Start-up housekeeping of the receipt folder (PRD F59): links to missing photos, orphaned files. Failures stay silent.
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            try {
+                receiptRepository.sweep()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(LOG_TAG, "Receipt housekeeping skipped: ${e.javaClass.simpleName}")
+            }
+        }
     }
 
     /** The language the texts are read in; applied before the first screen, kept in the settings file. */
@@ -118,7 +129,25 @@ class AppContainer(
             uiScope,
             Dispatchers.IO,
             // A new or removed expense changes the month's budget, so the thresholds are checked (PRD F49, §49).
-            onChanged = { budgetAlertNotifier.onExpensesChanged() },
+            onChanged = {
+                budgetAlertNotifier.onExpensesChanged()
+                receiptRepository.refresh()
+            },
+            // The row and its receipt photo go together (PRD F59).
+            deleteExpense = { receiptRepository.deleteExpense(it) },
+        )
+    }
+
+    /** The receipt photos of the refuels and expenses (PRD F59, docs/SPEC.md §59): private files, linked from the rows. */
+    val receiptRepository: pl.lk.toyotacompanion.receipts.ReceiptRepository by lazy {
+        pl.lk.toyotacompanion.receipts.ReceiptRepository(
+            store = pl.lk.toyotacompanion.receipts.ReceiptStore(
+                java.io.File(context.filesDir, "receipts"),
+                context.contentResolver,
+            ),
+            refuels = database.refuelDao(),
+            expenses = database.expenseDao(),
+            io = Dispatchers.IO,
         )
     }
 

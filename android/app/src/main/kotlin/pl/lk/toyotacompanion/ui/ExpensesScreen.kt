@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -40,6 +43,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import pl.lk.toyotacompanion.core.domain.TyreSet
@@ -52,6 +56,11 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import kotlinx.coroutines.launch
+import pl.lk.toyotacompanion.receipts.ReceiptException
+import pl.lk.toyotacompanion.receipts.ReceiptOwner
+import pl.lk.toyotacompanion.receipts.ReceiptRepository
+import pl.lk.toyotacompanion.receipts.receiptKey
 
 /**
  * "Wydatki": everything the car costs except fuel - service, inspection, tyres, insurance... Each entry has its own date, so
@@ -67,10 +76,15 @@ fun ExpensesScreen(
     onBack: () -> Unit,
     fuelByMonth: Map<MonthKey, BigDecimal> = emptyMap(),
     tyres: TyreController,
+    receipts: ReceiptRepository,
 ) {
     BackHandler(onBack = onBack)
     val state by controller.state.collectAsState()
     LaunchedEffect(Unit) { controller.load() }
+    // The photos of the expenses (PRD F59): which rows have one, and the one shown in the window.
+    val receiptIds by receipts.attached.collectAsState()
+    LaunchedEffect(Unit) { receipts.refresh() }
+    var viewingExpense by rememberSaveable { mutableStateOf<String?>(null) }
     var adding by rememberSaveable { mutableStateOf(false) }
     // The tyre card (PRD F56, docs/SPEC.md §56): its own read, and its own dialogs.
     val tyreState by tyres.state.collectAsState()
@@ -123,25 +137,61 @@ fun ExpensesScreen(
             when {
                 state.loading -> item { Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
                 state.failed -> item { Text(Texts.EXPENSES_READ_ERROR) }
-                else -> expenseItems(state.expenses, fuelTotal, fuelByMonth) { controller.delete(it) }
+                else -> expenseItems(
+                    expenses = state.expenses,
+                    fuelTotal = fuelTotal,
+                    fuelByMonth = fuelByMonth,
+                    hasReceipt = { receiptKey(ReceiptOwner.EXPENSE, it) in receiptIds },
+                    onShowReceipt = { viewingExpense = it },
+                    onDelete = { controller.delete(it) },
+                )
             }
         }
     }
 
     if (adding) {
         AddExpenseDialog(
-            onSave = { date, category, amount, note -> controller.add(date, category, amount, note) },
+            receipts = receipts,
+            onSave = { date, category, amount, note, photo -> controller.add(date, category, amount, note, photo) },
             onDismiss = { adding = false },
         )
+    }
+    viewingExpense?.let { id ->
+        ReceiptViewerDialog(ReceiptOwner.EXPENSE, id, receipts) { viewingExpense = null }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddExpenseDialog(
-    onSave: (LocalDate, ExpenseCategory, String, String) -> Boolean,
+    receipts: ReceiptRepository,
+    onSave: (LocalDate, ExpenseCategory, String, String, String?) -> Boolean,
     onDismiss: () -> Unit,
 ) {
+    val scope = rememberCoroutineScope()
+    // A photo picked here is copied at once but linked only by Save; a cancelled form deletes the copy (PRD F59).
+    var pendingPhoto by rememberSaveable { mutableStateOf<String?>(null) }
+    var importing by rememberSaveable { mutableStateOf(false) }
+    var photoError by rememberSaveable { mutableStateOf(false) }
+    val pickPhoto = rememberReceiptPicker { uri ->
+        importing = true
+        photoError = false
+        scope.launch {
+            try {
+                val name = receipts.importPending(uri)
+                pendingPhoto?.let { receipts.discard(it) }
+                pendingPhoto = name
+            } catch (e: ReceiptException) {
+                photoError = true
+            } finally {
+                importing = false
+            }
+        }
+    }
+    val dropPhoto = {
+        pendingPhoto?.let { name -> scope.launch { receipts.discard(name) } }
+        pendingPhoto = null
+    }
     var category by rememberSaveable { mutableStateOf(ExpenseCategory.SERVICE) }
     var amount by rememberSaveable { mutableStateOf("") }
     var note by rememberSaveable { mutableStateOf("") }
@@ -150,10 +200,17 @@ private fun AddExpenseDialog(
     var pickingDate by rememberSaveable { mutableStateOf(false) }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {
+            dropPhoto()
+            onDismiss()
+        },
         title = { Text(Texts.EXPENSES_ADD) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Scrolls with the keyboard open, so the note and the photo stay reachable on a small screen.
+            Column(
+                modifier = Modifier.imePadding().verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 Row(modifier = Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     for (c in ExpenseCategory.entries) {
                         FilterChip(
@@ -182,14 +239,35 @@ private fun AddExpenseDialog(
                 OutlinedButton(onClick = { pickingDate = true }, modifier = Modifier.fillMaxWidth()) {
                     IconLabel(AppIcons.CalendarMonth, Texts.EXPENSE_DATE + ": " + LocalDate.ofEpochDay(epochDay))
                 }
+                val photo = pendingPhoto
+                if (photo != null) {
+                    ReceiptImage(photo, receipts, RECEIPT_THUMBNAIL_SIDE, Modifier.heightIn(max = 160.dp))
+                    TextButton(onClick = dropPhoto) { IconLabel(AppIcons.Delete, Texts.RECEIPT_REMOVE) }
+                } else {
+                    OutlinedButton(onClick = pickPhoto, enabled = !importing, modifier = Modifier.fillMaxWidth()) {
+                        IconLabel(AppIcons.Description, Texts.RECEIPT_ADD)
+                    }
+                }
+                if (photoError) Text(Texts.RECEIPT_IMPORT_ERROR, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
         },
         confirmButton = {
             TextButton(onClick = {
-                if (onSave(LocalDate.ofEpochDay(epochDay), category, amount, note)) onDismiss() else invalid = true
+                if (onSave(LocalDate.ofEpochDay(epochDay), category, amount, note, pendingPhoto)) {
+                    // The photo is linked now: the form must not delete it on the way out.
+                    pendingPhoto = null
+                    onDismiss()
+                } else {
+                    invalid = true
+                }
             }) { Text(Texts.EXPENSE_SAVE) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(Texts.EXPENSE_CANCEL) } },
+        dismissButton = {
+            TextButton(onClick = {
+                dropPhoto()
+                onDismiss()
+            }) { Text(Texts.EXPENSE_CANCEL) }
+        },
     )
 
     if (pickingDate) {
@@ -272,6 +350,8 @@ private fun LazyListScope.expenseItems(
     expenses: List<Expense>,
     fuelTotal: BigDecimal?,
     fuelByMonth: Map<MonthKey, BigDecimal>,
+    hasReceipt: (String) -> Boolean,
+    onShowReceipt: (String) -> Unit,
     onDelete: (String) -> Unit,
 ) {
     val other = expenses.fold(BigDecimal.ZERO) { a, e -> a + e.amount }
@@ -342,7 +422,13 @@ private fun LazyListScope.expenseItems(
                     )
                 }
                 Text(TripsFormatting.money(expense.amount), style = MaterialTheme.typography.titleMedium, color = readable(Palette.Violet))
+                if (hasReceipt(expense.id)) {
+                    IconButton(onClick = { onShowReceipt(expense.id) }) { Icon(AppIcons.Description, contentDescription = Texts.RECEIPT_SHOW) }
+                }
                 IconButton(onClick = { onDelete(expense.id) }) { Icon(AppIcons.Delete, contentDescription = Texts.EXPENSE_DELETE) }
             }
         }
 }
+
+/** The side of the photo thumbnail in the add-expense form, in pixels. */
+private const val RECEIPT_THUMBNAIL_SIDE = 480
