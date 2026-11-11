@@ -90,7 +90,8 @@
 - Propozycje zaakceptowane przez właściciela 2026-11-10 (tylko dane lokalne i już używane źródła, bez budzenia auta);
   każda dostaje numer F, wpis w PRD/SPEC i plan przed kodem, w tej kolejności:
   1. (zrobione jako F52, bez temperatury – patrz DONE) Kalkulator kosztu planowanej trasy
-  7. Import historii tankowań i wydatków z CSV innych aplikacji (Fuelio, Drivvo)
+  7. Import historii tankowań i wydatków z CSV innych aplikacji (Fuelio, Drivvo) – wstrzymane 2026-11-11: właściciel nie ma
+     pliku eksportu z żadnej z nich, a formatu nie zgadujemy; wróci, gdy pojawi się prawdziwy plik
   8. Zdjęcie paragonu przy tankowaniu lub wydatku (bez OCR; do decyzji, czy zdjęcia wchodzą do kopii archiwum)
   11. Odznaki i serie przy celach eco (F39) – najpierw sprawdzić, co już jest w SPEC
 - Pozostałe drobne z przeglądu C22: D3–D7, D12 i D13 zrobione (commit a982de8); D2, D8, D11, D14 do potwierdzenia
