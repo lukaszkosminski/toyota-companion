@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Serie i rekordy przy celach eco (F58, SPEC §58, plan C39): w karcie „Cel miesiąca” liczba kolejnych pełnych miesięcy z osiągniętym celem spalania i jazdy na prądzie (najdłuższa w nawiasie), a od trzech pełnych miesięcy z jazdą najniższe spalanie i najwyższy udział prądu; miesiąc poniżej 50 km pomijany; zmiana celu zaczyna serię od jego miesiąca
 
 ## 0.2.10 (2026-11-11)
 - Stacja przy tankowaniu (F57, SPEC §57, plan C38): opcjonalne pole „Stacja” przy tankowaniu (okno „Wykryto tankowanie”, formularz, korekta) z podpowiedziami ostatnich stacji; w „Dzienniku tankowań” wiersz na stację z liczbą tankowań, średnią ceną i orientacyjnym spalaniem od 3 interwałów; nazwa w CSV (ostatnia kolumna, z ochroną przed formułą) i w archiwum (stare pliki czytane bez błędu); baza Room v8 (migracja 7→8)

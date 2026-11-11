@@ -14,6 +14,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import pl.lk.toyotacompanion.ui.MonthKey
 
 /**
  * The unencrypted settings file (docs/SPEC.md §12.2). Robolectric, like
@@ -186,6 +187,23 @@ class SettingsStoreTest {
         assertEquals(true, store.notificationsAsked())
     }
 
+
+    @Test
+    fun `the months a goal counts from round trip, go with their goal and garbage reads as none`() {
+        store.saveEcoGoals(BigDecimal("4.50"), 40, MonthKey(2026, 3), MonthKey(2026, 10))
+        assertEquals(MonthKey(2026, 3), store.ecoGoalConsumptionSince())
+        assertEquals(MonthKey(2026, 10), store.ecoGoalEvSince())
+        assertEquals("2026-03", prefs.getString("eco_goal_consumption_since", null))
+
+        // Without its goal a month is not kept.
+        store.saveEcoGoals(null, 40, MonthKey(2026, 3), MonthKey(2026, 10))
+        assertNull(store.ecoGoalConsumptionSince())
+        assertEquals(MonthKey(2026, 10), store.ecoGoalEvSince())
+
+        prefs.edit().putString("eco_goal_ev_since", "2026-13").putString("eco_goal_consumption_since", "wrong").apply()
+        assertNull(store.ecoGoalEvSince())
+        assertNull(store.ecoGoalConsumptionSince())
+    }
 
     @Test
     fun `eco goals round_trip and null removes only its goal`() {

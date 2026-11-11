@@ -6,6 +6,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import pl.lk.toyotacompanion.core.domain.SummaryPeriod
+import pl.lk.toyotacompanion.ui.MonthKey
 
 /**
  * The phone's own settings, kept in the SharedPreferences file `settings`
@@ -89,13 +90,50 @@ class SettingsStore(private val prefs: SharedPreferences) {
         return if (value in 1..100) value else null
     }
 
-    /** Stores both goals at once; `null` removes that goal. */
-    fun saveEcoGoals(consumption: BigDecimal?, evPct: Int?) {
+    /** The month the consumption goal counts from for the streak (PRD F58); `null` when never set or garbage: from the archive start. */
+    fun ecoGoalConsumptionSince(): MonthKey? = readMonth(KEY_ECO_CONSUMPTION_SINCE)
+
+    /** The month the electric goal counts from for the streak (PRD F58); `null` when never set or garbage. */
+    fun ecoGoalEvSince(): MonthKey? = readMonth(KEY_ECO_EV_SINCE)
+
+    /**
+     * Stores both goals at once; `null` removes that goal. [consumptionSince] and [evSince] are the months a goal counts from
+     * (PRD F58); without a goal, or without a month, the key is removed.
+     */
+    fun saveEcoGoals(
+        consumption: BigDecimal?,
+        evPct: Int?,
+        consumptionSince: MonthKey? = null,
+        evSince: MonthKey? = null,
+    ) {
         prefs.edit {
             if (consumption == null) remove(KEY_ECO_CONSUMPTION) else putString(KEY_ECO_CONSUMPTION, consumption.toPlainString())
+            if (consumption == null || consumptionSince == null) {
+                remove(KEY_ECO_CONSUMPTION_SINCE)
+            } else {
+                putString(KEY_ECO_CONSUMPTION_SINCE, monthText(consumptionSince))
+            }
             if (evPct == null) remove(KEY_ECO_EV) else putInt(KEY_ECO_EV, evPct)
+            if (evPct == null || evSince == null) {
+                remove(KEY_ECO_EV_SINCE)
+            } else {
+                putString(KEY_ECO_EV_SINCE, monthText(evSince))
+            }
         }
     }
+
+    private fun readMonth(key: String): MonthKey? {
+        val text = try {
+            prefs.getString(key, null) ?: return null
+        } catch (e: ClassCastException) {
+            return null
+        }
+        val match = MONTH_TEXT.matchEntire(text.trim()) ?: return null
+        val month = match.groupValues[2].toInt()
+        return if (month in 1..12) MonthKey(match.groupValues[1].toInt(), month) else null
+    }
+
+    private fun monthText(month: MonthKey): String = "%04d-%02d".format(month.year, month.month)
 
     /**
      * The monthly budget for fuel and non-fuel expenses (PRD F48, docs/SPEC.md §49), in zł; `null` when never set,
@@ -352,6 +390,9 @@ class SettingsStore(private val prefs: SharedPreferences) {
         const val KEY_LANGUAGE = "language"
         const val KEY_ECO_CONSUMPTION = "eco_goal_consumption"
         const val KEY_ECO_EV = "eco_goal_ev_pct"
+        const val KEY_ECO_CONSUMPTION_SINCE = "eco_goal_consumption_since"
+        const val KEY_ECO_EV_SINCE = "eco_goal_ev_since"
+        private val MONTH_TEXT = Regex("(\\d{4})-(\\d{2})")
         const val KEY_MONTHLY_BUDGET = "monthly_budget"
         const val KEY_CAR_PURCHASE = "car_purchase_pln"
         const val KEY_CAR_PURCHASE_DATE = "car_purchase_date"

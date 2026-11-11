@@ -1064,6 +1064,26 @@ object Texts {
         if (met) "electric driving goal – met" else "electric driving goal – missed",
     )
     fun ecoWidget(parts: String): String = Lang.pick("Cel: $parts", "Goal: $parts")
+    val ECO_STREAK_CONSUMPTION: String get() = Lang.pick("spalanie", "consumption")
+    val ECO_STREAK_EV: String get() = Lang.pick("prąd", "electric")
+    fun ecoStreakLine(parts: String): String = Lang.pick("Seria: $parts", "Streak: $parts")
+    fun ecoStreakRunning(label: String, months: Int, longest: Int): String = Lang.pick(
+        "$label $months ${plPlural(months.toLong(), "miesiąc", "miesiące", "miesięcy")} (najdłuższa: $longest)",
+        "$label $months ${enPlural(months.toLong(), "month", "months")} (longest: $longest)",
+    )
+    fun ecoStreakBroken(label: String, longest: Int): String = Lang.pick(
+        "$label przerwana (najdłuższa: $longest)",
+        "$label broken (longest: $longest)",
+    )
+    fun ecoRecordLine(parts: String): String = Lang.pick("Rekordy: $parts", "Records: $parts")
+    fun ecoRecordConsumption(value: String, month: String): String = Lang.pick(
+        "najniższe spalanie $value l/100 km ($month)",
+        "lowest consumption $value l/100 km ($month)",
+    )
+    fun ecoRecordEv(pct: String, month: String): String = Lang.pick(
+        "najwyższy udział prądu $pct % ($month)",
+        "highest electric share $pct % ($month)",
+    )
     fun ecoWidgetTooLittle(km: String): String = Lang.pick("za mało jazdy ($km km)", "too little driving ($km km)")
     fun ecoWidgetConsumption(actual: String, goal: String, mark: String?): String =
         "$actual / $goal l/100 km" + (mark?.let { " $it" } ?: "")

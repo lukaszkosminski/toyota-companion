@@ -1,6 +1,7 @@
 # Roadmap
 
 ## DONE
+- Serie i rekordy przy celach eco (F58, SPEC §58, plan C39): w „Cel miesiąca” kolejne pełne miesiące z celem spalania i jazdy na prądzie, najdłuższa seria w nawiasie; od trzech pełnych miesięcy najniższe spalanie i najwyższy udział prądu; miesiąc poniżej 50 km pomijany; zmiana celu zaczyna serię od jego miesiąca
 - Stacja przy tankowaniu (F57, SPEC §57, plan C38): pole „Stacja” przy tankowaniu z podpowiedziami; w „Dzienniku tankowań” liczba tankowań, średnia cena i orientacyjne spalanie wg stacji od 3 interwałów; CSV i archiwum z polem stacji (Room v8, migracja 7→8)
 - Opony: dwa komplety, przebieg i przypomnienie (F56, SPEC §56, plan C37): ręcznie wpisane zmiany letni/zimowy z datą i opcjonalnym przebiegiem, przebieg kompletu z archiwum (trasy od daty zmiany do następnej), progi miesięczne i kilometrowe (puste = brak), przypomnienie po synchronizacji raz na komplet i próg; karta w „Wydatkach”; ustawienia telefonu, bez Room i bez JSON
 - Podsumowanie okresu w powiadomieniu (F54, SPEC §54, plan C35): raz po zakończonym tygodniu (pon.–nd.) albo miesiącu, pierwsza synchronizacja po jego końcu, między 8:00 a 22:00; km, koszt (paliwo i wydatki), l/100 km, udział prądu i porównanie z poprzednim okresem w rozwinięciu; domyślnie wyłączone; tylko lokalne archiwum
@@ -93,7 +94,6 @@
   7. Import historii tankowań i wydatków z CSV innych aplikacji (Fuelio, Drivvo) – wstrzymane 2026-11-11: właściciel nie ma
      pliku eksportu z żadnej z nich, a formatu nie zgadujemy; wróci, gdy pojawi się prawdziwy plik
   8. Zdjęcie paragonu przy tankowaniu lub wydatku (bez OCR; do decyzji, czy zdjęcia wchodzą do kopii archiwum)
-  11. Odznaki i serie przy celach eco (F39) – najpierw sprawdzić, co już jest w SPEC
 - Pozostałe drobne z przeglądu C22: D3–D7, D12 i D13 zrobione (commit a982de8); D2, D8, D11, D14 do potwierdzenia
   w kodzie; D9 i D10 są w LATER
 

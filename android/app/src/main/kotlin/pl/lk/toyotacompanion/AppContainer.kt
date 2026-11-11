@@ -575,8 +575,17 @@ class AppContainer(
     /** The monthly eco goals of the owner and the month's figures against them (PRD F39, docs/SPEC.md §40). */
     val ecoGoalsController: EcoGoalsController by lazy {
         EcoGoalsController(
-            readGoals = { EcoGoals(settingsStore.ecoGoalConsumption(), settingsStore.ecoGoalEvPct()) },
-            saveGoals = { settingsStore.saveEcoGoals(it.maxConsumption, it.minEvSharePct) },
+            readGoals = {
+                EcoGoals(
+                    settingsStore.ecoGoalConsumption(),
+                    settingsStore.ecoGoalEvPct(),
+                    settingsStore.ecoGoalConsumptionSince(),
+                    settingsStore.ecoGoalEvSince(),
+                )
+            },
+            saveGoals = {
+                settingsStore.saveEcoGoals(it.maxConsumption, it.minEvSharePct, it.consumptionSince, it.evSince)
+            },
             readTrips = tripsLoader,
             zone = { ZoneId.systemDefault() },
             scope = uiScope,

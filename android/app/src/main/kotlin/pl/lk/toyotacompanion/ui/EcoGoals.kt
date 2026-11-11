@@ -26,9 +26,16 @@ data class EcoGoals(
     val maxConsumption: BigDecimal? = null,
     /** The share of the month's kilometres driven on electricity should be at least this, whole percent 1-100. */
     val minEvSharePct: Int? = null,
+    /** The first month the consumption goal counts for the streak (PRD F58); `null` = from the start of the archive. */
+    val consumptionSince: MonthKey? = null,
+    /** The first month the electric goal counts for the streak (PRD F58); `null` = from the start of the archive. */
+    val evSince: MonthKey? = null,
 ) {
     val any: Boolean get() = maxConsumption != null || minEvSharePct != null
 }
+
+private fun sameFigure(a: BigDecimal?, b: BigDecimal?): Boolean =
+    if (a == null || b == null) a == b else a.compareTo(b) == 0
 
 /** Result of reading the typed electric-share goal. */
 sealed interface EvGoalCheck {
@@ -181,7 +188,11 @@ fun ecoWidgetLine(progress: EcoProgress?): String {
 }
 
 /** What the card needs: the goals and, once the trips were read, the month's figures. */
-data class EcoGoalsState(val goals: EcoGoals = EcoGoals(), val progress: EcoProgress? = null)
+data class EcoGoalsState(
+    val goals: EcoGoals = EcoGoals(),
+    val progress: EcoProgress? = null,
+    val history: EcoHistory? = null,
+)
 
 /**
  * The eco goals of the owner (docs/SPEC.md §40): two optional values kept in the settings and the figures of the month against
@@ -216,7 +227,8 @@ class EcoGoalsController(
             val next = try {
                 withContext(io) {
                     val goals = readGoals()
-                    EcoGoalsState(goals, ecoProgress(goals, readTrips(), zone(), today()))
+                    val trips = readTrips()
+                    EcoGoalsState(goals, ecoProgress(goals, trips, zone(), today()), ecoHistory(goals, trips, zone(), today()))
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -250,9 +262,25 @@ class EcoGoalsController(
             EvGoalCheck.Empty -> null
             EvGoalCheck.Invalid -> return false
         }
-        val goals = EcoGoals(consumption, ev)
+        // A goal that changed starts its streak in the month of the change; an unchanged one keeps its month.
+        val old = readGoals()
+        val month = today().let { MonthKey(it.year, it.monthValue) }
+        val goals = EcoGoals(
+            maxConsumption = consumption,
+            minEvSharePct = ev,
+            consumptionSince = when {
+                consumption == null -> null
+                sameFigure(consumption, old.maxConsumption) -> old.consumptionSince
+                else -> month
+            },
+            evSince = when {
+                ev == null -> null
+                ev == old.minEvSharePct -> old.evSince
+                else -> month
+            },
+        )
         saveGoals(goals)
-        ui.value = ui.value.copy(goals = goals, progress = null)
+        ui.value = ui.value.copy(goals = goals, progress = null, history = null)
         refresh()
         onSaved()
         return true

@@ -1379,3 +1379,21 @@ z lustrem `backend/app/domain/stations.py` (te same nazwy testów). Ekrany: `ui/
   z wiodącą spacją albo średnikiem jest w cudzysłowie. Test `=SUM(1)`, ` +1` i `-2` w `RefuelsCsvTest`.
 - **Prywatność:** nazwa stacji nie trafia do logów, powiadomień, tekstów udostępnianych ani diagnostyki; jest tylko na ekranach
   i w plikach CSV/archiwum, które właściciel sam eksportuje. Bez sieci i bez budzenia auta.
+
+## §58 Serie i rekordy przy celach eco (PRD F58)
+Plan: `briefs/toyota-companion/C39-plan.md`. Logika: `ui/EcoStreaks.kt` (`ecoHistory`, `ecoStreakLine`, `ecoRecordLine`), na miesiącach
+z `ecoMonth` (§40). Odstępstwo od planu: bez lustra w Pythonie, bo `ecoMonth` i cele są w `app/ui` (Python nie ma ich odpowiednika).
+Teksty: `ui/Texts.kt` (PL/EN, odmiana „miesiąc/miesiące/miesięcy”); karta: `ui/EcoGoalsCard.kt`.
+- **Miesiące:** tylko pełne miesiące do poprzedniego włącznie; bieżący miesiąc nie wchodzi do serii ani rekordów. Miesiąc w strefie telefonu.
+- **Seria:** kolejne miesiące z osiągniętym celem (spalanie albo jazda na prądzie, każdy osobno). Miesiąc poniżej 50 km (`ECO_MIN_MONTH_KM`)
+  albo bez danych o prądzie jest **pomijany**: nie zrywa serii i nie wydłuża jej. Miesiąc z celem nieosiągniętym zrywa serię.
+- **Zmiana celu:** każdy cel ma miesiąc „od kiedy”: `eco_goal_consumption_since` i `eco_goal_ev_since` (tekst `RRRR-MM`, ustawienia telefonu).
+  Zapis ustawia go na bieżący miesiąc tylko wtedy, gdy wartość celu faktycznie się zmieniła (porównanie liczbowe, `2,5` = `2.50`);
+  cel usunięty kasuje miesiąc. Brak albo śmieci w kluczu = seria od początku archiwum.
+- **Rekordy:** najniższe spalanie miesiąca (l/100 km) i najwyższy udział prądu (%) z pełnych miesięcy z jazdą; remis – wcześniejszy miesiąc.
+  Rekordy nie zależą od celów i od miesiąca zmiany. Pokazywane dopiero od 3 pełnych miesięcy z jazdą (`ECO_RECORD_MIN_MONTHS`).
+- **Prezentacja:** najwyżej dwie linie pod „Poprzedni miesiąc”, bez ikon i gratulacji:
+  `Seria: spalanie 3 miesiące (najdłuższa: 5) · prąd przerwana (najdłuższa: 2)` (część tylko od 2 miesięcy, bieżącej albo najdłuższej)
+  i `Rekordy: najniższe spalanie 3,92 l/100 km (wrzesień 2026) · najwyższy udział prądu 61 % (sierpień 2026)`. Liczby przez `TripsFormatting.number`.
+- **Widżet (§32) i Android Auto bez zmian**; cele i daty są w ustawieniach telefonu, poza archiwum, eksportem JSON i CSV (jak §40).
+- **Prywatność i dane:** wartości pochodne z lokalnego archiwum, bez zapisu historii, bez sieci i bez budzenia auta; bez VIN i GPS.

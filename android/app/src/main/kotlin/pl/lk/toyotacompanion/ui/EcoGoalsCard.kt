@@ -32,6 +32,9 @@ fun EcoGoalsCard(state: EcoGoalsState, onEdit: () -> Unit) {
             ecoPreviousLine(progress)?.let {
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            // Two short lines at most: the streak (from two months) and the records (from three full months with driving).
+            ecoStreakLine(state.history)?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+            ecoRecordLine(state.history)?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
         }
         TextButton(onClick = onEdit) { Text(Texts.ECO_EDIT) }
     }

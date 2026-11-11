@@ -89,10 +89,23 @@ class EcoGoalsControllerTest {
         val c = controller(fake)
         assertTrue(c.set("4,5", "40"))
         advanceUntilIdle()
-        assertEquals(EcoGoals(BigDecimal("4.50"), 40), fake.goals)
-        assertEquals(EcoGoals(BigDecimal("4.50"), 40), c.state.value.goals)
+        // Both goals are new, so both count from the month of the change (today is 2026-10-20).
+        val since = MonthKey(2026, 10)
+        assertEquals(EcoGoals(BigDecimal("4.50"), 40, since, since), fake.goals)
+        assertEquals(EcoGoals(BigDecimal("4.50"), 40, since, since), c.state.value.goals)
         assertEquals(1, fake.savedNotifications)
         assertEquals(true, c.state.value.progress?.current?.consumption?.met)
+    }
+
+    @Test
+    fun `a changed goal starts its streak in the month of the change and an unchanged one keeps its month`() = runTest {
+        val march = MonthKey(2026, 3)
+        val fake = Fake().apply { goals = EcoGoals(BigDecimal("4.50"), 40, march, march) }
+        val c = controller(fake)
+        assertTrue(c.set("4,50", "41"))
+        advanceUntilIdle()
+        // The consumption goal is the same figure (4,50 = 4.50), so it keeps March; the electric one moved to 41 %.
+        assertEquals(EcoGoals(BigDecimal("4.50"), 41, march, MonthKey(2026, 10)), fake.goals)
     }
 
     @Test
@@ -102,6 +115,7 @@ class EcoGoalsControllerTest {
         assertTrue(c.set("", "40"))
         advanceUntilIdle()
         assertEquals(EcoGoals(null, 40), fake.goals)
+        assertNull(fake.goals.consumptionSince)
         assertTrue(c.set("", ""))
         advanceUntilIdle()
         assertFalse(c.state.value.goals.any)
