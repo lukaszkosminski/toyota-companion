@@ -2,8 +2,8 @@
 
 ## Skrót – 2026-11-10
 - Wydania na GitHub Releases: v0.2.0 (06.11), v0.2.1–v0.2.4 (08.11), v0.2.5 i v0.2.6 (09.11), v0.2.7 (10.11: F48–F51,
-  czytelność z przeglądu C32, szersze maskowanie sekretów); po v0.2.7 na `main`: kalkulator trasy (F52) i kafelki z powrotem
-  na dole statusu; workflow `Release`
+  czytelność z przeglądu C32, szersze maskowanie sekretów); v0.2.8 (10.11: kalkulator trasy F52, kafelki z powrotem na dole statusu),
+  v0.2.9 (11.11: F53–F55); workflow `Release`
   publikuje podpisany APK i mapping R8 jako artefakt. Telefon: „Opcje” → „Sprawdź aktualizacje”.
 - Po v0.2.6 na `main`, bez nowego wydania: budżet miesięczny i powiadomienie budżetowe (F48–F49, SPEC §49, commity
   `c7022a0` i `84bad7f`), czytelność podstron z przeglądu C32 (`2f490e4`) i ślad CO₂ (F51, SPEC §51, `7dfebcc`).

@@ -47,7 +47,8 @@
   odnowienie tokenu, testy migracji Room, ADR-019 jedno konto = jedno auto), v0.2.5 (2026-11-09: historia serwisowa
   i powiadomienia Toyoty, diagnostyka synchronizacji – F44–F46, SPEC §45–§47), v0.2.6 (2026-11-09: eksport CSV tankowań i wydatków – F47, SPEC §48),
   v0.2.7 (2026-11-10: budżet miesięczny i jego powiadomienie, krótkie trasy i zimny silnik, ślad CO₂ – F48–F51, SPEC §49–§51;
-  czytelność statusu i podstron z przeglądu C32), v0.2.8 (2026-11-10: kalkulator kosztu trasy – F52, SPEC §52; kafelki z powrotem na dole statusu)
+  czytelność statusu i podstron z przeglądu C32), v0.2.8 (2026-11-10: kalkulator kosztu trasy – F52, SPEC §52; kafelki z powrotem na dole statusu), v0.2.9 (2026-11-11: najlepsza godzina wyjazdu, podsumowanie okresu w powiadomieniu,
+  utrata wartości auta w koszcie całkowitym – F53–F55, SPEC §53–§55)
 - Wydatki poza paliwem (F37, §38, ADR-018), koszt całkowity auta (F38, §39, ADR-020), cele eco (F39, §40)
 - Jakość (C22): wspólna kopia listy tras po synchronizacji zamiast kilku pełnych odczytów (§10.1)
 - Historia serwisowa z Toyoty (`/v1/servicehistory/vehicle/summary`) jako kafelek „Historia serwisowa” (F44, SPEC §45,
