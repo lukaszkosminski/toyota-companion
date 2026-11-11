@@ -38,14 +38,17 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import java.util.concurrent.atomic.AtomicBoolean
 import pl.lk.toyotacompanion.core.domain.TyreSet
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -173,12 +176,19 @@ private fun AddExpenseDialog(
     var pendingPhoto by rememberSaveable { mutableStateOf<String?>(null) }
     var importing by rememberSaveable { mutableStateOf(false) }
     var photoError by rememberSaveable { mutableStateOf(false) }
+    // A form closed while the import ran would leave the copy without a link: the late result is dropped at once (C41).
+    val open = remember { AtomicBoolean(true) }
+    DisposableEffect(Unit) { onDispose { open.set(false) } }
     val pickPhoto = rememberReceiptPicker { uri ->
         importing = true
         photoError = false
         scope.launch {
             try {
                 val name = receipts.importPending(uri)
+                if (!open.get()) {
+                    receipts.discard(name)
+                    return@launch
+                }
                 pendingPhoto?.let { receipts.discard(it) }
                 pendingPhoto = name
             } catch (e: ReceiptException) {

@@ -2,7 +2,10 @@ package pl.lk.toyotacompanion.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -14,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 
@@ -50,7 +54,11 @@ fun EcoGoalsDialog(goals: EcoGoals, onSave: (String, String) -> Boolean, onDismi
         onDismissRequest = onDismiss,
         title = { Text(Texts.ECO_DIALOG_TITLE) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Two fields and the keyboard: the dialog scrolls, so Save stays reachable on a small screen (C41).
+            Column(
+                modifier = Modifier.imePadding().verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 Text(Texts.ECO_BODY, style = MaterialTheme.typography.bodyMedium)
                 OutlinedTextField(
                     value = consumption,

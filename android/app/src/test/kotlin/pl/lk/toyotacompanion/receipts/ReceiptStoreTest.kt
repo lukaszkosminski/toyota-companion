@@ -101,6 +101,40 @@ class ReceiptStoreTest {
         assertNull(store.decode("../etc/passwd", maxSide = 320))
     }
 
+    /** A plain JPEG without the fake block, for the orientation test: ExifInterface must be able to rewrite its EXIF. */
+    private fun plainPhoto(width: Int, height: Int): File {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply { eraseColor(Color.BLUE) }
+        val file = File(tmp.root, "plain-$width-$height-rot.jpg")
+        file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 95, it) }
+        bitmap.recycle()
+        return file
+    }
+
+    @Test
+    fun `the camera orientation becomes a clockwise turn`() {
+        // EXIF orientation: 6 = rotate 90, 3 = 180, 8 = 270, 1 = as is, 2 = mirrored (no turn).
+        assertEquals(90, ReceiptStore.rotationDegreesFor(6))
+        assertEquals(180, ReceiptStore.rotationDegreesFor(3))
+        assertEquals(270, ReceiptStore.rotationDegreesFor(8))
+        assertEquals(0, ReceiptStore.rotationDegreesFor(1))
+        assertEquals(0, ReceiptStore.rotationDegreesFor(2))
+        assertEquals(0, ReceiptStore.rotationDegreesFor(0))
+    }
+
+    @Test
+    fun `a photo the camera marked as turned comes out turned, not sideways`() {
+        val source = plainPhoto(4000, 3000)
+        android.media.ExifInterface(source.path).apply {
+            setAttribute(android.media.ExifInterface.TAG_ORIENTATION, "6")
+            saveAttributes()
+        }
+        val name = store.importPhoto(uri(source))
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(assertNotNull(store.file(name)).path, bounds)
+        // 4000x3000 scaled to 1600x1200, then turned 90 degrees: the sides swap.
+        assertEquals(1200 to 1600, bounds.outWidth to bounds.outHeight)
+    }
+
     @Test
     fun `a delete removes only a receipt file`() {
         val name = store.importPhoto(uri(cameraPhoto(800, 600)))

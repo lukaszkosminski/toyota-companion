@@ -231,7 +231,10 @@ private fun AmendDialog(
     // The photo is linked at once, not by Save: it is a separate write (PRD F59), so it can fail on its own.
     val scope = rememberCoroutineScope()
     var photoVersion by rememberSaveable(refuel.id) { mutableIntStateOf(0) }
-    val photo by produceState<String?>(null, refuel.id, photoVersion) { value = receipts.nameOf(ReceiptOwner.REFUEL, refuel.id) }
+    // Loading first: the "Add" button must never offer to replace a photo that is only not read yet (C41).
+    val photoSlot by produceState<PhotoSlot>(PhotoSlot.Loading, refuel.id, photoVersion) {
+        value = PhotoSlot.Loaded(receipts.nameOf(ReceiptOwner.REFUEL, refuel.id))
+    }
     var photoError by rememberSaveable(refuel.id) { mutableStateOf(false) }
     val pickPhoto = rememberReceiptPicker { uri ->
         photoError = false
@@ -283,21 +286,26 @@ private fun AmendDialog(
                     Switch(checked = full, onCheckedChange = { full = it }, enabled = litersGiven && !busy)
                 }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
-                val current = photo
-                if (current != null) {
-                    ReceiptImage(current, receipts, RECEIPT_AMEND_SIDE, Modifier.heightIn(max = 160.dp))
-                    TextButton(
-                        onClick = {
-                            scope.launch {
-                                receipts.remove(ReceiptOwner.REFUEL, refuel.id)
-                                photoVersion++
+                when (val slot = photoSlot) {
+                    PhotoSlot.Loading -> CircularProgressIndicator(Modifier.size(24.dp))
+                    is PhotoSlot.Loaded -> {
+                        val current = slot.name
+                        if (current != null) {
+                            ReceiptImage(current, receipts, RECEIPT_AMEND_SIDE, Modifier.heightIn(max = 160.dp))
+                            TextButton(
+                                onClick = {
+                                    scope.launch {
+                                        receipts.remove(ReceiptOwner.REFUEL, refuel.id)
+                                        photoVersion++
+                                    }
+                                },
+                                enabled = !busy,
+                            ) { IconLabel(AppIcons.Delete, Texts.RECEIPT_REMOVE) }
+                        } else {
+                            OutlinedButton(onClick = pickPhoto, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+                                IconLabel(AppIcons.Description, Texts.RECEIPT_ADD)
                             }
-                        },
-                        enabled = !busy,
-                    ) { IconLabel(AppIcons.Delete, Texts.RECEIPT_REMOVE) }
-                } else {
-                    OutlinedButton(onClick = pickPhoto, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
-                        IconLabel(AppIcons.Description, Texts.RECEIPT_ADD)
+                        }
                     }
                 }
                 if (photoError) Text(Texts.RECEIPT_IMPORT_ERROR, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
@@ -429,6 +437,13 @@ private fun EconomyCard(interval: EconomyInterval, title: String?) {
 }
 
 /** The level chart shows the newest readings only (one every 30 minutes would be thousands of points). */
+/** The photo of a refuel in the correction dialog: not read yet, or read (a name or none) (PRD F59, C41). */
+private sealed interface PhotoSlot {
+    data object Loading : PhotoSlot
+
+    data class Loaded(val name: String?) : PhotoSlot
+}
+
 private const val LEVEL_CHART_MAX_POINTS = 400
 
 /** The side of the receipt thumbnail in the correction dialog, in pixels. */

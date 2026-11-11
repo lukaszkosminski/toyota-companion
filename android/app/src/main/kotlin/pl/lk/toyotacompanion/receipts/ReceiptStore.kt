@@ -74,12 +74,12 @@ class ReceiptStore(private val dir: File, private val resolver: ContentResolver)
     @SuppressLint("ExifInterface")
     private fun rotationDegrees(source: Uri): Int = try {
         resolver.openInputStream(source)?.use { stream ->
-            when (android.media.ExifInterface(stream).getAttributeInt(android.media.ExifInterface.TAG_ORIENTATION, android.media.ExifInterface.ORIENTATION_NORMAL)) {
-                android.media.ExifInterface.ORIENTATION_ROTATE_90 -> 90
-                android.media.ExifInterface.ORIENTATION_ROTATE_180 -> 180
-                android.media.ExifInterface.ORIENTATION_ROTATE_270 -> 270
-                else -> 0
-            }
+            rotationDegreesFor(
+                android.media.ExifInterface(stream).getAttributeInt(
+                    android.media.ExifInterface.TAG_ORIENTATION,
+                    android.media.ExifInterface.ORIENTATION_NORMAL,
+                ),
+            )
         } ?: 0
     } catch (e: java.io.IOException) {
         0
@@ -105,6 +105,18 @@ class ReceiptStore(private val dir: File, private val resolver: ContentResolver)
     }
 
     companion object {
+        /**
+         * The clockwise rotation for an EXIF orientation value, the camera's way of saying "turn the pixels": 6 is 90°, 3 is 180°,
+         * 8 is 270°; anything else, mirrored values included, means no turn. Pure, so the rule is tested without a picture (C41).
+         */
+        internal fun rotationDegreesFor(orientation: Int): Int = when (orientation) {
+            6 -> 90
+            3 -> 180
+            8 -> 270
+            else -> 0
+        }
+
+
         const val TEMP_PREFIX = "tmp-"
     }
 }

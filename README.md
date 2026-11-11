@@ -120,8 +120,8 @@ docs/           project documentation (in Polish)
 
 | Document | Contents |
 |---|---|
-| [docs/PRD.md](docs/PRD.md) | requirements and features F1–F39, out of scope |
-| [docs/SPEC.md](docs/SPEC.md) | specification and acceptance criteria (§1–§40) |
+| [docs/PRD.md](docs/PRD.md) | requirements and features F1–F59, out of scope |
+| [docs/SPEC.md](docs/SPEC.md) | specification and acceptance criteria (§1–§59) |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | components, rules and dependency failures |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | decisions (ADR-001 – ADR-020) |
 | [docs/SECURITY.md](docs/SECURITY.md) | protected data, flows to external services, encryption |

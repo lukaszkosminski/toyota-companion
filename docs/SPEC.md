@@ -1377,8 +1377,10 @@ z lustrem `backend/app/domain/stations.py` (te same nazwy testów). Ekrany: `ui/
   (nieznany klucz jest ignorowany, testowane w `ArchiveFileTest`).
 - **CSV:** ostatnia kolumna „Stacja” / „Station”, przez `csvCell`: wartość zaczynająca się od `=`, `+`, `-` lub `@` (poza samą liczbą) dostaje apostrof;
   z wiodącą spacją albo średnikiem jest w cudzysłowie. Test `=SUM(1)`, ` +1` i `-2` w `RefuelsCsvTest`.
-- **Prywatność:** nazwa stacji nie trafia do logów, powiadomień, tekstów udostępnianych ani diagnostyki; jest tylko na ekranach
-  i w plikach CSV/archiwum, które właściciel sam eksportuje. Bez sieci i bez budzenia auta.
+- **Prywatność:** nazwa stacji nie trafia do logów, powiadomień, tekstów udostępnianych ani diagnostyki; jest na ekranach
+  i w plikach CSV/archiwum, które właściciel sam eksportuje. Kolumna jest w bazie `refuels`, a baza jest w Auto Backup
+  (ADR-015), więc nazwa trafia też na Dysk Google właściciela razem z trasami i tankowaniami – jak cała ta baza.
+  Bez sieci i bez budzenia auta.
 
 ## §58 Serie i rekordy przy celach eco (PRD F58)
 Plan: `briefs/toyota-companion/C39-plan.md`. Logika: `ui/EcoStreaks.kt` (`ecoHistory`, `ecoStreakLine`, `ecoRecordLine`), na miesiącach

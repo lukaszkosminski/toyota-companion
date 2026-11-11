@@ -138,6 +138,20 @@ class ExpensesControllerTest {
     }
 
     @Test
+    fun `the name of a receipt photo goes into the row, and none stays none`() = runTest {
+        val dao = FakeExpenseDao()
+        val c = controller(dao)
+
+        assertTrue(c.add(LocalDate.ofEpochDay(20_000), ExpenseCategory.SERVICE, "50", "", "2b1e6c3a-1111-4222-8333-944455556666.jpg"))
+        assertTrue(c.add(LocalDate.ofEpochDay(20_001), ExpenseCategory.SERVICE, "60", "", null))
+        advanceUntilIdle()
+
+        val rows = dao.rows.values.sortedBy { it.dateEpochDay }
+        assertEquals("2b1e6c3a-1111-4222-8333-944455556666.jpg", rows[0].receiptFile)
+        assertNull(rows[1].receiptFile)
+    }
+
+    @Test
     fun `a blank note is stored as no note`() = runTest {
         val dao = FakeExpenseDao()
         val c = controller(dao)

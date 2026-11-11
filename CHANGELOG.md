@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.12 (2026-11-11)
+- Okna „Cele eco”, „Budżet miesiąca” i „Spalanie deklarowane” przewijają się z otwartą klawiaturą, więc „Zapisz” jest zawsze osiągalny na małym ekranie
+- Korekta tankowania: dopóki zdjęcie paragonu się wczytuje, widać wskaźnik zamiast przycisku „Dodaj zdjęcie paragonu”, więc nie da się przypadkiem podmienić istniejącego zdjęcia
+- Formularz wydatku zamknięty w trakcie importu zdjęcia nie zostawia kopii bez wpisu (pliki-sieroty i tak sprząta start aplikacji)
+- Testy: reguła obrotu zdjęcia z EXIF (jednostkowo i na prawdziwym pliku), kontroler opon (7 przypadków: dodanie, odmowy, usunięcie ostatniej zmiany z zapomnieniem przypomnień, progi, błąd odczytu, wylogowanie), odnośnik zdjęcia w wierszu wydatku
+- Dokumentacja: nazwa stacji jest kolumną bazy, więc trafia do Auto Backup tak jak trasy i tankowania (SECURITY, SPEC §57); README podaje zakres F1–F59 i §1–§59; kolejność wierszy PRD
+
 ## Unreleased
 
 ## 0.2.11 (2026-11-11)

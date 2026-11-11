@@ -2,7 +2,10 @@ package pl.lk.toyotacompanion.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -91,7 +94,8 @@ fun BudgetDialog(budget: MonthlyBudget, onSave: (String) -> Boolean, onDismiss: 
         onDismissRequest = onDismiss,
         title = { Text(Texts.BUDGET_DIALOG_TITLE) },
         text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            // The field and the keyboard: the dialog scrolls, so Save stays reachable on a small screen (C41).
+            Column(modifier = Modifier.fillMaxWidth().imePadding().verticalScroll(rememberScrollState())) {
                 Text(Texts.BUDGET_BODY, style = MaterialTheme.typography.bodyMedium)
                 OutlinedTextField(
                     value = limit,
