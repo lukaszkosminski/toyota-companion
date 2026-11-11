@@ -217,4 +217,18 @@ class SettingsStoreTest {
         prefs.edit().remove("eco_goal_ev_pct").putString("eco_goal_ev_pct", "40").commit()
         assertNull(store.ecoGoalEvPct(), "a string under the key is not a goal")
     }
+
+    @Test
+    fun `the_period_summary_round_trips_and_a_change_drops_the_last_key`() {
+        assertNull(store.periodSummaryKind())
+        store.savePeriodSummaryKind(pl.lk.toyotacompanion.core.domain.SummaryPeriod.WEEK)
+        assertEquals(pl.lk.toyotacompanion.core.domain.SummaryPeriod.WEEK, store.periodSummaryKind())
+        store.saveLastPeriodSummary("week:2026-11-02")
+        store.savePeriodSummaryKind(pl.lk.toyotacompanion.core.domain.SummaryPeriod.WEEK)
+        assertEquals("week:2026-11-02", store.lastPeriodSummary(), "the same choice keeps the key")
+        store.savePeriodSummaryKind(pl.lk.toyotacompanion.core.domain.SummaryPeriod.MONTH)
+        assertNull(store.lastPeriodSummary(), "a new period starts from a baseline")
+        store.savePeriodSummaryKind(null)
+        assertNull(store.periodSummaryKind())
+    }
 }

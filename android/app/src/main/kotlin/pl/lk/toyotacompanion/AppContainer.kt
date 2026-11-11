@@ -375,6 +375,8 @@ class AppContainer(
                 budgetController.refresh()
                 // The month's budget may have crossed a threshold with the new trips (PRD F49, docs/SPEC.md §49).
                 budgetAlertNotifier.onSyncOutcome(outcome)
+                // The last completed week or month, once (PRD F54, docs/SPEC.md §54).
+                periodSummaryNotifier.onSyncOutcome(outcome)
                 // New trips get their weather without a tap (docs/SPEC.md §23).
                 weatherController.autoFetch()
             }
@@ -602,6 +604,26 @@ class AppContainer(
      * Triggered by a successful sync and by an expense change; reuses the existing notification permission and
      * never touches the network or the car.
      */
+    /** The period summary notification (PRD F54, docs/SPEC.md §54): the archive and the expenses, read on IO; the setting is in `settings`. */
+    private val periodSummaryNotifier: pl.lk.toyotacompanion.notify.PeriodSummaryNotifier by lazy {
+        pl.lk.toyotacompanion.notify.PeriodSummaryNotifier(
+            context = context,
+            readTrips = tripsLoader,
+            readExpenses = { database.expenseDao().all().map { it.toExpense() }.map { it.date to it.amount } },
+            period = { settingsStore.periodSummaryKind() },
+            lastKey = { settingsStore.lastPeriodSummary() },
+            markSent = { settingsStore.saveLastPeriodSummary(it) },
+        )
+    }
+
+    /** The owner's choice in "Opcje" for the period summary (PRD F54). */
+    val periodSummarySettings: pl.lk.toyotacompanion.ui.PeriodSummarySettings by lazy {
+        pl.lk.toyotacompanion.ui.PeriodSummarySettings(
+            read = { settingsStore.periodSummaryKind() },
+            save = { settingsStore.savePeriodSummaryKind(it) },
+        )
+    }
+
     private val budgetAlertNotifier: pl.lk.toyotacompanion.notify.BudgetAlertNotifier by lazy {
         pl.lk.toyotacompanion.notify.BudgetAlertNotifier(
             context = context,

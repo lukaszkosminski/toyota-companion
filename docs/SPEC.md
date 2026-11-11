@@ -1288,3 +1288,22 @@ Ekran: karta „Najlepsza godzina wyjazdu” w „Stylu jazdy”, zaraz pod „T
   Odmiana „przejazd / przejazdy / przejazdów”. Liczby przez `TripsFormatting.number`/`count`.
 - **Poza zakresem:** prognoza ruchu i pogody, sezon, powiadomienia, zapisywanie wyników, zmiana progów F12.
 - **Prywatność:** czasy, dystanse i paliwo z archiwum; współrzędne tylko do dopasowania odcinka w pamięci (jak F12); karta nie pokazuje dat ani godzin pojedynczych tras.
+
+## §54 Podsumowanie okresu w powiadomieniu (PRD F54)
+Plan: `briefs/toyota-companion/C35-plan.md`. Domena: `core/domain/PeriodSummaryOps.kt` (`lastCompletedWindow`, `previousWindow`, `periodTotals`, `percentChangeOf`,
+`summaryDecision`) z lustrem `backend/app/domain/period_summary.py` (te same nazwy testów). Powiadomienie: `notify/PeriodSummaryNotifier.kt`; wybór: `ui/PeriodSummarySettings.kt`
+i karta w „Opcjach”; treść: `ui/PeriodSummaryFormatting.kt`. Ustawienia: `period_summary` (`WEEK`, `MONTH`, brak = wyłączone) i `period_summary_last` w `SettingsStore`.
+- **Okres:** tydzień od poniedziałku do niedzieli albo miesiąc kalendarzowy, w strefie telefonu. Raportowany jest tylko **ostatni zakończony** okres; okres bieżący nigdy.
+- **Klucz:** `week:RRRR-MM-DD` (poniedziałek tygodnia) albo `month:RRRR-MM`. Tydzień jest nazwany poniedziałkiem, nie numerem ISO, więc przełom roku (tydzień 53/1) nie wymaga szczególnej obsługi.
+- **Wyzwalacz:** wyłącznie po udanej synchronizacji (`SyncOutcome.Ok`) w `syncRunner`, bez własnego alarmu. Klucz zapisywany **po** udanym `post`.
+- **Decyzja** (`summaryDecision`): wyłączone – nic; brak klucza – tylko zapis klucza (baseline, nic nie wysyłane); ten sam klucz – nic; godzina poza 8–22 – czeka (klucz nie zapisany);
+  w przeciwnym razie – wysyła ostatni zakończony okres. Zmiana okresu w „Opcjach” kasuje klucz, więc nowy okres zaczyna od baseline.
+- **Pusty okres** (bez tras i bez wydatków) jest pomijany z zapisem klucza, bez powiadomienia; okres z samym wydatkiem jest raportowany z kosztem.
+- **Liczby:** trasa należy do dnia swojego startu w strefie telefonu; km i litry z tras o dodatnim dystansie i paliwie ≥ 0; l/100 km = Σ litrów × 100 / Σ km;
+  udział jazdy na prądzie = Σ km na prądzie / Σ km tras z danymi o prądzie (jak §16); koszt paliwa tylko z tras z ceną, `null` (nie 0 zł) bez żadnej.
+- **Treść:** zwięzła linia: „412 km · 58 zł · 4,6 l/100 km · 38 % na prądzie”, tytuł „Tydzień 2–8.11” albo „Październik 2026”. Kwoty w całych złotych, z części
+  zaokrąglonych osobno (paliwo + wydatki), więc suma zgadza się z rozbiciem. W rozwinięciu (BigTextStyle): rozbicie „Paliwo 41 zł · wydatki 17 zł” i porównanie
+  „Wobec poprzedniego tygodnia: km +12 %, koszt -5 %” (tylko gdy poprzedni okres ma dane).
+- **Kanał** „Podsumowanie okresu” (`summary`, `IMPORTANCE_LOW`, ID 902). Wyciszony kanał nie zużywa okresu. Bez `POST_NOTIFICATIONS` nic nie jest oznaczane.
+- **Współbieżność i I/O:** jak C29 – `Mutex` wokół całej decyzji, klucz czytany w blokadzie, ustawienia, archiwum i `post` na `Dispatchers.IO`.
+- **Prywatność:** tylko zagregowane liczby i daty okresu; bez VIN, GPS i nazw miejsc; bez sieci i budzenia auta; bez nowego uprawnienia i bez Room.

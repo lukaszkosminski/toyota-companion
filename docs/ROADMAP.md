@@ -1,6 +1,7 @@
 # Roadmap
 
 ## DONE
+- Podsumowanie okresu w powiadomieniu (F54, SPEC §54, plan C35): raz po zakończonym tygodniu (pon.–nd.) albo miesiącu, pierwsza synchronizacja po jego końcu, między 8:00 a 22:00; km, koszt (paliwo i wydatki), l/100 km, udział prądu i porównanie z poprzednim okresem w rozwinięciu; domyślnie wyłączone; tylko lokalne archiwum
 - Najlepsza godzina wyjazdu (F53, SPEC §53, plan C34): w „Stylu jazdy” pod „Ten sam odcinek” do 5 najczęstszych odcinków z ≥ 5 przejazdami; mediana czasu przejazdu i l/100 km (Σ litrów / Σ km) wg pasma godziny startu (5–7 … 18–21, noc 21–5) i dnia (robocze, weekend); komórka od 3 przejazdów, wniosek od 2 komórek; czas lokalny strefy listy; tylko lokalne archiwum
 - Kalkulator kosztu planowanej trasy (F52, SPEC §52, plan C33): przedział litrów i zł z pasm tempa F19 i z własnego archiwum; bez temperatury i sezonu (wersja 2, F24)
 - Narzędzia jakości i CI (ruff, mypy, pytest, gitleaks)
@@ -84,7 +85,6 @@
 - Propozycje zaakceptowane przez właściciela 2026-11-10 (tylko dane lokalne i już używane źródła, bez budzenia auta);
   każda dostaje numer F, wpis w PRD/SPEC i plan przed kodem, w tej kolejności:
   1. (zrobione jako F52, bez temperatury – patrz DONE) Kalkulator kosztu planowanej trasy
-  4. Tygodniowe lub miesięczne podsumowanie w powiadomieniu: km, koszt, udział prądu, porównanie z poprzednim okresem
   6. Stacja przy tankowaniu: marka lub nazwa, średnia cena i faktyczne spalanie wg stacji
   7. Import historii tankowań i wydatków z CSV innych aplikacji (Fuelio, Drivvo)
   8. Zdjęcie paragonu przy tankowaniu lub wydatku (bez OCR; do decyzji, czy zdjęcia wchodzą do kopii archiwum)

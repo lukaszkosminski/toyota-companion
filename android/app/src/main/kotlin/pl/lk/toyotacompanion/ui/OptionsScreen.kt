@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import java.math.BigDecimal
+import pl.lk.toyotacompanion.core.domain.SummaryPeriod
 
 /** "Opcje": settings of the app itself: the language, applied at once and remembered, the default fuel price (§12.3) and the app update (§37). */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,6 +35,8 @@ fun OptionsScreen(
     onShowDefaultPrice: () -> Unit,
     budgetAlert: Boolean,
     onSetBudgetAlert: (Boolean) -> Unit,
+    periodSummary: SummaryPeriod?,
+    onSetPeriodSummary: (SummaryPeriod?) -> Unit,
     onBack: () -> Unit,
 ) {
     BackHandler(onBack = onBack)
@@ -73,6 +76,29 @@ fun OptionsScreen(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Switch(checked = budgetAlert, onCheckedChange = onSetBudgetAlert)
                     Text(Texts.BUDGET_ALERT_SETTING_SWITCH, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                }
+            }
+            // The period summary notification (PRD F54, docs/SPEC.md §54): off by default; the period is a week or a month.
+            DashboardCard(Texts.PERIOD_SUMMARY_TITLE, AppIcons.Info) {
+                Text(
+                    Texts.PERIOD_SUMMARY_HINT,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Switch(checked = periodSummary != null, onCheckedChange = { on -> onSetPeriodSummary(if (on) SummaryPeriod.WEEK else null) })
+                    Text(Texts.PERIOD_SUMMARY_SWITCH, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                }
+                if (periodSummary != null) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        for (kind in SummaryPeriod.entries) {
+                            FilterChip(
+                                selected = periodSummary == kind,
+                                onClick = { onSetPeriodSummary(kind) },
+                                label = { Text(Texts.periodKindName(kind)) },
+                            )
+                        }
+                    }
                 }
             }
             DashboardCard(Texts.UPDATE_TITLE, AppIcons.SystemUpdate) {

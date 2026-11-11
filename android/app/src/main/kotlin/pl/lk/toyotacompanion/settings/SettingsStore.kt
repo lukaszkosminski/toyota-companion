@@ -4,6 +4,7 @@ import android.content.SharedPreferences
 import androidx.core.content.edit
 import java.math.BigDecimal
 import java.time.Instant
+import pl.lk.toyotacompanion.core.domain.SummaryPeriod
 
 /**
  * The phone's own settings, kept in the SharedPreferences file `settings`
@@ -149,6 +150,31 @@ class SettingsStore(private val prefs: SharedPreferences) {
         prefs.edit { putString(KEY_BUDGET_ALERT_LAST, key) }
     }
 
+    /**
+     * The period summary (PRD F54, docs/SPEC.md §54): `WEEK`, `MONTH`, or `null` when it is off (the default). A phone setting, like the budget.
+     * A change of the period drops the remembered key, so the new period starts from a baseline and sends nothing at once.
+     */
+    fun periodSummaryKind(): SummaryPeriod? = try {
+        prefs.getString(KEY_PERIOD_SUMMARY, null)?.let { SummaryPeriod.valueOf(it) }
+    } catch (e: IllegalArgumentException) {
+        null
+    }
+
+    fun savePeriodSummaryKind(kind: SummaryPeriod?) {
+        if (kind == periodSummaryKind()) return
+        prefs.edit {
+            if (kind == null) remove(KEY_PERIOD_SUMMARY) else putString(KEY_PERIOD_SUMMARY, kind.name)
+            remove(KEY_PERIOD_SUMMARY_LAST)
+        }
+    }
+
+    /** The key (`week:2026-11-02` or `month:2026-10`) of the last summary handled, sent or passed over (docs/SPEC.md §54). */
+    fun lastPeriodSummary(): String? = prefs.getString(KEY_PERIOD_SUMMARY_LAST, null)
+
+    fun saveLastPeriodSummary(key: String) {
+        prefs.edit { putString(KEY_PERIOD_SUMMARY_LAST, key) }
+    }
+
     /** Month (`YYYY-MM`) of the last "consumption keeps rising" notification (docs/SPEC.md §31). */
     fun lastConsumptionAlert(): String? = prefs.getString(KEY_ALERT, null)
 
@@ -235,6 +261,8 @@ class SettingsStore(private val prefs: SharedPreferences) {
         const val KEY_MONTHLY_BUDGET = "monthly_budget"
         const val KEY_BUDGET_ALERT = "budget_alert"
         const val KEY_BUDGET_ALERT_LAST = "budget_alert_last"
+        const val KEY_PERIOD_SUMMARY = "period_summary"
+        const val KEY_PERIOD_SUMMARY_LAST = "period_summary_last"
         const val KEY_ALERT = "consumption_alert"
         const val KEY_NOTIFIED_REFUELS = "refuel_notified_ids"
         const val KEY_NOTIFICATIONS_ASKED = "notifications_asked"

@@ -55,6 +55,7 @@ fun AppRoot(
     declared: DeclaredConsumptionController,
     ecoGoals: EcoGoalsController,
     budget: BudgetController,
+    periodSummary: PeriodSummarySettings,
     backfill: RouteBackfillController,
     heat: RouteHeatController,
     expenses: ExpensesController,
@@ -82,6 +83,7 @@ fun AppRoot(
     val declaredState by declared.state.collectAsState()
     val ecoGoalsState by ecoGoals.state.collectAsState()
     val budgetState by budget.state.collectAsState()
+    val periodSummaryState by periodSummary.state.collectAsState()
     val heatState by heat.state.collectAsState()
     var screen by rememberSaveable { mutableStateOf(Screen.Status) }
     // The status screen is left for every tile and left in composition each time, so its scroll position lives here: coming back from
@@ -295,6 +297,8 @@ fun AppRoot(
                         onShowDefaultPrice = { screen = Screen.DefaultPrice },
                         budgetAlert = budgetState.alertEnabled,
                         onSetBudgetAlert = budget::setAlert,
+                        periodSummary = periodSummaryState,
+                        onSetPeriodSummary = periodSummary::set,
                         onBack = { screen = Screen.Status },
                     )
                     Screen.Expenses -> ExpensesScreen(

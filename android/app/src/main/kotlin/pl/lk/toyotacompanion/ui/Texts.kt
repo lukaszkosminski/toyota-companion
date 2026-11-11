@@ -608,6 +608,42 @@ object Texts {
     fun consumptionFalling(change: String): String = Lang.pick("Trend: ↘ malejące ($change %)", "Trend: ↘ falling ($change %)")
     fun consumptionSteady(change: String): String = Lang.pick("Trend: → stabilne ($change %)", "Trend: → steady ($change %)")
 
+    // Podsumowanie okresu w powiadomieniu (PRD F54, docs/SPEC.md §54).
+
+    val PERIOD_SUMMARY_CHANNEL: String get() = Lang.pick("Podsumowanie okresu", "Period summary")
+    val PERIOD_SUMMARY_TITLE: String get() = Lang.pick("Podsumowanie okresu", "Period summary")
+    val PERIOD_SUMMARY_SWITCH: String get() = Lang.pick("Powiadamiaj o podsumowaniu", "Notify with the summary")
+    val PERIOD_SUMMARY_HINT: String get() = Lang.pick(
+        "Jedno powiadomienie po zakończeniu tygodnia albo miesiąca, od 8:00 do 22:00, przy synchronizacji. Wymaga włączonych powiadomień aplikacji.",
+        "One notification when a week or a month is over, between 8:00 and 22:00, at a synchronization. Requires the app's notifications to be on.",
+    )
+
+    fun periodKindName(kind: pl.lk.toyotacompanion.core.domain.SummaryPeriod): String = when (kind) {
+        pl.lk.toyotacompanion.core.domain.SummaryPeriod.WEEK -> Lang.pick("Tydzień", "Week")
+        pl.lk.toyotacompanion.core.domain.SummaryPeriod.MONTH -> Lang.pick("Miesiąc", "Month")
+    }
+
+    /** `Tydzień 2–8.11`. */
+    fun periodWeekTitle(range: String): String = Lang.pick("Tydzień $range", "Week $range")
+
+    /** The word for the cost in the comparison line: `koszt` / `cost`. */
+    val PERIOD_COST_WORD: String get() = Lang.pick("koszt", "cost")
+
+    fun periodEvShare(percent: String): String = Lang.pick("$percent % na prądzie", "$percent % on battery")
+
+    /** `Paliwo 41 zł · wydatki 17 zł` (the expanded notification). */
+    fun periodBreakdown(fuel: String, expenses: String): String = Lang.pick(
+        "Paliwo $fuel · wydatki $expenses",
+        "Fuel $fuel · expenses $expenses",
+    )
+
+    /** `Wobec poprzedniego tygodnia: km +12 %, koszt -5 %`; [parts] are the changes that could be computed. */
+    fun periodVersus(week: Boolean, parts: String): String = if (week) {
+        Lang.pick("Wobec poprzedniego tygodnia: $parts", "Compared with the previous week: $parts")
+    } else {
+        Lang.pick("Wobec poprzedniego miesiąca: $parts", "Compared with the previous month: $parts")
+    }
+
     // Najlepsza godzina wyjazdu (PRD F53, docs/SPEC.md §53).
 
     val BEST_TIME_TITLE: String get() = Lang.pick("Najlepsza godzina wyjazdu", "Best time to leave")

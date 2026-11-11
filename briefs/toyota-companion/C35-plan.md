@@ -100,3 +100,19 @@ oraz `source ~/Android/env.sh && cd android && ./gradlew --no-daemon -q :core:te
 4. Okres bez synchronizacji przez kilka tygodni: raportować tylko ostatni zakończony (proponowane) czy każdy zaległy?
 5. Koszt w treści: sam paliwo, czy paliwo plus wydatki (proponowane, spójnie z budżetem)?
 6. Zmiana wyboru okresu w połowie: baseline bez wysyłania (proponowane) – akceptujesz?
+
+## 10. Korekty przy implementacji (2026-11-11)
+
+Odpowiedzi właściciela: domyślnie wyłączone; cisza 8–22; kanał `IMPORTANCE_LOW`; tylko ostatni zakończony okres; koszt = paliwo plus wydatki z rozbiciem; zmiana okresu = baseline.
+Krytyczna ocena planu przed kodem:
+
+- **Klucz tygodnia:** plan mówił o `RRRR-Www` (ISO). Zamiast tego klucz to **poniedziałek tygodnia** (`week:2026-11-02`): nie trzeba liczyć numeru ISO, a tydzień 53/1 nie jest
+  przypadkiem szczególnym. Testy: `the_week_key_is_its_monday_so_the_year_boundary_needs_no_iso_week`.
+- **Cisza nocna:** poza 8–22 decyzja to `Wait`, czyli klucz nie jest zapisany. Plan tego nie precyzował; bez tego raport o 23:00 zostałby oznaczony jako wysłany.
+- **Zmiana okresu:** zapis kasuje klucz (w `SettingsStore`), a nie notifier, więc każde miejsce, które zmienia okres, dostaje baseline bez dodatkowej logiki.
+- **Pusty okres:** plan milczał. Okres bez danych jest pomijany z zapisem klucza, żeby nie był sprawdzany przy każdej synchronizacji.
+- **Zaokrąglenia:** kwoty w całych złotych liczone z części zaokrąglonych osobno (paliwo + wydatki), żeby suma zgadzała się z rozbiciem.
+- **Dwie linie:** skrócona linia jest w treści, a rozbicie i porównanie tylko w BigTextStyle (rozwinięcie), zgodnie z decyzją właściciela.
+- **Implementacja:** `core/domain/PeriodSummaryOps.kt` + test (17), `backend/app/domain/period_summary.py` + test (17, te same nazwy),
+  `notify/PeriodSummaryNotifier.kt` + Robolectric (11), `ui/PeriodSummaryFormatting.kt` + test (8), `ui/PeriodSummarySettings.kt`, karta w `OptionsScreen.kt`,
+  `SettingsStore.kt` (+ test w `SettingsStoreTest`), `AppContainer.kt`, `AppRoot.kt`, `MainActivity.kt`, `Texts.kt`.

@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Podsumowanie okresu w powiadomieniu (F54, SPEC §54, plan C35): domyślnie wyłączone; po wyborze tygodnia albo miesiąca jedno powiadomienie za ostatni zakończony okres, przy pierwszej synchronizacji po jego końcu, między 8:00 a 22:00 (km, koszt paliwa i wydatków, l/100 km, udział prądu, w rozwinięciu rozbicie i porównanie z poprzednim okresem); pierwszy start i zmiana okresu tylko zapamiętują okres; kanał niskiego priorytetu; tylko lokalne archiwum
 - Najlepsza godzina wyjazdu (F53, SPEC §53, plan C34): w „Stylu jazdy” pod „Ten sam odcinek” do 5 najczęstszych odcinków z co najmniej 5 przejazdami: mediana czasu przejazdu i l/100 km wg pasma godziny startu (5–7 … 18–21, noc 21–5) i dnia (robocze, weekend); wniosek „najszybciej / najwolniej” od 2 komórek; tylko lokalne archiwum
 
 ## 0.2.8 (2026-11-10)
