@@ -18,6 +18,7 @@ import pl.lk.toyotacompanion.core.data.TripRecord
 import pl.lk.toyotacompanion.core.domain.CostSource
 import pl.lk.toyotacompanion.core.domain.Trip
 import pl.lk.toyotacompanion.core.domain.TripCost
+import pl.lk.toyotacompanion.settings.CarValuation
 
 private val ZONE: ZoneId = ZoneId.of("Europe/Warsaw")
 private val TODAY: LocalDate = LocalDate.of(2026, 11, 8)
@@ -151,5 +152,112 @@ class YearOwnershipTest {
         val state = controller.state.value
         assertBd("1456.50", state.ownership?.cost?.totalPln)
         assertBd("965.00", state.previousOwnership?.cost?.totalPln)
+    }
+}
+
+/** PRD F55, docs/SPEC.md §55: the owner's estimate as its own rows next to the cash of F38. */
+class CarValueLossYearTest {
+
+    private val valuation = CarValuation(
+        purchasePln = bd("100000"),
+        purchaseDate = LocalDate.of(2025, 7, 1),
+        valuePln = bd("50000"),
+        valueDate = LocalDate.of(2026, 7, 1),
+    )
+
+    @Test
+    fun `the loss of the year is straight-line in days and stops at the valuation`() {
+        val own = requireNotNull(yearOwnership(TRIPS, EXPENSES, 2026, ZONE, TODAY, valuation))
+        // 50 000 zl over 365 days; 181 of them fall in 2026 (1 January to 1 July).
+        assertBd("24794.52", own.cost.valueLossPln)
+        assertBd("52.75", own.cost.valueLossPerKmPln)
+        assertBd("26251.02", own.cost.totalWithLossPln)
+        assertBd("55.85", own.cost.totalWithLossPerKmPln)
+        // The cash stays exactly as in F38.
+        assertBd("1456.50", own.cost.totalPln)
+        assertBd("3.10", own.cost.perKmPln)
+
+        val before = requireNotNull(yearOwnership(TRIPS, EXPENSES, 2025, ZONE, TODAY, valuation))
+        assertBd("25205.48", before.cost.valueLossPln)
+        val after = yearOwnership(TRIPS, EXPENSES, 2027, ZONE, TODAY, valuation)
+        assertTrue(after == null || after.cost.valueLossPln?.signum() == 0)
+    }
+
+    @Test
+    fun `the lines add the estimate and the total with it, and the cash change stays last`() {
+        val own = requireNotNull(yearOwnership(TRIPS, EXPENSES, 2026, ZONE, TODAY, valuation))
+        val before = yearOwnership(TRIPS, EXPENSES, 2025, ZONE, TODAY, valuation)
+
+        val lines = ownershipLines(own, before)
+
+        assertEquals(
+            "Utrata wartości (szacunek): ${TripsFormatting.money(bd("24794.52"))} (${TripsFormatting.money(bd("52.75"))}/km)",
+            lines[4],
+        )
+        assertEquals(
+            "Z utratą wartości: ${TripsFormatting.money(bd("26251.02"))} (${TripsFormatting.money(bd("55.85"))}/km)",
+            lines[5],
+        )
+        assertEquals("Koszt całkowity wobec poprzedniego roku: +51 %", lines.last())
+        assertTrue(lines.none { "szacunek" !in it && "Utrata wartości" in it })
+    }
+
+    @Test
+    fun `a year with only the loss still gets the card and no monthly average`() {
+        val own = requireNotNull(yearOwnership(emptyList(), emptyList(), 2025, ZONE, TODAY, valuation))
+
+        assertEquals(0, own.months)
+        assertNull(own.cost.perMonthPln)
+        assertBd("0", own.cost.totalPln)
+        assertBd("25205.48", own.cost.valueLossPln)
+        val lines = ownershipLines(own, null)
+        assertTrue(lines.none { "Średnio" in it }, lines.toString())
+        assertTrue(lines.any { it.startsWith("Z utratą wartości: ") }, lines.toString())
+    }
+
+    @Test
+    fun `the shared text carries both rows and calls the loss an estimate`() {
+        val own = requireNotNull(yearOwnership(TRIPS, EXPENSES, 2026, ZONE, TODAY, valuation))
+        val summary = requireNotNull(yearSummary(TRIPS, 2026, ZONE))
+
+        val text = yearSummaryShareText(summary, null, ZONE, own, null)
+
+        assertTrue(text.contains("Utrata wartości (szacunek): "), text)
+        assertTrue(text.contains("Z utratą wartości: "), text)
+    }
+
+    @Test
+    fun `an old valuation is marked stale but still used`() {
+        val old = CarValuation(
+            purchasePln = bd("100000"),
+            purchaseDate = LocalDate.of(2024, 1, 1),
+            valuePln = bd("80000"),
+            valueDate = LocalDate.of(2025, 1, 1),
+        )
+        val stale = requireNotNull(yearOwnership(emptyList(), emptyList(), 2024, ZONE, TODAY, old))
+        assertTrue(stale.valuationStale)
+        assertEquals(LocalDate.of(2025, 1, 1), stale.valuationDate)
+        assertBd("20000.00", stale.cost.valueLossPln)
+
+        val fresh = requireNotNull(yearOwnership(emptyList(), emptyList(), 2026, ZONE, TODAY, valuation))
+        assertTrue(!fresh.valuationStale)
+    }
+
+    @Test
+    fun `the controller reads the valuation with the trips and expenses`() = runTest {
+        val controller = YearSummaryController(
+            read = { TRIPS },
+            zone = { ZONE },
+            readExpenses = { EXPENSES },
+            readValuation = { valuation },
+            today = { TODAY },
+            scope = CoroutineScope(SupervisorJob() + StandardTestDispatcher(testScheduler)),
+            io = StandardTestDispatcher(testScheduler),
+        )
+
+        controller.load(2026)
+        advanceUntilIdle()
+
+        assertBd("24794.52", controller.state.value.ownership?.cost?.valueLossPln)
     }
 }

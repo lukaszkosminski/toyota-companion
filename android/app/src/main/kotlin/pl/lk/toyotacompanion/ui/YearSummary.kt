@@ -11,6 +11,8 @@ import pl.lk.toyotacompanion.core.domain.co2Kg
 import pl.lk.toyotacompanion.core.domain.ownershipCost
 import pl.lk.toyotacompanion.core.domain.ownershipMonths
 import pl.lk.toyotacompanion.core.domain.toBigDecimal
+import pl.lk.toyotacompanion.core.domain.valueLossInYear
+import pl.lk.toyotacompanion.settings.CarValuation
 
 /**
  * One year of driving on one page (docs/SPEC.md §29): totals, the best, worst and dearest month and the change against the
@@ -137,33 +139,54 @@ fun yearSummaryLines(summary: YearSummary, previous: YearSummary?, zone: ZoneId)
  * Fuel and everything else the car cost in one year (PRD F38, docs/SPEC.md §39): the fuel of the priced trips of [summary]
  * plus the expenses dated in that year, averaged over the months from the first trip or expense of the year to December (to
  * [today]'s month in the current year). [topCategories] are the three biggest expense categories of the year.
+ * [valuationDate] and [valuationStale] describe the owner's estimate (PRD F55, docs/SPEC.md §55); the loss itself sits in
+ * [OwnershipCost] apart from the cash.
  */
-data class YearOwnership(val cost: OwnershipCost, val months: Int, val topCategories: List<CategoryTotal>)
+data class YearOwnership(
+    val cost: OwnershipCost,
+    val months: Int,
+    val topCategories: List<CategoryTotal>,
+    val valuationDate: LocalDate? = null,
+    val valuationStale: Boolean = false,
+)
 
 /** Number of expense categories listed under the total cost (docs/SPEC.md §39). */
 const val OWNERSHIP_TOP_CATEGORIES = 3
 
-/** The total cost of [year]; `null` when the year has neither a priced trip nor an expense. */
+/**
+ * The total cost of [year]; `null` when the year has neither a priced trip, an expense, nor a value loss. [valuation] is
+ * the phone setting of PRD F55: its loss of the year is added to the cash in its own fields, never to the expense list.
+ */
 fun yearOwnership(
     trips: List<StoredTrip>,
     expenses: List<Expense>,
     year: Int,
     zone: ZoneId,
     today: LocalDate,
+    valuation: CarValuation? = null,
 ): YearOwnership? {
     val summary = yearSummary(trips, year, zone)
     val ofYear = expenses.filter { it.date.year == year }
     val tripMonths = trips.map { it.record.trip.start.atZone(zone) }.filter { it.year == year }.map { it.monthValue }
-    val firstMonth = (tripMonths + ofYear.map { it.date.monthValue }).minOrNull() ?: return null
+    val firstMonth = (tripMonths + ofYear.map { it.date.monthValue }).minOrNull()
     val spent = ofYear.fold(BigDecimal.ZERO) { sum, e -> sum.add(e.amount) }
-    val months = ownershipMonths(year, firstMonth, today.year, today.monthValue)
+    // A year with only the loss keeps the card; without a first month there is no monthly average of cash either.
+    val months = firstMonth?.let { ownershipMonths(year, it, today.year, today.monthValue) } ?: 0
+    val loss = valuation?.let { valueLossInYear(it.purchasePln, it.purchaseDate, it.valuePln, it.valueDate, year) }
     val cost = ownershipCost(
         fuelCost = summary?.costPln,
         distanceKm = summary?.distanceKm ?: BigDecimal.ZERO,
         expenses = spent,
         months = months,
+        valueLossPln = loss,
     ) ?: return null
-    return YearOwnership(cost, months, categoryTotals(ofYear).take(OWNERSHIP_TOP_CATEGORIES))
+    return YearOwnership(
+        cost = cost,
+        months = months,
+        topCategories = categoryTotals(ofYear).take(OWNERSHIP_TOP_CATEGORIES),
+        valuationDate = valuation?.valueDate,
+        valuationStale = valuation?.valueDate?.isBefore(today.minusMonths(12)) == true,
+    )
 }
 
 /** The total-cost lines of the page and of the shared text (docs/SPEC.md §39); empty without [ownership]. */
@@ -186,6 +209,14 @@ fun ownershipLines(ownership: YearOwnership?, previous: YearOwnership?): List<St
             ownership.topCategories.joinToString(", ") { Texts.expenseCategoryName(it.category) + " " + TripsFormatting.money(it.total) },
         )
     }
+    // The estimate is a separate row: it never joins the fuel and expense split above (PRD F55, docs/SPEC.md §55).
+    cost.valueLossPln?.let {
+        lines += Texts.ownershipValueLoss(TripsFormatting.money(it), cost.valueLossPerKmPln?.let { km -> TripsFormatting.money(km) })
+    }
+    cost.totalWithLossPln?.let {
+        lines += Texts.ownershipWithLoss(TripsFormatting.money(it), cost.totalWithLossPerKmPln?.let { km -> TripsFormatting.money(km) })
+    }
+    // The change stays about cash, like the total cost of PRD F38.
     if (previous != null) percentChange(cost.totalPln, previous.cost.totalPln)?.let { lines += Texts.ownershipVersus(it) }
     return lines
 }

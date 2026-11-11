@@ -134,6 +134,10 @@ data class OwnershipCost(
     val per100KmPln: BigDecimal?,
     val perMonthPln: BigDecimal?,
     val fuelSharePct: BigDecimal?,
+    val valueLossPln: BigDecimal? = null,
+    val valueLossPerKmPln: BigDecimal? = null,
+    val totalWithLossPln: BigDecimal? = null,
+    val totalWithLossPerKmPln: BigDecimal? = null,
 )
 
 /** Bucket of a day by its mean temperature (PRD F15). `label` is the string the domain reports. */

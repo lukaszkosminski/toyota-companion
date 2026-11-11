@@ -2,7 +2,7 @@
 
 A private companion app for Android for a hybrid Toyota in Europe. It reads data from the MyToyota account through the unofficial API (the Toyota client is a Kotlin port of [pytoyoda](https://github.com/pytoyoda/pytoyoda) v6.0.0), archives trips indefinitely, calculates the fuel cost of every trip and shows consumption, statistics and weather. It was built for one owner of one car (PRD §3) and runs entirely on the phone, with no server of its own.
 
-The source of truth is the documents in [`docs/`](docs/), which are written in Polish: the [PRD](docs/PRD.md) (features F1–F53) and the [SPEC](docs/SPEC.md) (acceptance criteria). The description below is a short summary; where they differ, the docs win. The app itself is in Polish, with an English UI language available in "Opcje" (Options).
+The source of truth is the documents in [`docs/`](docs/), which are written in Polish: the [PRD](docs/PRD.md) (features F1–F55) and the [SPEC](docs/SPEC.md) (acceptance criteria). The description below is a short summary; where they differ, the docs win. The app itself is in Polish, with an English UI language available in "Opcje" (Options).
 
 ## Features
 
@@ -39,6 +39,7 @@ The source of truth is the documents in [`docs/`](docs/), which are written in P
 ### Expenses
 - Non-fuel expenses (service, inspection, tyres, insurance, parts, car wash, fees, other) with a date that can be in the past, and totals per category and month (F37, SPEC §38, ADR-018). Local only.
 - Total cost of ownership in the year summary: fuel plus expenses, per km, per 100 km and per month (F38, SPEC §39, ADR-020).
+- Depreciation in the year summary: the purchase price, purchase date, estimated value and its date typed in Options; a straight-line loss in days as a separate estimate next to the cash, never mixed with the expenses (F55, SPEC §55).
 
 ### Widget and Android Auto
 - Home screen widget: average consumption, trend, default price, refuel forecast and the eco goal line (F31, SPEC §32).

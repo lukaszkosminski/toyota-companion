@@ -12,11 +12,19 @@ private val HUNDRED = BigDecimal(100)
  * trip of the period has a price. Money is rounded to 0.01 zł and the fuel share to a whole percent, all HALF_UP.
  * Negative [expenses] are a programming error (the form only takes positive amounts).
  */
-fun ownershipCost(fuelCost: BigDecimal?, distanceKm: BigDecimal, expenses: BigDecimal, months: Int): OwnershipCost? {
+fun ownershipCost(
+    fuelCost: BigDecimal?,
+    distanceKm: BigDecimal,
+    expenses: BigDecimal,
+    months: Int,
+    valueLossPln: BigDecimal? = null,
+): OwnershipCost? {
     val expensesPln = roundMoney(expenses)
     require(expensesPln.signum() >= 0) { "expenses must not be negative" }
+    val loss = valueLossPln?.let { roundMoney(it) }
+    require(loss == null || loss.signum() >= 0) { "value loss must not be negative" }
     val fuelPln = fuelCost?.let { roundMoney(it) }
-    if ((fuelPln == null || fuelPln.signum() <= 0) && expensesPln.signum() == 0) return null
+    if ((fuelPln == null || fuelPln.signum() <= 0) && expensesPln.signum() == 0 && (loss == null || loss.signum() <= 0)) return null
     val total = (fuelPln ?: BigDecimal.ZERO).add(expensesPln)
     val km = distanceKm
     val perKm = if (km.signum() > 0) roundMoney(total.divideLikePythonDecimal(km)) else null
@@ -27,6 +35,7 @@ fun ownershipCost(fuelCost: BigDecimal?, distanceKm: BigDecimal, expenses: BigDe
     } else {
         null
     }
+    val totalWithLoss = loss?.let { total.add(it) }
     return OwnershipCost(
         totalPln = total,
         fuelPln = fuelPln ?: BigDecimal.ZERO,
@@ -35,6 +44,10 @@ fun ownershipCost(fuelCost: BigDecimal?, distanceKm: BigDecimal, expenses: BigDe
         per100KmPln = per100,
         perMonthPln = perMonth,
         fuelSharePct = share,
+        valueLossPln = loss,
+        valueLossPerKmPln = if (loss != null && km.signum() > 0) roundMoney(loss.divideLikePythonDecimal(km)) else null,
+        totalWithLossPln = totalWithLoss,
+        totalWithLossPerKmPln = if (totalWithLoss != null && km.signum() > 0) roundMoney(totalWithLoss.divideLikePythonDecimal(km)) else null,
     )
 }
 

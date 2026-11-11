@@ -4,6 +4,7 @@ import android.content.SharedPreferences
 import androidx.core.content.edit
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.LocalDate
 import pl.lk.toyotacompanion.core.domain.SummaryPeriod
 
 /**
@@ -121,6 +122,63 @@ class SettingsStore(private val prefs: SharedPreferences) {
     /** Stores the budget in zł; `null` removes it. Deciding the rounding is the caller's job. */
     fun saveMonthlyBudget(value: BigDecimal?) {
         prefs.edit { if (value == null) remove(KEY_MONTHLY_BUDGET) else putString(KEY_MONTHLY_BUDGET, value.toPlainString()) }
+    }
+
+    /**
+     * The owner's valuation of the car (PRD F55, docs/SPEC.md §55): purchase price and date, value
+     * and its date. `null` when any of the four is missing, garbage, of the wrong type, or the
+     * numbers/dates contradict each other - read as "no valuation", like a garbage monthly budget.
+     * A phone setting: plain text, survives logging out and reaches Auto Backup (ADR-006).
+     */
+    fun carValuation(): CarValuation? {
+        val purchaseText = stringSetting(KEY_CAR_PURCHASE)?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        val purchaseDateText = stringSetting(KEY_CAR_PURCHASE_DATE)?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        val valueText = stringSetting(KEY_CAR_VALUE)?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        val valueDateText = stringSetting(KEY_CAR_VALUE_DATE)?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        val purchase = parsePositiveAmount(purchaseText) ?: return null
+        val value = parseAmount(valueText) ?: return null
+        val purchaseDate = parseDate(purchaseDateText) ?: return null
+        val valueDate = parseDate(valueDateText) ?: return null
+        if (purchase.signum() <= 0 || value.signum() < 0 || valueDate.isBefore(purchaseDate)) return null
+        return CarValuation(purchase, purchaseDate, value, valueDate)
+    }
+
+    /** Stores the valuation; `null` removes all four keys. Deciding the rounding is the caller's job. */
+    fun saveCarValuation(valuation: CarValuation?) {
+        prefs.edit {
+            if (valuation == null) {
+                remove(KEY_CAR_PURCHASE)
+                remove(KEY_CAR_PURCHASE_DATE)
+                remove(KEY_CAR_VALUE)
+                remove(KEY_CAR_VALUE_DATE)
+            } else {
+                putString(KEY_CAR_PURCHASE, valuation.purchasePln.toPlainString())
+                putString(KEY_CAR_PURCHASE_DATE, valuation.purchaseDate.toString())
+                putString(KEY_CAR_VALUE, valuation.valuePln.toPlainString())
+                putString(KEY_CAR_VALUE_DATE, valuation.valueDate.toString())
+            }
+        }
+    }
+
+    private fun stringSetting(key: String): String? = try {
+        prefs.getString(key, null)
+    } catch (e: ClassCastException) {
+        // Something else was stored under the key: read as "no valuation", like a garbage price.
+        null
+    }
+
+    private fun parseAmount(text: String): BigDecimal? = try {
+        BigDecimal(text).setScale(2, java.math.RoundingMode.HALF_UP)
+    } catch (e: NumberFormatException) {
+        null
+    }
+
+    private fun parsePositiveAmount(text: String): BigDecimal? = parseAmount(text)?.takeIf { it.signum() > 0 }
+
+    private fun parseDate(text: String): LocalDate? = try {
+        LocalDate.parse(text)
+    } catch (e: java.time.format.DateTimeParseException) {
+        null
     }
 
     /**
@@ -259,6 +317,10 @@ class SettingsStore(private val prefs: SharedPreferences) {
         const val KEY_ECO_CONSUMPTION = "eco_goal_consumption"
         const val KEY_ECO_EV = "eco_goal_ev_pct"
         const val KEY_MONTHLY_BUDGET = "monthly_budget"
+        const val KEY_CAR_PURCHASE = "car_purchase_pln"
+        const val KEY_CAR_PURCHASE_DATE = "car_purchase_date"
+        const val KEY_CAR_VALUE = "car_value_pln"
+        const val KEY_CAR_VALUE_DATE = "car_value_date"
         const val KEY_BUDGET_ALERT = "budget_alert"
         const val KEY_BUDGET_ALERT_LAST = "budget_alert_last"
         const val KEY_PERIOD_SUMMARY = "period_summary"

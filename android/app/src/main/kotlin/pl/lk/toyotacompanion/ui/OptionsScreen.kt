@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import java.math.BigDecimal
 import pl.lk.toyotacompanion.core.domain.SummaryPeriod
+import pl.lk.toyotacompanion.settings.CarValuation
 
 /** "Opcje": settings of the app itself: the language, applied at once and remembered, the default fuel price (§12.3) and the app update (§37). */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,6 +38,9 @@ fun OptionsScreen(
     onSetBudgetAlert: (Boolean) -> Unit,
     periodSummary: SummaryPeriod?,
     onSetPeriodSummary: (SummaryPeriod?) -> Unit,
+    carValuation: CarValuationUiState,
+    onSaveCarValuation: (CarValuation) -> Unit,
+    onRemoveCarValuation: () -> Unit,
     onBack: () -> Unit,
 ) {
     BackHandler(onBack = onBack)
@@ -66,6 +70,8 @@ fun OptionsScreen(
                 Text(Texts.DEFAULT_PRICE_EXPLAINED, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedButton(onClick = onShowDefaultPrice) { Text(Texts.defaultPricePrompt(defaultPrice)) }
             }
+            // The owner's car valuation: a phone setting, never the archive (PRD F55, docs/SPEC.md §55).
+            CarValuationCard(state = carValuation, onSave = onSaveCarValuation, onRemove = onRemoveCarValuation)
             // The monthly budget notification (PRD F49, docs/SPEC.md §49): on by default, like the automatic weather.
             DashboardCard(Texts.BUDGET_ALERT_SETTING_TITLE, AppIcons.Info) {
                 Text(

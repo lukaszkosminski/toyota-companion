@@ -1307,3 +1307,28 @@ i karta w „Opcjach”; treść: `ui/PeriodSummaryFormatting.kt`. Ustawienia: `
 - **Kanał** „Podsumowanie okresu” (`summary`, `IMPORTANCE_LOW`, ID 902). Wyciszony kanał nie zużywa okresu. Bez `POST_NOTIFICATIONS` nic nie jest oznaczane.
 - **Współbieżność i I/O:** jak C29 – `Mutex` wokół całej decyzji, klucz czytany w blokadzie, ustawienia, archiwum i `post` na `Dispatchers.IO`.
 - **Prywatność:** tylko zagregowane liczby i daty okresu; bez VIN, GPS i nazw miejsc; bez sieci i budzenia auta; bez nowego uprawnienia i bez Room.
+
+## §55 Utrata wartości auta w koszcie całkowitym (PRD F55)
+Plan: `briefs/toyota-companion/C36-plan.md`. Domena: `core/domain/ValueLossOps.kt` (`valueLossInYear`) i rozszerzone `OwnershipCost`
+(`valueLossPln`, `valueLossPerKmPln`, `totalWithLossPln`, `totalWithLossPerKmPln`); lustro Python `backend/app/domain/ownership.py`
+(`value_loss_in_year`, `ownership_cost`) z tymi samymi nazwami testów. Ekran: karta „Koszt całkowity” w „Podsumowaniu roku”
+(`ui/YearSummary.kt`, `ui/YearSummaryScreen.kt`) i formularz w „Opcjach” (`ui/CarValuationForm.kt`, `settings/SettingsStore.kt`).
+- **Dane właściciela:** cena zakupu > 0, data zakupu, szacowana wartość ≥ 0, data wyceny ≥ data zakupu. Ustawienie telefonu, nie archiwum
+  i nie sekret (jak budżet, ADR-019: jedno konto = jedno auto); przeżywa wylogowanie i trafia do Auto Backup. Brak lub błędne dane = brak wyceny.
+- **Strata całkowita:** `max(0, cena zakupu − wartość)`; wartość wyższa od ceny daje 0 zł, bez ujemnej straty i bez wyjątku.
+- **Model liniowy w dniach:** dzienna strata = strata całkowita / liczba dni od daty zakupu do daty wyceny. Strata roku = dzienna strata × liczba dni
+  roku w przedziale `[data zakupu, data wyceny)`. Rok przed zakupem i rok po dacie wyceny = 0 (bez ekstrapolacji w przyszłość). Data wyceny równa dacie
+  zakupu = przedział pusty = 0. Dni liczone kalendarzowo, więc luty roku przestępnego wchodzi swoją długością.
+- **Zaokrąglenie:** strata roku do 0,01 zł, HALF_UP, liczona z niezaokrąglonej dziennej stawki. `OwnershipCost` zachowuje dotychczasowe pola gotówkowe;
+  strata i suma z utratą wartości mają własne pola, żeby gotówka i szacunek nigdy nie były w jednej liście kategorii. Zł/km straty i sumy z utratą
+  liczone przez wszystkie km roku, tak jak dotychczasowy koszt.
+- **Karta roku:** dotychczasowy wiersz „Koszt całkowity” bez zmian, pod nim osobno „Utrata wartości (szacunek): … zł (… zł/km)” i
+  „Z utratą wartości: … zł (… zł/km)”. Rok bez paliwa i wydatków, ale ze stratą, ma kartę. „Średnio na miesiąc” dotyczy tylko gotówki.
+  Gdy data wyceny jest starsza niż 12 miesięcy od dziś, karta pokazuje „Wycena z DD.MM.RRRR – zaktualizuj ją w Opcjach”; wycena nadal jest używana.
+- **Udostępnianie:** `yearSummaryShareText` zawiera oba wiersze, a strata jest w nim jawnie opisana jako „szacunek”. Wydatki na wyposażenie zostają
+  w „Wydatkach” i nie zwiększają ceny zakupu.
+- **Teksty PL/EN:** „Utrata wartości (szacunek)” / „Depreciation (estimate)”, „Z utratą wartości” / „With depreciation”; liczby przez
+  `TripsFormatting.number`/`money`, daty jako DD.MM.RRRR.
+- **Poza zakresem:** wycena z internetu, krzywa degresywna, wiele aut na VIN, koszt energii, zmiany Room i Gradle.
+- **Prywatność:** cena i wartość auta to dane właściciela, nie sekret; tylko w pliku `settings`, bez archiwum, CSV i logów; bez sieci i budzenia auta;
+  karta nie pokazuje VIN.

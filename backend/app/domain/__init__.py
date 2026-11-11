@@ -23,7 +23,7 @@ from .models import (
     round_percent,
     round_price,
 )
-from .ownership import OwnershipCost, ownership_cost, ownership_months
+from .ownership import OwnershipCost, ownership_cost, ownership_months, value_loss_in_year
 from .refuel import (
     confirm_refuel,
     detect_refuel,
@@ -102,6 +102,7 @@ __all__ = [
     "OwnershipCost",
     "ownership_cost",
     "ownership_months",
+    "value_loss_in_year",
     "REFERENCE_PRECIPITATION_BUCKET",
     "REFERENCE_TEMPERATURE_BUCKET",
     "WEATHER_MIN_TRIPS_PER_BUCKET",

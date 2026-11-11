@@ -56,6 +56,7 @@ fun AppRoot(
     ecoGoals: EcoGoalsController,
     budget: BudgetController,
     periodSummary: PeriodSummarySettings,
+    carValuation: CarValuationController,
     backfill: RouteBackfillController,
     heat: RouteHeatController,
     expenses: ExpensesController,
@@ -84,6 +85,7 @@ fun AppRoot(
     val ecoGoalsState by ecoGoals.state.collectAsState()
     val budgetState by budget.state.collectAsState()
     val periodSummaryState by periodSummary.state.collectAsState()
+    val carValuationState by carValuation.state.collectAsState()
     val heatState by heat.state.collectAsState()
     var screen by rememberSaveable { mutableStateOf(Screen.Status) }
     // The status screen is left for every tile and left in composition each time, so its scroll position lives here: coming back from
@@ -139,6 +141,7 @@ fun AppRoot(
             consumption.reset()
             ecoGoals.reset()
             budget.reset()
+            carValuation.reset()
             stationPrices.reset()
             tripRoute.close()
             yearSummary.reset()
@@ -267,7 +270,10 @@ fun AppRoot(
                             expenses.load()
                             screen = Screen.Expenses
                         },
-                        onShowOptions = { screen = Screen.Options },
+                        onShowOptions = {
+                            carValuation.open()
+                            screen = Screen.Options
+                        },
                         // Until the date is read there is no reminder: an unknown date is not "never".
                         backupReminder = if (backupState.loaded) {
                             backupReminder(backupState.lastExport, Instant.now(), current.status?.tripsStored ?: 0)
@@ -299,6 +305,9 @@ fun AppRoot(
                         onSetBudgetAlert = budget::setAlert,
                         periodSummary = periodSummaryState,
                         onSetPeriodSummary = periodSummary::set,
+                        carValuation = carValuationState,
+                        onSaveCarValuation = carValuation::save,
+                        onRemoveCarValuation = carValuation::remove,
                         onBack = { screen = Screen.Status },
                     )
                     Screen.Expenses -> ExpensesScreen(

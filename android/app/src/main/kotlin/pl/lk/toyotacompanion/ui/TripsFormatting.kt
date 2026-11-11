@@ -110,6 +110,9 @@ object TripsFormatting {
         return "${two(date.dayOfMonth)}.${two(date.monthValue)}"
     }
 
+    /** `29.10.2026` – a full day, e.g. the date of the car valuation (PRD F55, docs/SPEC.md §55). */
+    fun date(date: LocalDate): String = "${two(date.dayOfMonth)}.${two(date.monthValue)}.${date.year}"
+
     /** A whole count for display, grouped like [number]: `1 024`. */
     fun count(value: Int): String = number(BigDecimal(value), 0)
 

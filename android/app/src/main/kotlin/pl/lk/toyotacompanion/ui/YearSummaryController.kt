@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import pl.lk.toyotacompanion.core.data.StoredTrip
+import pl.lk.toyotacompanion.settings.CarValuation
 
 /**
  * @param years the years that have trips, newest first
@@ -37,6 +38,8 @@ class YearSummaryController(
     private val scope: CoroutineScope,
     private val io: CoroutineDispatcher,
     private val readExpenses: suspend () -> List<Expense> = { emptyList() },
+    /** The owner's car valuation (PRD F55, docs/SPEC.md §55); `null` leaves the total cost as cash only. */
+    private val readValuation: suspend () -> CarValuation? = { null },
     private val today: () -> LocalDate = { LocalDate.now() },
 ) {
     private val ui = MutableStateFlow(YearSummaryState())
@@ -59,6 +62,7 @@ class YearSummaryController(
                     withContext(io) {
                         val trips = read()
                         val expenses = readExpenses()
+                        val valuation = readValuation()
                         val years = yearsWithTrips(trips, zone())
                         val chosen = year?.takeIf { it in years } ?: years.firstOrNull()
                         val day = today()
@@ -68,8 +72,8 @@ class YearSummaryController(
                             selected = chosen,
                             summary = chosen?.let { yearSummary(trips, it, zone()) },
                             previous = chosen?.let { yearSummary(trips, it - 1, zone()) },
-                            ownership = chosen?.let { yearOwnership(trips, expenses, it, zone(), day) },
-                            previousOwnership = chosen?.let { yearOwnership(trips, expenses, it - 1, zone(), day) },
+                            ownership = chosen?.let { yearOwnership(trips, expenses, it, zone(), day, valuation) },
+                            previousOwnership = chosen?.let { yearOwnership(trips, expenses, it - 1, zone(), day, valuation) },
                         )
                     },
                 )

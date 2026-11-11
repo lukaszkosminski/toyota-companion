@@ -259,6 +259,29 @@ object Texts {
             Lang.pick("Cena domyślna paliwa: $formatted", "Default fuel price: $formatted")
         }
 
+    // ---------------- wartość auta (PRD F55, docs/SPEC.md §55) ----------------
+
+    val CAR_VALUE_TITLE: String get() = Lang.pick("Wartość auta", "Car value")
+    val CAR_VALUE_HINT: String get() = Lang.pick(
+        "Cena zakupu i szacowana wartość na dziś – tylko na tym telefonie. Utrata wartości pojawi się w „Podsumowaniu roku”.",
+        "Purchase price and estimated value today – on this phone only. Depreciation appears in \"Year summary\".",
+    )
+    val CAR_PURCHASE_FIELD: String get() = Lang.pick("Cena zakupu (zł)", "Purchase price (PLN)")
+    val CAR_VALUE_FIELD: String get() = Lang.pick("Szacowana wartość (zł)", "Estimated value (PLN)")
+    val CAR_PURCHASE_DATE: String get() = Lang.pick("Data zakupu", "Purchase date")
+    val CAR_VALUE_DATE: String get() = Lang.pick("Data wyceny", "Valuation date")
+    val CAR_PURCHASE_INVALID: String get() = Lang.pick("Podaj cenę zakupu większą od zera.", "Enter a purchase price above zero.")
+    val CAR_VALUE_INVALID: String get() = Lang.pick("Podaj wartość, np. 0 lub 85000.", "Enter a value, e.g. 0 or 85000.")
+    val CAR_VALUE_DATE_ORDER: String get() = Lang.pick(
+        "Data wyceny nie może być wcześniejsza niż data zakupu.",
+        "The valuation date cannot be before the purchase date.",
+    )
+    val CAR_VALUE_SAVE: String get() = Lang.pick("Zapisz wycenę", "Save valuation")
+    val CAR_VALUE_REMOVE: String get() = Lang.pick("Usuń wycenę", "Remove valuation")
+    val CAR_VALUE_SAVE_FAILED: String get() = Lang.pick("Nie udało się zapisać wyceny.", "Could not save the valuation.")
+    val CAR_VALUE_READ_FAILED: String get() = Lang.pick("Nie udało się odczytać wyceny.", "Could not read the valuation.")
+    val CAR_VALUE_EMPTY: String get() = Lang.pick("Brak wyceny – karta kosztu pokazuje tylko gotówkę.", "No valuation – the total cost card shows cash only.")
+
     /** Under the field: what the default price prices (docs/SPEC.md §4, ADR-005 amendment 2026-11-08). */
     val DEFAULT_PRICE_HINT: String get() = Lang.pick(
         "Cena paliwa w baku przed pierwszym potwierdzonym tankowaniem: liczy trasy sprzed niego i miesza się z ceną pierwszego tankowania.",
@@ -1149,6 +1172,22 @@ object Texts {
     fun ownershipVersus(change: String): String = Lang.pick(
         "Koszt całkowity wobec poprzedniego roku: $change",
         "Total cost vs the year before: $change",
+    )
+    fun ownershipValueLoss(loss: String, perKm: String?): String {
+        val tail = perKm?.let { " ($it/km)" } ?: ""
+        return Lang.pick("Utrata wartości (szacunek): $loss$tail", "Depreciation (estimate): $loss$tail")
+    }
+    fun ownershipWithLoss(total: String, perKm: String?): String {
+        val tail = perKm?.let { " ($it/km)" } ?: ""
+        return Lang.pick("Z utratą wartości: $total$tail", "With depreciation: $total$tail")
+    }
+    fun ownershipValuationStale(date: String): String = Lang.pick(
+        "Wycena z $date – zaktualizuj ją w Opcjach",
+        "Valuation from $date – update it in Options",
+    )
+    val OWNERSHIP_VALUE_NOTE: String get() = Lang.pick(
+        "Utrata wartości to szacunek z ceny zakupu i wpisanej wartości (Opcje).",
+        "Depreciation is an estimate from the purchase price and the entered value (Options).",
     )
 
     // Prędkość × temperatura (docs/SPEC.md §28).

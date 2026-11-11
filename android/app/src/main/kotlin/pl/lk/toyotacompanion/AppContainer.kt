@@ -56,6 +56,7 @@ import pl.lk.toyotacompanion.settings.SettingsStore
 import pl.lk.toyotacompanion.sync.SyncRunner
 import pl.lk.toyotacompanion.ui.ARCHIVE_IMPORT_LIMIT_BYTES
 import pl.lk.toyotacompanion.ui.BackupController
+import pl.lk.toyotacompanion.ui.CarValuationController
 import pl.lk.toyotacompanion.ui.DefaultPriceController
 import pl.lk.toyotacompanion.core.prices.FuelPriceGatewayFactory
 import pl.lk.toyotacompanion.ui.ConsumptionController
@@ -643,6 +644,18 @@ class AppContainer(
             zone = { ZoneId.systemDefault() },
             // Expenses of the year join the fuel in the total cost (PRD F38, docs/SPEC.md §39).
             readExpenses = { database.expenseDao().all().map { it.toExpense() } },
+            // The owner's estimate sits apart from the cash (PRD F55, docs/SPEC.md §55).
+            readValuation = { settingsStore.carValuation() },
+            scope = uiScope,
+            io = Dispatchers.IO,
+        )
+    }
+
+    /** The owner's car valuation (PRD F55, docs/SPEC.md §55): a plain phone setting, no network and no car. */
+    val carValuationController: CarValuationController by lazy {
+        CarValuationController(
+            read = { settingsStore.carValuation() },
+            persist = { settingsStore.saveCarValuation(it) },
             scope = uiScope,
             io = Dispatchers.IO,
         )

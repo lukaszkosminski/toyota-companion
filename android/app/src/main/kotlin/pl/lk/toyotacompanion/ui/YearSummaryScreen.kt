@@ -209,13 +209,24 @@ fun YearSummaryScreen(
                     }
                 }
 
-                // Fuel and everything else (PRD F38, docs/SPEC.md §39).
+                // Fuel and everything else (PRD F38, docs/SPEC.md §39); the value loss is a separate estimate (PRD F55, §55).
                 val ownershipLines = ownershipLines(state.ownership, state.previousOwnership)
                 if (ownershipLines.isNotEmpty()) {
                     DashboardCard(Texts.OWNERSHIP_TITLE, AppIcons.Payments) {
                         val share = state.ownership?.cost?.fuelSharePct
                         if (share != null) MeterRow(Texts.OWNERSHIP_FUEL_SHARE, TripsFormatting.number(share, 0) + " %", share.toFloat() / 100f, Palette.Orange)
                         ownershipLines.forEach { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                        val valuationDate = state.ownership?.valuationDate
+                        if (state.ownership?.valuationStale == true && valuationDate != null) {
+                            Text(
+                                Texts.ownershipValuationStale(TripsFormatting.date(valuationDate)),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                        if (state.ownership?.cost?.valueLossPln != null) {
+                            Text(Texts.OWNERSHIP_VALUE_NOTE, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                         Text(Texts.OWNERSHIP_NOTE, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
