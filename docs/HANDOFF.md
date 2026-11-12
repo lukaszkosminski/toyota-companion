@@ -123,8 +123,9 @@
 - C22: potwierdzić w kodzie D2, D8, D11 i D14 (ROADMAP „NEXT”) i zamknąć je albo przenieść do „LATER” z kryterium.
 - Import historii tankowań i wydatków z CSV innych aplikacji: wstrzymany do czasu, gdy pojawi się prawdziwy plik eksportu
   (ROADMAP „LATER”).
-- Znane ograniczenie: Android Auto (F34) nie był sprawdzony na prawdziwym zestawie ani w Desktop Head Unit; wymaga
-  „Nieznane źródła” w ustawieniach programisty Android Auto (SPEC §35).
+- Android Auto (F34): sprawdzony 12.11 w Desktop Head Unit na wersji debugowalnej (emulator `toyota35play`, Android Auto 18.0
+  wgrany z boku); nie był sprawdzony na prawdziwym zestawie ani w wersji wydanej. Wymaga „Nieznane źródła” w ustawieniach
+  programisty Android Auto (SPEC §35).
 
 ## Sprawdzone na emulatorze (październik 2026)
 Sprawdzone na emulatorze (API 36) 2026-10-29: logowanie prawdziwym kontem, pierwsza synchronizacja (562 trasy, 1 odczyt),

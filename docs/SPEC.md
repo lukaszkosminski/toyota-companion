@@ -967,7 +967,7 @@ ekranie „Pogoda i spalanie” (§23).
 - Walidacja hosta: wersja debugowalna przyjmuje każdego hosta (instalacja z boku i Desktop Head Unit), wersja wydana tylko hosty Google (Android Auto i host szablonów Automotive) z własnej listy `res/values/car_hosts_allowlist.xml` – kopii `hosts_allowlist_sample` z androidx.car.app 1.7.0 (prywatny zasób biblioteki, mógł zniknąć przy aktualizacji); przy aktualizacji biblioteki trzeba ją porównać.
 - Ograniczenie platformy: Android Auto uruchamia z Google Play tylko aplikacje z kategorii dopuszczonych przez Google (nawigacja, POI, IoT, pogoda…), a aplikacja ze statystykami do żadnej
   nie pasuje, więc w Google Play nie przeszłaby weryfikacji. Do użytku własnego działa po włączeniu w Android Auto (telefon: Ustawienia Android Auto → kilkukrotne dotknięcie „Wersja” →
-  Ustawienia programisty → „Nieznane źródła”); aplikacja pojawia się wtedy w ekranie głównym Android Auto. Na prawdziwym zestawie samochodu i w Desktop Head Unit nie była tu uruchamiana.
+  Ustawienia programisty → „Nieznane źródła”); aplikacja pojawia się wtedy w ekranie głównym Android Auto. Sprawdzona 2026-11-12 w Desktop Head Unit (wersja debugowalna, emulator z Android Auto 18.0): aplikacja jest na liście, pokazuje „Brak danych” bez migawki i trzy wiersze z migawką widżetu; na prawdziwym zestawie samochodu i w wersji wydanej (walidacja hosta) nie była tu uruchamiana.
 - Przy zmianie tej funkcji zmienia się też `*.gradle.kts` / `libs.versions.toml` – za zgodą właściciela (AGENTS.md).
 
 ## 36. Jazda na prądzie w tygodniach (PRD F35)
