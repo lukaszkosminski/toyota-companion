@@ -40,7 +40,10 @@ def normalize_station(text: str | None) -> str | None:
     collapsed = " ".join(text.split())
     if not collapsed:
         return None
-    return collapsed[:STATION_MAX_LENGTH].rstrip()
+    cut = collapsed[:STATION_MAX_LENGTH]
+    if cut and 0xD800 <= ord(cut[-1]) <= 0xDBFF:
+        cut = cut[:-1]
+    return cut.rstrip()
 
 
 def _key(name: str) -> str:

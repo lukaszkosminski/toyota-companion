@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Zdjęcie paragonu (F59): plik źródłowy jest czytany tylko raz (kopia robocza w prywatnym katalogu, zawsze usuwana), więc działa też z dostawcą, który pozwala otworzyć zdjęcie jeden raz
+- Stacja przy tankowaniu (F57): skrócenie nazwy do 60 znaków nie rozcina już znaku zapisanego parą (np. emoji)
 
 ## 0.2.15 (2026-11-12)
 - Automatyczna kopia (F60), poprawki z przeglądu C43: zapis przerwany w połowie nie zostawia w folderze pustego lub uciętego pliku, który następnego dnia liczyłby się jako kopia; plik, któremu dostawca dopisał „ (1)” i nie pozwolił zmienić nazwy z powrotem, nadal podlega rotacji

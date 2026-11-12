@@ -74,6 +74,12 @@ class StationOpsTest {
     }
 
     @Test
+    fun a_cut_name_does_not_split_surrogate_pairs() {
+        assertEquals("a".repeat(59), normalizeStation("a".repeat(59) + "\uD83D\uDE97"))
+        assertEquals("a".repeat(58) + "\uD83D\uDE97", normalizeStation("a".repeat(58) + "\uD83D\uDE97"))
+    }
+
+    @Test
     fun case_differences_are_one_station_with_the_newest_spelling() {
         val summaries = stationSummaries(listOf(refuel("a", 0.0, "Auchan"), refuel("b", 1.0, "auchan")), emptyList())
         assertEquals(listOf("auchan"), summaries.map { it.name })

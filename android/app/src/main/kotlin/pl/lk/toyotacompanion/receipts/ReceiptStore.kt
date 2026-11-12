@@ -25,62 +25,79 @@ class ReceiptStore(private val dir: File, private val resolver: ContentResolver)
     fun file(name: String): File? = if (isReceiptFileName(name)) File(dir, name) else null
 
     /**
-     * Decodes [source] with a sample size, scales it to [RECEIPT_MAX_SIDE] and writes a JPEG without metadata under a new random name.
-     * Returns the name; on any failure nothing is left in the folder and the message does not name the file.
+     * Copies [source] once into a temporary file, decodes it with a sample size, scales it to [RECEIPT_MAX_SIDE] and writes
+     * a JPEG without metadata under a new random name. Returns the name; on any failure nothing is left in the folder and
+     * the message does not name the file.
      */
     fun importPhoto(source: Uri): String {
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        resolver.openInputStream(source)?.use { BitmapFactory.decodeStream(it, null, bounds) }
-        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) throw ReceiptException("not an image")
-
-        val decode = BitmapFactory.Options().apply {
-            inSampleSize = sampleSize(bounds.outWidth, bounds.outHeight)
-        }
-        val decoded = resolver.openInputStream(source)?.use { BitmapFactory.decodeStream(it, null, decode) }
-            ?: throw ReceiptException("unreadable")
-        val (width, height) = scaledSize(decoded.width, decoded.height)
-        val scaled = if (width == decoded.width && height == decoded.height) {
-            decoded
-        } else {
-            decoded.scale(width, height).also { decoded.recycle() }
-        }
-        // The metadata is dropped with the re-encoding, so the rotation a camera only wrote into EXIF is applied to the pixels first.
-        val degrees = rotationDegrees(source)
-        val bitmap = if (degrees == 0) {
-            scaled
-        } else {
-            val turn = Matrix().apply { postRotate(degrees.toFloat()) }
-            Bitmap.createBitmap(scaled, 0, 0, scaled.width, scaled.height, turn, true).also { if (it !== scaled) scaled.recycle() }
-        }
-
         dir.mkdirs()
-        val temp = File(dir, "$TEMP_PREFIX${UUID.randomUUID()}")
-        val name = "${UUID.randomUUID()}.jpg"
+        val raw = File(dir, "$TEMP_PREFIX${UUID.randomUUID()}")
         try {
-            val written = temp.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, RECEIPT_JPEG_QUALITY, it) }
-            if (!written) throw ReceiptException("not stored")
-            if (!temp.renameTo(File(dir, name))) throw ReceiptException("not stored")
-        } catch (e: java.io.IOException) {
-            throw ReceiptException("not stored")
+            try {
+                val stream = resolver.openInputStream(source) ?: throw ReceiptException("unreadable")
+                stream.use { input ->
+                    raw.outputStream().use { output -> input.copyTo(output) }
+                }
+            } catch (e: ReceiptException) {
+                throw e
+            } catch (e: Exception) {
+                throw ReceiptException("unreadable")
+            }
+
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(raw.path, bounds)
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) throw ReceiptException("not an image")
+
+            val decode = BitmapFactory.Options().apply {
+                inSampleSize = sampleSize(bounds.outWidth, bounds.outHeight)
+            }
+            val decoded = BitmapFactory.decodeFile(raw.path, decode)
+                ?: throw ReceiptException("unreadable")
+            val (width, height) = scaledSize(decoded.width, decoded.height)
+            val scaled = if (width == decoded.width && height == decoded.height) {
+                decoded
+            } else {
+                decoded.scale(width, height).also { decoded.recycle() }
+            }
+            // The metadata is dropped with the re-encoding, so the rotation a camera only wrote into EXIF is applied to the pixels first.
+            val degrees = rotationDegrees(raw)
+            val bitmap = if (degrees == 0) {
+                scaled
+            } else {
+                val turn = Matrix().apply { postRotate(degrees.toFloat()) }
+                Bitmap.createBitmap(scaled, 0, 0, scaled.width, scaled.height, turn, true).also { if (it !== scaled) scaled.recycle() }
+            }
+
+            val temp = File(dir, "$TEMP_PREFIX${UUID.randomUUID()}")
+            val name = "${UUID.randomUUID()}.jpg"
+            try {
+                val written = temp.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, RECEIPT_JPEG_QUALITY, it) }
+                if (!written) throw ReceiptException("not stored")
+                if (!temp.renameTo(File(dir, name))) throw ReceiptException("not stored")
+            } catch (e: ReceiptException) {
+                throw e
+            } catch (e: Exception) {
+                throw ReceiptException("not stored")
+            } finally {
+                bitmap.recycle()
+                temp.delete()
+            }
+            return name
         } finally {
-            bitmap.recycle()
-            temp.delete()
+            raw.delete()
         }
-        return name
     }
 
     /** The clockwise rotation the camera stored in EXIF (0, 90, 180 or 270); 0 when there is none or it cannot be read. */
     // The platform class is enough here: minSdk is 29, only the orientation tag is read, and the project adds no dependency for it.
     @SuppressLint("ExifInterface")
-    private fun rotationDegrees(source: Uri): Int = try {
-        resolver.openInputStream(source)?.use { stream ->
-            rotationDegreesFor(
-                android.media.ExifInterface(stream).getAttributeInt(
-                    android.media.ExifInterface.TAG_ORIENTATION,
-                    android.media.ExifInterface.ORIENTATION_NORMAL,
-                ),
-            )
-        } ?: 0
+    private fun rotationDegrees(file: File): Int = try {
+        rotationDegreesFor(
+            android.media.ExifInterface(file.path).getAttributeInt(
+                android.media.ExifInterface.TAG_ORIENTATION,
+                android.media.ExifInterface.ORIENTATION_NORMAL,
+            ),
+        )
     } catch (e: Exception) {
         // A damaged header can also make the platform parser throw a runtime exception; the photo is then simply not turned.
         0

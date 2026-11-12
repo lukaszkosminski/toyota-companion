@@ -92,6 +92,20 @@ class ReceiptStoreTest {
     }
 
     @Test
+    fun `an unreadable or corrupt file leaves no temporary files behind`() {
+        val broken = File(tmp.root, "corrupted.jpg").apply { writeBytes(byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0x00)) }
+        assertFailsWith<ReceiptException> { store.importPhoto(uri(broken)) }
+        assertTrue(store.files().isEmpty(), "all temporary files are cleaned up on error")
+    }
+
+    @Test
+    fun `an import leaves no temporary files in the folder on success`() {
+        val name = store.importPhoto(uri(cameraPhoto(800, 600)))
+        assertTrue(isReceiptFileName(name))
+        assertFalse(store.files().any { it.startsWith(ReceiptStore.TEMP_PREFIX) }, "no tmp- files remain after success")
+    }
+
+    @Test
     fun `a photo for the screen is decoded smaller and a missing one reads as none`() {
         val name = store.importPhoto(uri(cameraPhoto(1200, 800)))
         val small = assertNotNull(store.decode(name, maxSide = 320))

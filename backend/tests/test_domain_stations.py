@@ -82,6 +82,10 @@ class TestNormalizeStation:
     def test_a_cut_name_does_not_keep_trailing_space(self) -> None:
         assert normalize_station("a" * 59 + " b") == "a" * 59
 
+    def test_a_cut_name_does_not_split_surrogate_pairs(self) -> None:
+        assert normalize_station("a" * 59 + "\ud83d\ude97") == "a" * 59
+        assert normalize_station("a" * 58 + "\ud83d\ude97") == "a" * 58 + "\ud83d\ude97"
+
 
 class TestStationSummaries:
     def test_case_differences_are_one_station_with_the_newest_spelling(self) -> None:

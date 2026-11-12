@@ -55,7 +55,9 @@ private data class Accumulator(
 fun normalizeStation(text: String?): String? {
     val collapsed = text?.trim()?.replace(WHITESPACE, " ") ?: return null
     if (collapsed.isEmpty()) return null
-    return collapsed.take(STATION_MAX_LENGTH).trimEnd()
+    val cut = collapsed.take(STATION_MAX_LENGTH)
+    val safe = if (cut.isNotEmpty() && cut.last().isHighSurrogate()) cut.dropLast(1) else cut
+    return safe.trimEnd()
 }
 
 private fun stationKey(name: String): String = name.lowercase(Locale.ROOT)
