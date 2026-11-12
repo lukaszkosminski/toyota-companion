@@ -102,3 +102,8 @@ jobs:
           gh release create "$GITHUB_REF_NAME"
           "$RUNNER_TEMP/toyota-companion-${{ steps.version.outputs.version }}.apk"
           --title "$GITHUB_REF_NAME" --generate-notes
+
+      # The runner is thrown away, but the signing key should not outlive the steps that need it.
+      - name: Remove the keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"

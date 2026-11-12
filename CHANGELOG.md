@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.2.15 (2026-11-12)
+- Automatyczna kopia (F60), poprawki z przeglądu C43: zapis przerwany w połowie nie zostawia w folderze pustego lub uciętego pliku, który następnego dnia liczyłby się jako kopia; plik, któremu dostawca dopisał „ (1)” i nie pozwolił zmienić nazwy z powrotem, nadal podlega rotacji
+- Zdjęcie paragonu (F59): uszkodzony nagłówek EXIF nie przerywa już zapisu zdjęcia, zdjęcie jest wtedy po prostu nieobrócone
+- Testy maskowania sekretów (`ToyotaSecrets.sanitize`, `maskVin`) i zwalniania trwałego uprawnienia do folderu kopii
+- Wydania: po opublikowaniu klucz podpisu jest usuwany z runnera także po błędzie
+
 ## 0.2.14 (2026-11-11)
 - Automatyczna kopia (F60), poprawki z przeglądu agenta 3: kopia zapisana przed chwilą nigdy nie jest kasowana przez rotację (dotąd mogła, gdy w folderze leżało 10 plików z późniejszą datą); podfolder o nazwie kopii nie jest brany do rotacji; plik zapisany przez dostawcę pod inną nazwą dostaje z powrotem nazwę z datą, jeśli dostawca na to pozwala; zmiana albo wyłączenie folderu oddaje uprawnienie do poprzedniego; odmowa trwałego dostępu do folderu jest pokazana na karcie
 

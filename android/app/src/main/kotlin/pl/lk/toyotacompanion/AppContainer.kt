@@ -599,8 +599,18 @@ class AppContainer(
                         name,
                     )
                     ?: throw IOException("no document")
-                val out = context.contentResolver.openOutputStream(target, "wt") ?: throw IOException("no output stream")
-                out.use { it.write(bytes) }
+                // A write that fails half way would leave an empty or cut file that the next day's rotation counts as a copy.
+                try {
+                    val out = context.contentResolver.openOutputStream(target, "wt") ?: throw IOException("no output stream")
+                    out.use { it.write(bytes) }
+                } catch (e: Exception) {
+                    try {
+                        DocumentsContract.deleteDocument(context.contentResolver, target)
+                    } catch (ignored: Exception) {
+                        // The folder is not writable at all; the original failure is the one to report.
+                    }
+                    throw e
+                }
                 // A provider may store the file under another name ("… (1).json", a doubled extension); the rotation knows only the
                 // dated name, so the file is given it back. A provider that refuses keeps its own name - the copy itself is written.
                 if (name !in folderChildren(folder)) {

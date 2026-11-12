@@ -81,7 +81,8 @@ class ReceiptStore(private val dir: File, private val resolver: ContentResolver)
                 ),
             )
         } ?: 0
-    } catch (e: java.io.IOException) {
+    } catch (e: Exception) {
+        // A damaged header can also make the platform parser throw a runtime exception; the photo is then simply not turned.
         0
     }
 

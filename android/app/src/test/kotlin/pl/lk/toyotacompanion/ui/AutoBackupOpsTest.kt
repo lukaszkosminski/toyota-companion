@@ -27,6 +27,15 @@ class AutoBackupOpsTest {
     }
 
     @Test
+    fun `a copy a provider renamed with a duplicate suffix still belongs to the rotation`() {
+        assertEquals(LocalDate.parse("2026-11-11"), autoCopyDate("toyota-companion-2026-11-11 (1).json"))
+        assertNull(autoCopyDate("toyota-companion-2026-11-11 (x).json"))
+        val names = (1..AUTO_COPY_KEEP).map { autoCopyName(LocalDate.parse("2026-11-%02d".format(it))) } +
+            "toyota-companion-2026-11-01 (1).json"
+        assertEquals(listOf("toyota-companion-2026-11-01 (1).json"), copiesToDelete(names))
+    }
+
+    @Test
     fun `today's copy is written once and only with a folder`() {
         val today = LocalDate.parse("2026-11-11")
         assertFalse(shouldCopyToday(hasFolder = false, lastCopy = null, today = today), "no folder, no copy")

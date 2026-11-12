@@ -16,10 +16,13 @@ const val AUTO_COPY_KEEP: Int = 10
 /** The name of the copy for [date]: `toyota-companion-2026-11-11.json`, the same day format as the manual export. */
 fun autoCopyName(date: LocalDate): String = AUTO_COPY_PREFIX + dayText(date) + ".json"
 
-/** The day of a copy name; `null` for any other name, so a foreign file is never touched. */
+/**
+ * The day of a copy name; `null` for any other name, so a foreign file is never touched. A provider that renamed the file and then
+ * refused to rename it back leaves a " (1)" before the extension; such a file still belongs to the rotation.
+ */
 fun autoCopyDate(name: String): LocalDate? {
     if (!name.startsWith(AUTO_COPY_PREFIX) || !name.endsWith(".json")) return null
-    val day = name.removePrefix(AUTO_COPY_PREFIX).removeSuffix(".json")
+    val day = name.removePrefix(AUTO_COPY_PREFIX).removeSuffix(".json").replace(Regex(" \\(\\d+\\)$"), "")
     if (!Regex("\\d{4}-\\d{2}-\\d{2}").matches(day)) return null
     return runCatching { LocalDate.parse(day) }.getOrNull()
 }
@@ -36,7 +39,7 @@ fun copiesToDelete(existing: List<String>, keep: Int = AUTO_COPY_KEEP, justWritt
     // The copy written a moment ago always stays and takes one of the places: with ten files dated in the future (a clock that was
     // moved back) it would otherwise be the oldest one and be deleted right after it was written.
     val ours = existing.filter { it != justWritten }.mapNotNull { name -> autoCopyDate(name)?.let { it to name } }
-        .sortedByDescending { it.first }
+        .sortedWith(compareByDescending<Pair<LocalDate, String>> { it.first }.thenBy { "(" in it.second })
     val places = (if (justWritten != null && justWritten in existing) keep - 1 else keep).coerceAtLeast(0)
     return ours.drop(places).map { it.second }
 }
