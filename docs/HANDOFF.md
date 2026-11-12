@@ -7,9 +7,10 @@
   celów eco, zdjęcie paragonu – F58–F59, baza Room 9), v0.2.12 (11.11: poprawki z przeglądu jakości C41 i C42), v0.2.13 i v0.2.14
   (11.11: automatyczna kopia archiwum do folderu – F60, SPEC §60, z poprawkami z przeglądu); workflow `Release`
   publikuje podpisany APK i mapping R8 jako artefakt. Telefon: „Opcje” → „Sprawdź aktualizacje”.
-- Po v0.2.14 na `main`, bez tagu: poprawki z przeglądów C43 (kopiowanie, zdjęcia paragonu, testy maskowania sekretów
-  i zwalniania uprawnienia do folderu, klucz podpisu usuwany z runnera po błędzie) – CHANGELOG 0.2.15.
-- Testy według walidacji agenta głównego z 12.11: core 572, app 1018, Python 311; lint 0 problemów. CI: ruff/mypy/pytest, testy Androida, build release z R8, lint, gitleaks.
+- v0.2.15 i v0.2.16 (12.11): poprawki z przeglądów C43 (kopiowanie, zdjęcia paragonu, nazwa stacji, testy maskowania sekretów
+  i zwalniania uprawnienia do folderu, klucz podpisu usuwany z runnera po błędzie) oraz wydzielenie obsługi folderu kopii
+  do `storage/SafFolderStorage` z testami (plan C44). Wydzielenie nie było sprawdzone na emulatorze – tylko testy jednostkowe.
+- Testy według walidacji agenta głównego z 12.11: core 595, app 1048, Python 312; lint 0 problemów. CI: ruff/mypy/pytest, testy Androida, build release z R8, lint, gitleaks.
 - Przegląd UI C32 i propozycje dla właściciela: `briefs/toyota-companion/C32-ui-review.md`; poprawki U1–U7 i U10
   w commicie `2f490e4`, propozycje U8, U9, U11–U14 i U16–U17 w v0.2.7 (motyw ciemny bez uwag;
   nie obejrzano języka EN, większej czcionki i ekranu 360 dp).
@@ -35,7 +36,7 @@
   karta błędu `errorContainer`; status z `TopAppBar`, `PullToRefreshBox`, kartą liczników, chipem stanu,
   `HorizontalDivider` i `AlertDialog` potwierdzającym „Wyloguj”. `SessionController.reload()` powtarza tylko
   odczyt lokalnej bazy (bez API Toyoty i bez `refresh_status`).
-- Testy: core 572, app 1018 (JUnit 4, w tym Robolectric), Python 311. CI: ruff/mypy/pytest, Android (core + app unit), gitleaks 8.30.1.
+- Testy: core 595, app 1048 (JUnit 4, w tym Robolectric), Python 312. CI: ruff/mypy/pytest, Android (core + app unit), gitleaks 8.30.1.
 - Lista tras z kosztem (SPEC §10): `SyncEngine.trips()` — trasy bieżącego VIN od najnowszej, wszystkie koszty jednym odczytem `costs.all()` (bez zapytania na trasę), brak VIN = pusta lista, bez sieci i bez `mutex` synchronizacji; w `app` czyste funkcje `groupTripsByMonth` (miesiąc z `trip.start` w przekazanej strefie, sumy km/l/zł, licznik tras bez ceny, `totalCost = null` gdy żadna trasa nie ma ceny) i `TripsFormatting` (przecinek, `HALF_UP`, własna tablica 12 nazw miesięcy w mianowniku, start `29.10 14:05`, formaty niezależne od `Locale`); ekran `TripsScreen` (nazwa + sumy miesiąca, wiersze z `key = trip.id`, cena za litr · a przy „cena domyślna” także dopisek w tej samej linii, `contentPadding` z `innerPadding`, stany ładowanie/pusto/błąd bez treści wyjątku, `TextButton` „Wstecz” + `BackHandler`) i przycisk „Trasy” na ekranie statusu; `AppContainer.tripsLoader` jako jedyne wejście do bazy, `AppRoot` przełącza ekrany enumem `Screen` w `rememberSaveable` (reset do statusu po wylogowaniu przez `LaunchedEffect`). Na ekranie brak współrzędnych GPS i VIN (SECURITY.md).
 - Formularz ceny tankowania (SPEC §11): `pendingRefuels()`, `confirmRefuel(...)` i `dismissRefuel(id)` w `SyncEngine`
   zwracają `RefuelChange` (`Done`, `NotFound`, `NotPending`, `Invalid`, `NoVehicle`). Zapis i przeliczenie kosztów idą

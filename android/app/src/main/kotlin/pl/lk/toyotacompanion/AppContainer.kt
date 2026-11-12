@@ -3,7 +3,6 @@ package pl.lk.toyotacompanion
 import android.app.backup.BackupManager
 import android.content.Context
 import android.os.Build
-import android.provider.DocumentsContract
 import android.util.Log
 import androidx.core.net.toUri
 import androidx.room3.Room
@@ -55,6 +54,7 @@ import pl.lk.toyotacompanion.security.EncryptedSecretStore
 import pl.lk.toyotacompanion.security.KeystoreTokenStore
 import pl.lk.toyotacompanion.security.SecretCipher
 import pl.lk.toyotacompanion.settings.SettingsStore
+import pl.lk.toyotacompanion.storage.SafFolderStorage
 import pl.lk.toyotacompanion.sync.SyncRunner
 import pl.lk.toyotacompanion.ui.ARCHIVE_IMPORT_LIMIT_BYTES
 import pl.lk.toyotacompanion.ui.BackupController
@@ -525,33 +525,7 @@ class AppContainer(
             },
         )
 
-    /** The files (never the sub-folders) of a picked folder as name to document `Uri`; the provider is asked, nothing is cached. */
-    private fun folderChildren(folder: String): Map<String, android.net.Uri> {
-        val tree = folder.toUri()
-        val parentId = DocumentsContract.getTreeDocumentId(tree)
-        val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, parentId)
-        val result = LinkedHashMap<String, android.net.Uri>()
-        context.contentResolver.query(
-            children,
-            arrayOf(
-                DocumentsContract.Document.COLUMN_DOCUMENT_ID,
-                DocumentsContract.Document.COLUMN_DISPLAY_NAME,
-                DocumentsContract.Document.COLUMN_MIME_TYPE,
-            ),
-            null,
-            null,
-            null,
-        )?.use { cursor ->
-            while (cursor.moveToNext()) {
-                val id = cursor.getString(0) ?: continue
-                val name = cursor.getString(1) ?: continue
-                // A folder that happens to carry a copy's name is not a copy: deleting it would take its contents along.
-                if (cursor.getString(2) == DocumentsContract.Document.MIME_TYPE_DIR) continue
-                result[name] = DocumentsContract.buildDocumentUriUsingTree(tree, id)
-            }
-        }
-        return result
-    }
+    private val safFolderStorage by lazy { SafFolderStorage(context.contentResolver) }
 
     /**
      * The automatic archive copy into a folder the owner picked (PRD F60, docs/SPEC.md §60). The folder is the tree `Uri` of the system
@@ -564,67 +538,16 @@ class AppContainer(
                 // The grant of a folder that is no longer used is given back: Android keeps only a limited number of them.
                 val previous = settingsStore.autoBackupFolder()
                 if (previous != null && previous != next) {
-                    try {
-                        context.contentResolver.releasePersistableUriPermission(
-                            previous.toUri(),
-                            android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-                        )
-                    } catch (e: SecurityException) {
-                        // It was already gone.
-                    }
+                    safFolderStorage.releaseFolderPermission(previous)
                 }
                 settingsStore.saveAutoBackupFolder(next)
             },
             readLastCopy = { settingsStore.autoBackupLastDay() },
             saveLastCopy = { settingsStore.saveAutoBackupLastDay(it) },
-            folderName = { folder ->
-                try {
-                    val tree = folder.toUri()
-                    val self = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
-                    context.contentResolver.query(self, arrayOf(DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null)
-                        ?.use { if (it.moveToFirst()) it.getString(0) else null }
-                } catch (e: Exception) {
-                    // A folder that is gone or lost its grant has no name; the card then shows the failure of the copy.
-                    null
-                } ?: "?"
-            },
-            writeCopy = { folder, name, bytes ->
-                val tree = folder.toUri()
-                // The same day written again (a retry after a failure) replaces the file instead of adding "(1)".
-                val target = folderChildren(folder)[name]
-                    ?: DocumentsContract.createDocument(
-                        context.contentResolver,
-                        DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree)),
-                        "application/json",
-                        name,
-                    )
-                    ?: throw IOException("no document")
-                // A write that fails half way would leave an empty or cut file that the next day's rotation counts as a copy.
-                try {
-                    val out = context.contentResolver.openOutputStream(target, "wt") ?: throw IOException("no output stream")
-                    out.use { it.write(bytes) }
-                } catch (e: Exception) {
-                    try {
-                        DocumentsContract.deleteDocument(context.contentResolver, target)
-                    } catch (ignored: Exception) {
-                        // The folder is not writable at all; the original failure is the one to report.
-                    }
-                    throw e
-                }
-                // A provider may store the file under another name ("… (1).json", a doubled extension); the rotation knows only the
-                // dated name, so the file is given it back. A provider that refuses keeps its own name - the copy itself is written.
-                if (name !in folderChildren(folder)) {
-                    try {
-                        DocumentsContract.renameDocument(context.contentResolver, target, name)
-                    } catch (e: Exception) {
-                        // Not every provider can rename.
-                    }
-                }
-            },
-            listCopies = { folder -> folderChildren(folder).keys.toList() },
-            deleteCopy = { folder, name ->
-                folderChildren(folder)[name]?.let { DocumentsContract.deleteDocument(context.contentResolver, it) }
-            },
+            folderName = { folder -> safFolderStorage.folderName(folder) },
+            writeCopy = { folder, name, bytes -> safFolderStorage.writeCopy(folder, name, bytes) },
+            listCopies = { folder -> safFolderStorage.listCopies(folder) },
+            deleteCopy = { folder, name -> safFolderStorage.deleteCopy(folder, name) },
             export = { pl.lk.toyotacompanion.core.data.encodeArchive(archiveSnapshot()) },
             saveLastExport = { at -> settingsStore.saveLastArchiveExport(at) },
             scope = uiScope,

@@ -102,8 +102,7 @@
 ## NEXT
 - Propozycje zaakceptowane przez właściciela 2026-11-10: wszystkie zrealizowane (F52–F60, patrz DONE) poza importem CSV,
   który jest w „LATER” (wstrzymany bez pliku eksportu). Kolejne propozycje dostają numer F, wpis w PRD/SPEC i plan przed kodem.
-- Pozostałe drobne z przeglądu C22: D3–D7, D12 i D13 zrobione (commit a982de8); D2, D8, D11, D14 do potwierdzenia
-  w kodzie; D9 i D10 są w LATER
+- Pozostałe drobne z przeglądu C22: D2–D7, D12 i D13 zrobione; D8, D9, D10, D11 i D14 są w LATER (sprawdzone w kodzie 2026-11-12)
 
 ## LATER (kolejność wg wartości / kosztu)
 - Autouzupełnianie tankowania z OCR paragonu (rozwinięcie F59, wariant on-device): lokalne rozpoznawanie tekstu ze zdjęcia paragonu (Google ML Kit Text Recognition on-device – 100% offline, bez wysyłania danych do chmury, docs/SECURITY.md); parser heurystyczny podpowiadający w formularzu tankowania i w oknie „Wykryto tankowanie” kwotę łączną (SUMA PLN), litry, cenę jednostkową i stację paliw; wartości tylko jako wstępne wypełnienie, ostateczne zatwierdzenie i korekta po stronie użytkownika; do zbadania wpływ na rozmiar APK (model dynamiczny z Google Play Services vs model wbudowany)
@@ -112,6 +111,10 @@
 - Przypomnienie o oponach wg temperatur (wariant B z C37, F56): „średnia dobowa poniżej 7 °C przez N kolejnych dni”. Warunek: źródło ciągłego dziennego szeregu temperatur (dziś cache F15 ma tylko dni z trasami), czyli zgoda na dzienne pobieranie z Open-Meteo albo inny czujnik; bez tego nie ma uczciwej reguły
 - Przypomnienia serwisowe (przebieg, przegląd, OC), ewidencja
   przebiegu (kilometrówka) – propozycje z 2026-11-08, niewybrane
+- Drobne z przeglądu C22, nadal otwarte (2026-11-12): D8 – `collectAsState()` w 38 miejscach zamiast wersji świadomej cyklu
+  życia (wymaga nowej zależności `lifecycle-runtime-compose`, czyli zgody właściciela); D11 – strefa czasowa z
+  `ZoneId.systemDefault()` wyliczana przy kompozycji ekranu (zmiana strefy w podróży widoczna dopiero po ponownym wejściu);
+  D14 – „Wstecz” jako tekst w 18 ekranach zamiast ikony (zmiana wyglądu, do sprawdzenia na emulatorze)
 - Przeniesienie logiki domenowej z `app/ui` do `core/domain` z lustrem w Pythonie przy okazji zmian (C22 D9), podział
   największych plików (D10)
 - Propozycje z przeglądu ha_toyota (2026-11-09), niewybrane; tylko odczyt, bez budzenia auta; endpointy są w pytoyoda,

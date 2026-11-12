@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+
+## 0.2.16 (2026-11-12)
+- Automatyczna kopia (F60): obsługa folderu wydzielona do osobnej klasy z testami (14 testów: podfolder o nazwie kopii, zapis przerwany w połowie, odmowa zmiany nazwy, brak uprawnienia); zachowanie bez zmian
 - Zdjęcie paragonu (F59): plik źródłowy jest czytany tylko raz (kopia robocza w prywatnym katalogu, zawsze usuwana), więc działa też z dostawcą, który pozwala otworzyć zdjęcie jeden raz
 - Stacja przy tankowaniu (F57): skrócenie nazwy do 60 znaków nie rozcina już znaku zapisanego parą (np. emoji)
 
