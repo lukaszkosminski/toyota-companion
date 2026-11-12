@@ -124,7 +124,7 @@ docs/           project documentation (in Polish)
 | [docs/PRD.md](docs/PRD.md) | requirements and features F1–F60, out of scope |
 | [docs/SPEC.md](docs/SPEC.md) | specification and acceptance criteria (§1–§60) |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | components, rules and dependency failures |
-| [docs/DECISIONS.md](docs/DECISIONS.md) | decisions (ADR-001 – ADR-020) |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | decisions (ADR-001 – ADR-022) |
 | [docs/SECURITY.md](docs/SECURITY.md) | protected data, flows to external services, encryption |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | done, now, next |
 | [docs/DOD.md](docs/DOD.md) | definition of done |

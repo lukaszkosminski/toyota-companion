@@ -1,30 +1,31 @@
-# Stan prac (2026-11-10)
+# Stan prac (2026-11-12)
 
-## Skrót – 2026-11-10
+## Skrót – 2026-11-12
 - Wydania na GitHub Releases: v0.2.0 (06.11), v0.2.1–v0.2.4 (08.11), v0.2.5 i v0.2.6 (09.11), v0.2.7 (10.11: F48–F51,
-  czytelność z przeglądu C32, szersze maskowanie sekretów); v0.2.8 (10.11: kalkulator trasy F52, kafelki z powrotem na dole statusu),
-  v0.2.9 (11.11: F53–F55); workflow `Release`
+  czytelność z przeglądu C32, szersze maskowanie sekretów), v0.2.8 (10.11: kalkulator trasy F52, kafelki z powrotem na dole statusu),
+  v0.2.9 (11.11: F53–F55), v0.2.10 (11.11: opony i stacja przy tankowaniu – F56–F57, baza Room 8), v0.2.11 (11.11: serie i rekordy
+  celów eco, zdjęcie paragonu – F58–F59, baza Room 9), v0.2.12 (11.11: poprawki z przeglądu jakości C41 i C42), v0.2.13 i v0.2.14
+  (11.11: automatyczna kopia archiwum do folderu – F60, SPEC §60, z poprawkami z przeglądu); workflow `Release`
   publikuje podpisany APK i mapping R8 jako artefakt. Telefon: „Opcje” → „Sprawdź aktualizacje”.
-- Po v0.2.6 na `main`, bez nowego wydania: budżet miesięczny i powiadomienie budżetowe (F48–F49, SPEC §49, commity
-  `c7022a0` i `84bad7f`), czytelność podstron z przeglądu C32 (`2f490e4`) i ślad CO₂ (F51, SPEC §51, `7dfebcc`).
-  F50 (krótkie trasy i zimny silnik) ma tylko plan `briefs/toyota-companion/C30-plan.md`.
-- Testy według walidacji agenta głównego z 10.11: core 458, app 853, Python 198; lint 0 problemów. CI: ruff/mypy/pytest, testy Androida, build release z R8, lint, gitleaks.
+- Po v0.2.14 na `main`, bez tagu: poprawki z przeglądów C43 (kopiowanie, zdjęcia paragonu, testy maskowania sekretów
+  i zwalniania uprawnienia do folderu, klucz podpisu usuwany z runnera po błędzie) – CHANGELOG 0.2.15.
+- Testy według walidacji agenta głównego z 12.11: core 572, app 1018, Python 311; lint 0 problemów. CI: ruff/mypy/pytest, testy Androida, build release z R8, lint, gitleaks.
 - Przegląd UI C32 i propozycje dla właściciela: `briefs/toyota-companion/C32-ui-review.md`; poprawki U1–U7 i U10
-  w commicie `2f490e4`, propozycje 1–8 (U8, U9, U11–U14, U16, U17) w następnym commicie (motyw ciemny bez uwag;
-  nie obejrzano języka EN, większej czcionki i ekranu 360 dp). Emulator 10.11: 592 trasy, tankowanie z 08.11 nadal czeka.
-- ROADMAP „NEXT”: wydanie po v0.2.6 z F48–F49 na polecenie właściciela oraz lista funkcji zaakceptowanych 10.11
-  (m.in. kalkulator trasy, krótkie trasy, najlepsza godzina wyjazdu, podsumowanie okresowe, stacja przy tankowaniu,
-  import CSV, zdjęcie paragonu, utrata wartości, opony, odznaki eco); numeracja pozycji pomija 5.
+  w commicie `2f490e4`, propozycje U8, U9, U11–U14 i U16–U17 w v0.2.7 (motyw ciemny bez uwag;
+  nie obejrzano języka EN, większej czcionki i ekranu 360 dp).
+- ROADMAP: wszystkie propozycje zaakceptowane przez właściciela 10.11 są zrealizowane (F52–F60, patrz DONE);
+  w „NEXT” zostały tylko drobne z przeglądu C22, a import CSV innych aplikacji jest w „LATER” (wstrzymany do czasu,
+  gdy pojawi się prawdziwy plik eksportu).
 - Emulator `toyota36` ma zalogowane konto właściciela, 585 tras i jedno oczekujące tankowanie z 08.11 10:42 (cena do podania
   przez właściciela); ustawione przykładowe cele eco 4,5 l/100 km i 55 %. Kopia danych aplikacji z 08.11:
   briefs/toyota-companion/emu-backup/2026-11-08/data.tar. (stan z 08.11, niezweryfikowany 10.11)
 
 
 ## Gotowe
-- Logika domeny (tankowania, koszt tras, ADR-005): Python `backend/` (specyfikacja, 76 testów) + Kotlin `android/core/.../domain` (76 testów, te same nazwy).
+- Logika domeny (tankowania, koszt tras, ADR-005): Python `backend/` (wykonywalna specyfikacja z testami) + Kotlin `android/core/.../domain` (testy o tych samych nazwach).
 - Klient Toyoty w Kotlinie `android/core/.../toyota` (port pytoyoda v6.0.0); `:core:liveCheck` do testu na prawdziwym koncie.
 - Synchronizacja `android/core/.../sync` (SPEC §8) + repozytoria `core/data` z kontraktem w `core/testFixtures`.
-- `android/app`: baza Room 3 (v1), szyfrowane dane logowania i tokeny (Keystore, ADR-007), `SyncWorker` co 30 min.
+- `android/app`: baza Room 9 (schemat `9.json`, migracje automatyczne), szyfrowane dane logowania i tokeny (Keystore, ADR-007), `SyncWorker` co 30 min.
 - UI (SPEC §9): ekran logowania MyToyota + ekran statusu synchronizacji; `SessionController` ze `StateFlow` (bez ViewModela – `lifecycle-viewmodel-compose` nie jest zależnością), `CredentialVerifier` jako seam weryfikacji, hasło tylko w pamięci ekranu. Wylogowanie czyści token i dane oraz anuluje prace `toyota-sync`/`toyota-sync-now`, archiwum Room zostaje.
 - Weryfikacja loginu w `core`: `LoginCheck` + `ToyotaGatewayFactory.verifyLogin` (świeży `InMemoryTokenStore`, bez `refresh_status`). Komunikat `INVALID_CREDENTIALS`: „Toyota odrzuciła logowanie – sprawdź login i hasło” (5xx z AMI też tu trafia).
 - Wygląd (C1b, commit feat(app): Material 3 look, edge-to-edge, pull-to-refresh): `ToyotaTheme` – Material 3, jasny/ciemny wg systemu,
@@ -34,7 +35,7 @@
   karta błędu `errorContainer`; status z `TopAppBar`, `PullToRefreshBox`, kartą liczników, chipem stanu,
   `HorizontalDivider` i `AlertDialog` potwierdzającym „Wyloguj”. `SessionController.reload()` powtarza tylko
   odczyt lokalnej bazy (bez API Toyoty i bez `refresh_status`).
-- Testy: core 316, app 380 (JUnit 4, w tym Robolectric), Python 143. CI: ruff/mypy/pytest, Android (core + app unit), gitleaks 8.30.1.
+- Testy: core 572, app 1018 (JUnit 4, w tym Robolectric), Python 311. CI: ruff/mypy/pytest, Android (core + app unit), gitleaks 8.30.1.
 - Lista tras z kosztem (SPEC §10): `SyncEngine.trips()` — trasy bieżącego VIN od najnowszej, wszystkie koszty jednym odczytem `costs.all()` (bez zapytania na trasę), brak VIN = pusta lista, bez sieci i bez `mutex` synchronizacji; w `app` czyste funkcje `groupTripsByMonth` (miesiąc z `trip.start` w przekazanej strefie, sumy km/l/zł, licznik tras bez ceny, `totalCost = null` gdy żadna trasa nie ma ceny) i `TripsFormatting` (przecinek, `HALF_UP`, własna tablica 12 nazw miesięcy w mianowniku, start `29.10 14:05`, formaty niezależne od `Locale`); ekran `TripsScreen` (nazwa + sumy miesiąca, wiersze z `key = trip.id`, cena za litr · a przy „cena domyślna” także dopisek w tej samej linii, `contentPadding` z `innerPadding`, stany ładowanie/pusto/błąd bez treści wyjątku, `TextButton` „Wstecz” + `BackHandler`) i przycisk „Trasy” na ekranie statusu; `AppContainer.tripsLoader` jako jedyne wejście do bazy, `AppRoot` przełącza ekrany enumem `Screen` w `rememberSaveable` (reset do statusu po wylogowaniu przez `LaunchedEffect`). Na ekranie brak współrzędnych GPS i VIN (SECURITY.md).
 - Formularz ceny tankowania (SPEC §11): `pendingRefuels()`, `confirmRefuel(...)` i `dismissRefuel(id)` w `SyncEngine`
   zwracają `RefuelChange` (`Done`, `NotFound`, `NotPending`, `Invalid`, `NoVehicle`). Zapis i przeliczenie kosztów idą
@@ -116,6 +117,15 @@
   – agent 2; `TripTypes.kt` (Dom/Praca z postojów, dojazdy/sprawy/weekend/inne) i testy – agent 1.
 
 ## Następny krok
+- Właściciel: potwierdzić, że telefon działa na wydaniu z GitHub Releases (eksport archiwum → odinstalowanie → instalacja →
+  logowanie → import) i powtórzyć test klienta na prawdziwym koncie po v0.2.14 (`./gradlew -q :core:liveCheck`, polecenia niżej).
+- C22: potwierdzić w kodzie D2, D8, D11 i D14 (ROADMAP „NEXT”) i zamknąć je albo przenieść do „LATER” z kryterium.
+- Import historii tankowań i wydatków z CSV innych aplikacji: wstrzymany do czasu, gdy pojawi się prawdziwy plik eksportu
+  (ROADMAP „LATER”).
+- Znane ograniczenie: Android Auto (F34) nie był sprawdzony na prawdziwym zestawie ani w Desktop Head Unit; wymaga
+  „Nieznane źródła” w ustawieniach programisty Android Auto (SPEC §35).
+
+## Sprawdzone na emulatorze (październik 2026)
 Sprawdzone na emulatorze (API 36) 2026-10-29: logowanie prawdziwym kontem, pierwsza synchronizacja (562 trasy, 1 odczyt),
 sekrety zaszyfrowane w `secrets.xml` (Keystore), praca `toyota-sync` zaplanowana z wymogiem sieci, brak awarii i sekretów w logach.
 Sprawdzone na emulatorze 2026-10-30: status, lista tras (motyw jasny i nocny, 562 trasy), ekran „Cena domyślna” –
@@ -144,12 +154,6 @@ Sprawdzone na emulatorze 2026-10-31, build C12: „Styl jazdy” na 562 trasach 
 odcinek 7,9 km (46 przejazdów), anomalie m.in. 26–28.10 (+39–56 %); brak awarii.
 Sprawdzone na emulatorze 2026-10-31, build C13: „Tankowanie za ok. 30 dni (ok. 30.11) · w baku ok. 40,4 l (94 %) ·
 ok. 797 km do rezerwy”; typy tras: dojazdy 71, sprawy 118, weekend 177, inne 196; Dom i Praca w „Postojach”.
-- Następny krok: F15 pogoda gotowa (SPEC §23); do sprawdzenia przez właściciela na telefonie: ekran „Pogoda i spalanie” po „Pobierz pogodę” (pierwsze prawdziwe żądanie do Open-Meteo), okno przy dotknięciu trasy. F18 Android Auto (PRD odradza).
-  F19 tempo jazdy, F20 spalanie na ekranie statusu (średnia, słupki, trend – SPEC §24) i „Otwórz w mapie” gotowe (SPEC §22, §24, §18). Review agenta 2: briefs/toyota-companion/C14-review.md, C15-review.md (poprawki wdrożone, niskie pozycje świadomie odłożone).
-
-F15: migracja Room 1→2 jest automatyczna (ADR-009), a nie jawna jak w planie C14 (D5); review agenta 2: briefs/toyota-companion/C14-review.md (poprawki wysokie i średnie wdrożone).
-
-Android Auto (F34): włącz w Android Auto → Ustawienia programisty → „Nieznane źródła”; ekran nie był sprawdzony na prawdziwym zestawie ani w Desktop Head Unit (SPEC §35).
 
 Test klienta na prawdziwym koncie MyToyota (uruchamia właściciel; hasło nie trafia do repo ani rozmowy):
 ```bash

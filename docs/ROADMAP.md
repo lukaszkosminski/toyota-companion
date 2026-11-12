@@ -48,9 +48,17 @@
 - Mapa trasy i postojów na kafelkach OSM, przebieg trasy z GPS Toyoty, zapis przebiegów, mapa ciepła (F21, F23, F32, F33, §26–§27, §33–§34);
   ceny 95 z trojmiasto.pl (F22, §25)
 - Podsumowanie roku (F28, §29), widżet (F31, §32), Android Auto tylko do odczytu (F34, §35), jazda na prądzie w tygodniach (F35, §36)
+- Stan pojazdu, lokalizacja i stan techniczny z chmury Toyoty (F41–F43, SPEC §42–§44): kafelki tylko do odczytu, bez `refresh_status`
+  i bez budzenia auta; drzwi, maska, okna i liczba aktywnych ostrzeżeń z czasem stanu, karta „Stan techniczny”, ostatnia pozycja auta
+  z nazwą miejsca Toyoty po polsku i „Dom”/„Praca” do 150 m; dokładna pozycja tylko w pamięci, mapa i `geo:` po dotknięciu (ADR-022)
+- Autostrada i przekroczenia prędkości w archiwum tras (F40, SPEC §41, ADR-021): metry i sekundy jazdy autostradą oraz ponad
+  dozwoloną prędkością z podsumowania trasy Toyoty, wiersz „autostrada 4,2 km · przekroczenia 1,3 km (9 %)”, pola w eksporcie
+  i imporcie archiwum, trasy sprzed migracji bez danych (Room v6, migracja 5→6)
 - Wydania na GitHub Releases i aktualizacja w „Opcjach” (F36, §37, ADR-016): v0.2.0 (2026-11-06), v0.2.1 (R8 – APK 4,3 MB,
   ikony Material Symbols, kontrast; ADR-017), v0.2.2 (przegląd jakości C22: odświeżanie statusu, liczebniki, jedno
-  odnowienie tokenu, testy migracji Room, ADR-019 jedno konto = jedno auto), v0.2.5 (2026-11-09: historia serwisowa
+  odnowienie tokenu, testy migracji Room, ADR-019 jedno konto = jedno auto), v0.2.3 (2026-11-08: stan pojazdu, lokalizacja,
+  stan techniczny i autostrada/przekroczenia prędkości – F40–F43, SPEC §41–§44, ADR-021/ADR-022, baza Room 6), v0.2.4 (2026-11-08:
+  poprawka ADR-005 – cena domyślna w pierwszym tankowaniu), v0.2.5 (2026-11-09: historia serwisowa
   i powiadomienia Toyoty, diagnostyka synchronizacji – F44–F46, SPEC §45–§47), v0.2.6 (2026-11-09: eksport CSV tankowań i wydatków – F47, SPEC §48),
   v0.2.7 (2026-11-10: budżet miesięczny i jego powiadomienie, krótkie trasy i zimny silnik, ślad CO₂ – F48–F51, SPEC §49–§51;
   czytelność statusu i podstron z przeglądu C32), v0.2.8 (2026-11-10: kalkulator kosztu trasy – F52, SPEC §52; kafelki z powrotem na dole statusu), v0.2.9 (2026-11-11: najlepsza godzina wyjazdu, podsumowanie okresu w powiadomieniu,
@@ -88,19 +96,19 @@
   Wersja na pojedynczą trasę poza zakresem (pozycja nie obejmuje już „na trasę”)
 
 ## NOW
-- Właściciel: test klienta na prawdziwym koncie `./gradlew -q :core:liveCheck` (docs/HANDOFF.md); przejście telefonu z wersji
-  debug na wydanie (eksport archiwum → odinstalowanie → instalacja → logowanie → import)
+- Właściciel: potwierdzić, że telefon działa na wydaniu z GitHub Releases (eksport archiwum → odinstalowanie → instalacja →
+  logowanie → import) i powtórzyć test klienta na prawdziwym koncie po v0.2.14: `./gradlew -q :core:liveCheck` (docs/HANDOFF.md)
 
 ## NEXT
-- Propozycje zaakceptowane przez właściciela 2026-11-10 (tylko dane lokalne i już używane źródła, bez budzenia auta);
-  każda dostaje numer F, wpis w PRD/SPEC i plan przed kodem, w tej kolejności:
-  1. (zrobione jako F52, bez temperatury – patrz DONE) Kalkulator kosztu planowanej trasy
-  7. Import historii tankowań i wydatków z CSV innych aplikacji (Fuelio, Drivvo) – wstrzymane 2026-11-11: właściciel nie ma
-     pliku eksportu z żadnej z nich, a formatu nie zgadujemy; wróci, gdy pojawi się prawdziwy plik
+- Propozycje zaakceptowane przez właściciela 2026-11-10: wszystkie zrealizowane (F52–F60, patrz DONE) poza importem CSV,
+  który jest w „LATER” (wstrzymany bez pliku eksportu). Kolejne propozycje dostają numer F, wpis w PRD/SPEC i plan przed kodem.
 - Pozostałe drobne z przeglądu C22: D3–D7, D12 i D13 zrobione (commit a982de8); D2, D8, D11, D14 do potwierdzenia
   w kodzie; D9 i D10 są w LATER
 
 ## LATER (kolejność wg wartości / kosztu)
+- Autouzupełnianie tankowania z OCR paragonu (rozwinięcie F59, wariant on-device): lokalne rozpoznawanie tekstu ze zdjęcia paragonu (Google ML Kit Text Recognition on-device – 100% offline, bez wysyłania danych do chmury, docs/SECURITY.md); parser heurystyczny podpowiadający w formularzu tankowania i w oknie „Wykryto tankowanie” kwotę łączną (SUMA PLN), litry, cenę jednostkową i stację paliw; wartości tylko jako wstępne wypełnienie, ostateczne zatwierdzenie i korekta po stronie użytkownika; do zbadania wpływ na rozmiar APK (model dynamiczny z Google Play Services vs model wbudowany)
+- Import historii tankowań i wydatków z CSV innych aplikacji (Fuelio, Drivvo) – wstrzymane 2026-11-11: właściciel nie ma pliku
+  eksportu z żadnej z nich, a formatu nie zgadujemy; wróci, gdy pojawi się prawdziwy plik
 - Przypomnienie o oponach wg temperatur (wariant B z C37, F56): „średnia dobowa poniżej 7 °C przez N kolejnych dni”. Warunek: źródło ciągłego dziennego szeregu temperatur (dziś cache F15 ma tylko dni z trasami), czyli zgoda na dzienne pobieranie z Open-Meteo albo inny czujnik; bez tego nie ma uczciwej reguły
 - Przypomnienia serwisowe (przebieg, przegląd, OC), ewidencja
   przebiegu (kilometrówka) – propozycje z 2026-11-08, niewybrane

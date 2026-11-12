@@ -34,7 +34,7 @@ Jeden właściciel pojazdu (właściciel projektu). Brak użytkowników zewnętr
 | F23 | Przebieg trasy na mapie | Mapa trasy pokazuje konkretny przebieg z GPS Toyoty (zielony – jazda na prądzie, niebieski – silnik), dociągnięty przy otwarciu mapy i zapisany na telefonie; bez przebiegu (starsza trasa, brak sieci) – początek, koniec i prosta linia (SPEC §27, ADR-012) |
 | F24 | Prędkość i temperatura | Na ekranie „Pogoda i spalanie” tabela: pasma tempa jazdy × temperatura dnia (l/100 km i liczba tras w komórce, komórki poniżej 5 tras bez wniosku) oraz „zimą przy tej prędkości” – różnica mróz (-10…0 °C) wobec łagodnie w tym samym paśmie (SPEC §28) |
 | F25 | Pogoda na liście tras | Przy każdej trasie na liście: symbol i słowo pogody dnia (słonecznie, deszcz, śnieg, burza…) i średnia temperatura (SPEC §10.3, §23) |
-| F26 | Koszty miesięczne na ekranie statusu | Pod spalaniem: koszt paliwa każdego miesiąca (słupki do 12 ostatnich i lista z km, zł/100 km, trasami bez ceny) oraz suma z całego okresu (SPEC §24) |
+| F26 | Koszty miesięczne na ekranie statusu | Pod spalaniem: koszt paliwa każdego miesiąca (słupki do 12 ostatnich i lista z km, zł/100 km, trasami bez ceny) oraz suma z całego okresu (SPEC §10.4) |
 | F27 | Rodzaj jazdy na liście tras | Przy każdej trasie: wolna jazda, miasto, płynnie albo trasa ze średnią prędkością (pasma z F19), krótki odcinek poniżej 2 km (SPEC §10.3) |
 | F28 | Podsumowanie roku | Ekran „Podsumowanie roku”: km, litry, koszt, średnie spalanie, udział prądu, dni z jazdą, najdłuższa trasa, najlepszy/najwyższy/najdroższy miesiąc i zmiana wobec poprzedniego roku; udostępnienie jako tekst (SPEC §29) |
 | F29 | Spalanie deklarowane | Właściciel wpisuje spalanie mieszane swojego modelu; karta „Spalanie” pokazuje, o ile procent jego średnie jest niższe lub wyższe od deklarowanego (SPEC §30) |
@@ -107,8 +107,10 @@ Jeden właściciel pojazdu (właściciel projektu). Brak użytkowników zewnętr
   zapisuje się tylko po „Użyj szacunku” i tylko razem z ceną, w pełnej precyzji domeny (cena w baku się nie zmienia);
   kwota wyliczona z szacunku jest szacunkowa; okno „Wykryto tankowanie” zostaje bez szacunku; pojemność baku stała 43 l.
 
-## 8. Otwarte pytania
-Brak.
+## 8. Funkcje dodane po MVP (F41–F60)
+
+| ID | Wymaganie | Kryterium akceptacji |
+|---|---|---|
 | F41 | Stan pojazdu | Kafelek „Stan pojazdu” w menu: drzwi, maska i okna (otwarte/zamknięte, zablokowane/odblokowane) oraz liczba aktywnych ostrzeżeń z chmury Toyoty, z czasem stanu; na górze karty jedno zdanie („Wszystko zamknięte i zablokowane” albo liczba odstępstw), odstępstwa pogrubione; karta „Stan techniczny” (F43) na tym samym ekranie; odczyt tylko po dotknięciu, bez budzenia auta (SPEC §42) |
 | F42 | Lokalizacja | Kafelek „Lokalizacja”: ostatnia znana pozycja auta z chmury Toyoty – nazwa miejsca Toyoty po polsku (`Last Parked` → „Ostatnie parkowanie”), nazwa znanego miejsca (Dom, Praca) gdy pozycja leży do 150 m od niego (porównanie tylko w pamięci) i dokładne współrzędne, z jedną linią czasu; „Pokaż na mapie” po dotknięciu; pozycja tylko w pamięci, bez bazy i archiwum (SPEC §43, ADR-022) |
 | F43 | Stan techniczny | Karta „Stan techniczny” na ekranie „Stan pojazdu”: liczba ostrzeżeń i informacja o danych oleju silnika z chmury Toyoty, z czasem; własny odczyt i własny błąd; treści wpisów nieinterpretowane (SPEC §44) |
@@ -129,3 +131,6 @@ Brak.
 | F58 | Serie i rekordy przy celach eco | W karcie „Cel miesiąca” liczba kolejnych pełnych miesięcy z osiągniętym celem spalania i celem jazdy na prądzie (najdłuższa seria w nawiasie); rekordy: najniższe spalanie i najwyższy udział prądu, od trzech pełnych miesięcy z jazdą; miesiąc poniżej 50 km pominięty (nie zrywa, nie wydłuża serii); zmiana celu zaczyna serię od miesiąca zmiany; wartości liczone z lokalnego archiwum, bez zapisu historii, bez widżetu i Android Auto (SPEC §58) |
 | F59 | Zdjęcie paragonu przy tankowaniu lub wydatku | Przy wydatku i w korekcie tankowania przycisk „Dodaj zdjęcie paragonu” (systemowy wybór zdjęcia, bez uprawnień i bez aparatu w aplikacji); zdjęcie skalowane do 1600 px i zapisane jako JPEG bez metadanych (GPS) w prywatnym katalogu aplikacji; miniatura i ikona w wierszu, podgląd w oknie w aplikacji; usunięcie wpisu albo zdjęcia kasuje plik; przy starcie sprzątanie osieroconych plików i odnośników; zdjęcia nie wchodzą do kopii Auto Backup, do archiwum JSON ani do CSV; bez OCR (SPEC §59) |
 | F60 | Automatyczna kopia archiwum do folderu | W „Kopia i eksport” właściciel wybiera raz folder w systemowym wybieraku; po pierwszej udanej synchronizacji dnia aplikacja zapisuje tam kopię archiwum (ten sam plik JSON co ręczny eksport, nazwa z datą) i trzyma 10 ostatnich, kasując tylko własne starsze kopie; kopia liczy się dla przypomnienia F8; błąd nie psuje synchronizacji i jest widoczny na karcie; bez nowych uprawnień, bez sieci, bez Room i bez budzenia auta (SPEC §60) |
+
+## 9. Otwarte pytania
+Brak.
