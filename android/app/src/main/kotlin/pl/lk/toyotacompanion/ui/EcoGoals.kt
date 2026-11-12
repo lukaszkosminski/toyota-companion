@@ -1,7 +1,6 @@
 package pl.lk.toyotacompanion.ui
 
 import java.math.BigDecimal
-import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
@@ -13,12 +12,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import pl.lk.toyotacompanion.core.data.StoredTrip
-import pl.lk.toyotacompanion.core.domain.toBigDecimal
 
 /** A month with fewer kilometres than this is not judged: a few short trips say more about the trips than about the goal. */
 const val ECO_MIN_MONTH_KM = 50.0
 
-private val HUNDRED = BigDecimal(100)
 
 /** The two optional goals of the owner (docs/SPEC.md §40); `null` = no such goal. */
 data class EcoGoals(
@@ -77,36 +74,16 @@ data class EcoMonth(
  * electric share as in §29 (each trip's electric km clipped to its own distance, whole percent HALF_UP). Trips with a non-finite or
  * non-positive distance or a negative fuel reading are left out, like on the status card.
  */
-fun ecoMonth(goals: EcoGoals, trips: List<StoredTrip>, zone: ZoneId, month: MonthKey): EcoMonth {
-    var km = BigDecimal.ZERO
-    var fuel = BigDecimal.ZERO
-    var electric = BigDecimal.ZERO
-    var evKnown = false
-    for (stored in trips) {
-        val trip = stored.record.trip
-        if (!trip.distanceKm.isFinite() || trip.distanceKm <= 0.0 || trip.fuelL.signum() < 0) continue
-        val day = trip.start.atZone(zone)
-        if (day.year != month.year || day.monthValue != month.month) continue
-        km = km.add(toBigDecimal(trip.distanceKm))
-        fuel = fuel.add(trip.fuelL)
-        val ev = trip.evDistanceKm
-        if (ev != null && ev.isFinite()) {
-            evKnown = true
-            if (ev > 0.0) electric = electric.add(toBigDecimal(minOf(ev, trip.distanceKm)))
-        }
-    }
-    val enough = km.toDouble() >= ECO_MIN_MONTH_KM
-    val lPer100 = if (km.signum() > 0) fuel.multiply(HUNDRED).divide(km, 2, RoundingMode.HALF_UP) else null
-    val evShare = if (km.signum() > 0 && evKnown) electric.multiply(HUNDRED).divide(km, 0, RoundingMode.HALF_UP) else null
-    val consumption = goals.maxConsumption?.let { goal ->
-        GoalResult(goal, lPer100, if (enough && lPer100 != null) lPer100 <= goal else null)
-    }
-    val ev = goals.minEvSharePct?.let { pct ->
-        val goal = BigDecimal(pct)
-        GoalResult(goal, evShare, if (enough && evShare != null) evShare >= goal else null)
-    }
-    return EcoMonth(month, km.setScale(1, RoundingMode.HALF_UP), enough, consumption, ev, evKnown)
-}
+fun ecoMonth(goals: EcoGoals, trips: List<StoredTrip>, zone: ZoneId, month: MonthKey): EcoMonth =
+    // One rule for both entry points: the month is cut out here, the sums are in the overload that takes a month's trips.
+    ecoMonth(
+        goals,
+        trips.filter { stored ->
+            val day = stored.record.trip.start.atZone(zone)
+            day.year == month.year && day.monthValue == month.month
+        },
+        month,
+    )
 
 /** The previous calendar month; the year rolls over in January. */
 fun previousMonth(month: MonthKey): MonthKey =

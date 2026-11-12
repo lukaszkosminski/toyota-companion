@@ -223,4 +223,101 @@ class EcoStreaksTest {
         assertEquals(expected, ecoRecordLine(h))
         assertTrue(ecoRecordLine(h)!!.length < 200)
     }
+
+    @Test
+    fun `ecoMonth overload without zone produces identical results when trips belong to the month`() {
+        val goals = EcoGoals(maxConsumption = BigDecimal("4.50"), minEvSharePct = 50)
+        val october = MonthKey(2026, 10)
+        val trips = listOf(
+            month(2026, 10, "4.2", km = 60.0, ev = 35.0),
+            month(2026, 10, "4.8", km = 40.0, ev = 20.0),
+            trip("invalid-km", "2026-10-15T12:00:00Z", 0.0, "1.0"),
+            trip("negative-fuel", "2026-10-16T12:00:00Z", 10.0, "-1.0"),
+            trip("ev-capped", "2026-10-17T12:00:00Z", 20.0, "1.0", ev = 25.0),
+        )
+
+        val withZone = ecoMonth(goals, trips, WARSAW, october)
+        val withoutZone = ecoMonth(goals, trips, october)
+
+        assertEquals(withZone, withoutZone)
+    }
+
+    @Test
+    fun `ecoMonth overload handles empty trips identically`() {
+        val goals = EcoGoals(maxConsumption = BigDecimal("4.50"), minEvSharePct = 50)
+        val october = MonthKey(2026, 10)
+
+        val withZone = ecoMonth(goals, emptyList(), WARSAW, october)
+        val withoutZone = ecoMonth(goals, emptyList(), october)
+
+        assertEquals(withZone, withoutZone)
+    }
+
+    @Test
+    fun `ecoHistory produces identical output to legacy full-scan mapping over multi-year trips`() {
+        val goals = EcoGoals(
+            maxConsumption = BigDecimal("4.80"),
+            minEvSharePct = 45,
+            consumptionSince = MonthKey(2026, 3),
+            evSince = MonthKey(2026, 4),
+        )
+        val trips = listOf(
+            month(2025, 11, "4.2", km = 120.0, ev = 60.0),
+            month(2025, 12, "5.5", km = 80.0, ev = 30.0),
+            month(2026, 1, "4.0", km = 95.0, ev = 50.0),
+            // February 2026 is a gap month (no trips)
+            month(2026, 3, "4.5", km = 150.0, ev = 70.0),
+            month(2026, 4, "4.1", km = 30.0, ev = 15.0), // short month under 50km
+            month(2026, 5, "4.3", km = 110.0, ev = 55.0),
+            month(2026, 6, "4.4", km = 100.0, ev = 48.0),
+            month(2026, 7, "4.6", km = 130.0, ev = 65.0),
+            month(2026, 8, "4.7", km = 90.0, ev = 40.0),
+            month(2026, 9, "4.2", km = 140.0, ev = 70.0),
+            month(2026, 10, "3.9", km = 50.0, ev = 25.0), // month in progress (today is 2026-10-20)
+        )
+
+        val last = previousMonth(MonthKey(TODAY.year, TODAY.monthValue))
+        val first = trips.minOf { it.record.trip.start.atZone(WARSAW).let { d -> MonthKey(d.year, d.monthValue) } }
+        val allMonths = generateSequence(first) { m ->
+            if (m.month == 12) MonthKey(m.year + 1, 1) else MonthKey(m.year, m.month + 1)
+        }.takeWhile { it <= last }.toList()
+
+        val figureGoals = EcoGoals(maxConsumption = BigDecimal.ONE, minEvSharePct = 1)
+        val legacyJudged = allMonths.map { ecoMonth(goals, trips, WARSAW, it) }
+        val legacyFigures = allMonths.map { ecoMonth(figureGoals, trips, WARSAW, it) }.filter { it.enoughDriving }
+
+        var legacyLowest: EcoRecord? = null
+        for (m in legacyFigures) {
+            val v = m.consumption?.actual ?: continue
+            if (legacyLowest == null || v < legacyLowest.value) legacyLowest = EcoRecord(m.month, v)
+        }
+        var legacyHighest: EcoRecord? = null
+        for (m in legacyFigures) {
+            val v = m.ev?.actual ?: continue
+            if (legacyHighest == null || v > legacyHighest.value) legacyHighest = EcoRecord(m.month, v)
+        }
+
+        fun streakCalc(months: List<EcoMonth>, since: MonthKey?, verdict: (EcoMonth) -> Boolean?): EcoStreakCount {
+            var run = 0
+            var longest = 0
+            for (month in months) {
+                if (since != null && month.month < since) continue
+                val met = verdict(month) ?: continue
+                run = if (met) run + 1 else 0
+                longest = maxOf(longest, run)
+            }
+            return EcoStreakCount(run, longest)
+        }
+
+        val legacyHistory = EcoHistory(
+            consumptionStreak = streakCalc(legacyJudged, goals.consumptionSince) { it.consumption?.met },
+            evStreak = streakCalc(legacyJudged, goals.evSince) { it.ev?.met },
+            lowestConsumption = legacyLowest,
+            highestEvShare = legacyHighest,
+            judgedMonths = legacyFigures.size,
+        )
+
+        val actualHistory = ecoHistory(goals, trips, WARSAW, TODAY)
+        assertEquals(legacyHistory, actualHistory)
+    }
 }

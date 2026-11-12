@@ -1,9 +1,11 @@
 package pl.lk.toyotacompanion.ui
 
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.ZoneId
 import pl.lk.toyotacompanion.core.data.StoredTrip
+import pl.lk.toyotacompanion.core.domain.toBigDecimal
 
 /** Records need this many full months with driving (PRD F58, docs/SPEC.md §58). */
 const val ECO_RECORD_MIN_MONTHS = 3
@@ -26,11 +28,46 @@ data class EcoHistory(
     val judgedMonths: Int,
 )
 
+private val HUNDRED = BigDecimal(100)
+
 /**
  * The figures of every month come from [ecoMonth] with these goals: [GoalResult.actual] does not depend on the goal value, so
  * any goal serves to read the consumption and the electric share of a month.
  */
 private val FIGURE_GOALS = EcoGoals(maxConsumption = BigDecimal.ONE, minEvSharePct = 1)
+
+/**
+ * Overload of [ecoMonth] when [trips] are already narrowed or grouped to [month],
+ * avoiding repeated date calculations across full trip collections.
+ */
+fun ecoMonth(goals: EcoGoals, trips: List<StoredTrip>, month: MonthKey): EcoMonth {
+    var km = BigDecimal.ZERO
+    var fuel = BigDecimal.ZERO
+    var electric = BigDecimal.ZERO
+    var evKnown = false
+    for (stored in trips) {
+        val trip = stored.record.trip
+        if (!trip.distanceKm.isFinite() || trip.distanceKm <= 0.0 || trip.fuelL.signum() < 0) continue
+        km = km.add(toBigDecimal(trip.distanceKm))
+        fuel = fuel.add(trip.fuelL)
+        val ev = trip.evDistanceKm
+        if (ev != null && ev.isFinite()) {
+            evKnown = true
+            if (ev > 0.0) electric = electric.add(toBigDecimal(minOf(ev, trip.distanceKm)))
+        }
+    }
+    val enough = km.toDouble() >= ECO_MIN_MONTH_KM
+    val lPer100 = if (km.signum() > 0) fuel.multiply(HUNDRED).divide(km, 2, RoundingMode.HALF_UP) else null
+    val evShare = if (km.signum() > 0 && evKnown) electric.multiply(HUNDRED).divide(km, 0, RoundingMode.HALF_UP) else null
+    val consumption = goals.maxConsumption?.let { goal ->
+        GoalResult(goal, lPer100, if (enough && lPer100 != null) lPer100 <= goal else null)
+    }
+    val ev = goals.minEvSharePct?.let { pct ->
+        val goal = BigDecimal(pct)
+        GoalResult(goal, evShare, if (enough && evShare != null) evShare >= goal else null)
+    }
+    return EcoMonth(month, km.setScale(1, RoundingMode.HALF_UP), enough, consumption, ev, evKnown)
+}
 
 private fun monthOf(time: java.time.Instant, zone: ZoneId): MonthKey {
     val day = time.atZone(zone)
@@ -49,14 +86,15 @@ private fun nextMonth(month: MonthKey): MonthKey =
 fun ecoHistory(goals: EcoGoals, trips: List<StoredTrip>, zone: ZoneId, today: LocalDate): EcoHistory? {
     if (!goals.any) return null
     val last = previousMonth(MonthKey(today.year, today.monthValue))
-    val first = trips.minOfOrNull { monthOf(it.record.trip.start, zone) }
+    val byMonth = trips.groupBy { monthOf(it.record.trip.start, zone) }
+    val first = byMonth.keys.minOrNull()
     val months = if (first == null || first > last) {
         emptyList()
     } else {
         generateSequence(first) { month -> nextMonth(month).takeIf { it <= last } }.toList()
     }
-    val judgedByGoal = months.map { ecoMonth(goals, trips, zone, it) }
-    val figures = months.map { ecoMonth(FIGURE_GOALS, trips, zone, it) }.filter { it.enoughDriving }
+    val judgedByGoal = months.map { ecoMonth(goals, byMonth[it].orEmpty(), it) }
+    val figures = months.map { ecoMonth(FIGURE_GOALS, byMonth[it].orEmpty(), it) }.filter { it.enoughDriving }
 
     return EcoHistory(
         consumptionStreak = goals.maxConsumption?.let { streak(judgedByGoal, goals.consumptionSince) { it.consumption?.met } },
