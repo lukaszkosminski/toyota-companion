@@ -2,6 +2,7 @@ package pl.lk.toyotacompanion.core.sync
 
 import java.math.BigDecimal
 import java.time.Instant
+import java.util.UUID
 import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlinx.coroutines.CancellationException
@@ -24,6 +25,10 @@ import pl.lk.toyotacompanion.core.data.TripRepository
 import pl.lk.toyotacompanion.core.data.VehicleRecord
 import pl.lk.toyotacompanion.core.data.VehicleRepository
 import pl.lk.toyotacompanion.core.domain.LitersSource
+import pl.lk.toyotacompanion.core.domain.MANUAL_READING_MAX_AGE
+import pl.lk.toyotacompanion.core.domain.findNearbyRefuel
+import pl.lk.toyotacompanion.core.domain.levelBeforeManualRefuel
+import pl.lk.toyotacompanion.core.domain.manualRefuel
 import pl.lk.toyotacompanion.core.domain.Refuel
 import pl.lk.toyotacompanion.core.domain.RefuelStatus
 import pl.lk.toyotacompanion.core.domain.TripCost
@@ -218,6 +223,49 @@ class SyncEngine(
             litersSource = litersSource,
             station = station,
         )
+    }
+
+    /**
+     * Adds a refuel the owner read off a receipt, when the sensor did not detect it (C45, docs/SPEC.md §15.4).
+     * [moment] is not in the future. The starting level and the odometer come from the last fuel reading before
+     * [moment], corrected by the trips since it; a stored refuel within 12 hours is refused ([RefuelChange.Duplicate]).
+     * Written under the mutex, then the costs are recounted.
+     */
+    suspend fun addManualRefuel(
+        moment: Instant,
+        liters: BigDecimal,
+        pricePerLiter: BigDecimal? = null,
+        totalCost: BigDecimal? = null,
+        filledToFull: Boolean? = null,
+        station: String? = null,
+    ): RefuelChange = mutex.withLock {
+        val vin = state.get().vin ?: return@withLock RefuelChange.NoVehicle
+        if (moment.isAfter(clock())) return@withLock RefuelChange.Invalid
+        val stored = refuels.all(vin).filter { it.status != RefuelStatus.DISMISSED }
+        findNearbyRefuel(stored, moment)?.let { return@withLock RefuelChange.Duplicate(it) }
+        val reading = readings.since(moment.minus(MANUAL_READING_MAX_AGE), vin).lastOrNull { !it.ts.isAfter(moment) }
+            ?: return@withLock RefuelChange.NoReading
+        val tripsBefore = trips.all(vin).map { it.toTrip() }
+        val levelBefore = levelBeforeManualRefuel(reading, tripsBefore, moment, config.tankCapacityL)
+            ?: return@withLock RefuelChange.NoReading
+        val refuel = try {
+            manualRefuel(
+                id = "manual-" + UUID.randomUUID(),
+                ts = moment,
+                odometerKm = reading.odometerKm,
+                levelBefore = levelBefore,
+                liters = liters,
+                pricePerLiter = pricePerLiter,
+                totalCost = totalCost,
+                filledToFull = filledToFull,
+                station = station,
+                capacityL = config.tankCapacityL,
+            )
+        } catch (e: IllegalArgumentException) {
+            return@withLock RefuelChange.Invalid
+        }
+        refuels.addIfAbsent(refuel, vin)
+        RefuelChange.Done(refuel, recomputeAndSave(vin))
     }
 
     /** Discards one pending refuel (docs/SPEC.md §3) and recounts the costs. */

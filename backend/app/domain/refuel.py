@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import replace
-from datetime import UTC, datetime
-from decimal import Decimal
+from datetime import UTC, datetime, timedelta
+from decimal import ROUND_HALF_UP, Decimal
 
 from .models import (
     DEFAULT_TANK_CAPACITY_L,
     FuelReading,
     LitersSource,
     Refuel,
+    Trip,
     as_decimal,
     round_liters,
     round_money,
@@ -272,3 +274,101 @@ def tank_price_after_refuel(
 def dismiss_refuel(refuel: Refuel) -> Refuel:
     """Return a copy of ``refuel`` with ``status="dismissed"``."""
     return replace(refuel, status="dismissed")
+
+
+#: A manual entry this close to a stored refuel is the same fill (C45); the window is 12 hours.
+MANUAL_DUPLICATE_WINDOW = timedelta(hours=12)
+
+#: A manual entry takes its starting level from a reading at most this old (C45).
+MANUAL_READING_MAX_AGE = timedelta(days=30)
+
+
+def find_nearby_refuel(
+    refuels: Iterable[Refuel],
+    ts: datetime,
+    window: timedelta = MANUAL_DUPLICATE_WINDOW,
+) -> Refuel | None:
+    """The stored refuel nearest to ``ts`` within ``window``, or ``None``.
+
+    The caller passes the refuels that are not dismissed. Mirrors Kotlin ``findNearbyRefuel``.
+    """
+    near = [refuel for refuel in refuels if abs(refuel.ts - ts) <= window]
+    return min(near, key=lambda refuel: abs(refuel.ts - ts), default=None)
+
+
+def level_before_manual_refuel(
+    reading: FuelReading | None,
+    trips: Iterable[Trip],
+    moment: datetime,
+    capacity_l: Decimal = DEFAULT_TANK_CAPACITY_L,
+) -> int | None:
+    """Fuel level in percent at ``moment``, counted from the reading and the trips after it.
+
+    The reading's fuel minus the fuel of the trips that started at or after the reading and before
+    ``moment`` (the forecast rule, SPEC §20). ``None`` without a reading at or before ``moment`` or
+    when the reading is older than ``MANUAL_READING_MAX_AGE``. Mirrors Kotlin
+    ``levelBeforeManualRefuel``.
+    """
+    if reading is None or reading.ts > moment:
+        return None
+    if moment - reading.ts > MANUAL_READING_MAX_AGE:
+        return None
+    used = sum(
+        (trip.fuel_l for trip in trips if reading.ts <= trip.start < moment),
+        Decimal(0),
+    )
+    capacity = as_decimal(capacity_l)
+    left = max(Decimal(0), Decimal(reading.level_pct) / Decimal(100) * capacity - used)
+    percent = int((left * 100 / capacity).quantize(Decimal(1), rounding=ROUND_HALF_UP))
+    return min(100, max(0, percent))
+
+
+def manual_refuel(
+    refuel_id: str,
+    *,
+    ts: datetime,
+    odometer_km: float,
+    level_before: int,
+    liters: Decimal,
+    price_per_liter: DecimalLike = None,
+    total_cost: DecimalLike = None,
+    filled_to_full: bool | None = None,
+    station: str | None = None,
+    capacity_l: Decimal = DEFAULT_TANK_CAPACITY_L,
+) -> Refuel:
+    """A refuel the owner enters by hand (C45), confirmed at once.
+
+    The level after is 100 % when the tank was filled to full, otherwise the level before plus the
+    liters. Liters are required; the price or the total is the second value. Raises ``ValueError``
+    for values the domain refuses. Mirrors Kotlin ``manualRefuel``.
+    """
+    if not 0 <= level_before <= 100:
+        raise ValueError(f"level_before must be 0..100 (got {level_before})")
+    if liters <= 0:
+        raise ValueError(f"liters must be > 0 (got {liters})")
+    if filled_to_full:
+        level_after = 100
+    else:
+        added = int(
+            (liters * 100 / as_decimal(capacity_l)).quantize(Decimal(1), rounding=ROUND_HALF_UP),
+        )
+        level_after = min(100, max(1, level_before + added))
+    pending = Refuel(
+        id=refuel_id,
+        ts=ts,
+        odometer_km=odometer_km,
+        level_before=level_before,
+        level_after=level_after,
+        liters=None,
+        price_per_liter=None,
+        total_cost=None,
+        status="pending",
+    )
+    return confirm_refuel(
+        pending,
+        price_per_liter=price_per_liter,
+        liters=liters,
+        total_cost=total_cost,
+        filled_to_full=filled_to_full,
+        station=station,
+    )

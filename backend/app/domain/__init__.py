@@ -29,6 +29,9 @@ from .refuel import (
     detect_refuel,
     dismiss_refuel,
     estimate_refuel_liters,
+    find_nearby_refuel,
+    level_before_manual_refuel,
+    manual_refuel,
     tank_price_after_refuel,
 )
 from .shorttrips import (
@@ -159,6 +162,9 @@ __all__ = [
     "TripCostSource",
     "compute_trip_cost",
     "confirm_refuel",
+    "find_nearby_refuel",
+    "level_before_manual_refuel",
+    "manual_refuel",
     "detect_refuel",
     "dismiss_refuel",
     "estimate_refuel_liters",

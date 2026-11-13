@@ -1,6 +1,11 @@
 package pl.lk.toyotacompanion.ui
 
 import java.math.BigDecimal
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -26,9 +31,16 @@ data class RefuelLogUiState(
     val busyId: String? = null,
     val amendError: String? = null,
     val amendedId: String? = null,
+    /** The message of the manual entry dialog; `null` when it has none. */
+    val addError: String? = null,
+    /** The manual entry that was stored (C45); the dialog closes on it. */
+    val addedId: String? = null,
     /** Fuel-level readings for the level chart, oldest first; empty when none are stored. */
     val levels: List<pl.lk.toyotacompanion.core.domain.FuelReading> = emptyList(),
 )
+
+/** Marks the busy state of a manual entry; it is not a refuel id. */
+private const val ADDING = "adding"
 
 /**
  * State of the refuel log (PRD F9), following [RefuelController]: application
@@ -52,6 +64,15 @@ class RefuelLogController(
     private val scope: CoroutineScope,
     private val io: CoroutineDispatcher,
     private val readLevels: suspend () -> List<pl.lk.toyotacompanion.core.domain.FuelReading> = { emptyList() },
+    /** Stores a refuel the owner read off a receipt (C45, `SyncEngine.addManualRefuel`). */
+    private val add: suspend (
+        moment: Instant,
+        liters: BigDecimal,
+        pricePerLiter: BigDecimal?,
+        totalCost: BigDecimal?,
+        filledToFull: Boolean?,
+        station: String?,
+    ) -> RefuelChange = { _, _, _, _, _, _ -> RefuelChange.NoVehicle },
 ) {
     private val ui = MutableStateFlow(RefuelLogUiState())
     val state: StateFlow<RefuelLogUiState> = ui.asStateFlow()
@@ -128,6 +149,73 @@ class RefuelLogController(
                 ui.value = ui.value.copy(busyId = null, amendError = message)
             }
         }
+    }
+
+    /**
+     * Stores a refuel the sensor did not detect (C45). Date and time are typed (`RRRR-MM-DD`, `GG:MM`, the phone's
+     * zone), liters are required and exactly one of price per liter or total is given. A stored refuel within 12
+     * hours is refused with its date, so the owner amends that one instead. On success the log is read again.
+     */
+    fun addManual(
+        dateText: String,
+        timeText: String,
+        litersText: String,
+        priceText: String,
+        totalText: String,
+        filledToFull: Boolean,
+        stationText: String = "",
+    ) {
+        val shown = ui.value
+        if (shown.busyId != null) return
+        val moment = try {
+            LocalDate.parse(dateText.trim()).atTime(LocalTime.parse(timeText.trim())).atZone(ZoneId.systemDefault()).toInstant()
+        } catch (e: java.time.DateTimeException) {
+            ui.value = shown.copy(addError = Texts.MANUAL_DATE_ERROR, addedId = null)
+            return
+        }
+        val liters = (parseRefuelAmount(litersText) as? RefuelAmount.Given)?.value
+        val price = (parseRefuelAmount(priceText) as? RefuelAmount.Given)?.value
+        val total = (parseRefuelAmount(totalText) as? RefuelAmount.Given)?.value
+        val notNumber = listOf(litersText, priceText, totalText).any { parseRefuelAmount(it) == RefuelAmount.NotANumber }
+        when {
+            notNumber -> ui.value = shown.copy(addError = Texts.REFUEL_NUMBER_ERROR, addedId = null)
+            liters == null || liters <= BigDecimal.ZERO -> ui.value = shown.copy(addError = Texts.AMEND_LITERS_REQUIRED, addedId = null)
+            (price == null) == (total == null) -> ui.value = shown.copy(addError = Texts.MANUAL_MONEY_ERROR, addedId = null)
+            moment.isAfter(Instant.now()) -> ui.value = shown.copy(addError = Texts.MANUAL_DATE_ERROR, addedId = null)
+            else -> {
+                val startedIn = generation
+                ui.value = shown.copy(busyId = ADDING, addError = null, addedId = null)
+                scope.launch {
+                    val change: RefuelChange? = try {
+                        withContext(io) { add(moment, liters, price, total, filledToFull, stationText.ifBlank { null }) }
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        null
+                    }
+                    if (generation != startedIn) return@launch
+                    if (change is RefuelChange.Done) {
+                        ui.value = ui.value.copy(busyId = null, addedId = change.refuel.id)
+                        load()
+                    } else {
+                        val message = when (change) {
+                            is RefuelChange.Duplicate -> Texts.manualDuplicate(
+                                change.existing.ts.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")),
+                            )
+                            RefuelChange.NoReading -> Texts.MANUAL_NO_READING
+                            RefuelChange.Invalid -> Texts.MANUAL_DATE_ERROR
+                            else -> Texts.REFUEL_SAVE_FAILED
+                        }
+                        ui.value = ui.value.copy(busyId = null, addError = message)
+                    }
+                }
+            }
+        }
+    }
+
+    /** The manual entry dialog was closed: its message and result are gone. */
+    fun addDismissed() {
+        ui.value = ui.value.copy(addError = null, addedId = null)
     }
 
     /** The correction dialog was closed: its message is gone. */

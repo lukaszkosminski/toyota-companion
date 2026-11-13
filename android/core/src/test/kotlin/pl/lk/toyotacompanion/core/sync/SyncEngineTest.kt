@@ -1391,6 +1391,40 @@ class SyncEngineTest {
 
         assertEquals(DAY_1, c.engine.status().carStateAt)
     }
+
+    // ---------------- manual refuel (C45) ----------------
+
+    @Test
+    fun `a manual refuel is stored confirmed with the level and odometer of the reading before it`() = runTest {
+        val stores = InMemoryStores()
+        stores.state.save(SyncState(vin = VIN))
+        stores.readings.addIfAbsent(reading(DAY_1.minusSeconds(7_200), 50, odometerKm = 10_100.0), VIN)
+        val c = ctx(stores = stores)
+
+        val done = assertIs<RefuelChange.Done>(
+            c.engine.addManualRefuel(DAY_1, liters = BigDecimal("20"), pricePerLiter = BigDecimal("6.20")),
+        )
+
+        assertEquals(RefuelStatus.CONFIRMED, done.refuel.status)
+        assertEquals(50, done.refuel.levelBefore)
+        assertEquals(10_100.0, done.refuel.odometerKm)
+        assertEquals(1, stores.refuels.all(VIN).size)
+    }
+
+    @Test
+    fun `a manual refuel without a reading or in the future or near a stored one is refused`() = runTest {
+        val stores = InMemoryStores()
+        stores.state.save(SyncState(vin = VIN))
+        val c = ctx(stores = stores)
+
+        assertIs<RefuelChange.NoReading>(c.engine.addManualRefuel(DAY_1, liters = BigDecimal("20"), pricePerLiter = BigDecimal("6")))
+        assertIs<RefuelChange.Invalid>(c.engine.addManualRefuel(DAY_1.plusSeconds(3_600), liters = BigDecimal("20"), pricePerLiter = BigDecimal("6")))
+
+        stores.readings.addIfAbsent(reading(DAY_1.minusSeconds(7_200), 50), VIN)
+        stores.refuels.addIfAbsent(pendingRefuel("r1", DAY_1.minusSeconds(3_600)), VIN)
+        assertIs<RefuelChange.Duplicate>(c.engine.addManualRefuel(DAY_1, liters = BigDecimal("20"), pricePerLiter = BigDecimal("6")))
+        assertEquals(1, stores.refuels.all(VIN).size, "nothing was written")
+    }
 }
 
 /**

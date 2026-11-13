@@ -96,6 +96,93 @@ class RefuelLogControllerTest {
         io = io,
     )
 
+    // ---------------- refuel the sensor missed (C45) ----------------
+
+    private class FakeAdd {
+        var answer: RefuelChange = RefuelChange.Done(confirmed("manual-1"), 1)
+        val calls = mutableListOf<String>()
+
+        suspend fun add(
+            moment: Instant,
+            liters: BigDecimal,
+            price: BigDecimal?,
+            total: BigDecimal?,
+            full: Boolean?,
+            station: String?,
+        ): RefuelChange {
+            calls += "$moment|$liters|$price|$total|$full|$station"
+            return answer
+        }
+    }
+
+    private fun manualController(read: FakeRead, io: CoroutineDispatcher, add: FakeAdd) = RefuelLogController(
+        read = { read.read() },
+        amend = { _, _, _, _, _ -> RefuelChange.NoVehicle },
+        scope = CoroutineScope(SupervisorJob() + io),
+        io = io,
+        add = { m, l, p, t, f, s -> add.add(m, l, p, t, f, s) },
+    )
+
+    @Test
+    fun `a manual refuel needs liters and exactly one of price or total`() = runTest {
+        val add = FakeAdd()
+        val controller = manualController(FakeRead(), StandardTestDispatcher(testScheduler), add)
+
+        controller.addManual("2026-10-29", "12:00", "30", "", "", filledToFull = false)
+        advanceUntilIdle()
+        assertEquals(Texts.MANUAL_MONEY_ERROR, controller.state.value.addError)
+
+        controller.addManual("2026-10-29", "12:00", "30", "6,19", "185,70", filledToFull = false)
+        advanceUntilIdle()
+        assertEquals(Texts.MANUAL_MONEY_ERROR, controller.state.value.addError)
+        assertTrue(add.calls.isEmpty(), "nothing is written with a wrong form")
+    }
+
+    @Test
+    fun `a manual refuel in the future or with a bad time is refused`() = runTest {
+        val add = FakeAdd()
+        val controller = manualController(FakeRead(), StandardTestDispatcher(testScheduler), add)
+
+        controller.addManual("2999-01-01", "12:00", "30", "6,19", "", filledToFull = false)
+        advanceUntilIdle()
+        assertEquals(Texts.MANUAL_DATE_ERROR, controller.state.value.addError)
+
+        controller.addManual("2026-10-29", "25:99", "30", "6,19", "", filledToFull = false)
+        advanceUntilIdle()
+        assertEquals(Texts.MANUAL_DATE_ERROR, controller.state.value.addError)
+        assertTrue(add.calls.isEmpty())
+    }
+
+    @Test
+    fun `a stored manual refuel is written, the log is read again and the dialog learns its id`() = runTest {
+        val read = FakeRead()
+        val add = FakeAdd()
+        val controller = manualController(read, StandardTestDispatcher(testScheduler), add)
+        controller.load()
+        advanceUntilIdle()
+
+        controller.addManual("2026-10-29", "12:00", "30", "6,19", "", filledToFull = true, stationText = "Orlen")
+        advanceUntilIdle()
+
+        assertEquals(1, add.calls.size)
+        assertTrue(add.calls.single().endsWith("|30|6.19|null|true|Orlen"), add.calls.single())
+        assertEquals("manual-1", controller.state.value.addedId)
+        assertEquals(2, read.calls, "the log shows the new refuel at once")
+    }
+
+    @Test
+    fun `a duplicate refuel nearby is refused with its date and nothing is stored`() = runTest {
+        val add = FakeAdd()
+        add.answer = RefuelChange.Duplicate(confirmed("r1"))
+        val controller = manualController(FakeRead(), StandardTestDispatcher(testScheduler), add)
+
+        controller.addManual("2026-10-29", "12:00", "30", "6,19", "", filledToFull = false)
+        advanceUntilIdle()
+
+        assertNull(controller.state.value.addedId)
+        assertTrue(controller.state.value.addError?.contains("2026") == true, controller.state.value.addError)
+    }
+
     // ---------------- correction of a confirmed refuel (docs/SPEC.md §15.3) ----------------
 
     @Test

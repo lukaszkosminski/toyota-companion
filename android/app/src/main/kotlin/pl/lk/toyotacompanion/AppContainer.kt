@@ -762,6 +762,9 @@ class AppContainer(
             scope = uiScope,
             io = Dispatchers.IO,
             readLevels = { syncEngine.fuelLevels() },
+            add = { moment, liters, price, total, full, station ->
+                syncEngine.addManualRefuel(moment, liters, price, total, full, station)
+            },
         )
     }
 

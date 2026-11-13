@@ -1380,3 +1380,24 @@ Plan: `briefs/toyota-companion/C42-plan.md`. Logika: `ui/AutoBackupOps.kt` (`aut
   właściciel; jeśli folder synchronizuje inna aplikacja (np. chmura), to ona wysyła plik, nie ta aplikacja. `Uri` folderu nie
   trafia do logów, diagnostyki ani komunikatów.
 - **Poza zakresem:** liczba kopii do wyboru, szyfrowanie, kopia o stałej godzinie, kopia zdjęć paragonów (§59).
+
+## §61 Ręczne dodanie tankowania spoza czujnika (PRD F61, plan C45)
+Tankowanie, którego czujnik nie wykrył (dotankowanie poniżej progu 8 pp, auto spało, zgubione zdarzenie), właściciel
+wpisuje z paragonu w „Dzienniku tankowań” przyciskiem „Dodaj tankowanie”. Zapis od razu jako `CONFIRMED`.
+- **Domena** `core/domain/RefuelOps.kt` (lustro `backend/app/domain/refuel.py`, te same nazwy):
+  `levelBeforeManualRefuel(reading, trips, moment)` – poziom z ostatniego odczytu przed chwilą minus paliwo tras
+  od odczytu do chwili (reguła prognozy §20); bez odczytu przed chwilą albo starszego niż 30 dni – `null`.
+  `findNearbyRefuel(refuels, ts)` – najbliższe niedziałające (nie odrzucone) tankowanie w oknie ±12 h.
+  `manualRefuel(...)` – `Refuel` z poziomem przed, poziomem po (100 % przy „do pełna", inaczej przed + litry) i
+  `confirmRefuel` (wymagane litry i dokładnie jedno z: cena za litr, kwota).
+- **Zapis** `SyncEngine.addManualRefuel(moment, liters, price, total, full, station)` pod mutexem: brak auta
+  → `NoVehicle`; chwila w przyszłości → `Invalid`; tankowanie w ±12 h → `Duplicate(existing)` (nic nie zapisane);
+  brak odczytu w ciągu 30 dni → `NoReading`; inaczej `addIfAbsent` z id `manual-<UUID>`, `recomputeAndSave`, `Done`.
+  Odczyt daje stan licznika (`odometerKm`) i poziom przed; trasy po odczycie pomniejszają paliwo.
+- **Ekran** `RefuelLogScreen`: przycisk w pasku („Dodaj tankowanie”), okno z polami: data `RRRR-MM-DD`, godzina
+  `GG:MM` (tekstowo, czas lokalny telefonu; domyślnie teraz), litry, cena za litr **albo** kwota, „do pełna",
+  stacja (podpowiedzi jak przy poprawce). Błąd w oknie, bez zamykania. `Duplicate` podaje datę istniejącego
+  tankowania i prosi o poprawienie go zamiast dodawania.
+- Bez zmian schematu Room. Wpis ręczny nie różni się od potwierdzonego z czujnika w przeliczeniu kosztów (ADR-005).
+- **Poza zakresem:** kalendarz zamiast pól tekstowych, poziomy przed/po wpisywane ręcznie, edycja daty ręcznego wpisu
+  (działa „Popraw" tylko dla litrów i kwoty), dopasowanie do stacji po współrzędnych.

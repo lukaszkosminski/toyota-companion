@@ -41,4 +41,10 @@ sealed class RefuelChange {
 
     /** No vehicle selected, so there is no archive to write to. */
     data object NoVehicle : RefuelChange()
+
+    /** A manual entry was refused because [existing] is a refuel within 12 hours of it (C45); nothing was written. */
+    data class Duplicate(val existing: Refuel) : RefuelChange()
+
+    /** A manual entry needs a fuel reading at most 30 days before it, and there is none; nothing was written. */
+    data object NoReading : RefuelChange()
 }

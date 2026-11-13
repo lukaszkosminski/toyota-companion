@@ -229,7 +229,7 @@ class RefuelPromptController(
                     afterWrite()
                 }
                 // NotConfirmed comes only from a correction of the log (§15.3), never from the prompt.
-                RefuelChange.Invalid, RefuelChange.NotConfirmed ->
+                RefuelChange.Invalid, RefuelChange.NotConfirmed, is RefuelChange.Duplicate, RefuelChange.NoReading ->
                     ui.value = ui.value.copy(busy = false, error = Texts.refuelChangeError(change))
                 null -> ui.value = ui.value.copy(busy = false, error = Texts.REFUEL_SAVE_FAILED)
             }

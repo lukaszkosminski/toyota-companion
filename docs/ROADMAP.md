@@ -1,6 +1,7 @@
 # Roadmap
 
 ## DONE
+- Ręczne dodanie tankowania spoza czujnika (F61, SPEC §61, plan C45)
 - Prognoza tankowania pokazuje wolne miejsce w baku („do pełna ok. X l”, F14, SPEC §20.2)
 - Usunięte 2026-11-13 decyzją właściciela: cele eco z seriami i rekordami (F39, F58) oraz budżet miesięczny z powiadomieniem (F48, F49); wpisy niżej to historia
 - Automatyczna kopia archiwum do folderu (F60, SPEC §60, plan C42): folder wybierany raz, jedna kopia dziennie po udanej

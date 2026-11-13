@@ -1,6 +1,9 @@
 package pl.lk.toyotacompanion.core.domain
 
 import java.math.BigDecimal
+import java.math.RoundingMode
+import java.time.Duration
+import java.time.Instant
 
 private val ALLOWED_COMBOS: Set<Set<String>> = setOf(
     setOf("price_per_liter"),
@@ -219,3 +222,87 @@ private fun levelToLiters(levelPct: Int, capacityL: BigDecimal): BigDecimal =
 
 private fun setOfNotNull(vararg pairs: Pair<String, Any?>): Set<String> =
     pairs.filter { it.second != null }.map { it.first }.toSet()
+
+/** A manual entry this close to a stored refuel is the same fill (C45); the window is 12 hours. */
+val MANUAL_DUPLICATE_WINDOW: Duration = Duration.ofHours(12)
+
+/** A manual entry takes its starting level from a reading at most this old (C45). */
+val MANUAL_READING_MAX_AGE: Duration = Duration.ofDays(30)
+
+/**
+ * The stored refuel nearest to [ts] within [window], or `null`. The caller passes the refuels that are not
+ * dismissed. Mirrors Python `find_nearby_refuel`.
+ */
+fun findNearbyRefuel(refuels: List<Refuel>, ts: Instant, window: Duration = MANUAL_DUPLICATE_WINDOW): Refuel? =
+    refuels
+        .filter { Duration.between(it.ts, ts).abs() <= window }
+        .minByOrNull { Duration.between(it.ts, ts).abs() }
+
+/**
+ * Fuel level in percent at [moment], counted from the reading and the trips after it: the reading's fuel minus the
+ * fuel of the trips that started at or after the reading and before [moment] (the same rule as the forecast, §20).
+ * `null` when there is no reading at or before [moment] or it is older than [MANUAL_READING_MAX_AGE]. Mirrors Python
+ * `level_before_manual_refuel`.
+ */
+fun levelBeforeManualRefuel(
+    reading: FuelReading?,
+    trips: List<Trip>,
+    moment: Instant,
+    capacityL: BigDecimal = DEFAULT_TANK_CAPACITY_L,
+): Int? {
+    if (reading == null || reading.ts.isAfter(moment)) return null
+    if (Duration.between(reading.ts, moment) > MANUAL_READING_MAX_AGE) return null
+    val used = trips
+        .filter { !it.start.isBefore(reading.ts) && it.start.isBefore(moment) }
+        .fold(BigDecimal.ZERO) { acc, trip -> acc.add(trip.fuelL) }
+    val left = levelToLiters(reading.levelPct, capacityL).subtract(used).max(BigDecimal.ZERO)
+    val percent = left.multiply(BigDecimal(100)).divide(capacityL, 0, RoundingMode.HALF_UP).toInt()
+    return percent.coerceIn(0, 100)
+}
+
+/**
+ * A refuel the owner enters by hand (C45), confirmed at once. The level before comes from [levelBefore] (see
+ * [levelBeforeManualRefuel]); the level after is 100 % when the tank was filled to full, otherwise the level before
+ * plus the liters. Liters are required; the price or the total is the second value (the domain derives the third).
+ * Throws [IllegalArgumentException] for values the domain refuses. Mirrors Python `manual_refuel`.
+ */
+fun manualRefuel(
+    id: String,
+    ts: Instant,
+    odometerKm: Double,
+    levelBefore: Int,
+    liters: BigDecimal,
+    pricePerLiter: BigDecimal? = null,
+    totalCost: BigDecimal? = null,
+    filledToFull: Boolean? = null,
+    station: String? = null,
+    capacityL: BigDecimal = DEFAULT_TANK_CAPACITY_L,
+): Refuel {
+    require(levelBefore in 0..100) { "levelBefore must be 0..100 (got $levelBefore)" }
+    require(liters > BigDecimal.ZERO) { "liters must be > 0 (got $liters)" }
+    val levelAfter = if (filledToFull == true) {
+        100
+    } else {
+        val added = liters.multiply(BigDecimal(100)).divide(capacityL, 0, RoundingMode.HALF_UP).toInt()
+        (levelBefore + added).coerceIn(1, 100)
+    }
+    val pending = Refuel(
+        id = id,
+        ts = ts,
+        odometerKm = odometerKm,
+        levelBefore = levelBefore,
+        levelAfter = levelAfter,
+        liters = null,
+        pricePerLiter = null,
+        totalCost = null,
+        status = RefuelStatus.PENDING,
+    )
+    return confirmRefuel(
+        pending,
+        pricePerLiter = pricePerLiter,
+        liters = liters,
+        totalCost = totalCost,
+        filledToFull = filledToFull,
+        station = station,
+    )
+}

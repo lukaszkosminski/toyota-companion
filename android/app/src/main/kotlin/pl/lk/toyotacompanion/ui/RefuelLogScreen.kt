@@ -85,6 +85,8 @@ fun RefuelLogScreen(
     var viewingRefuel by rememberSaveable { mutableStateOf<String?>(null) }
     // Which confirmed refuel the correction dialog edits; an id is not a secret.
     var amendingId by rememberSaveable { mutableStateOf<String?>(null) }
+    // A refuel the sensor did not detect, typed from the receipt (C45).
+    var adding by rememberSaveable { mutableStateOf(false) }
     // The navigation callback reads the log; this only covers a screen restored after a process death.
     LaunchedEffect(Unit) { controller.ensureLoaded() }
 
@@ -93,6 +95,7 @@ fun RefuelLogScreen(
             TopAppBar(
                 title = { Text(Texts.LOG_TITLE) },
                 navigationIcon = { TextButton(onClick = onBack) { Text(Texts.BACK) } },
+                actions = { TextButton(onClick = { adding = true }) { Text(Texts.MANUAL_ADD) } },
             )
         },
     ) { innerPadding ->
@@ -195,6 +198,27 @@ fun RefuelLogScreen(
             },
         )
     }
+    if (adding) {
+        ManualRefuelDialog(
+            busy = state.busyId != null,
+            error = state.addError,
+            stationSuggestions = stationSuggestions(state.log.refuels),
+            onSave = { date, time, liters, price, total, full, station ->
+                controller.addManual(date, time, liters, price, total, full, station)
+            },
+            onDismiss = {
+                controller.addDismissed()
+                adding = false
+            },
+        )
+    }
+    // The entry was stored: the dialog closes, the fresh log shows it.
+    LaunchedEffect(state.addedId) {
+        if (state.addedId != null) {
+            adding = false
+            controller.addDismissed()
+        }
+    }
     viewingRefuel?.let { id ->
         ReceiptViewerDialog(ReceiptOwner.REFUEL, id, receipts) { viewingRefuel = null }
     }
@@ -205,6 +229,88 @@ fun RefuelLogScreen(
             controller.amendDismissed()
         }
     }
+}
+
+/**
+ * A refuel the sensor did not detect (C45, docs/SPEC.md §15.4): the date and time are typed (`RRRR-MM-DD`,
+ * `GG:MM`), liters are required and exactly one of price per liter or total is given. The owner's numbers only.
+ */
+@Composable
+private fun ManualRefuelDialog(
+    busy: Boolean,
+    error: String?,
+    stationSuggestions: List<String>,
+    onSave: (date: String, time: String, liters: String, price: String, total: String, filledToFull: Boolean, station: String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val now = java.time.LocalDateTime.now(ZoneId.systemDefault())
+    var dateText by rememberSaveable { mutableStateOf(now.toLocalDate().toString()) }
+    var timeText by rememberSaveable { mutableStateOf(now.toLocalTime().withSecond(0).withNano(0).toString()) }
+    var litersText by rememberSaveable { mutableStateOf("") }
+    var priceText by rememberSaveable { mutableStateOf("") }
+    var totalText by rememberSaveable { mutableStateOf("") }
+    var full by rememberSaveable { mutableStateOf(false) }
+    var stationText by rememberSaveable { mutableStateOf("") }
+    val litersGiven = parseRefuelAmount(litersText) is RefuelAmount.Given
+    AlertDialog(
+        onDismissRequest = { if (!busy) onDismiss() },
+        title = { Text(Texts.MANUAL_TITLE) },
+        text = {
+            Column(
+                modifier = Modifier.imePadding().verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(Texts.MANUAL_BODY, style = MaterialTheme.typography.bodyMedium)
+                OutlinedTextField(dateText, { dateText = it }, label = { Text(Texts.MANUAL_FIELD_DATE) }, singleLine = true, enabled = !busy)
+                OutlinedTextField(timeText, { timeText = it }, label = { Text(Texts.MANUAL_FIELD_TIME) }, singleLine = true, enabled = !busy)
+                OutlinedTextField(
+                    litersText,
+                    { litersText = it },
+                    label = { Text(Texts.AMEND_FIELD_LITERS) },
+                    singleLine = true,
+                    enabled = !busy,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+                OutlinedTextField(
+                    priceText,
+                    { priceText = it },
+                    label = { Text(Texts.MANUAL_FIELD_PRICE) },
+                    singleLine = true,
+                    enabled = !busy,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+                OutlinedTextField(
+                    totalText,
+                    { totalText = it },
+                    label = { Text(Texts.MANUAL_FIELD_TOTAL) },
+                    singleLine = true,
+                    enabled = !busy,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+                StationField(
+                    value = stationText,
+                    onValueChange = { stationText = it },
+                    suggestions = stationSuggestions,
+                    enabled = !busy,
+                    label = Texts.AMEND_FIELD_STATION,
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(Texts.REFUEL_FILLED_FULL, modifier = Modifier.weight(1f))
+                    Switch(checked = full, onCheckedChange = { full = it }, enabled = litersGiven && !busy)
+                }
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onSave(dateText, timeText, litersText, priceText, totalText, full && litersGiven, stationText) },
+                enabled = !busy,
+            ) { Text(Texts.AMEND_SAVE) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !busy) { Text(Texts.AMEND_CANCEL) }
+        },
+    )
 }
 
 /**

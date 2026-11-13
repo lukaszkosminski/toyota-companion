@@ -247,6 +247,8 @@ object Texts {
         RefuelChange.Invalid -> REFUEL_WRITE_ERROR
         RefuelChange.NotFound, RefuelChange.NotPending, RefuelChange.NoVehicle -> REFUEL_STALE_ENTRY
         RefuelChange.NotConfirmed -> AMEND_NOT_CONFIRMED
+        is RefuelChange.Duplicate -> REFUEL_WRITE_ERROR
+        RefuelChange.NoReading -> MANUAL_NO_READING
     }
 
     // ---------------- domyślna cena paliwa (docs/SPEC.md §12) ----------------
@@ -1484,6 +1486,34 @@ object Texts {
     val AMEND_FIELD_TOTAL: String get() = Lang.pick("Kwota z paragonu (opcjonalnie)", "Total cost from receipt (optional)")
     val AMEND_FIELD_STATION: String get() = Lang.pick("Stacja (opcjonalnie)", "Station (optional)")
     val AMEND_SAVE: String get() = Lang.pick("Zapisz", "Save")
+
+    // Ręczne tankowanie spoza czujnika (PRD F61, docs/SPEC.md §15.4).
+    val MANUAL_ADD: String get() = Lang.pick("Dodaj tankowanie", "Add refuel")
+    val MANUAL_TITLE: String get() = Lang.pick("Tankowanie spoza czujnika", "Refuel the sensor missed")
+    val MANUAL_BODY: String get() = Lang.pick(
+        "Wpisz dane z paragonu. Poziom przed tankowaniem liczymy z ostatniego odczytu auta i tras po nim.",
+        "Enter the receipt data. The level before the refuel is counted from the car's last reading and the trips since.",
+    )
+    val MANUAL_FIELD_DATE: String get() = Lang.pick("Data (RRRR-MM-DD)", "Date (YYYY-MM-DD)")
+    val MANUAL_FIELD_TIME: String get() = Lang.pick("Godzina (GG:MM)", "Time (HH:MM)")
+    val MANUAL_FIELD_PRICE: String get() = Lang.pick("Cena za litr, zł (albo kwota)", "Price per liter (or total)")
+    val MANUAL_FIELD_TOTAL: String get() = Lang.pick("Kwota, zł (albo cena za litr)", "Total, zł (or price per liter)")
+    val MANUAL_DATE_ERROR: String get() = Lang.pick(
+        "Podaj datę RRRR-MM-DD i godzinę GG:MM, nie w przyszłości.",
+        "Enter the date YYYY-MM-DD and the time HH:MM, not in the future.",
+    )
+    val MANUAL_MONEY_ERROR: String get() = Lang.pick(
+        "Podaj cenę za litr albo kwotę – jedno z dwóch.",
+        "Enter the price per liter or the total – one of the two.",
+    )
+    val MANUAL_NO_READING: String get() = Lang.pick(
+        "Brak odczytu auta w ciągu 30 dni przed tą chwilą, więc nie znamy poziomu paliwa.",
+        "No car reading within 30 days before that moment, so the fuel level is unknown.",
+    )
+    fun manualDuplicate(when_: String): String = Lang.pick(
+        "W pobliżu (±12 h) jest już tankowanie z $when_. Popraw je zamiast dodawać.",
+        "A refuel within 12 h exists ($when_). Amend it instead of adding one.",
+    )
     val AMEND_CANCEL: String get() = Lang.pick("Anuluj", "Cancel")
     val AMEND_LITERS_REQUIRED: String get() = Lang.pick("Podaj litry z paragonu.", "Enter liters from receipt.")
     val AMEND_NOT_CONFIRMED: String get() = Lang.pick("Najpierw podaj cenę tego tankowania.", "First enter the price for this refuel.")
