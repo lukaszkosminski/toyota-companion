@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.17 (2026-11-13)
 - Wydatki: otwarcie ekranu bez żadnego wydatku i bez wycenionego paliwa nie wywraca aplikacji; nieudany zapis pokazuje komunikat nad listą zamiast chować całą historię
 - Wydatki: wydatek można edytować (zachowuje identyfikator; zmiana albo usunięcie zdjęcia paragonu kasuje stary plik); usunięcie wymaga potwierdzenia
 - Status: błąd synchronizacji w tle (SyncWorker) jest widoczny na ekranie statusu, dopóki nie zastąpi go późniejszy sukces
