@@ -71,4 +71,15 @@ class VisibleSyncErrorTest {
     fun `an in-process failure is shown even before the first status read`() {
         assertEquals(SyncErrorKind.STORAGE, visibleSyncError(null, SyncErrorKind.STORAGE))
     }
+
+    @Test
+    fun `an in-process failure is dropped once the archive shows a success after it`() {
+        val failedAt = Instant.parse("2026-11-13T09:00:00Z")
+        val later = status(successAt = success)
+        assertNull(stillFailed(SyncErrorKind.NETWORK, failedAt, later), "background success after the failure")
+        assertEquals(SyncErrorKind.NETWORK, stillFailed(SyncErrorKind.NETWORK, failedAt, status(successAt = errorBefore)))
+        assertEquals(SyncErrorKind.NETWORK, stillFailed(SyncErrorKind.NETWORK, failedAt, null), "no status read yet")
+        assertEquals(SyncErrorKind.NETWORK, stillFailed(SyncErrorKind.NETWORK, null, later), "unknown time keeps it")
+        assertNull(stillFailed(null, failedAt, later))
+    }
 }

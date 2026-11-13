@@ -43,6 +43,7 @@ class SessionController(
     private val workManager: WorkManager,
     private val scope: CoroutineScope,
     private val io: CoroutineDispatcher,
+    private val clock: () -> java.time.Instant = { java.time.Instant.now() },
 ) {
     private val ui = MutableStateFlow<UiState>(UiState.Loading)
     val state: StateFlow<UiState> = ui.asStateFlow()
@@ -147,10 +148,12 @@ class SessionController(
             }
             // Logged out while synchronizing: the late result must not resurrect the status screen.
             val waiting = ui.value as? UiState.LoggedIn ?: return@launch
+            val status = readStatus()
             ui.value = waiting.copy(
-                status = readStatus(),
+                status = status,
                 syncing = false,
                 lastSyncFailed = failedKind,
+                lastSyncFailedAt = if (failedKind != null) clock() else null,
             )
         }
     }
@@ -166,7 +169,11 @@ class SessionController(
         scope.launch {
             val current = ui.value as? UiState.LoggedIn ?: return@launch
             if (current.syncing) return@launch
-            ui.value = current.copy(status = readStatus() ?: current.status)
+            val status = readStatus() ?: current.status
+            ui.value = current.copy(
+                status = status,
+                lastSyncFailed = stillFailed(current.lastSyncFailed, current.lastSyncFailedAt, status),
+            )
         }
     }
 

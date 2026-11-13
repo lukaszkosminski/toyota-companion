@@ -2,6 +2,7 @@ package pl.lk.toyotacompanion.ui
 
 import pl.lk.toyotacompanion.core.data.SyncErrorKind
 import pl.lk.toyotacompanion.core.data.SyncStatus
+import java.time.Instant
 import pl.lk.toyotacompanion.core.sync.LoginFailure
 
 /**
@@ -46,12 +47,25 @@ sealed class UiState {
      * @param status last read of the local archive, null until the first read
      * @param syncing "Synchronizuj teraz" in progress
      * @param lastSyncFailed kind of the failure of the last in-process sync
+     * @param lastSyncFailedAt when that failure was seen; a later success (also a background one) clears it
      */
     data class LoggedIn(
         val status: SyncStatus? = null,
         val syncing: Boolean = false,
         val lastSyncFailed: SyncErrorKind? = null,
+        val lastSyncFailedAt: Instant? = null,
     ) : UiState()
+}
+
+/**
+ * The in-process failure that still applies after a status read: it is dropped once the archive shows a
+ * full success newer than the failure, so a later background success does not leave an old error on screen.
+ */
+fun stillFailed(lastSyncFailed: SyncErrorKind?, failedAt: Instant?, status: SyncStatus?): SyncErrorKind? {
+    if (lastSyncFailed == null) return null
+    val successAt = status?.state?.lastSuccessAt ?: return lastSyncFailed
+    val at = failedAt ?: return lastSyncFailed
+    return if (successAt.isAfter(at)) null else lastSyncFailed
 }
 
 /**

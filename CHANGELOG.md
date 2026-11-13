@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+- Status: po późniejszej udanej synchronizacji w tle znika stary błąd z poprzedniej synchronizacji w aplikacji
+
 ## 0.2.18 (2026-11-13)
 - Dziennik tankowań: „Dodaj tankowanie" wpisuje z paragonu tankowanie, którego czujnik nie wykrył (litry, cena albo kwota, „do pełna", stacja); odrzuca tankowanie w ±12 h i brak odczytu auta w ciągu 30 dni (F61, SPEC §61)
 
