@@ -36,8 +36,6 @@ fun OptionsScreen(
     onSetLanguage: (AppLanguage) -> Unit,
     defaultPrice: BigDecimal?,
     onShowDefaultPrice: () -> Unit,
-    budgetAlert: Boolean,
-    onSetBudgetAlert: (Boolean) -> Unit,
     periodSummary: SummaryPeriod?,
     onSetPeriodSummary: (SummaryPeriod?) -> Unit,
     carValuation: CarValuationUiState,
@@ -78,18 +76,6 @@ fun OptionsScreen(
             }
             // The owner's car valuation: a phone setting, never the archive (PRD F55, docs/SPEC.md §55).
             CarValuationCard(state = carValuation, onSave = onSaveCarValuation, onRemove = onRemoveCarValuation)
-            // The monthly budget notification (PRD F49, docs/SPEC.md §49): on by default, like the automatic weather.
-            DashboardCard(Texts.BUDGET_ALERT_SETTING_TITLE, AppIcons.Info) {
-                Text(
-                    Texts.BUDGET_ALERT_SETTING_HINT,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Switch(checked = budgetAlert, onCheckedChange = onSetBudgetAlert)
-                    Text(Texts.BUDGET_ALERT_SETTING_SWITCH, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                }
-            }
             // The period summary notification (PRD F54, docs/SPEC.md §54): off by default; the period is a week or a month.
             DashboardCard(Texts.PERIOD_SUMMARY_TITLE, AppIcons.Info) {
                 Text(

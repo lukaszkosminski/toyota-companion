@@ -1,6 +1,8 @@
 # Roadmap
 
 ## DONE
+- Prognoza tankowania pokazuje wolne miejsce w baku („do pełna ok. X l”, F14, SPEC §20.2)
+- Usunięte 2026-11-13 decyzją właściciela: cele eco z seriami i rekordami (F39, F58) oraz budżet miesięczny z powiadomieniem (F48, F49); wpisy niżej to historia
 - Automatyczna kopia archiwum do folderu (F60, SPEC §60, plan C42): folder wybierany raz, jedna kopia dziennie po udanej
   synchronizacji, 10 ostatnich, bez nowych uprawnień; zrobione zamiast wstrzymanego importu z innych aplikacji
 - Zdjęcie paragonu przy tankowaniu lub wydatku (F59, SPEC §59, plan C40, wariant a): systemowy wybór zdjęcia bez uprawnień; JPEG do 1600 px bez metadanych w prywatnym katalogu; zdjęć nie ma w kopii, archiwum ani CSV; Room v9

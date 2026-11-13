@@ -18,11 +18,8 @@ The source of truth is the documents in [`docs/`](docs/), which are written in P
 
 ### Consumption, statistics and driving style
 - Consumption and monthly costs on the status screen, the manufacturer's declared consumption, an alert for rising consumption (F20, F26, F29, F30, SPEC §24, §30, §31).
-- Eco goals: an optional monthly goal for consumption and for the share of electric driving, with progress on the status screen and in the widget (F39, SPEC §40).
-- Monthly budget: one optional limit per phone for fuel and non-fuel expenses, with progress on the status screen counted only from the local archive (F48, SPEC §49); one notification from 80% of the limit and one when it is exceeded, once per month and threshold, with a switch in Options (F49).
 - Tyres: summer and winter set with the date of each fitting, the mileage of each set from the archive, optional monthly and kilometre thresholds with a reminder, counted from the fitting day (F56, SPEC §56).
 - Station per refuel (F57, SPEC §57): an optional station name at refuelling with suggestions of recent stations; the refuel log shows, per station, the number of refuels, the weighted average price and an indicative consumption from three intervals; the name goes to the CSV and the archive but never to logs, notifications or diagnostics.
-- Streaks and records of the eco goals (F58, SPEC §58): in the goal card, the number of consecutive full months with the consumption goal or the electric goal met, the best streak in brackets, and from three full months the lowest consumption and the highest electric share; a month under 50 km is skipped; computed from the local archive only.
 - Receipt photos (F59, SPEC §59): an optional photo of the receipt for a refuel correction or an expense, picked from the system photo picker without any permission; stored in the app's private folder at a reduced size and without metadata; never in the backup, the archive file or the CSV.
 - Automatic archive copy (F60, SPEC §60): pick a folder once and the app saves one dated archive copy a day after a successful sync, keeping the last 10; no storage permission, the file is the same as a manual export.
 - Period summary notification: off by default; one notification after each completed week or month with km, cost, litres per 100 km and the share on battery, and the comparison with the period before in the expanded view (F54, SPEC §54).
@@ -47,7 +44,7 @@ The source of truth is the documents in [`docs/`](docs/), which are written in P
 - Depreciation in the year summary: the purchase price, purchase date, estimated value and its date typed in Options; a straight-line loss in days as a separate estimate next to the cash, never mixed with the expenses (F55, SPEC §55).
 
 ### Widget and Android Auto
-- Home screen widget: average consumption, trend, default price, refuel forecast and the eco goal line (F31, SPEC §32).
+- Home screen widget: average consumption, trend, default price and refuel forecast (F31, SPEC §32).
 - Read-only screen in Android Auto (F34, SPEC §35, ADR-014); for personal use, it requires "Unknown sources" enabled in the Android Auto developer settings. The SPEC notes that it was not run on a real car head unit or in the Desktop Head Unit.
 
 ### Backup and export

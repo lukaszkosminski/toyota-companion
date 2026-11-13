@@ -46,8 +46,6 @@ fun ConsumptionCard(
     view: ConsumptionView?,
     declared: java.math.BigDecimal?,
     onSetDeclared: (String) -> Boolean,
-    /** Opens the eco goals dialog; passed only while no goal is set (docs/SPEC.md §40), otherwise the goal card has the button. */
-    onSetEcoGoal: (() -> Unit)? = null,
 ) {
     if (view?.overall == null) return
     var editing by remember { mutableStateOf(false) }
@@ -81,7 +79,6 @@ fun ConsumptionCard(
         TextButton(onClick = { editing = true }) {
             Text(if (declared == null) Texts.DECLARED_SET else Texts.DECLARED_EDIT)
         }
-        if (onSetEcoGoal != null) TextButton(onClick = onSetEcoGoal) { Text(Texts.ECO_SET) }
         if (view.months.isNotEmpty()) {
             val top = view.months.maxOf { it.lPer100 }
             val base = ConsumptionFormatting.axisBase(view.months)

@@ -186,7 +186,7 @@ class ExpensesControllerTest {
     }
 
     @Test
-    fun `a successful write notifies the budget listener, a failed one does not`() = runTest {
+    fun `a successful write notifies the listener, a failed one does not`() = runTest {
         val dao = FakeExpenseDao().apply { rows["a"] = entity("a", 20_000) }
         var calls = 0
         val dispatcher = StandardTestDispatcher(testScheduler)
@@ -257,7 +257,7 @@ class ExpensesControllerTest {
     @Test
     fun `a listener that throws does not turn a stored expense into a failed one`() = runTest {
         val dao = FakeExpenseDao()
-        val c = listening(dao) { throw IllegalStateException("budget") }
+        val c = listening(dao) { throw IllegalStateException("listener") }
 
         assertTrue(c.add(LocalDate.ofEpochDay(20_001), ExpenseCategory.FEES, "20", ""))
         advanceUntilIdle()

@@ -280,31 +280,7 @@ class TextsTest {
                 RefuelLogFormatting.economyLine(logInterval(EconomyStatus.MISSING_RECEIPT)),
                 RefuelLogFormatting.detailLine(logInterval(EconomyStatus.OPEN)),
             ) +
-            // Budżet miesięczny (PRD F48, docs/SPEC.md §49).
             listOf(
-                Texts.BUDGET_TITLE,
-                Texts.BUDGET_HINT,
-                Texts.BUDGET_SET,
-                Texts.BUDGET_EDIT,
-                Texts.BUDGET_DIALOG_TITLE,
-                Texts.BUDGET_BODY,
-                Texts.BUDGET_FIELD,
-                Texts.BUDGET_INVALID,
-                Texts.BUDGET_READ_ERROR,
-                Texts.BUDGET_NO_FIGURES,
-                Texts.budgetCaption("listopad 2026", "800,00", 74),
-                Texts.budgetFuel("342,45"),
-                Texts.budgetExpenses("250,50"),
-                Texts.budgetRemaining("207,05"),
-                Texts.budgetOver("50,00"),
-                Texts.BUDGET_ALERT_CHANNEL,
-                Texts.BUDGET_ALERT_WARN_TITLE,
-                Texts.BUDGET_ALERT_OVER_TITLE,
-                Texts.budgetAlertWarn("październik 2026", "640,00", "800,00", 80, "160,00"),
-                Texts.budgetAlertOver("październik 2026", "850,00", "800,00", 106, "50,00"),
-                Texts.BUDGET_ALERT_SETTING_TITLE,
-                Texts.BUDGET_ALERT_SETTING_SWITCH,
-                Texts.BUDGET_ALERT_SETTING_HINT,
                 Texts.co2("123,4\u00A0kg"),
                 Texts.co2Hint("2,3"),
             )
@@ -597,34 +573,6 @@ class TextsTest {
 
 
     @Test
-    fun `eco goal texts exist in both languages and carry their numbers`() {
-        fun all() = listOf(
-            Texts.ECO_TITLE, Texts.ECO_SET, Texts.ECO_EDIT, Texts.ECO_DIALOG_TITLE, Texts.ECO_BODY, Texts.ECO_CONSUMPTION_FIELD,
-            Texts.ECO_EV_FIELD, Texts.ECO_INVALID, Texts.ECO_SAVE, Texts.ECO_CANCEL, Texts.ECO_NO_EV_DATA,
-            Texts.ecoConsumptionLine("4,30", "4,50", "✓"), Texts.ecoEvLine("42", "40", "✗"), Texts.ecoTooLittle("32"),
-            Texts.ecoPrevious("x"), Texts.ecoPreviousTooLittle("20"), Texts.ecoPreviousConsumption(true), Texts.ecoPreviousConsumption(false),
-            Texts.ecoPreviousEv(true), Texts.ecoPreviousEv(false), Texts.ecoWidget("x"), Texts.ecoWidgetTooLittle("32"),
-            Texts.ecoWidgetConsumption("4,30", "4,50", "✓"), Texts.ecoWidgetEv("42", "40", null),
-        )
-        val polish = all()
-        Lang.current = AppLanguage.EN
-        val english = try {
-            all()
-        } finally {
-            Lang.current = AppLanguage.PL
-        }
-        assertEquals(polish.size, english.size)
-        for ((pl, en) in polish.zip(english)) {
-            assertTrue(pl.isNotBlank() && en.isNotBlank())
-        }
-        // Everything with a Polish word differs from its English twin; only the bare number forms may coincide.
-        assertTrue(polish.zip(english).count { it.first == it.second } <= 2, "untranslated: " + polish.zip(english).filter { it.first == it.second })
-        assertEquals("Spalanie: 4,30 / 4,50 l/100 km ✓", Texts.ecoConsumptionLine("4,30", "4,50", "✓"))
-        assertEquals("Spalanie: 4,30 / 4,50 l/100 km", Texts.ecoConsumptionLine("4,30", "4,50", null))
-        assertEquals("Za mało jazdy, by ocenić (32 km)", Texts.ecoTooLittle("32"))
-    }
-
-    @Test
     fun `the stale data line points below the message in both languages`() {
         // The line is rendered above the kept data, so it must say "below" (docs/SPEC.md §47, W2).
         assertEquals("Dane poniżej pochodzą z ostatniego udanego odczytu – najnowszego nie udało się pobrać.", Texts.REMOTE_STALE)
@@ -640,19 +588,8 @@ class TextsTest {
     }
 
     @Test
-    fun `budget texts exist in both languages and carry their numbers`() {
-        fun all() = listOf(
-            Texts.BUDGET_TITLE, Texts.BUDGET_HINT, Texts.BUDGET_SET, Texts.BUDGET_EDIT, Texts.BUDGET_DIALOG_TITLE,
-            Texts.BUDGET_BODY, Texts.BUDGET_FIELD, Texts.BUDGET_INVALID, Texts.BUDGET_READ_ERROR, Texts.BUDGET_NO_FIGURES,
-            Texts.budgetCaption("listopad 2026", "800,00", 74),
-            Texts.budgetFuel("342,45"), Texts.budgetExpenses("250,50"),
-            Texts.budgetRemaining("207,05"), Texts.budgetOver("50,00"),
-            Texts.BUDGET_ALERT_CHANNEL, Texts.BUDGET_ALERT_WARN_TITLE, Texts.BUDGET_ALERT_OVER_TITLE,
-            Texts.budgetAlertWarn("październik 2026", "640,00", "800,00", 80, "160,00"),
-            Texts.budgetAlertOver("październik 2026", "850,00", "800,00", 106, "50,00"),
-            Texts.BUDGET_ALERT_SETTING_TITLE, Texts.BUDGET_ALERT_SETTING_SWITCH, Texts.BUDGET_ALERT_SETTING_HINT,
-            Texts.co2("123,4\u00A0kg"), Texts.co2Hint("2,3"),
-        )
+    fun `co2 texts exist in both languages and carry their numbers`() {
+        fun all() = listOf(Texts.co2("123,4\u00A0kg"), Texts.co2Hint("2,3"))
         val polish = all()
         Lang.current = AppLanguage.EN
         val english = try {
@@ -660,23 +597,12 @@ class TextsTest {
         } finally {
             Lang.current = AppLanguage.PL
         }
-        assertEquals(polish.size, english.size)
         for ((pl, en) in polish.zip(english)) {
             assertTrue(pl.isNotBlank() && en.isNotBlank())
             assertTrue(pl != en, "untranslated: $pl")
         }
-        assertEquals("Budżet miesiąca", polish[0])
-        assertEquals("Monthly budget", english[0])
-        assertEquals("Limit [zł]", polish[6])
-        assertEquals("Budget limit [zł]", english[6], "the field must not be identical in both languages")
-        assertEquals("listopad 2026: 74% z 800,00 zł", polish[10])
-        assertEquals("listopad 2026: 74% of 800,00 zł", english[10], "the month and limit are arguments of the caller")
-        assertEquals("Budżet", polish[15])
-        assertEquals("Budget", english[15])
-        assertEquals("Budżet miesiąca: blisko limitu", polish[16])
-        assertEquals("Monthly budget: close to the limit", english[16])
-        assertEquals("Ślad CO₂: 123,4\u00A0kg", polish[polish.size - 2])
-        assertEquals("CO₂ footprint: 123,4\u00A0kg", english[english.size - 2])
+        assertEquals("Ślad CO₂: 123,4\u00A0kg", polish[0])
+        assertEquals("CO₂ footprint: 123,4\u00A0kg", english[0])
     }
 }
 

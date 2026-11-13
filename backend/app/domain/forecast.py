@@ -35,6 +35,7 @@ class RefuelForecast:
     """Fuel left now and how far and how long it lasts until the reserve."""
 
     liters_left: Decimal
+    liters_free: Decimal
     level_pct: Decimal
     l_per_100km: Decimal
     daily_km: Decimal
@@ -87,6 +88,7 @@ def refuel_forecast(
     km_to_reserve = max(_ZERO, left - reserve) * _HUNDRED / consumption
     return RefuelForecast(
         liters_left=round_liters(left),
+        liters_free=round_liters(max(_ZERO, capacity - left)),
         level_pct=round_percent(left * _HUNDRED / capacity),
         l_per_100km=round_consumption(consumption),
         daily_km=round_distance(daily),

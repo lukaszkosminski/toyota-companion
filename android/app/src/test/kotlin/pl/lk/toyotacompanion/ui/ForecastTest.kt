@@ -19,6 +19,7 @@ private val NOW: Instant = Instant.parse("2026-10-31T12:00:00Z")
 
 private fun forecast(km: String = "344.0", days: String = "17.2") = RefuelForecast(
     litersLeft = BigDecimal("21.500"),
+    litersFree = BigDecimal("21.500"),
     levelPct = BigDecimal("50.0"),
     lPer100Km = BigDecimal("5.00"),
     dailyKm = BigDecimal("20.0"),
@@ -35,7 +36,7 @@ class ForecastTest {
     @Test
     fun `the line names the day, the fuel left and the range`() {
         assertEquals(
-            "Tankowanie za ok. 17 dni (ok. 17.11) \u00b7 w baku ok. 21,5 l (50 %) \u00b7 ok. 344 km do rezerwy",
+            "Tankowanie za ok. 17 dni (ok. 17.11) \u00b7 w baku ok. 21,5 l (50 %) \u00b7 do pełna ok. 21,5 l \u00b7 ok. 344 km do rezerwy",
             line("17.2"),
         )
     }

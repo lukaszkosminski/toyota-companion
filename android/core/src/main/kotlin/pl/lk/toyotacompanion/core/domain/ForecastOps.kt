@@ -53,6 +53,7 @@ fun refuelForecast(
     val kmToReserve = left.subtract(reserve).max(ZERO).multiply(HUNDRED).divideLikePythonDecimal(consumption)
     return RefuelForecast(
         litersLeft = roundLiters(left),
+        litersFree = roundLiters(capacityL.subtract(left).max(ZERO)),
         levelPct = roundPercent(left.multiply(HUNDRED).divideLikePythonDecimal(capacityL)),
         lPer100Km = roundConsumption(consumption),
         dailyKm = roundDistance(daily),

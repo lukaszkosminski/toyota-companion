@@ -40,7 +40,7 @@ private fun trip(id: String, day: String, km: Double = 10.0, fuel: String = "0.6
 
 private fun ok(): SyncOutcome = SyncOutcome.Ok(1, 0, 0, 1, false, SyncState())
 
-/** The period summary (PRD F54, docs/SPEC.md §54), with the same fixtures style as BudgetAlertTest. */
+/** The period summary (PRD F54, docs/SPEC.md §54). */
 @RunWith(RobolectricTestRunner::class)
 class PeriodSummaryNotifierTest {
     private lateinit var context: Context

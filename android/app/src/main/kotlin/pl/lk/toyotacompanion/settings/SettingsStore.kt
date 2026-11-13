@@ -6,7 +6,6 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import pl.lk.toyotacompanion.core.domain.SummaryPeriod
-import pl.lk.toyotacompanion.ui.MonthKey
 
 /**
  * The phone's own settings, kept in the SharedPreferences file `settings`
@@ -68,104 +67,10 @@ class SettingsStore(private val prefs: SharedPreferences) {
         prefs.edit { if (value == null) remove(KEY_DECLARED) else putString(KEY_DECLARED, value.toPlainString()) }
     }
 
-    /** The eco goal for the month's consumption, l/100 km (docs/SPEC.md §40); `null` when never set, garbage, or outside (0, 20]. */
-    fun ecoGoalConsumption(): BigDecimal? {
-        val text = prefs.getString(KEY_ECO_CONSUMPTION, null)?.trim()
-        if (text.isNullOrEmpty()) return null
-        val parsed = try {
-            BigDecimal(text)
-        } catch (e: NumberFormatException) {
-            return null
-        }
-        return if (parsed.signum() <= 0 || parsed > BigDecimal(20)) null else parsed
-    }
-
-    /** The eco goal for the month's electric share, whole percent 1-100 (docs/SPEC.md §40); `null` when never set or outside. */
-    fun ecoGoalEvPct(): Int? {
-        val value = try {
-            prefs.getInt(KEY_ECO_EV, 0)
-        } catch (e: ClassCastException) {
-            return null
-        }
-        return if (value in 1..100) value else null
-    }
-
-    /** The month the consumption goal counts from for the streak (PRD F58); `null` when never set or garbage: from the archive start. */
-    fun ecoGoalConsumptionSince(): MonthKey? = readMonth(KEY_ECO_CONSUMPTION_SINCE)
-
-    /** The month the electric goal counts from for the streak (PRD F58); `null` when never set or garbage. */
-    fun ecoGoalEvSince(): MonthKey? = readMonth(KEY_ECO_EV_SINCE)
-
-    /**
-     * Stores both goals at once; `null` removes that goal. [consumptionSince] and [evSince] are the months a goal counts from
-     * (PRD F58); without a goal, or without a month, the key is removed.
-     */
-    fun saveEcoGoals(
-        consumption: BigDecimal?,
-        evPct: Int?,
-        consumptionSince: MonthKey? = null,
-        evSince: MonthKey? = null,
-    ) {
-        prefs.edit {
-            if (consumption == null) remove(KEY_ECO_CONSUMPTION) else putString(KEY_ECO_CONSUMPTION, consumption.toPlainString())
-            if (consumption == null || consumptionSince == null) {
-                remove(KEY_ECO_CONSUMPTION_SINCE)
-            } else {
-                putString(KEY_ECO_CONSUMPTION_SINCE, monthText(consumptionSince))
-            }
-            if (evPct == null) remove(KEY_ECO_EV) else putInt(KEY_ECO_EV, evPct)
-            if (evPct == null || evSince == null) {
-                remove(KEY_ECO_EV_SINCE)
-            } else {
-                putString(KEY_ECO_EV_SINCE, monthText(evSince))
-            }
-        }
-    }
-
-    private fun readMonth(key: String): MonthKey? {
-        val text = try {
-            prefs.getString(key, null) ?: return null
-        } catch (e: ClassCastException) {
-            return null
-        }
-        val match = MONTH_TEXT.matchEntire(text.trim()) ?: return null
-        val month = match.groupValues[2].toInt()
-        return if (month in 1..12) MonthKey(match.groupValues[1].toInt(), month) else null
-    }
-
-    private fun monthText(month: MonthKey): String = "%04d-%02d".format(month.year, month.month)
-
-    /**
-     * The monthly budget for fuel and non-fuel expenses (PRD F48, docs/SPEC.md §49), in zł; `null` when never set,
-     * garbage or not positive. A phone setting like the default price: plain text, survives logging out (ADR-006).
-     */
-    fun monthlyBudget(): BigDecimal? {
-        val text = try {
-            prefs.getString(KEY_MONTHLY_BUDGET, null)?.trim()
-        } catch (e: ClassCastException) {
-            // Something else was stored under the key: read as "no budget", like a garbage price.
-            return null
-        }
-        if (text.isNullOrEmpty()) return null
-        val parsed = try {
-            BigDecimal(text)
-        } catch (e: NumberFormatException) {
-            return null
-        }
-        // A stored garbage value like 0.004 must not reach the domain: it would round to 0.00 and break the percent.
-        val rounded = parsed.setScale(2, java.math.RoundingMode.HALF_UP)
-        return if (rounded.signum() <= 0) null else rounded
-    }
-
-    /** Stores the budget in zł; `null` removes it. Deciding the rounding is the caller's job. */
-    fun saveMonthlyBudget(value: BigDecimal?) {
-        prefs.edit { if (value == null) remove(KEY_MONTHLY_BUDGET) else putString(KEY_MONTHLY_BUDGET, value.toPlainString()) }
-    }
-
     /**
      * The owner's valuation of the car (PRD F55, docs/SPEC.md §55): purchase price and date, value
      * and its date. `null` when any of the four is missing, garbage, of the wrong type, or the
-     * numbers/dates contradict each other - read as "no valuation", like a garbage monthly budget.
+     * numbers/dates contradict each other - read as "no valuation", like a garbage price.
      * A phone setting: plain text, survives logging out and reaches Auto Backup (ADR-006).
      */
     fun carValuation(): CarValuation? {
@@ -220,34 +125,7 @@ class SettingsStore(private val prefs: SharedPreferences) {
     }
 
     /**
-     * Whether the monthly budget notification is on (PRD F49, docs/SPEC.md §49); on by default, like the automatic
-     * weather. A phone setting, not account data: it survives logging out.
-     */
-    fun budgetAlert(): Boolean = try {
-        prefs.getBoolean(KEY_BUDGET_ALERT, true)
-    } catch (e: ClassCastException) {
-        // Something else was stored under the key: read as the default, so the budget card never fails over it.
-        true
-    }
-
-    fun saveBudgetAlert(on: Boolean) {
-        prefs.edit { putBoolean(KEY_BUDGET_ALERT, on) }
-    }
-
-    /** `YYYY-MM:80` or `YYYY-MM:100` of the last budget notification, `null` when nothing was told (docs/SPEC.md §49). */
-    fun lastBudgetAlert(): String? = try {
-        prefs.getString(KEY_BUDGET_ALERT_LAST, null)
-    } catch (e: ClassCastException) {
-        // Something else was stored under the key: read as "nothing told yet".
-        null
-    }
-
-    fun saveLastBudgetAlert(key: String) {
-        prefs.edit { putString(KEY_BUDGET_ALERT_LAST, key) }
-    }
-
-    /**
-     * The period summary (PRD F54, docs/SPEC.md §54): `WEEK`, `MONTH`, or `null` when it is off (the default). A phone setting, like the budget.
+     * The period summary (PRD F54, docs/SPEC.md §54): `WEEK`, `MONTH`, or `null` when it is off (the default). A phone setting, like the default price.
      * A change of the period drops the remembered key, so the new period starts from a baseline and sends nothing at once.
      */
     fun periodSummaryKind(): SummaryPeriod? = try {
@@ -273,7 +151,7 @@ class SettingsStore(private val prefs: SharedPreferences) {
 
     /**
      * The tyre fittings as text (PRD F56, docs/SPEC.md §56), parsed by the core; a value of the wrong type reads as none. A phone setting, so it is
-     * in Auto Backup like the budget and is not part of the archive export.
+     * in Auto Backup like the default price and is not part of the archive export.
      */
     fun tyreChangesText(): String? = try {
         prefs.getString(KEY_TYRE_CHANGES, null)
@@ -417,18 +295,10 @@ class SettingsStore(private val prefs: SharedPreferences) {
         const val KEY_WEATHER_AUTO = "weather_auto"
         const val KEY_DECLARED = "declared_consumption"
         const val KEY_LANGUAGE = "language"
-        const val KEY_ECO_CONSUMPTION = "eco_goal_consumption"
-        const val KEY_ECO_EV = "eco_goal_ev_pct"
-        const val KEY_ECO_CONSUMPTION_SINCE = "eco_goal_consumption_since"
-        const val KEY_ECO_EV_SINCE = "eco_goal_ev_since"
-        private val MONTH_TEXT = Regex("(\\d{4})-(\\d{2})")
-        const val KEY_MONTHLY_BUDGET = "monthly_budget"
         const val KEY_CAR_PURCHASE = "car_purchase_pln"
         const val KEY_CAR_PURCHASE_DATE = "car_purchase_date"
         const val KEY_CAR_VALUE = "car_value_pln"
         const val KEY_CAR_VALUE_DATE = "car_value_date"
-        const val KEY_BUDGET_ALERT = "budget_alert"
-        const val KEY_BUDGET_ALERT_LAST = "budget_alert_last"
         const val KEY_PERIOD_SUMMARY = "period_summary"
         const val KEY_PERIOD_SUMMARY_LAST = "period_summary_last"
         const val KEY_TYRE_CHANGES = "tyre_changes"

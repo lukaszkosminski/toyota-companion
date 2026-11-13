@@ -79,36 +79,4 @@ class WidgetSnapshotTest {
         val all = snapshot.main + snapshot.line2 + snapshot.line3
         assertFalse(all.contains("VIN", ignoreCase = true) || all.contains("54."))
     }
-
-    @Test
-    fun `the goal line is the fourth line, empty without a goal`() {
-        val plain = widgetSnapshot(view, null, null)
-        assertEquals("", plain.line4)
-        val withGoal = widgetSnapshot(view, null, null, "Cel: 4,30 / 4,50 l/100 km ✓")
-        assertEquals("Cel: 4,30 / 4,50 l/100 km ✓", withGoal.line4)
-        assertEquals("", widgetSnapshot(null, null, null, "Cel: x").line4)
-    }
-
-    @Test
-    fun `the store keeps the fourth line and old three-line snapshots read it as empty`() {
-        val context = ApplicationProvider.getApplicationContext<Application>()
-        val store = WidgetSnapshotStore(context)
-        store.save(WidgetSnapshot("4,60 l/100 km", "a", "b", "Cel: 4,30 / 4,50 l/100 km ✓"))
-        assertEquals("Cel: 4,30 / 4,50 l/100 km ✓", WidgetSnapshotStore(context).load().line4)
-        store.clear()
-        assertEquals("", store.load().line4)
-        assertEquals(WidgetSnapshot("m", "a", "b", ""), WidgetSnapshot("m", "a", "b"))
-    }
-
-    @Test
-    fun `the view shows the goal line and hides it when empty`() {
-        val context = ApplicationProvider.getApplicationContext<Application>()
-        val shown = ConsumptionWidgetProvider.views(context, WidgetSnapshot("4,60 l/100 km", "", "", "Cel: 4,30 / 4,50 l/100 km ✓"))
-            .apply(context, FrameLayout(context))
-        assertEquals("Cel: 4,30 / 4,50 l/100 km ✓", shown.findViewById<TextView>(R.id.widget_line4).text.toString())
-        assertEquals(View.VISIBLE, shown.findViewById<View>(R.id.widget_line4).visibility)
-        val hidden = ConsumptionWidgetProvider.views(context, WidgetSnapshot("4,60 l/100 km", "", "", ""))
-            .apply(context, FrameLayout(context))
-        assertEquals(View.GONE, hidden.findViewById<View>(R.id.widget_line4).visibility)
-    }
 }

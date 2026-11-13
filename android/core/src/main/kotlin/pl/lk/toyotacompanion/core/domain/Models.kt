@@ -117,6 +117,7 @@ data class PeriodStats(
 /** Fuel left now and how far and how long it lasts until the reserve (PRD F14). Mirrors Python `RefuelForecast`. */
 data class RefuelForecast(
     val litersLeft: BigDecimal,
+    val litersFree: BigDecimal,
     val levelPct: BigDecimal,
     val lPer100Km: BigDecimal,
     val dailyKm: BigDecimal,

@@ -55,8 +55,6 @@ fun AppRoot(
     tripRoute: TripRouteController,
     yearSummary: YearSummaryController,
     declared: DeclaredConsumptionController,
-    ecoGoals: EcoGoalsController,
-    budget: BudgetController,
     periodSummary: PeriodSummarySettings,
     tyres: TyreController,
     carValuation: CarValuationController,
@@ -85,8 +83,6 @@ fun AppRoot(
     val routeState by tripRoute.state.collectAsState()
     val widgetContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
     val declaredState by declared.state.collectAsState()
-    val ecoGoalsState by ecoGoals.state.collectAsState()
-    val budgetState by budget.state.collectAsState()
     val periodSummaryState by periodSummary.state.collectAsState()
     val carValuationState by carValuation.state.collectAsState()
     val heatState by heat.state.collectAsState()
@@ -143,8 +139,6 @@ fun AppRoot(
             weather.reset()
             forecast.reset()
             consumption.reset()
-            ecoGoals.reset()
-            budget.reset()
             carValuation.reset()
             stationPrices.reset()
             tripRoute.close()
@@ -173,8 +167,6 @@ fun AppRoot(
             forecast.ensureLoaded()
             consumption.ensureLoaded()
             declared.ensureLoaded()
-            ecoGoals.ensureLoaded()
-            budget.ensureLoaded()
         }
     }
 
@@ -184,11 +176,9 @@ fun AppRoot(
     // reads the state, not a copy of it.
     SideEffect { prompt.onFormScreen = { screen in PROMPT_BLOCKED_SCREENS } }
     // A new screen decides again from the last read; no database access, so a
-    // rotation costs nothing (docs/SPEC.md §13.3). The status screen refreshes the budget on every
-    // entry, so a new expense or trip shows up without a restart (PRD F48, docs/SPEC.md §49).
+    // rotation costs nothing (docs/SPEC.md §13.3).
     LaunchedEffect(screen) {
         prompt.screenChanged()
-        if (screen == Screen.Status) budget.refresh()
     }
 
     // A tapped notification opens the full price form of its entry (docs/SPEC.md §13.1).
@@ -296,10 +286,6 @@ fun AppRoot(
                         consumption = consumptionState,
                         declaredConsumption = declaredState,
                         onSetDeclared = declared::set,
-                        ecoGoals = ecoGoalsState,
-                        onSetEcoGoals = ecoGoals::set,
-                        budget = budgetState,
-                        onSetBudget = budget::set,
                         onLogout = session::logout,
                         askNotificationPermission = askNotificationPermission,
                     )
@@ -309,8 +295,6 @@ fun AppRoot(
                         onSetLanguage = onSetLanguage,
                         defaultPrice = priceState.price,
                         onShowDefaultPrice = { screen = Screen.DefaultPrice },
-                        budgetAlert = budgetState.alertEnabled,
-                        onSetBudgetAlert = budget::setAlert,
                         periodSummary = periodSummaryState,
                         onSetPeriodSummary = periodSummary::set,
                         carValuation = carValuationState,

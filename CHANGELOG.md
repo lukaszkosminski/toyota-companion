@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- Prognoza tankowania: nowa informacja „do pełna ok. X l” – ile paliwa zmieści się teraz w baku (pojemność minus paliwo w baku); także w widżecie i Android Auto, bo pokazują tę samą linię (F14)
+- Usunięte: karta „Cel miesiąca” z celami eco, seriami i rekordami (F39, F58) oraz czwarta linia widżetu
+- Usunięte: karta „Budżet miesiąca”, powiadomienia o budżecie i ich przełącznik w „Opcjach” (F48, F49)
 
 ## 0.2.16 (2026-11-12)
 - Automatyczna kopia (F60): obsługa folderu wydzielona do osobnej klasy z testami (14 testów: podfolder o nazwie kopii, zapis przerwany w połowie, odmowa zmiany nazwy, brak uprawnienia); zachowanie bez zmian

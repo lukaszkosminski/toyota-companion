@@ -35,6 +35,7 @@ class TestRefuelForecast:
         forecast = refuel_forecast(reading(50), month_of_trips(), NOW)
         assert forecast is not None
         assert forecast.liters_left == D("21.500")
+        assert forecast.liters_free == D("21.500")
         assert forecast.level_pct == D("50.0")
         assert forecast.l_per_100km == D("5.00")
         assert forecast.daily_km == D("20.0")
@@ -60,6 +61,7 @@ class TestRefuelForecast:
         forecast = refuel_forecast(reading(10, hours_ago=12), trips, NOW)
         assert forecast is not None
         assert forecast.liters_left == D("0.000")
+        assert forecast.liters_free == D("43.000")
 
     def test_young_archive_uses_its_own_days(self) -> None:
         trips = [trip("a", 1.5), trip("b", 0.5)]

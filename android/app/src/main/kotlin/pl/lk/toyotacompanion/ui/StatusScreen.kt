@@ -86,10 +86,6 @@ fun StatusScreen(
     consumption: ConsumptionView?,
     declaredConsumption: java.math.BigDecimal?,
     onSetDeclared: (String) -> Boolean,
-    ecoGoals: EcoGoalsState = EcoGoalsState(),
-    onSetEcoGoals: (String, String) -> Boolean = { _, _ -> false },
-    budget: BudgetState = BudgetState(),
-    onSetBudget: (String) -> Boolean = { false },
     onShowBackup: () -> Unit,
     onLogout: () -> Unit,
     askNotificationPermission: suspend () -> Boolean,
@@ -100,10 +96,6 @@ fun StatusScreen(
     scrollState: ScrollState = rememberScrollState(),
 ) {
     var confirmLogout by remember { mutableStateOf(false) }
-    var editingEcoGoals by rememberSaveable { mutableStateOf(false) }
-    if (editingEcoGoals) EcoGoalsDialog(ecoGoals.goals, onSetEcoGoals) { editingEcoGoals = false }
-    var editingBudget by rememberSaveable { mutableStateOf(false) }
-    if (editingBudget) BudgetDialog(budget.budget, onSetBudget) { editingBudget = false }
     val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     LaunchedEffect(Unit) {
@@ -184,15 +176,9 @@ fun StatusScreen(
                         DashboardCard(Texts.FORECAST_CARD_TITLE, AppIcons.EventUpcoming) { Text(line, style = MaterialTheme.typography.bodyLarge) }
                     }
                     // Average consumption of the whole archive and the monthly bars (docs/SPEC.md §24).
-                    ConsumptionCard(consumption, declaredConsumption, onSetDeclared, onSetEcoGoal = if (ecoGoals.goals.any) null else ({ editingEcoGoals = true }))
-                    // The monthly eco goals (PRD F39, docs/SPEC.md §40).
-                    EcoGoalsCard(ecoGoals) { editingEcoGoals = true }
+                    ConsumptionCard(consumption, declaredConsumption, onSetDeclared)
                     CostsCard(consumption)
                 }
-
-                // The monthly budget for fuel and expenses (PRD F48, docs/SPEC.md §49). It does not depend on the
-                // Toyota status, so it stays visible when the status is missing (a failed sync must not hide it).
-                BudgetCard(budget) { editingBudget = true }
 
                 // The menu closes the first screen, under the cards, as the owner wants it (docs/SPEC.md §10.4); the scroll position
                 // is kept across sub-screens, so the tiles stay in reach. The default price shows its value, the others name the screen.

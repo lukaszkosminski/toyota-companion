@@ -580,6 +580,7 @@ object Texts {
         "Refuel in over $days ${enPlural(days, "day", "days")}",
     )
     fun forecastLeft(liters: String, level: String): String = Lang.pick("w baku ok. $liters ($level)", "approx. $liters in tank ($level)")
+    fun forecastFree(liters: String): String = Lang.pick("do pełna ok. $liters", "approx. $liters to fill up")
     fun forecastRange(km: String): String = Lang.pick("ok. $km do rezerwy", "approx. $km to reserve")
     val FORECAST_RESERVE: String get() = Lang.pick("Paliwo na rezerwie – zatankuj", "Fuel on reserve – refuel")
 
@@ -1047,138 +1048,6 @@ object Texts {
     fun driveHighway(km: String): String = Lang.pick("autostrada $km km", "motorway $km km")
     fun driveOverspeed(km: String, sharePct: String): String =
         Lang.pick("przekroczenia $km km ($sharePct %)", "speeding $km km ($sharePct %)")
-
-    // Cele eco (PRD F39, docs/SPEC.md §40).
-
-    val ECO_TITLE: String get() = Lang.pick("Cel miesiąca", "Monthly goal")
-    val ECO_SET: String get() = Lang.pick("Ustaw cel", "Set a goal")
-    val ECO_EDIT: String get() = Lang.pick("Zmień cele", "Edit goals")
-    val ECO_DIALOG_TITLE: String get() = Lang.pick("Cele eco", "Eco goals")
-    val ECO_BODY: String get() = Lang.pick(
-        "Dwa niezależne cele na każdy miesiąc kalendarzowy. Zostaw pole puste, żeby nie mieć danego celu.",
-        "Two independent goals for each calendar month. Leave a field empty to have no such goal.",
-    )
-    val ECO_CONSUMPTION_FIELD: String get() = Lang.pick("Spalanie najwyżej, l/100 km", "Consumption at most, l/100 km")
-    val ECO_EV_FIELD: String get() = Lang.pick("Jazda na prądzie co najmniej, %", "Electric driving at least, %")
-    val ECO_INVALID: String get() = Lang.pick(
-        "Spalanie: liczba większa od 0 i nie większa niż 20, np. 4,5. Prąd: liczba całkowita od 1 do 100.",
-        "Consumption: a number greater than 0 and no more than 20, e.g. 4.5. Electric: a whole number from 1 to 100.",
-    )
-    val ECO_SAVE: String get() = Lang.pick("Zapisz", "Save")
-    val ECO_CANCEL: String get() = Lang.pick("Anuluj", "Cancel")
-    val ECO_NO_EV_DATA: String get() = Lang.pick(
-        "Jazda na prądzie: brak danych w tym miesiącu",
-        "Electric driving: no data this month",
-    )
-    fun ecoConsumptionLine(actual: String, goal: String, mark: String?): String =
-        Lang.pick("Spalanie: $actual / $goal l/100 km", "Consumption: $actual / $goal l/100 km") + (mark?.let { " $it" } ?: "")
-    fun ecoEvLine(actual: String, goal: String, mark: String?): String =
-        Lang.pick("Jazda na prądzie: $actual / $goal %", "Electric driving: $actual / $goal %") + (mark?.let { " $it" } ?: "")
-    fun ecoTooLittle(km: String): String = Lang.pick(
-        "Za mało jazdy, by ocenić ($km km)",
-        "Too little driving to judge ($km km)",
-    )
-    fun ecoPrevious(parts: String): String = Lang.pick("Poprzedni miesiąc: $parts", "Previous month: $parts")
-    fun ecoPreviousTooLittle(km: String): String = Lang.pick(
-        "Poprzedni miesiąc: za mało jazdy, by ocenić ($km km)",
-        "Previous month: too little driving to judge ($km km)",
-    )
-    fun ecoPreviousConsumption(met: Boolean): String = Lang.pick(
-        if (met) "cel spalania – osiągnięty" else "cel spalania – nieosiągnięty",
-        if (met) "consumption goal – met" else "consumption goal – missed",
-    )
-    fun ecoPreviousEv(met: Boolean): String = Lang.pick(
-        if (met) "cel jazdy na prądzie – osiągnięty" else "cel jazdy na prądzie – nieosiągnięty",
-        if (met) "electric driving goal – met" else "electric driving goal – missed",
-    )
-    fun ecoWidget(parts: String): String = Lang.pick("Cel: $parts", "Goal: $parts")
-    val ECO_STREAK_CONSUMPTION: String get() = Lang.pick("spalanie", "consumption")
-    val ECO_STREAK_EV: String get() = Lang.pick("prąd", "electric")
-    fun ecoStreakLine(parts: String): String = Lang.pick("Seria: $parts", "Streak: $parts")
-    fun ecoStreakRunning(label: String, months: Int, longest: Int): String = Lang.pick(
-        "$label $months ${plPlural(months.toLong(), "miesiąc", "miesiące", "miesięcy")} (najdłuższa: $longest)",
-        "$label $months ${enPlural(months.toLong(), "month", "months")} (longest: $longest)",
-    )
-    fun ecoStreakBroken(label: String, longest: Int): String = Lang.pick(
-        "$label przerwana (najdłuższa: $longest)",
-        "$label broken (longest: $longest)",
-    )
-    fun ecoRecordLine(parts: String): String = Lang.pick("Rekordy: $parts", "Records: $parts")
-    fun ecoRecordConsumption(value: String, month: String): String = Lang.pick(
-        "najniższe spalanie $value l/100 km ($month)",
-        "lowest consumption $value l/100 km ($month)",
-    )
-    fun ecoRecordEv(pct: String, month: String): String = Lang.pick(
-        "najwyższy udział prądu $pct % ($month)",
-        "highest electric share $pct % ($month)",
-    )
-    fun ecoWidgetTooLittle(km: String): String = Lang.pick("za mało jazdy ($km km)", "too little driving ($km km)")
-    fun ecoWidgetConsumption(actual: String, goal: String, mark: String?): String =
-        "$actual / $goal l/100 km" + (mark?.let { " $it" } ?: "")
-    fun ecoWidgetEv(actual: String, goal: String, mark: String?): String =
-        Lang.pick("prąd $actual / $goal %", "electric $actual / $goal %") + (mark?.let { " $it" } ?: "")
-
-    // Budżet miesięczny (PRD F48, docs/SPEC.md §49).
-
-    val BUDGET_TITLE: String get() = Lang.pick("Budżet miesiąca", "Monthly budget")
-    val BUDGET_HINT: String get() = Lang.pick(
-        "Paliwo i wydatki poza paliwem w tym miesiącu, liczone z archiwum na telefonie. Bez sieci, bez budzenia auta.",
-        "Fuel and non-fuel expenses of this month, counted from the archive on the phone. No network, no waking the car.",
-    )
-    val BUDGET_SET: String get() = Lang.pick("Ustaw budżet", "Set budget")
-    val BUDGET_EDIT: String get() = Lang.pick("Zmień budżet", "Change budget")
-    val BUDGET_DIALOG_TITLE: String get() = Lang.pick("Budżet miesięczny", "Monthly budget")
-    val BUDGET_BODY: String get() = Lang.pick(
-        "Jeden limit na paliwo i wydatki poza paliwem w każdym miesiącu kalendarzowym. Puste pole usuwa budżet.",
-        "One limit for fuel and non-fuel expenses in each calendar month. Leave the field empty to remove the budget.",
-    )
-    val BUDGET_FIELD: String get() = Lang.pick("Limit [zł]", "Budget limit [zł]")
-    val BUDGET_INVALID: String get() = Lang.pick(
-        "Podaj kwotę większą od zera, do dwóch miejsc po przecinku, np. 800,50.",
-        "Enter an amount greater than zero with at most two decimals, e.g. 800.50.",
-    )
-    val BUDGET_READ_ERROR: String get() = Lang.pick(
-        "Nie udało się odczytać budżetu z archiwum.",
-        "Could not read the budget from the archive.",
-    )
-    val BUDGET_NO_FIGURES: String get() = Lang.pick(
-        "Liczby pojawią się po odczytaniu archiwum.",
-        "The figures appear once the archive is read.",
-    )
-
-    /** `listopad 2026: 74% z 800,00 zł` — the month, the whole percent used and the limit. */
-    fun budgetCaption(month: String, limit: String, percent: Int): String =
-        Lang.pick("$month: $percent% z $limit zł", "$month: $percent% of $limit zł")
-
-    fun budgetFuel(value: String): String = Lang.pick("Paliwo: $value zł", "Fuel: $value zł")
-    fun budgetExpenses(value: String): String = Lang.pick("Wydatki: $value zł", "Expenses: $value zł")
-    fun budgetRemaining(value: String): String = Lang.pick("Zostało: $value zł", "Left: $value zł")
-    fun budgetOver(value: String): String = Lang.pick("Przekroczono o $value zł", "Over by $value zł")
-
-    // Powiadomienie o budżecie (PRD F49, docs/SPEC.md §49).
-
-    val BUDGET_ALERT_CHANNEL: String get() = Lang.pick("Budżet", "Budget")
-    val BUDGET_ALERT_WARN_TITLE: String get() = Lang.pick("Budżet miesiąca: blisko limitu", "Monthly budget: close to the limit")
-    val BUDGET_ALERT_OVER_TITLE: String get() = Lang.pick("Budżet miesiąca przekroczony", "Monthly budget exceeded")
-
-    /** The 80% warning: month, spent, limit, the whole percent and what is left (may be 0,00); amounts only, no VIN or place. */
-    fun budgetAlertWarn(month: String, spent: String, limit: String, percent: Int, left: String): String = Lang.pick(
-        "$month: wydano $spent z $limit zł ($percent%). Zostało $left zł.",
-        "$month: spent $spent of $limit zł ($percent%). Left: $left zł.",
-    )
-
-    /** The exceeded budget: the same facts plus how much over. */
-    fun budgetAlertOver(month: String, spent: String, limit: String, percent: Int, over: String): String = Lang.pick(
-        "$month: wydano $spent z $limit zł ($percent%), przekroczono o $over zł.",
-        "$month: spent $spent of $limit zł ($percent%), over by $over zł.",
-    )
-
-    val BUDGET_ALERT_SETTING_TITLE: String get() = Lang.pick("Powiadomienia o budżecie", "Budget notifications")
-    val BUDGET_ALERT_SETTING_SWITCH: String get() = Lang.pick("Powiadamiaj o budżecie", "Notify about the budget")
-    val BUDGET_ALERT_SETTING_HINT: String get() = Lang.pick(
-        "Jedno powiadomienie przy 80% i jedno przy przekroczeniu limitu, raz na miesiąc. Wymaga włączonych powiadomień aplikacji.",
-        "One notification at 80% and one when the limit is exceeded, once a month. Requires the app's notifications to be on.",
-    )
 
     // Spalanie deklarowane (docs/SPEC.md §30).
 

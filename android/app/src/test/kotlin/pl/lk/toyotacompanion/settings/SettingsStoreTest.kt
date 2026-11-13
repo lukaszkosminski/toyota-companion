@@ -63,59 +63,6 @@ class SettingsStoreTest {
     }
 
     @Test
-    fun `monthly_budget_round_trips_and_garbage_reads_as_null`() {
-        assertNull(store.monthlyBudget(), "bez klucza")
-        store.saveMonthlyBudget(BigDecimal("800.50"))
-        assertEquals(0, BigDecimal("800.50").compareTo(requireNotNull(store.monthlyBudget())))
-        assertEquals("800.50", prefs.getString("monthly_budget", null), "toPlainString, always a dot")
-
-        store.saveMonthlyBudget(null)
-        assertNull(store.monthlyBudget())
-        assertNull(prefs.getString("monthly_budget", null))
-
-        for (text in listOf("", "   ", "abc", "0", "-5", "0.004")) {
-            prefs.edit().putString("monthly_budget", text).commit()
-            assertNull(store.monthlyBudget(), "dla [$text]")
-        }
-    }
-
-    @Test
-    fun `monthly_budget_of_the_wrong_type_reads_as_null`() {
-        prefs.edit().putInt("monthly_budget", 800).commit()
-        assertNull(store.monthlyBudget())
-    }
-
-    @Test
-    fun `the budget alert switch is on by default and round_trips`() {
-        assertTrue(store.budgetAlert())
-        store.saveBudgetAlert(false)
-        assertFalse(store.budgetAlert())
-        assertEquals(false, prefs.getBoolean("budget_alert", true))
-        store.saveBudgetAlert(true)
-        assertTrue(store.budgetAlert())
-    }
-
-    @Test
-    fun `the last budget alert key round_trips`() {
-        assertNull(store.lastBudgetAlert())
-        store.saveLastBudgetAlert("2026-10:80")
-        assertEquals("2026-10:80", store.lastBudgetAlert())
-        store.saveLastBudgetAlert("2026-10:100")
-        assertEquals("2026-10:100", store.lastBudgetAlert())
-    }
-
-    @Test
-    fun `the budget alert keys of the wrong type read as their defaults`() {
-        prefs.edit().putString("budget_alert", "off").putInt("budget_alert_last", 80).commit()
-        assertTrue(store.budgetAlert(), "zly typ = domyslnie wlaczone")
-        assertNull(store.lastBudgetAlert(), "zly typ = nic nie powiedziano")
-        store.saveBudgetAlert(false)
-        store.saveLastBudgetAlert("2026-10:80")
-        assertFalse(store.budgetAlert())
-        assertEquals("2026-10:80", store.lastBudgetAlert())
-    }
-
-    @Test
     fun `the automatic copy folder and day round trip, and garbage reads as none`() {
         assertNull(store.autoBackupFolder())
         assertNull(store.autoBackupLastDay())
@@ -206,55 +153,6 @@ class SettingsStoreTest {
         store.markNotificationsAsked()
 
         assertEquals(true, store.notificationsAsked())
-    }
-
-
-    @Test
-    fun `the months a goal counts from round trip, go with their goal and garbage reads as none`() {
-        store.saveEcoGoals(BigDecimal("4.50"), 40, MonthKey(2026, 3), MonthKey(2026, 10))
-        assertEquals(MonthKey(2026, 3), store.ecoGoalConsumptionSince())
-        assertEquals(MonthKey(2026, 10), store.ecoGoalEvSince())
-        assertEquals("2026-03", prefs.getString("eco_goal_consumption_since", null))
-
-        // Without its goal a month is not kept.
-        store.saveEcoGoals(null, 40, MonthKey(2026, 3), MonthKey(2026, 10))
-        assertNull(store.ecoGoalConsumptionSince())
-        assertEquals(MonthKey(2026, 10), store.ecoGoalEvSince())
-
-        prefs.edit().putString("eco_goal_ev_since", "2026-13").putString("eco_goal_consumption_since", "wrong").apply()
-        assertNull(store.ecoGoalEvSince())
-        assertNull(store.ecoGoalConsumptionSince())
-    }
-
-    @Test
-    fun `eco goals round_trip and null removes only its goal`() {
-        assertNull(store.ecoGoalConsumption())
-        assertNull(store.ecoGoalEvPct())
-
-        store.saveEcoGoals(BigDecimal("4.50"), 40)
-        assertEquals(0, BigDecimal("4.50").compareTo(requireNotNull(store.ecoGoalConsumption())))
-        assertEquals(40, store.ecoGoalEvPct())
-        assertEquals("4.50", prefs.getString("eco_goal_consumption", null))
-
-        store.saveEcoGoals(null, 40)
-        assertNull(store.ecoGoalConsumption())
-        assertEquals(40, store.ecoGoalEvPct())
-        store.saveEcoGoals(null, null)
-        assertNull(store.ecoGoalEvPct())
-    }
-
-    @Test
-    fun `garbage eco goals read as no goal`() {
-        for (text in listOf("abc", "0", "-1", "20.01", "")) {
-            prefs.edit().putString("eco_goal_consumption", text).commit()
-            assertNull(store.ecoGoalConsumption(), text)
-        }
-        prefs.edit().putInt("eco_goal_ev_pct", 101).commit()
-        assertNull(store.ecoGoalEvPct())
-        prefs.edit().putInt("eco_goal_ev_pct", 0).commit()
-        assertNull(store.ecoGoalEvPct())
-        prefs.edit().remove("eco_goal_ev_pct").putString("eco_goal_ev_pct", "40").commit()
-        assertNull(store.ecoGoalEvPct(), "a string under the key is not a goal")
     }
 
     @Test

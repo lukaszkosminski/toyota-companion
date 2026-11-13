@@ -37,6 +37,7 @@ class ForecastOpsTest {
         fun `forecast_from_level_and_habits`() {
             val forecast = assertNotNull(refuelForecast(reading(50), monthOfTrips(), NOW))
             assertBd("21.500", forecast.litersLeft)
+            assertBd("21.500", forecast.litersFree)
             assertBd("50.0", forecast.levelPct)
             assertBd("5.00", forecast.lPer100Km)
             assertBd("20.0", forecast.dailyKm)
@@ -63,6 +64,7 @@ class ForecastOpsTest {
             val trips = monthOfTrips() + trip("big", 0.1, fuel = "50.000")
             val forecast = assertNotNull(refuelForecast(reading(10, hoursAgo = 12.0), trips, NOW))
             assertBd("0.000", forecast.litersLeft)
+            assertBd("43.000", forecast.litersFree)
         }
 
         @Test

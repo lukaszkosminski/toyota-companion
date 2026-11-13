@@ -63,8 +63,6 @@ import pl.lk.toyotacompanion.ui.DefaultPriceController
 import pl.lk.toyotacompanion.core.prices.FuelPriceGatewayFactory
 import pl.lk.toyotacompanion.ui.ConsumptionController
 import pl.lk.toyotacompanion.ui.DeclaredConsumptionController
-import pl.lk.toyotacompanion.ui.EcoGoals
-import pl.lk.toyotacompanion.ui.EcoGoalsController
 import pl.lk.toyotacompanion.ui.StationPriceController
 import pl.lk.toyotacompanion.ui.RouteBackfillController
 import pl.lk.toyotacompanion.ui.RouteHeatController
@@ -129,11 +127,7 @@ class AppContainer(
             database.expenseDao(),
             uiScope,
             Dispatchers.IO,
-            // A new or removed expense changes the month's budget, so the thresholds are checked (PRD F49, §49).
-            onChanged = {
-                budgetAlertNotifier.onExpensesChanged()
-                receiptRepository.refresh()
-            },
+            onChanged = { receiptRepository.refresh() },
             // The row and its receipt photo go together (PRD F59).
             deleteExpense = { receiptRepository.deleteExpense(it) },
         )
@@ -369,12 +363,8 @@ class AppContainer(
             val forecast = syncEngine.refuelForecast()?.let {
                 pl.lk.toyotacompanion.ui.forecastLine(pl.lk.toyotacompanion.ui.TimedForecast(it, java.time.Instant.now()), ZoneId.systemDefault())
             }
-            val goals = pl.lk.toyotacompanion.ui.EcoGoals(settingsStore.ecoGoalConsumption(), settingsStore.ecoGoalEvPct())
-            val goalLine = pl.lk.toyotacompanion.ui.ecoWidgetLine(
-                pl.lk.toyotacompanion.ui.ecoProgress(goals, trips, ZoneId.systemDefault(), java.time.LocalDate.now(ZoneId.systemDefault())),
-            )
             pl.lk.toyotacompanion.widget.WidgetSnapshotStore(context).save(
-                pl.lk.toyotacompanion.widget.widgetSnapshot(view, forecast, settingsStore.defaultPrice(), goalLine),
+                pl.lk.toyotacompanion.widget.widgetSnapshot(view, forecast, settingsStore.defaultPrice()),
             )
             pl.lk.toyotacompanion.widget.ConsumptionWidgetProvider.refresh(context)
         } catch (e: kotlinx.coroutines.CancellationException) {
@@ -401,11 +391,6 @@ class AppContainer(
             if (outcome is SyncOutcome.Ok) {
                 forecastController.refresh()
                 consumptionController.refresh()
-                ecoGoalsController.refresh()
-                // New trips change the month's budget figures too (PRD F48, docs/SPEC.md §49).
-                budgetController.refresh()
-                // The month's budget may have crossed a threshold with the new trips (PRD F49, docs/SPEC.md §49).
-                budgetAlertNotifier.onSyncOutcome(outcome)
                 // The last completed week or month, once (PRD F54, docs/SPEC.md §54).
                 periodSummaryNotifier.onSyncOutcome(outcome)
                 // The tyre reminder, once per set and kind (PRD F56, docs/SPEC.md §56).
@@ -635,52 +620,6 @@ class AppContainer(
         DeclaredConsumptionController(read = { settingsStore.declaredConsumption() }, save = { settingsStore.saveDeclaredConsumption(it) })
     }
 
-    /** The monthly eco goals of the owner and the month's figures against them (PRD F39, docs/SPEC.md §40). */
-    val ecoGoalsController: EcoGoalsController by lazy {
-        EcoGoalsController(
-            readGoals = {
-                EcoGoals(
-                    settingsStore.ecoGoalConsumption(),
-                    settingsStore.ecoGoalEvPct(),
-                    settingsStore.ecoGoalConsumptionSince(),
-                    settingsStore.ecoGoalEvSince(),
-                )
-            },
-            saveGoals = {
-                settingsStore.saveEcoGoals(it.maxConsumption, it.minEvSharePct, it.consumptionSince, it.evSince)
-            },
-            readTrips = tripsLoader,
-            zone = { ZoneId.systemDefault() },
-            scope = uiScope,
-            io = Dispatchers.IO,
-            // The widget has a line for the goals, so it is repainted when they change.
-            onSaved = { uiScope.launch { refreshWidget() } },
-        )
-    }
-
-    /**
-     * The monthly budget for fuel and expenses (PRD F48, docs/SPEC.md §49): the limit from the phone settings and the
-     * month computed from the archive and the expenses table. No network, so the car is never woken.
-     */
-    val budgetController: pl.lk.toyotacompanion.ui.BudgetController by lazy {
-        pl.lk.toyotacompanion.ui.BudgetController(
-            readLimit = { settingsStore.monthlyBudget() },
-            saveLimit = { settingsStore.saveMonthlyBudget(it) },
-            readAlert = { settingsStore.budgetAlert() },
-            saveAlert = { settingsStore.saveBudgetAlert(it) },
-            readTrips = tripsLoader,
-            readExpenses = { database.expenseDao().all().map { it.toExpense() } },
-            zone = { ZoneId.systemDefault() },
-            scope = uiScope,
-            io = Dispatchers.IO,
-        )
-    }
-
-    /**
-     * The monthly budget notification (PRD F49, docs/SPEC.md §49): one 80% warning and one 100% alert per month.
-     * Triggered by a successful sync and by an expense change; reuses the existing notification permission and
-     * never touches the network or the car.
-     */
     /** The period summary notification (PRD F54, docs/SPEC.md §54): the archive and the expenses, read on IO; the setting is in `settings`. */
     private val periodSummaryNotifier: pl.lk.toyotacompanion.notify.PeriodSummaryNotifier by lazy {
         pl.lk.toyotacompanion.notify.PeriodSummaryNotifier(
@@ -725,18 +664,6 @@ class AppContainer(
         pl.lk.toyotacompanion.ui.PeriodSummarySettings(
             read = { settingsStore.periodSummaryKind() },
             save = { settingsStore.savePeriodSummaryKind(it) },
-        )
-    }
-
-    private val budgetAlertNotifier: pl.lk.toyotacompanion.notify.BudgetAlertNotifier by lazy {
-        pl.lk.toyotacompanion.notify.BudgetAlertNotifier(
-            context = context,
-            readLimit = { settingsStore.monthlyBudget() },
-            readTrips = tripsLoader,
-            readExpenses = { database.expenseDao().all().map { it.toExpense() } },
-            lastAlertKey = { settingsStore.lastBudgetAlert() },
-            markAlerted = { settingsStore.saveLastBudgetAlert(it) },
-            alertEnabled = { settingsStore.budgetAlert() },
         )
     }
 

@@ -60,8 +60,6 @@ class MainActivity : ComponentActivity() {
                 container.tripRouteController,
                 container.yearSummaryController,
                 container.declaredConsumptionController,
-                container.ecoGoalsController,
-                container.budgetController,
                 container.periodSummarySettings,
                 container.tyreController,
                 container.carValuationController,

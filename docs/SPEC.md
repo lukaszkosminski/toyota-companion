@@ -312,7 +312,7 @@ Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – �
 - Kolejność: stan (chip świeżości, godzina ostatniej synchronizacji, linia „Telemetria: N odczytów”), liczniki w dwóch rzędach po dwa
   (Trasy / Poziom paliwa / Przebieg / Oczekujące tankowania),
   błąd synchronizacji (jeśli jest), przycisk ceny oczekującego tankowania (jeśli jest), przycisk „Synchronizuj teraz” na pełną szerokość
-  (gest przeciągnięcia w dół robi to samo), potem karty: „Prognoza” (🔮), „Spalanie” (⛽), cel miesiąca, „Koszty miesięczne” (💰) i budżet, a na dole pierwszej strony **menu kafelków** (z przypomnieniem o kopii i linią „Ostatnia kopia archiwum”). Kafelki wróciły na dół decyzją właściciela z 2026-11-10 (propozycja U13 z przeglądu C32 wycofana po wypróbowaniu w v0.2.7); ekran pamięta przewinięcie po powrocie z podstrony (§9.3), więc kafelki zostają pod ręką.
+  (gest przeciągnięcia w dół robi to samo), potem karty: „Prognoza” (🔮), „Spalanie” (⛽) i „Koszty miesięczne” (💰), a na dole pierwszej strony **menu kafelków** (z przypomnieniem o kopii i linią „Ostatnia kopia archiwum”). Kafelki wróciły na dół decyzją właściciela z 2026-11-10 (propozycja U13 z przeglądu C32 wycofana po wypróbowaniu w v0.2.7); ekran pamięta przewinięcie po powrocie z podstrony (§9.3), więc kafelki zostają pod ręką.
 - Karta to zaokrąglony kontener z ikoną i tytułem, jedno miejsce na odstępy, kształty i typografię (`DashboardCard`, `Headline`, `Pill`, `MenuTile` w `ui/Dashboard.kt`); kolory z motywu
   (jasny, ciemny i dynamiczny). Spalanie: duża liczba „4,13 l/100 km” z podpisem, trend jako kolorowa pigułka (rosnący – kolor błędu, malejący – kolor główny, stabilny – neutralny),
   słupki z zaokrąglonymi górami; kierunek trendu w pigułce pokazuje tylko ikona (tekst „rosnące (+8,2 %)” bez strzałki; strzałka zostaje w linii widżetu). Koszty: duża suma „1 182,89 zł”, słupki od zera, trzy najnowsze miesiące w szczegółach, reszta za „Pokaż wszystkie miesiące (N)”.
@@ -444,10 +444,7 @@ Szacunek litrów z czujnika (F2a) – §2a, §11.2 i §11.3; powiadomienia – �
   archiwum zostaje na telefonie (ADR-006). `DefaultPriceController.reset()` czyści tylko stan w pamięci.
 - Odczyt i zapis pliku preferencji idą z `Dispatchers.IO`: przez `defaultPriceProvider` w `AppContainer` i przez
   `DefaultPriceController` w scope'ie aplikacji.
-- Ten sam plik trzyma inne ustawienia telefonu, m.in. `monthly_budget` (budżet miesięczny, F48/§49) jako tekst
-  `BigDecimal` z dwoma miejscami i wartością dodatnią; śmieci, zero, wartość ujemna albo zaokrąglająca się do 0,00
-  czytają się jak brak budżetu. `budget_alert` (przełącznik powiadomienia, domyślnie on) i `budget_alert_last`
-  (klucz `RRRR-MM:80|100`) należą do F49/§49. Wylogowanie ich nie usuwa (ADR-006).
+- Ten sam plik trzyma inne ustawienia telefonu (np. wycenę auta, §55). Wylogowanie ich nie usuwa (ADR-006).
 
 ### §12.3 Ekran „Cena domyślna” (kryteria akceptacji)
 - Wejście: karta „Cena domyślna” w „Opcjach” (nie na ekranie statusu: to cena paliwa w baku przed pierwszym potwierdzonym
@@ -761,7 +758,7 @@ w Pythonie.
 ### §20.2 Odczyt i ekran
 - `SyncEngine.refuelForecast(now)` – bez sieci, bez `refresh_status()`, bez mutexu; brak VIN → `None`.
 - Linia na ekranie statusu pod datą synchronizacji: „Tankowanie za ok. 17 dni (ok. 17.11) · w baku ok. 21,5 l (50 %) ·
-  ok. 344 km do rezerwy”; poniżej pół dnia – „Tankowanie dziś”, jeden dzień – „Tankowanie jutro”, powyżej 90 dni –
+  do pełna ok. 21,5 l · ok. 344 km do rezerwy” (`liters_free` = pojemność − paliwo teraz, ile można dotankować); poniżej pół dnia – „Tankowanie dziś”, jeden dzień – „Tankowanie jutro”, powyżej 90 dni –
   „Tankowanie za ponad 90 dni”, data z rokiem, gdy wypada w innym roku; dni liczone od chwili odczytu prognozy
   (ostatniej synchronizacji), nie od chwili wyświetlenia; na rezerwie – „Paliwo na rezerwie – zatankuj”. Brak
   prognozy chowa linię. `ForecastController`: odczyt raz po zalogowaniu i po każdej udanej synchronizacji
@@ -1034,20 +1031,7 @@ Domena: `core/domain/OwnershipOps.kt` (`ownershipCost`, `ownershipMonths`, model
 - Nic nie idzie do sieci; wydatki czytane z tej samej bazy co ekran „Wydatki” (§38).
 
 ## 40. Cele eco (PRD F39)
-`app/ui/EcoGoals.kt` (`EcoGoals`, `parseEvGoal`, `ecoMonth`, `ecoProgress`, `ecoWidgetLine`, `EcoGoalsController`), `ui/EcoGoalsCard.kt` (karta i okno), `settings/SettingsStore.kt` (dwa klucze), `widget/WidgetSnapshot.kt`.
-- Dwa niezależne cele, oba opcjonalne: (1) spalanie miesiąca **najwyżej** X l/100 km – liczba z przedziału (0; 20], przecinek lub kropka, dwa miejsca HALF_UP, ten sam parser co spalanie deklarowane (`parseDeclaredConsumption`, §30);
-  (2) udział jazdy na prądzie **co najmniej** Y % – liczba całkowita 1–100 (dopuszczone „40” i „40 %”; ułamek, 0, 101, ujemna i tekst są odrzucane, nigdy przycinane). Puste pole usuwa dany cel. Zapis dotyczy obu pól naraz: gdy któreś jest błędne, nic się nie zmienia, a okno zostaje otwarte.
-- Cele są w ustawieniach telefonu (`settings`, klucze `eco_goal_consumption` – tekst `BigDecimal`, `eco_goal_ev_pct` – liczba), jak §30: poza archiwum, eksportem JSON i CSV; przeżywają wylogowanie. Zapis poza przedziałem czyta się jak brak celu.
-- Miesiąc = miesiąc kalendarzowy w strefie telefonu (data startu trasy). Spalanie miesiąca = Σ paliwa / Σ km tras miesiąca (0,01 HALF_UP). Udział prądu jak w §29: prąd każdej trasy przycięty do jej dystansu, Σ prądu / Σ km, całe % HALF_UP;
-  gdy żadna trasa miesiąca nie podaje jazdy na prądzie – brak danych (to nie 0 %), linia „Jazda na prądzie: brak danych w tym miesiącu”; trasa z danymi i 0 km prądu daje 0 %. Trasy z niedodatnim lub nieskończonym dystansem albo ujemnym paliwem są pomijane (jak na karcie spalania).
-- Cel jest osiągnięty, gdy spalanie ≤ X albo udział ≥ Y (równość to osiągnięcie). **Poniżej 50 km w miesiącu** (`ECO_MIN_MONTH_KM`, jak próg słupka §24) nic nie jest oceniane: „Za mało jazdy, by ocenić (N km)” (km w całych).
-- Karta „Cel miesiąca” na ekranie statusu pod „Spalaniem” (przed „Kosztami miesięcznymi”), tylko gdy jest choć jeden cel: linie „Spalanie: 4,30 / 4,50 l/100 km ✓” i „Jazda na prądzie: 42 / 40 % ✓” (✓ – w celu, ✗ – poza celem; w bieżącym miesiącu to stan na dziś, nie wynik),
-  pod nimi „Poprzedni miesiąc: cel spalania – osiągnięty · cel jazdy na prądzie – nieosiągnięty” (albo „za mało jazdy, by ocenić (N km)”; bez linii, gdy poprzedni miesiąc nie miał tras) i „Zmień cele”. Bez celów w karcie „Spalanie” jest przycisk „Ustaw cel”.
-  Okno „Cele eco”: dwa pola wypełnione bieżącymi wartościami.
-- Przeliczenie po zalogowaniu, po każdej udanej synchronizacji (obok odświeżenia karty spalania) i po zmianie celów; nieudany odczyt tras zostawia cele i ukrywa liczby. Wylogowanie czyści liczby, nie cele.
-- Widżet (§32): czwarta linia „Cel: 4,30 / 4,50 l/100 km ✓ · prąd 42 / 40 % ✓” (albo „Cel: za mało jazdy (N km)”), ukryta, gdy nie ma celu albo liczb; odświeżana razem z pozostałymi liniami i po zmianie celów. Brak linii dla celu prądu bez danych.
-- Teksty PL/EN w `Texts` (blok „Cele eco”); liczebniki odmieniane w tych tekstach nie występują (km i % są nieodmienne), więc `plPlural` nie jest potrzebne.
-- Bez sieci i bez API Toyoty; czyste funkcje i kontroler bez Compose. Testy: `EcoGoalsTest`, `EcoGoalsControllerTest`, `WidgetSnapshotTest`, `TextsTest`, `SettingsStoreTest`.
+Usunięte 2026-11-13 decyzją właściciela razem z czwartą linią widżetu (§32). Klucze `eco_goal_*` zostają w pliku `settings` starych instalacji, ale nic ich nie czyta.
 
 ## 41. Autostrada i przekroczenia prędkości w trasach (PRD F40, ADR-021)
 `core/toyota/dto/Dto.kt` (`TripSummaryDto`), `ToyotaMapper.toTripRecord`, `core/data/Models.kt` (`TripRecord`), `data/db` (`TripEntity`, schemat 6), `ArchiveFile`, `app/ui/TripDriveExtras.kt`.
@@ -1161,54 +1145,7 @@ Domena: `core/domain/OwnershipOps.kt` (`ownershipCost`, `ownershipMonths`, model
   wskaże użytkownik, bez ostrzeżenia jak przy kopii (SECURITY.md).
 
 ## §49 Budżet miesięczny (PRD F48)
-- Karta „Budżet miesiąca” na ekranie statusu: **jeden opcjonalny limit na telefon**, nie na auto, obejmujący paliwo
-  i wydatki poza paliwem. Limit jest w `settings/SettingsStore.kt` (klucz `monthly_budget`, tekst `BigDecimal`
-  z dwoma miejscami, wartość dodatnia), poza archiwum, eksportem JSON/CSV i `sync_state`; przeżywa wylogowanie
-  (ADR-006). Karta nie wykonuje żadnej sieci i nie budzi auta; `reset()` przy wylogowaniu czyści tylko stan w pamięci.
-- Karta jest widoczna **także bez `SyncStatus`** – nie zależy od Toyoty, więc błąd synchronizacji nie ukrywa budżetu
-  ani wejścia do ustawienia. Bez limitu pokazuje podpowiedź i „Ustaw budżet”; z limitem – wydane, paliwo, wydatki,
-  zostało/przekroczono, procent i „Zmień budżet”.
-- Domena: `core/domain/BudgetOps.kt` (`BudgetProgress`, `budgetProgress`), lustro `backend/app/domain/budget.py`
-  (`BudgetProgress`, `budget_progress`) – te same nazwy testów w Kotlinie i Pythonie. Pliki `app`: `ui/Budget.kt`
-  (`MonthlyBudget`, `BudgetState`, `parseBudgetLimit`, `monthFuelCost`, `monthExpenses`, `budgetProgressFor`),
-  `ui/BudgetController.kt`, `ui/BudgetCard.kt`, `ui/StatusScreen.kt`, `ui/AppRoot.kt`, `AppContainer.kt`, `Texts`.
-- Miesiąc kalendarzowy w strefie lokalnej (ta sama co lista tras). **Paliwo** = suma `costPln` tras wybranego auta,
-  których start wypada w miesiącu i które mają cenę (`hasNoCost` wyklucza „brak ceny”); to koszt jazdy, nie zakupy
-  paliwa. **Wydatki** = suma `amount` wszystkich wydatków z datą w miesiącu (data poniesienia). Karta łączy dwie
-  podstawy, więc linie nazywają się „Paliwo” i „Wydatki”. Tylko PLN, bez przeliczeń walut.
-- Kwoty: paliwo i wydatki zaokrąglane do 0,01 zł, suma raz na końcu; `remaining = limit - spent` (może być ujemne),
-  procent całkowity HALF_UP (może przekroczyć 100), `overBudget = spent > limit` po zaokrągleniu, więc dokładnie limit
-  nie jest przekroczeniem. Limit ≤ 0 albo zaokrąglający się do 0,00 (np. 0,004) jest odrzucany, żeby nie dzielić przez
-  zero; ujemne kwoty to błąd programisty.
-- Brak odczytu: limit zostaje (to ustawienie telefonu), a ostatnie dobre liczby **tego samego miesiąca** zostają na
-  ekranie z komunikatem błędu; pierwszy błąd bez liczb pokazuje komunikat zamiast zmyślonych zer. `loading` pokazuje
-  „Ładowanie…” tylko wtedy, gdy nie ma jeszcze liczb (lekcja C26: ostatnie dobre dane nie znikają).
-- Odświeżanie: po zalogowaniu, przy każdym wejściu na ekran statusu i po udanej synchronizacji (`syncRunner`,
-  `SyncOutcome.Ok`); brak sieci. Północ albo zmiana miesiąca przy otwartym ekranie nie odświeża karty – zrobi to
-  następne wejście albo synchronizacja. Zmiana strefy może przenieść trasę między miesiącami (start liczony lokalnie).
-- Dialog: jedno pole „Limit [zł]”; puste usuwa budżet, niepoprawna kwota (≤ 0, więcej niż 2 miejsca, tekst) zostawia
-  okno otwarte. Zapis jest pojedynczą edycją `SharedPreferences` na wątku wywołującego, jak inne ustawienia (§12.2).
-- Auto Backup (ADR-015): limit jest w `settings.xml` objętym kopią Google i transferem urządzenia, jak cena domyślna
-  i cele eco; **nie jest sekretem**. Ręczny eksport archiwum (JSON) i arkusze CSV nie zawierają limitu (settings są
-  poza archiwum). Karta nie wysyła nic sama; baza z trasami i wydatkami jest w Auto Backup, tak jak dotąd.
-- **Powiadomienie przy progu (PRD F49)**: kanał „Budżet” (`budget`, `IMPORTANCE_DEFAULT`), progi **80%** (ostrzeżenie)
-  i **100%** (przekroczenie). Próg 100 oznacza faktyczne przekroczenie (wydano > limit, `overBudget`); ostrzeżenie 80
-  zaczyna się od 79,5% według całego procentu HALF_UP i obejmuje też 99,95% oraz dokładnie limit (treść z kwotą
-  „Zostało X zł.”, także 0,00). Klucz `RRRR-MM:80`/`RRRR-MM:100` w `SettingsStore` (`budget_alert_last`); powiadamiamy
-  tylko, gdy dla tego miesiąca nie powiadomiono jeszcze tego lub wyższego progu (80 po 100 jest ciszą, 100 po 80
-  powiadomieniem; nowy miesiąc zaczyna od nowa). Klucz zapisywany **po** udanym `post`; bez uprawnienia, wyłączonych
-  powiadomień, wyciszonego kanału albo wyłączonego przełącznika nic nie jest oznaczane, więc włączenie później dostarczy
-  alert tego miesiąca. Trigger: udana synchronizacja (`SyncOutcome.Ok`) i udana zmiana wydatku (dodanie/usunięcie);
-  **nie** przy samym wejściu na status (użytkownik widzi kartę) i nie przy zmianie limitu; zmiana limitu nie zeruje
-  klucza miesiąca (po podniesieniu limitu po alercie 100 do końca miesiąca jest cisza). Kontrole są serializowane
-  (`Mutex`, klucz czytany w blokadzie), a odczyty, `canPost` i publikacja idą na wątku I/O. Reuse `POST_NOTIFICATIONS`
-  i jednorazowej prośby z §13.2 – bez nowej prośby i nowego uprawnienia; odmowa nie psuje karty ani synchronizacji.
-  Treść: miesiąc, wydane, limit, procent; przy 80% dodatkowo kwota „Zostało”, przy 100% kwota przekroczenia; bez VIN
-  i GPS. Przełącznik
-  `budget_alert` (domyślnie włączony, jak automatyczna pogoda) w „Opcjach”, przeżywa wylogowanie.
-  Pliki: `ui/BudgetAlert.kt` (czysta reguła progów), `notify/BudgetAlertNotifier.kt`, `ui/ExpensesController.kt`
-  (`onChanged`), `ui/BudgetController.kt` (przełącznik), `ui/AppRoot.kt`, `AppContainer` (`syncRunner`, notifier),
-  `settings/SettingsStore.kt`, `ui/OptionsScreen.kt`, `ui/Texts.kt`.
+Usunięte 2026-11-13 decyzją właściciela razem z powiadomieniem o budżecie (F49), przełącznikiem w „Opcjach”, domeną `BudgetOps`/`budget.py` i kanałem „Budżet”. Klucze `monthly_budget`, `budget_alert`, `budget_alert_last` zostają w pliku `settings` starych instalacji, ale nic ich nie czyta.
 
 ## §50 Krótkie trasy i zimny silnik (PRD F50)
 Domena: Python `backend/app/domain/shorttrips.py` (wzorzec), Kotlin `core/domain/ShortTripOps.kt` (te same nazwy testów: `backend/tests/test_domain_shorttrips.py`, `ShortTripOpsTest.kt`). Ekran: karta w „Statystykach” (§18):
@@ -1314,7 +1251,7 @@ Plan: `briefs/toyota-companion/C36-plan.md`. Domena: `core/domain/ValueLossOps.k
 (`value_loss_in_year`, `ownership_cost`) z tymi samymi nazwami testów. Ekran: karta „Koszt całkowity” w „Podsumowaniu roku”
 (`ui/YearSummary.kt`, `ui/YearSummaryScreen.kt`) i formularz w „Opcjach” (`ui/CarValuationForm.kt`, `settings/SettingsStore.kt`).
 - **Dane właściciela:** cena zakupu > 0, data zakupu, szacowana wartość ≥ 0, data wyceny ≥ data zakupu. Ustawienie telefonu, nie archiwum
-  i nie sekret (jak budżet, ADR-019: jedno konto = jedno auto); przeżywa wylogowanie i trafia do Auto Backup. Brak lub błędne dane = brak wyceny.
+  i nie sekret (jak cena domyślna, ADR-019: jedno konto = jedno auto); przeżywa wylogowanie i trafia do Auto Backup. Brak lub błędne dane = brak wyceny.
 - **Strata całkowita:** `max(0, cena zakupu − wartość)`; wartość wyższa od ceny daje 0 zł, bez ujemnej straty i bez wyjątku.
 - **Model liniowy w dniach:** dzienna strata = strata całkowita / liczba dni od daty zakupu do daty wyceny. Strata roku = dzienna strata × liczba dni
   roku w przedziale `[data zakupu, data wyceny)`. Rok przed zakupem i rok po dacie wyceny = 0 (bez ekstrapolacji w przyszłość). Data wyceny równa dacie
@@ -1383,22 +1320,7 @@ z lustrem `backend/app/domain/stations.py` (te same nazwy testów). Ekrany: `ui/
   Bez sieci i bez budzenia auta.
 
 ## §58 Serie i rekordy przy celach eco (PRD F58)
-Plan: `briefs/toyota-companion/C39-plan.md`. Logika: `ui/EcoStreaks.kt` (`ecoHistory`, `ecoStreakLine`, `ecoRecordLine`), na miesiącach
-z `ecoMonth` (§40). Odstępstwo od planu: bez lustra w Pythonie, bo `ecoMonth` i cele są w `app/ui` (Python nie ma ich odpowiednika).
-Teksty: `ui/Texts.kt` (PL/EN, odmiana „miesiąc/miesiące/miesięcy”); karta: `ui/EcoGoalsCard.kt`.
-- **Miesiące:** tylko pełne miesiące do poprzedniego włącznie; bieżący miesiąc nie wchodzi do serii ani rekordów. Miesiąc w strefie telefonu.
-- **Seria:** kolejne miesiące z osiągniętym celem (spalanie albo jazda na prądzie, każdy osobno). Miesiąc poniżej 50 km (`ECO_MIN_MONTH_KM`)
-  albo bez danych o prądzie jest **pomijany**: nie zrywa serii i nie wydłuża jej. Miesiąc z celem nieosiągniętym zrywa serię.
-- **Zmiana celu:** każdy cel ma miesiąc „od kiedy”: `eco_goal_consumption_since` i `eco_goal_ev_since` (tekst `RRRR-MM`, ustawienia telefonu).
-  Zapis ustawia go na bieżący miesiąc tylko wtedy, gdy wartość celu faktycznie się zmieniła (porównanie liczbowe, `2,5` = `2.50`);
-  cel usunięty kasuje miesiąc. Brak albo śmieci w kluczu = seria od początku archiwum.
-- **Rekordy:** najniższe spalanie miesiąca (l/100 km) i najwyższy udział prądu (%) z pełnych miesięcy z jazdą; remis – wcześniejszy miesiąc.
-  Rekordy nie zależą od celów i od miesiąca zmiany. Pokazywane dopiero od 3 pełnych miesięcy z jazdą (`ECO_RECORD_MIN_MONTHS`).
-- **Prezentacja:** najwyżej dwie linie pod „Poprzedni miesiąc”, bez ikon i gratulacji:
-  `Seria: spalanie 3 miesiące (najdłuższa: 5) · prąd przerwana (najdłuższa: 2)` (część tylko od 2 miesięcy, bieżącej albo najdłuższej)
-  i `Rekordy: najniższe spalanie 3,92 l/100 km (wrzesień 2026) · najwyższy udział prądu 61 % (sierpień 2026)`. Liczby przez `TripsFormatting.number`.
-- **Widżet (§32) i Android Auto bez zmian**; cele i daty są w ustawieniach telefonu, poza archiwum, eksportem JSON i CSV (jak §40).
-- **Prywatność i dane:** wartości pochodne z lokalnego archiwum, bez zapisu historii, bez sieci i bez budzenia auta; bez VIN i GPS.
+Usunięte 2026-11-13 decyzją właściciela razem z celami eco (§40).
 
 ## §59 Zdjęcie paragonu przy tankowaniu lub wydatku (PRD F59)
 Plan: `briefs/toyota-companion/C40-plan.md`, wariant (a). Pliki: `receipts/ReceiptFiles.kt` (reguły czyste: nazwa, rozmiary, osierocone i brakujące
