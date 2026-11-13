@@ -130,6 +130,7 @@ class AppContainer(
             onChanged = { receiptRepository.refresh() },
             // The row and its receipt photo go together (PRD F59).
             deleteExpense = { receiptRepository.deleteExpense(it) },
+            discardReceipt = { receiptRepository.discard(it) },
         )
     }
 

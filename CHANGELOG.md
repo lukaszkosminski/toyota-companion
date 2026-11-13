@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Wydatki: otwarcie ekranu bez żadnego wydatku i bez wycenionego paliwa nie wywraca aplikacji; nieudany zapis pokazuje komunikat nad listą zamiast chować całą historię
+- Wydatki: wydatek można edytować (zachowuje identyfikator; zmiana albo usunięcie zdjęcia paragonu kasuje stary plik); usunięcie wymaga potwierdzenia
+- Status: błąd synchronizacji w tle (SyncWorker) jest widoczny na ekranie statusu, dopóki nie zastąpi go późniejszy sukces
+- Lista tras: filtr „Bez ceny” i skok do miesiąca (chipy)
 - Powiadomienie o wykrytym tankowaniu przychodzi także wtedy, gdy zgodę na powiadomienia dano dopiero po wykryciu
 - Licznik „Podaj cenę tankowania” nie liczy już wpisów, gdy nie ma wybranego auta (np. po imporcie przed pierwszą synchronizacją)
 - Prognoza tankowania: nowa informacja „do pełna ok. X l” – ile paliwa zmieści się teraz w baku (pojemność minus paliwo w baku); także w widżecie i Android Auto, bo pokazują tę samą linię (F14)

@@ -324,6 +324,7 @@ class ExpensesControllerTest {
             category = ExpenseCategory.SERVICE,
             amountText = "750,50",
             note = "  wymiana oleju  ",
+            receiptFile = "receipt-a.jpg",
         )
         advanceUntilIdle()
 
@@ -343,6 +344,28 @@ class ExpensesControllerTest {
         assertEquals(LocalDate.ofEpochDay(20_050), updated.date)
         assertEquals("wymiana oleju", updated.note)
         assertEquals("receipt-a.jpg", updated.receiptFile)
+    }
+
+    @Test
+    fun `edit that removes or replaces the photo deletes the old file and links the new one`() = runTest {
+        val dao = FakeExpenseDao().apply {
+            rows["a"] = entity("a", 20_000, "TYRES", "500.00", "zimowe", "receipt-a.jpg")
+        }
+        val discarded = mutableListOf<String>()
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val c = ExpensesController(dao, CoroutineScope(SupervisorJob() + dispatcher), dispatcher, discardReceipt = { discarded += it })
+        c.load()
+        advanceUntilIdle()
+
+        c.edit("a", LocalDate.ofEpochDay(20_000), ExpenseCategory.TYRES, "500", "zimowe", receiptFile = null)
+        advanceUntilIdle()
+        assertNull(dao.rows["a"]?.receiptFile, "removing the photo removes the link")
+        assertEquals(listOf("receipt-a.jpg"), discarded)
+
+        c.edit("a", LocalDate.ofEpochDay(20_000), ExpenseCategory.TYRES, "500", "zimowe", receiptFile = "receipt-b.jpg")
+        advanceUntilIdle()
+        assertEquals("receipt-b.jpg", dao.rows["a"]?.receiptFile)
+        assertEquals(listOf("receipt-a.jpg"), discarded, "a new photo over no photo deletes nothing")
     }
 
     @Test

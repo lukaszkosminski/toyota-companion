@@ -32,6 +32,8 @@ class ExpensesController(
     private val onChanged: suspend () -> Unit = {},
     /** Deletes the row and its receipt photo (PRD F59); the default only deletes the row. */
     private val deleteExpense: suspend (String) -> Unit = { dao.delete(it) },
+    /** Deletes a receipt photo file that the row no longer links to (PRD F59); the default does nothing. */
+    private val discardReceipt: suspend (String) -> Unit = {},
 ) {
     private val ui = MutableStateFlow(ExpensesUiState())
     val state: StateFlow<ExpensesUiState> = ui.asStateFlow()
@@ -75,7 +77,10 @@ class ExpensesController(
         write { deleteExpense(id) }
     }
 
-    /** Updates an existing expense keeping its id and its receipt photo link. */
+    /**
+     * Updates an existing expense keeping its id. [receiptFile] is the photo the row links to after the save
+     * (`null` removes the link); the photo it replaces is deleted.
+     */
     fun edit(
         id: String,
         date: LocalDate,
@@ -86,16 +91,17 @@ class ExpensesController(
     ): Boolean {
         val amount = parseExpenseAmount(amountText) ?: return false
         write {
-            val photo = receiptFile ?: dao.receiptOf(id)
+            val replaced = dao.receiptOf(id)
             val entity = ExpenseEntity(
                 id,
                 date.toEpochDay(),
                 category.name,
                 amount,
                 note.trim().ifEmpty { null },
-                photo,
+                receiptFile,
             )
             dao.upsert(entity)
+            if (replaced != null && replaced != receiptFile) discardReceipt(replaced)
         }
         return true
     }
