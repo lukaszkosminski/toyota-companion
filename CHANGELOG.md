@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.18 (2026-11-13)
+- Dziennik tankowań: „Dodaj tankowanie" wpisuje z paragonu tankowanie, którego czujnik nie wykrył (litry, cena albo kwota, „do pełna", stacja); odrzuca tankowanie w ±12 h i brak odczytu auta w ciągu 30 dni (F61, SPEC §61)
+
 ## 0.2.17 (2026-11-13)
 - Wydatki: otwarcie ekranu bez żadnego wydatku i bez wycenionego paliwa nie wywraca aplikacji; nieudany zapis pokazuje komunikat nad listą zamiast chować całą historię
 - Wydatki: wydatek można edytować (zachowuje identyfikator; zmiana albo usunięcie zdjęcia paragonu kasuje stary plik); usunięcie wymaga potwierdzenia
