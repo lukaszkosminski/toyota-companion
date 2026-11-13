@@ -55,6 +55,22 @@ sealed class UiState {
 }
 
 /**
+ * The synchronization error the status screen shows (docs/SPEC.md §9.3): the failure of the last run in
+ * this process ([UiState.LoggedIn.lastSyncFailed]) wins; otherwise the kind stored by the last
+ * synchronization — including a background `SyncWorker` — but only while that error is newer than the last
+ * full success, so an old error cannot hide a fresh success. No error, or no status read yet, gives null.
+ */
+fun visibleSyncError(status: SyncStatus?, lastSyncFailed: SyncErrorKind?): SyncErrorKind? {
+    if (lastSyncFailed != null) return lastSyncFailed
+    val state = status?.state ?: return null
+    val kind = state.lastErrorKind ?: return null
+    val errorAt = state.lastErrorAt ?: return null
+    val successAt = state.lastSuccessAt
+    // No success yet: the error is the newest thing that happened, so it is shown.
+    return if (successAt == null || errorAt.isAfter(successAt)) kind else null
+}
+
+/**
  * Which logged-in screen [AppRoot] shows (docs/SPEC.md §10.3, §11.3).
  * Saved with `rememberSaveable`: a screen rotation keeps the screen open, and it is
  * not a secret (docs/SECURITY.md). Logging out always returns to the login form

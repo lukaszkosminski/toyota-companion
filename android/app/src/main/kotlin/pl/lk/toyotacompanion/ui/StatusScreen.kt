@@ -126,6 +126,9 @@ fun StatusScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 val status = state.status
+                // A failure of the last run in this process wins; otherwise the kind stored by the last
+                // synchronization (also a background SyncWorker), unless a later success replaced it.
+                val shownError = visibleSyncError(status, state.lastSyncFailed)
                 if (status == null) {
                     if (state.syncing) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -135,19 +138,19 @@ fun StatusScreen(
                     }
                 } else {
                     // The state at a glance: freshness chip, when it was last updated, the counters (docs/SPEC.md §10.4).
-                    StatusChip(status, state.lastSyncFailed)
+                    StatusChip(status, shownError)
                     Text(Texts.lastSuccess(status), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     // The telemetry counter is diagnostic, not a fact about the car: one small line instead of a tile.
                     Text(Texts.telemetryReadings(status.readingsStored), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     StatRow(status, fuelLevelPct)
                 }
 
-                if (state.lastSyncFailed == SyncErrorKind.LOGIN ||
-                    state.lastSyncFailed == SyncErrorKind.NO_CREDENTIALS
+                if (shownError == SyncErrorKind.LOGIN ||
+                    shownError == SyncErrorKind.NO_CREDENTIALS
                 ) {
                     ErrorCard(Texts.RELOGIN_HINT)
-                } else if (state.lastSyncFailed != null) {
-                    ErrorCard(Texts.syncError(state.lastSyncFailed))
+                } else if (shownError != null) {
+                    ErrorCard(Texts.syncError(shownError))
                 }
 
                 // A refuel without a price keeps the trip costs at "brak ceny" (PRD F2, F4). Never blocked during a
