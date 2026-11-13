@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Powiadomienie o wykrytym tankowaniu przychodzi także wtedy, gdy zgodę na powiadomienia dano dopiero po wykryciu
+- Licznik „Podaj cenę tankowania” nie liczy już wpisów, gdy nie ma wybranego auta (np. po imporcie przed pierwszą synchronizacją)
 - Prognoza tankowania: nowa informacja „do pełna ok. X l” – ile paliwa zmieści się teraz w baku (pojemność minus paliwo w baku); także w widżecie i Android Auto, bo pokazują tę samą linię (F14)
 - Usunięte: karta „Cel miesiąca” z celami eco, seriami i rekordami (F39, F58) oraz czwarta linia widżetu
 - Usunięte: karta „Budżet miesiąca”, powiadomienia o budżecie i ich przełącznik w „Opcjach” (F48, F49)

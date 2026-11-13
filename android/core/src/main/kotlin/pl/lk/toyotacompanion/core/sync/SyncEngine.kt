@@ -141,7 +141,8 @@ class SyncEngine(
             state = current,
             tripsStored = trips.count(),
             readingsStored = readings.count(),
-            pendingRefuels = refuels.pending(current.vin).size,
+            // Without a vehicle the list of waiting refuels is empty ([pendingRefuels]), so the counter is zero too.
+            pendingRefuels = current.vin?.let { refuels.pending(it).size } ?: 0,
             // One extra row: the odometer of the newest reading (docs/SPEC.md §9.3).
             odometerKm = latest?.odometerKm,
             // The moment Toyota saw the car, not when the phone fetched it (docs/SPEC.md §47).

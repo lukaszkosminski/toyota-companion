@@ -51,14 +51,15 @@ open class RefuelNotifier(
 ) {
 
     /**
-     * Call after every synchronization. Only a successful run that detected
-     * something can produce a notification, and each waiting entry is announced
-     * once — the set in `SettingsStore` survives the process, so a repeated
-     * synchronization stays quiet (docs/SPEC.md §13.1).
+     * Call after every synchronization. Only a successful run can produce a
+     * notification, and each waiting entry is announced once — the set in
+     * `SettingsStore` survives the process, so a repeated synchronization stays
+     * quiet (docs/SPEC.md §13.1). The run does not have to detect anything itself:
+     * an entry found while posting was not allowed is announced by the first
+     * successful run after the permission was granted.
      */
     suspend fun onSyncOutcome(outcome: SyncOutcome) {
-        val ok = outcome as? SyncOutcome.Ok ?: return
-        if (ok.refuelsDetected <= 0) return
+        if (outcome !is SyncOutcome.Ok) return
         // Without the permission nothing is marked either, so granting it later
         // still delivers the notification for whatever arrived in the meantime.
         if (!canPost()) return

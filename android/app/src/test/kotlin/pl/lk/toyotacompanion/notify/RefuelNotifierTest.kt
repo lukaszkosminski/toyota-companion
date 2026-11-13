@@ -107,11 +107,10 @@ class RefuelNotifierTest {
     }
 
     @Test
-    fun `a run that found nothing announces nothing`() = runTest {
+    fun `a run that did not succeed announces nothing`() = runTest {
         waiting.add(refuel("r1"))
         val notifier = notifier()
 
-        notifier.onSyncOutcome(ok(refuelsDetected = 0))
         notifier.onSyncOutcome(SyncOutcome.Skipped)
         notifier.onSyncOutcome(SyncOutcome.Failed(pl.lk.toyotacompanion.core.sync.SyncError(
             pl.lk.toyotacompanion.core.data.SyncErrorKind.NETWORK,
@@ -133,11 +132,13 @@ class RefuelNotifierTest {
         assertEquals(0, shadow().allNotifications.size)
         assertEquals(emptySet<String>(), notified)
 
-        // The user granted the permission later: the next run that detects something
-        // still announces the entry that waited (nothing was marked while it could not be sent).
+        // The user granted the permission later: the next successful run announces the entry that
+        // waited, although it detects nothing itself (nothing was marked while it could not be sent).
         allowed = true
-        notifier.onSyncOutcome(ok(refuelsDetected = 1))
+        notifier.onSyncOutcome(ok(refuelsDetected = 0))
         assertEquals(1, shadow().allNotifications.size)
+        notifier.onSyncOutcome(ok(refuelsDetected = 0))
+        assertEquals(1, shadow().allNotifications.size, "once per entry")
     }
 
     @Test

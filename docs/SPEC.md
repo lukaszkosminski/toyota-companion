@@ -485,7 +485,8 @@ aplikacji (§13.3). Obie prowadzą do tej samej ścieżki ceny z §11 — bez no
 ### §13.1 Powiadomienie z tła (`notify/RefuelNotifier`)
 - Hak: dekorator `SyncRunner` w `AppContainer` (`fullSync()`, potem `notifier.onSyncOutcome(outcome)`), więc działa
   i dla `SyncWorker`, i dla „Synchronizuj teraz”. `SyncEngine` i `SyncOutcome` bez zmian — `core` bez nowych testów.
-- Powiadamia tylko `SyncOutcome.Ok` z `refuelsDetected > 0`. Czyta `syncEngine.pendingRefuels()` i wysyła dla
+- Powiadamia po każdym `SyncOutcome.Ok`, także bez nowego wykrycia (wpis wykryty bez uprawnienia jest ogłaszany
+  przy pierwszej udanej synchronizacji po jego przyznaniu). Czyta `syncEngine.pendingRefuels()` i wysyła dla
   wpisów, o których jeszcze nie powiadomił. Zbiór powiadomionych id w `SettingsStore` (`refuel_notified_ids`) —
   plain text, nie sekret: bez duplikatów po kolejnej synchronizacji i po restarcie telefonu.
 - Powiadomienie wysyłamy PRZED zapisaniem id w `SettingsStore`: jeśli wysłanie się nie uda (wyjątek

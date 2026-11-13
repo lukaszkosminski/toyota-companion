@@ -986,7 +986,9 @@ class SyncEngineTest {
         val stores = InMemoryStores()
         stores.refuels.addIfAbsent(pendingRefuel("r1", DAY_1), VIN)
 
-        assertTrue(ctx(FakeToyotaGateway(), stores).engine.pendingRefuels().isEmpty())
+        val engine = ctx(FakeToyotaGateway(), stores).engine
+        assertTrue(engine.pendingRefuels().isEmpty())
+        assertEquals(0, engine.status().pendingRefuels, "the counter agrees with the empty list")
     }
 
     @Test
