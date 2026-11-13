@@ -1,5 +1,6 @@
 package pl.lk.toyotacompanion.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.FilterChipDefaults
@@ -89,6 +90,8 @@ fun ExpensesScreen(
     LaunchedEffect(Unit) { receipts.refresh() }
     var viewingExpense by rememberSaveable { mutableStateOf<String?>(null) }
     var adding by rememberSaveable { mutableStateOf(false) }
+    var editingId by rememberSaveable { mutableStateOf<String?>(null) }
+    var deletingId by rememberSaveable { mutableStateOf<String?>(null) }
     // The tyre card (PRD F56, docs/SPEC.md §56): its own read, and its own dialogs.
     val tyreState by tyres.state.collectAsState()
     LaunchedEffect(Unit) { tyres.load() }
@@ -140,24 +143,68 @@ fun ExpensesScreen(
             when {
                 state.loading -> item { Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
                 state.failed -> item { Text(Texts.EXPENSES_READ_ERROR) }
-                else -> expenseItems(
-                    expenses = state.expenses,
-                    fuelTotal = fuelTotal,
-                    fuelByMonth = fuelByMonth,
-                    hasReceipt = { receiptKey(ReceiptOwner.EXPENSE, it) in receiptIds },
-                    onShowReceipt = { viewingExpense = it },
-                    onDelete = { controller.delete(it) },
-                )
+                else -> {
+                    if (state.writeFailed) {
+                        item { ErrorCard(Texts.EXPENSES_WRITE_ERROR) }
+                    }
+                    expenseItems(
+                        expenses = state.expenses,
+                        fuelTotal = fuelTotal,
+                        fuelByMonth = fuelByMonth,
+                        hasReceipt = { receiptKey(ReceiptOwner.EXPENSE, it) in receiptIds },
+                        onShowReceipt = { viewingExpense = it },
+                        onEdit = { editingId = it },
+                        onDelete = { deletingId = it },
+                    )
+                }
             }
         }
     }
 
     if (adding) {
-        AddExpenseDialog(
+        ExpenseDialog(
+            initial = null,
             receipts = receipts,
             onSave = { date, category, amount, note, photo -> controller.add(date, category, amount, note, photo) },
             onDismiss = { adding = false },
         )
+    }
+    editingId?.let { id ->
+        val expense = state.expenses.firstOrNull { it.id == id }
+        if (expense != null) {
+            ExpenseDialog(
+                initial = expense,
+                receipts = receipts,
+                onSave = { date, category, amount, note, photo ->
+                    controller.edit(expense.id, date, category, amount, note, photo)
+                },
+                onDismiss = { editingId = null },
+            )
+        } else {
+            editingId = null
+        }
+    }
+    deletingId?.let { id ->
+        val expense = state.expenses.firstOrNull { it.id == id }
+        if (expense != null) {
+            val hasPhoto = receiptKey(ReceiptOwner.EXPENSE, expense.id) in receiptIds || !expense.receiptFile.isNullOrBlank()
+            AlertDialog(
+                onDismissRequest = { deletingId = null },
+                title = { Text(Texts.EXPENSE_DELETE_CONFIRM_TITLE) },
+                text = { Text(Texts.expenseDeleteConfirmBody(hasPhoto)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        controller.delete(expense.id)
+                        deletingId = null
+                    }) { Text(Texts.EXPENSE_DELETE) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { deletingId = null }) { Text(Texts.EXPENSE_CANCEL) }
+                },
+            )
+        } else {
+            deletingId = null
+        }
     }
     viewingExpense?.let { id ->
         ReceiptViewerDialog(ReceiptOwner.EXPENSE, id, receipts) { viewingExpense = null }
@@ -166,14 +213,15 @@ fun ExpensesScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddExpenseDialog(
+private fun ExpenseDialog(
+    initial: Expense? = null,
     receipts: ReceiptRepository,
     onSave: (LocalDate, ExpenseCategory, String, String, String?) -> Boolean,
     onDismiss: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     // A photo picked here is copied at once but linked only by Save; a cancelled form deletes the copy (PRD F59).
-    var pendingPhoto by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingPhoto by rememberSaveable(initial?.id) { mutableStateOf(initial?.receiptFile) }
     var importing by rememberSaveable { mutableStateOf(false) }
     var photoError by rememberSaveable { mutableStateOf(false) }
     // A form closed while the import ran would leave the copy without a link: the late result is dropped at once (C41).
@@ -189,7 +237,9 @@ private fun AddExpenseDialog(
                     receipts.discard(name)
                     return@launch
                 }
-                pendingPhoto?.let { receipts.discard(it) }
+                if (pendingPhoto != null && pendingPhoto != initial?.receiptFile) {
+                    receipts.discard(pendingPhoto!!)
+                }
                 pendingPhoto = name
             } catch (e: ReceiptException) {
                 photoError = true
@@ -199,14 +249,19 @@ private fun AddExpenseDialog(
         }
     }
     val dropPhoto = {
-        pendingPhoto?.let { name -> scope.launch { receipts.discard(name) } }
+        val current = pendingPhoto
+        if (current != null && current != initial?.receiptFile) {
+            scope.launch { receipts.discard(current) }
+        }
         pendingPhoto = null
     }
-    var category by rememberSaveable { mutableStateOf(ExpenseCategory.SERVICE) }
-    var amount by rememberSaveable { mutableStateOf("") }
-    var note by rememberSaveable { mutableStateOf("") }
+    var category by rememberSaveable(initial?.id) { mutableStateOf(initial?.category ?: ExpenseCategory.SERVICE) }
+    var amount by rememberSaveable(initial?.id) {
+        mutableStateOf(initial?.amount?.stripTrailingZeros()?.toPlainString()?.replace('.', ',') ?: "")
+    }
+    var note by rememberSaveable(initial?.id) { mutableStateOf(initial?.note ?: "") }
     var invalid by rememberSaveable { mutableStateOf(false) }
-    var epochDay by rememberSaveable { mutableLongStateOf(LocalDate.now().toEpochDay()) }
+    var epochDay by rememberSaveable(initial?.id) { mutableLongStateOf(initial?.date?.toEpochDay() ?: LocalDate.now().toEpochDay()) }
     var pickingDate by rememberSaveable { mutableStateOf(false) }
 
     AlertDialog(
@@ -214,7 +269,7 @@ private fun AddExpenseDialog(
             dropPhoto()
             onDismiss()
         },
-        title = { Text(Texts.EXPENSES_ADD) },
+        title = { Text(if (initial == null) Texts.EXPENSES_ADD else Texts.EXPENSE_EDIT) },
         text = {
             // Scrolls with the keyboard open, so the note and the photo stay reachable on a small screen.
             Column(
@@ -362,6 +417,7 @@ private fun LazyListScope.expenseItems(
     fuelByMonth: Map<MonthKey, BigDecimal>,
     hasReceipt: (String) -> Boolean,
     onShowReceipt: (String) -> Unit,
+    onEdit: (String) -> Unit,
     onDelete: (String) -> Unit,
 ) {
     val other = expenses.fold(BigDecimal.ZERO) { a, e -> a + e.amount }
@@ -383,21 +439,20 @@ private fun LazyListScope.expenseItems(
                 }
             }
         }
-        item {
-            DashboardCard(Texts.EXPENSES_BY_CATEGORY, AppIcons.Category) {
-                // The fuel of the trips is a row like a category, so the biggest cost of the car is seen next to the rest.
-                val rows = buildList {
-                    for (row in categoryTotals(expenses)) add(Triple(Texts.expenseCategoryName(row.category), row.total, false))
-                    if (fuelTotal != null && fuelTotal.signum() > 0) add(Triple(Texts.EXPENSES_FUEL, fuelTotal, true))
-                }.sortedByDescending { it.second }
-                val top = rows.first().second.toFloat().coerceAtLeast(1f)
-                rows.forEachIndexed { i, (label, total, isFuel) ->
-                    MeterRow(
-                        label,
-                        TripsFormatting.money(total),
-                        total.toFloat() / top,
-                        if (isFuel) Palette.Orange else Palette.Series[i % Palette.Series.size],
-                    )
+        val bars = categoryBars(expenses, fuelTotal)
+        if (bars.isNotEmpty()) {
+            item {
+                DashboardCard(Texts.EXPENSES_BY_CATEGORY, AppIcons.Category) {
+                    bars.forEachIndexed { i, bar ->
+                        val label = if (bar.category == null) Texts.EXPENSES_FUEL else Texts.expenseCategoryName(bar.category)
+                        val isFuel = bar.category == null
+                        MeterRow(
+                            label,
+                            TripsFormatting.money(bar.total),
+                            bar.fraction,
+                            if (isFuel) Palette.Orange else Palette.Series[i % Palette.Series.size],
+                        )
+                    }
                 }
             }
         }
@@ -418,7 +473,9 @@ private fun LazyListScope.expenseItems(
         item { SectionHeader(AppIcons.History, Texts.EXPENSES_HISTORY) }
         items(expenses, key = { it.id }) { expense ->
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onEdit(expense.id) },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -435,6 +492,7 @@ private fun LazyListScope.expenseItems(
                 if (hasReceipt(expense.id)) {
                     IconButton(onClick = { onShowReceipt(expense.id) }) { Icon(AppIcons.Description, contentDescription = Texts.RECEIPT_SHOW) }
                 }
+                IconButton(onClick = { onEdit(expense.id) }) { Icon(AppIcons.Edit, contentDescription = Texts.EXPENSE_EDIT) }
                 IconButton(onClick = { onDelete(expense.id) }) { Icon(AppIcons.Delete, contentDescription = Texts.EXPENSE_DELETE) }
             }
         }

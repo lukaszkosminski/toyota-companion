@@ -22,10 +22,14 @@ data class Expense(
     val category: ExpenseCategory,
     val amount: BigDecimal,
     val note: String?,
+    val receiptFile: String? = null,
 )
 
 /** Sum of one category. */
 data class CategoryTotal(val category: ExpenseCategory, val total: BigDecimal, val count: Int)
+
+/** A bar in the "By category" chart (PRD F37, F38); [category] is null for the fuel share. */
+data class CategoryBar(val category: ExpenseCategory?, val total: BigDecimal, val fraction: Float)
 
 /** Sum of one month of expenses, with its fuel when [monthTotals] got it (oldest first in the list it returns). */
 data class MonthTotal(val month: MonthKey, val total: BigDecimal)
@@ -35,6 +39,20 @@ fun categoryTotals(expenses: List<Expense>): List<CategoryTotal> =
     expenses.groupBy { it.category }
         .map { (category, rows) -> CategoryTotal(category, rows.fold(BigDecimal.ZERO) { a, e -> a + e.amount }, rows.size) }
         .sortedByDescending { it.total }
+
+/**
+ * Category totals with their fraction of the largest row (docs/SPEC.md §38); empty when there is neither an expense nor fuel.
+ * [fuelTotal] joins the list as a row of its own when positive.
+ */
+fun categoryBars(expenses: List<Expense>, fuelTotal: BigDecimal? = null): List<CategoryBar> {
+    val rows = buildList {
+        for (row in categoryTotals(expenses)) add(row.category to row.total)
+        if (fuelTotal != null && fuelTotal.signum() > 0) add(null to fuelTotal)
+    }.sortedByDescending { it.second }
+    if (rows.isEmpty()) return emptyList()
+    val top = rows.first().second.toFloat().coerceAtLeast(1f)
+    return rows.map { (cat, total) -> CategoryBar(cat, total, total.toFloat() / top) }
+}
 
 /**
  * Totals per calendar month, oldest first, for the bars. [fuelByMonth] is the fuel money of the trips of each month

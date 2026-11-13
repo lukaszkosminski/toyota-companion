@@ -62,6 +62,34 @@ class ExpensesTest {
     fun `no expenses give no totals`() {
         assertEquals(emptyList(), categoryTotals(emptyList()))
         assertEquals(emptyList(), monthTotals(emptyList()))
+        assertEquals(emptyList(), categoryBars(emptyList(), null))
+        assertEquals(emptyList(), categoryBars(emptyList(), BigDecimal.ZERO))
+        assertEquals(emptyList(), categoryBars(emptyList(), BigDecimal("-10")))
+    }
+
+    @Test
+    fun `category bars normalize totals against top row and fuel joins as null category`() {
+        val bars = categoryBars(
+            listOf(
+                expense("1", "2026-01-10", ExpenseCategory.WASH, "50.00"),
+                expense("2", "2026-02-10", ExpenseCategory.SERVICE, "200.00"),
+            ),
+            fuelTotal = BigDecimal("400.00"),
+        )
+        assertEquals(listOf(null, ExpenseCategory.SERVICE, ExpenseCategory.WASH), bars.map { it.category })
+        assertEquals(listOf(BigDecimal("400.00"), BigDecimal("200.00"), BigDecimal("50.00")), bars.map { it.total })
+        assertEquals(1.0f, bars[0].fraction)
+        assertEquals(0.5f, bars[1].fraction)
+        assertEquals(0.125f, bars[2].fraction)
+    }
+
+    @Test
+    fun `fuel alone produces a single category bar`() {
+        val bars = categoryBars(emptyList(), BigDecimal("120.00"))
+        assertEquals(1, bars.size)
+        assertNull(bars[0].category)
+        assertEquals(BigDecimal("120.00"), bars[0].total)
+        assertEquals(1.0f, bars[0].fraction)
     }
 
     @Test

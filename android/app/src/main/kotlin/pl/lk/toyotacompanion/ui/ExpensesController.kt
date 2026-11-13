@@ -16,7 +16,12 @@ import kotlinx.coroutines.withContext
 import pl.lk.toyotacompanion.data.db.ExpenseDao
 import pl.lk.toyotacompanion.data.db.ExpenseEntity
 
-data class ExpensesUiState(val loading: Boolean = true, val expenses: List<Expense> = emptyList(), val failed: Boolean = false)
+data class ExpensesUiState(
+    val loading: Boolean = true,
+    val expenses: List<Expense> = emptyList(),
+    val failed: Boolean = false,
+    val writeFailed: Boolean = false,
+)
 
 /** The non-fuel expenses stored on the phone: read, add (any date), delete. Never touches the sync or the car. */
 class ExpensesController(
@@ -70,6 +75,31 @@ class ExpensesController(
         write { deleteExpense(id) }
     }
 
+    /** Updates an existing expense keeping its id and its receipt photo link. */
+    fun edit(
+        id: String,
+        date: LocalDate,
+        category: ExpenseCategory,
+        amountText: String,
+        note: String,
+        receiptFile: String? = null,
+    ): Boolean {
+        val amount = parseExpenseAmount(amountText) ?: return false
+        write {
+            val photo = receiptFile ?: dao.receiptOf(id)
+            val entity = ExpenseEntity(
+                id,
+                date.toEpochDay(),
+                category.name,
+                amount,
+                note.trim().ifEmpty { null },
+                photo,
+            )
+            dao.upsert(entity)
+        }
+        return true
+    }
+
     /**
      * One write in the queue, then the list again; a failed write keeps the rows on screen and marks the failure.
      * [onChanged] runs after the queue is released (the next write never waits for the listener) and only while no
@@ -84,7 +114,7 @@ class ExpensesController(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    if (generation == startedIn) ui.value = ui.value.copy(failed = true)
+                    if (generation == startedIn) ui.value = ui.value.copy(writeFailed = true)
                     return@withLock false
                 }
                 reload(startedIn)
@@ -104,11 +134,11 @@ class ExpensesController(
     private suspend fun reload(startedIn: Int) {
         val next = try {
             val rows = withContext(io) { dao.all() }.map { it.toExpense() }
-            ExpensesUiState(loading = false, expenses = rows)
+            ExpensesUiState(loading = false, expenses = rows, failed = false, writeFailed = false)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            ExpensesUiState(loading = false, failed = true)
+            ExpensesUiState(loading = false, failed = true, writeFailed = false)
         }
         if (generation == startedIn) ui.value = next
     }
@@ -126,4 +156,5 @@ internal fun ExpenseEntity.toExpense(): Expense = Expense(
     ExpenseCategory.entries.firstOrNull { it.name == category } ?: ExpenseCategory.OTHER,
     amountPln,
     note,
+    receiptFile,
 )

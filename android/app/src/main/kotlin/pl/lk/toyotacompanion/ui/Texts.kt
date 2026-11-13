@@ -1605,6 +1605,7 @@ object Texts {
     val EXPENSES_ADD: String get() = Lang.pick("Dodaj wydatek", "Add expense")
     val EXPENSES_EMPTY: String get() = Lang.pick("Brak wydatków. Dodaj przegląd, opony, serwis – także z datą wstecz.", "No expenses yet. Add an inspection, tyres, service – dates in the past are fine.")
     val EXPENSES_READ_ERROR: String get() = Lang.pick("Nie udało się odczytać wydatków.", "Could not read the expenses.")
+    val EXPENSES_WRITE_ERROR: String get() = Lang.pick("Nie udało się zapisać wydatku.", "Could not save the expense.")
     val EXPENSES_FUEL_VS_OTHER: String get() = Lang.pick("Paliwo i reszta", "Fuel and the rest")
     val EXPENSES_FUEL: String get() = Lang.pick("Paliwo (z tras)", "Fuel (from trips)")
     val EXPENSES_OTHER: String get() = Lang.pick("Pozostałe wydatki", "Other expenses")
@@ -1617,6 +1618,19 @@ object Texts {
     val EXPENSE_AMOUNT_INVALID: String get() = Lang.pick("Podaj kwotę, np. 350 lub 1234,50.", "Enter an amount, e.g. 350 or 1234.50.")
     val EXPENSE_SAVE: String get() = Lang.pick("Zapisz", "Save")
     val EXPENSE_CANCEL: String get() = Lang.pick("Anuluj", "Cancel")
+    val EXPENSE_EDIT: String get() = Lang.pick("Edytuj wydatek", "Edit expense")
+    val EXPENSE_DELETE_CONFIRM_TITLE: String get() = Lang.pick("Usunąć wydatek?", "Delete expense?")
+    fun expenseDeleteConfirmBody(hasReceipt: Boolean): String = if (hasReceipt) {
+        Lang.pick(
+            "Wydatek zostanie usunięty razem z przypiętym zdjęciem paragonu.",
+            "The expense will be deleted together with its receipt photo.",
+        )
+    } else {
+        Lang.pick(
+            "Czy na pewno chcesz usunąć ten wydatek?",
+            "Are you sure you want to delete this expense?",
+        )
+    }
     val RECEIPT_TITLE: String get() = Lang.pick("Zdjęcie paragonu", "Receipt photo")
     val RECEIPT_ADD: String get() = Lang.pick("Dodaj zdjęcie paragonu", "Add receipt photo")
     val RECEIPT_REMOVE: String get() = Lang.pick("Usuń zdjęcie", "Remove photo")

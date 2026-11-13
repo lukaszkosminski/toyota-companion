@@ -40,7 +40,7 @@ private class FakeExpenseDao : ExpenseDao() {
     // The photo links are not part of these tests (PRD F59): the fake keeps no links.
     override suspend fun setReceipt(id: String, name: String?): Int = 0
 
-    override suspend fun receiptOf(id: String): String? = null
+    override suspend fun receiptOf(id: String): String? = rows[id]?.receiptFile
 
     override suspend fun receiptRefs(): List<ReceiptRef> = emptyList()
 
@@ -67,8 +67,14 @@ private class FakeExpenseDao : ExpenseDao() {
     }
 }
 
-private fun entity(id: String, day: Long, category: String = "SERVICE", amount: String = "100.00", note: String? = null) =
-    ExpenseEntity(id, day, category, BigDecimal(amount), note)
+private fun entity(
+    id: String,
+    day: Long,
+    category: String = "SERVICE",
+    amount: String = "100.00",
+    note: String? = null,
+    receiptFile: String? = null,
+) = ExpenseEntity(id, day, category, BigDecimal(amount), note, receiptFile)
 
 /** docs/SPEC.md §38: the controller of the "Wydatki" screen on a fake [ExpenseDao]. */
 class ExpensesControllerTest {
@@ -278,9 +284,84 @@ class ExpensesControllerTest {
         c.delete("a")
         advanceUntilIdle()
 
-        assertTrue(c.state.value.failed)
+        assertTrue(c.state.value.writeFailed)
+        assertFalse(c.state.value.failed)
         assertEquals(listOf("a"), dao.rows.keys.toList())
         assertEquals(listOf("a"), c.state.value.expenses.map { it.id })
+    }
+
+    @Test
+    fun `a failed write sets writeFailed and next successful write clears it`() = runTest {
+        val dao = FakeExpenseDao().apply { rows["a"] = entity("a", 20_000) }
+        val c = controller(dao)
+        c.load()
+        advanceUntilIdle()
+
+        dao.failWrite = true
+        assertTrue(c.add(LocalDate.ofEpochDay(20_001), ExpenseCategory.FEES, "20", ""))
+        advanceUntilIdle()
+        assertTrue(c.state.value.writeFailed)
+
+        dao.failWrite = false
+        assertTrue(c.add(LocalDate.ofEpochDay(20_002), ExpenseCategory.PARTS, "30", ""))
+        advanceUntilIdle()
+        assertFalse(c.state.value.writeFailed)
+        assertEquals(2, c.state.value.expenses.size)
+    }
+
+    @Test
+    fun `an existing expense can be edited keeping its id and receipt`() = runTest {
+        val dao = FakeExpenseDao().apply {
+            rows["a"] = entity("a", 20_000, "TYRES", "500.00", "zimowe", "receipt-a.jpg")
+        }
+        val c = controller(dao)
+        c.load()
+        advanceUntilIdle()
+
+        val accepted = c.edit(
+            id = "a",
+            date = LocalDate.ofEpochDay(20_050),
+            category = ExpenseCategory.SERVICE,
+            amountText = "750,50",
+            note = "  wymiana oleju  ",
+        )
+        advanceUntilIdle()
+
+        assertTrue(accepted)
+        val stored = dao.rows["a"]
+        assertEquals("a", stored?.id)
+        assertEquals(20_050L, stored?.dateEpochDay)
+        assertEquals("SERVICE", stored?.category)
+        assertEquals(BigDecimal("750.50"), stored?.amountPln)
+        assertEquals("wymiana oleju", stored?.note)
+        assertEquals("receipt-a.jpg", stored?.receiptFile)
+
+        val updated = c.state.value.expenses.single()
+        assertEquals("a", updated.id)
+        assertEquals(ExpenseCategory.SERVICE, updated.category)
+        assertEquals(BigDecimal("750.50"), updated.amount)
+        assertEquals(LocalDate.ofEpochDay(20_050), updated.date)
+        assertEquals("wymiana oleju", updated.note)
+        assertEquals("receipt-a.jpg", updated.receiptFile)
+    }
+
+    @Test
+    fun `an invalid amount in edit is refused and nothing is changed`() = runTest {
+        val dao = FakeExpenseDao().apply {
+            rows["a"] = entity("a", 20_000, "TYRES", "500.00", "zimowe")
+        }
+        val c = controller(dao)
+        c.load()
+        advanceUntilIdle()
+
+        assertFalse(c.edit("a", LocalDate.ofEpochDay(20_000), ExpenseCategory.TYRES, "invalid", "x"))
+        assertFalse(c.edit("a", LocalDate.ofEpochDay(20_000), ExpenseCategory.TYRES, "0", "x"))
+        assertFalse(c.edit("a", LocalDate.ofEpochDay(20_000), ExpenseCategory.TYRES, "-10", "x"))
+        advanceUntilIdle()
+
+        val stored = dao.rows["a"]
+        assertEquals(BigDecimal("500.00"), stored?.amountPln)
+        assertEquals("zimowe", stored?.note)
     }
 
     @Test
