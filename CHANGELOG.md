@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.19 (2026-11-13)
 - Status: po późniejszej udanej synchronizacji w tle znika stary błąd z poprzedniej synchronizacji w aplikacji
 
 ## 0.2.18 (2026-11-13)
