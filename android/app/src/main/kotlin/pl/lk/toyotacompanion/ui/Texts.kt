@@ -130,6 +130,15 @@ object Texts {
         "Failed to read trips. Try again.",
     )
 
+    /** Trips list filter: every archived trip. */
+    val TRIPS_FILTER_ALL: String get() = Lang.pick("Wszystkie", "All")
+
+    /** Trips list filter: only the trips whose row says "brak ceny". */
+    val TRIPS_FILTER_WITHOUT_COST: String get() = Lang.pick("Bez ceny", "Without price")
+
+    /** The "bez ceny" filter left no trip on the list. */
+    val TRIPS_FILTER_EMPTY: String get() = Lang.pick("Brak tras bez ceny.", "No trips without a price.")
+
     /** Trip without a usable cost, and the month header when no trip in it has one. */
     val NO_PRICE: String get() = Lang.pick("brak ceny", "no price")
 

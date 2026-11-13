@@ -2,6 +2,7 @@ package pl.lk.toyotacompanion.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,10 +13,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -25,8 +29,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -34,6 +42,7 @@ import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import pl.lk.toyotacompanion.core.data.StoredTrip
 /**
@@ -79,6 +88,9 @@ fun TripsScreen(
 ) {
     BackHandler(onBack = onBack)
 
+    // The list filter survives rotation. It only hides rows; the archive is never written here.
+    var withoutCostOnly by rememberSaveable { mutableStateOf(false) }
+
     // The weather of each trip's day (docs/SPEC.md §10.3): read from the cache, and the missing days are fetched on their own
     // (§23); the list picks them up as they arrive.
     val weatherState by weather.state.collectAsState()
@@ -118,8 +130,6 @@ fun TripsScreen(
             )
         },
     ) { innerPadding ->
-        // The price per litre is told where it changes, not on every row (docs/SPEC.md §10.3).
-        val priceShown = remember(load) { (load as? TripsLoad.Ready)?.let { tripIdsWithPriceLine(it.groups) }.orEmpty() }
         when (val current = load) {
             TripsLoad.Loading -> Box(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
@@ -142,31 +152,108 @@ fun TripsScreen(
                 Text(Texts.TRIPS_READ_ERROR)
             }
 
-            // The Scaffold insets go to contentPadding, the month header keys carry
-            // the "month-" prefix so no key collides with a trip id (§10.3).
-            is TripsLoad.Ready -> LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = innerPadding,
-            ) {
-                // The condition is read inside the item, so the card appears when the counts arrive.
-                item(key = "backfill") {
-                    if (backfillState.total > 0 &&
-                        (backfillState.stored < backfillState.total || backfillState.running || backfillState.result != null)
-                    ) {
-                        BackfillCard(backfillState, backfill)
-                    }
+            // The filters sit above the list, so switching one never re-reads the archive; the month chip
+            // scrolls to the header it names. The Scaffold insets go to the column, and the month header keys
+            // carry the "month-" prefix so no key collides with a trip id (§10.3).
+            is TripsLoad.Ready -> {
+                val filtered = remember(current.groups, withoutCostOnly) {
+                    filterTrips(current.groups, if (withoutCostOnly) TripsFilter.WITHOUT_COST else TripsFilter.ALL)
                 }
-                current.groups.forEach { group ->
-                    item(key = "month-" + group.month.year + "-" + group.month.month) {
-                        MonthHeader(group)
+                // The price per litre is told where it changes, not on every row (docs/SPEC.md §10.3).
+                val priceShown = remember(filtered) { tripIdsWithPriceLine(filtered) }
+                val listState = rememberLazyListState()
+                val scope = rememberCoroutineScope()
+                Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+                    TripsFilterRow(withoutCostOnly = withoutCostOnly, onChange = { withoutCostOnly = it })
+                    if (filtered.isNotEmpty()) {
+                        MonthJumpRow(months = filtered.map { it.month }) { monthIndex ->
+                            scope.launch { listState.animateScrollToItem(monthHeaderItem(filtered, monthIndex)) }
+                        }
                     }
-                    items(group.trips, key = { it.record.id }) { stored ->
-                        TripRow(stored, zone, days[stored.record.id], onShowMap, stored.record.id in priceShown)
+                    if (filtered.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize().padding(24.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(Texts.TRIPS_FILTER_EMPTY)
+                        }
+                    } else {
+                        LazyColumn(state = listState, modifier = Modifier.weight(1f)) {
+                            // The condition is read inside the item, so the card appears when the counts arrive.
+                            item(key = "backfill") {
+                                if (backfillState.total > 0 &&
+                                    (backfillState.stored < backfillState.total || backfillState.running || backfillState.result != null)
+                                ) {
+                                    BackfillCard(backfillState, backfill)
+                                }
+                            }
+                            filtered.forEach { group ->
+                                item(key = "month-" + group.month.year + "-" + group.month.month) {
+                                    MonthHeader(group)
+                                }
+                                items(group.trips, key = { it.record.id }) { stored ->
+                                    TripRow(stored, zone, days[stored.record.id], onShowMap, stored.record.id in priceShown)
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
+}
+
+/** "Wszystkie" / "Bez ceny" above the list (docs/SPEC.md §10.3); a plain filter, no archive write. */
+@Composable
+private fun TripsFilterRow(withoutCostOnly: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        FilterChip(
+            selected = !withoutCostOnly,
+            onClick = { onChange(false) },
+            label = { Text(Texts.TRIPS_FILTER_ALL) },
+        )
+        FilterChip(
+            selected = withoutCostOnly,
+            onClick = { onChange(true) },
+            label = { Text(Texts.TRIPS_FILTER_WITHOUT_COST) },
+        )
+    }
+}
+
+/** Horizontally scrolling month chips; a tap only scrolls the list to that month's header. */
+@Composable
+private fun MonthJumpRow(months: List<MonthKey>, onJump: (Int) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        months.forEachIndexed { index, month ->
+            FilterChip(
+                selected = false,
+                onClick = { onJump(index) },
+                label = { Text(TripsFormatting.monthChip(month)) },
+            )
+        }
+    }
+}
+
+/**
+ * The LazyColumn index of the header of the month at [monthIndex] in [groups]. Item 0 is always
+ * the backfill slot, then every month contributes its header and its rows.
+ */
+private fun monthHeaderItem(groups: List<MonthGroup>, monthIndex: Int): Int {
+    var index = 1
+    for (i in 0 until monthIndex) index += 1 + groups[i].trips.size
+    return index
 }
 
 /** Month title, its sums and how many trips of the month have no price. */

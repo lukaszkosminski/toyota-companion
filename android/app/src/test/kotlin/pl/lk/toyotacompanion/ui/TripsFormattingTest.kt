@@ -115,6 +115,12 @@ class TripsFormattingTest {
     }
 
     @Test
+    fun `month chip is a zero padded month with the year`() {
+        assertEquals("11.2026", TripsFormatting.monthChip(MonthKey(2026, 11)))
+        assertEquals("01.2025", TripsFormatting.monthChip(MonthKey(2025, 1)))
+    }
+
+    @Test
     fun `there are twelve different month names`() {
         val names = TripsFormatting.monthNames()
 

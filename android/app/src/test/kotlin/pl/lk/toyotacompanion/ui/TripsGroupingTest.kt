@@ -5,6 +5,7 @@ import java.time.Instant
 import java.time.ZoneId
 import kotlin.test.assertTrue
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import org.junit.Test
 import pl.lk.toyotacompanion.core.data.StoredTrip
 import pl.lk.toyotacompanion.core.data.TripRecord
@@ -209,6 +210,72 @@ class TripsGroupingTest {
 
         assertEquals(MonthKey(2026, 10), group.month)
         assertTrue(group.totalCost == null, "expected no cost")
+        assertEquals(1, group.tripsWithoutCost)
+    }
+
+    @Test
+    fun `without cost filter keeps only unpriced trips and drops empty months`() {
+        val trips = listOf(
+            stored("priced-oct", Instant.parse("2026-10-10T08:00:00Z"), km = 14.6, fuelL = "0.600", cost = costOf("priced-oct", "3.68")),
+            stored("unpriced-oct", Instant.parse("2026-10-11T08:00:00Z"), km = 12.3, fuelL = "0.500"),
+            stored("priced-sep", Instant.parse("2026-09-10T08:00:00Z"), km = 5.0, fuelL = "0.200", cost = costOf("priced-sep", "1.23")),
+        )
+
+        val filtered = filterTrips(groupTripsByMonth(trips, WARSAW), TripsFilter.WITHOUT_COST)
+
+        // September had only a priced trip, so its header must not stay on screen.
+        assertEquals(listOf(MonthKey(2026, 10)), filtered.map { it.month })
+        val group = filtered.single()
+        assertEquals(listOf("unpriced-oct"), group.trips.map { it.record.id })
+        // The header describes the filtered rows only, not the whole October.
+        amount("12.3", group.totalKm, "kilometers")
+        amount("0.500", group.totalLiters, "liters")
+        assertNull(group.totalCost, "the kept trip has no cost")
+        assertEquals(1, group.tripsWithoutCost)
+        assertEquals(BigDecimal("1.2"), group.co2Kg)
+    }
+
+    @Test
+    fun `without cost filter treats source none as no price`() {
+        val trips = listOf(
+            stored("none", Instant.parse("2026-10-10T08:00:00Z"), cost = costOf("none", "0.00", CostSource.NONE)),
+        )
+
+        val filtered = filterTrips(groupTripsByMonth(trips, WARSAW), TripsFilter.WITHOUT_COST)
+
+        assertEquals(listOf("none"), filtered.single().trips.map { it.record.id })
+    }
+
+    @Test
+    fun `without cost filter with every trip priced leaves no months`() {
+        val trips = listOf(
+            stored("t1", Instant.parse("2026-10-10T08:00:00Z"), cost = costOf("t1", "3.68")),
+            stored("t2", Instant.parse("2026-09-10T08:00:00Z"), cost = costOf("t2", "1.23")),
+        )
+
+        assertTrue(filterTrips(groupTripsByMonth(trips, WARSAW), TripsFilter.WITHOUT_COST).isEmpty())
+    }
+
+    @Test
+    fun `without cost filter on an empty list gives an empty result`() {
+        assertTrue(filterTrips(emptyList(), TripsFilter.WITHOUT_COST).isEmpty())
+    }
+
+    @Test
+    fun `all filter keeps every month with its sums`() {
+        val trips = listOf(
+            stored("t1", Instant.parse("2026-10-10T08:00:00Z"), km = 14.6, fuelL = "0.600", cost = costOf("t1", "3.68")),
+            stored("t2", Instant.parse("2026-10-11T08:00:00Z"), km = 12.3, fuelL = "0.500"),
+        )
+        val groups = groupTripsByMonth(trips, WARSAW)
+
+        val filtered = filterTrips(groups, TripsFilter.ALL)
+
+        assertEquals(groups, filtered)
+        val group = filtered.single()
+        amount("26.9", group.totalKm, "kilometers")
+        amount("1.100", group.totalLiters, "liters")
+        amount("3.68", group.totalCost, "cost")
         assertEquals(1, group.tripsWithoutCost)
     }
 }

@@ -40,6 +40,12 @@ data class MonthGroup(
 fun hasNoCost(cost: TripCost?): Boolean =
     cost == null || cost.costPln == null || cost.source == CostSource.NONE
 
+/** What the trips list shows: the whole month groups, or only the trips without a price (docs/SPEC.md §10.3). */
+enum class TripsFilter {
+    ALL,
+    WITHOUT_COST,
+}
+
 /**
  * Groups trips by month (docs/SPEC.md §10.2) — pure function, no Compose and no database:
  * the zone is a parameter, so a test does not depend on the phone clock. The month comes
@@ -58,24 +64,41 @@ fun groupTripsByMonth(trips: List<StoredTrip>, zone: ZoneId): List<MonthGroup> {
     }
     return byMonth.entries
         .sortedByDescending { it.key }
-        .map { (month, group) ->
-            var km = BigDecimal.ZERO
-            var liters = BigDecimal.ZERO
-            var cost: BigDecimal? = null
-            var missing = 0
-            for (stored in group) {
-                // Distance is a Double — via toBigDecimal as the domain port does, no binary summation.
-                km = km.add(toBigDecimal(stored.record.trip.distanceKm))
-                liters = liters.add(stored.record.trip.fuelL)
-                val value = stored.cost?.costPln
-                if (hasNoCost(stored.cost) || value == null) {
-                    missing++
-                } else {
-                    cost = cost?.add(value) ?: value
-                }
-            }
-            MonthGroup(month, group.toList(), km, liters, cost, missing, co2Kg(liters))
+        .map { (month, group) -> monthGroup(month, group.toList()) }
+}
+
+/**
+ * Applies [filter] to already grouped trips (docs/SPEC.md §10.3). `WITHOUT_COST` keeps
+ * only the trips whose row says "brak ceny"; a month without such a trip disappears.
+ * Every kept month is rebuilt with [monthGroup], so its header, sums and CO2 describe
+ * only the rows that remain on screen. Order (months and trips) is preserved.
+ */
+fun filterTrips(groups: List<MonthGroup>, filter: TripsFilter): List<MonthGroup> {
+    if (filter == TripsFilter.ALL) return groups
+    return groups.mapNotNull { group ->
+        val kept = group.trips.filter { hasNoCost(it.cost) }
+        if (kept.isEmpty()) null else monthGroup(group.month, kept)
+    }
+}
+
+/** One month header with sums computed from exactly [trips]; shared by grouping and filtering. */
+private fun monthGroup(month: MonthKey, trips: List<StoredTrip>): MonthGroup {
+    var km = BigDecimal.ZERO
+    var liters = BigDecimal.ZERO
+    var cost: BigDecimal? = null
+    var missing = 0
+    for (stored in trips) {
+        // Distance is a Double — via toBigDecimal as the domain port does, no binary summation.
+        km = km.add(toBigDecimal(stored.record.trip.distanceKm))
+        liters = liters.add(stored.record.trip.fuelL)
+        val value = stored.cost?.costPln
+        if (hasNoCost(stored.cost) || value == null) {
+            missing++
+        } else {
+            cost = cost?.add(value) ?: value
         }
+    }
+    return MonthGroup(month, trips, km, liters, cost, missing, co2Kg(liters))
 }
 
 /**

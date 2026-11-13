@@ -94,6 +94,9 @@ object TripsFormatting {
      */
     fun monthLabel(month: MonthKey): String = "${MONTHS_NOMINATIVE[month.month - 1]} ${month.year}"
 
+    /** Short month stamp of the jump chips: `11.2026`, no `Locale` (docs/SPEC.md §10.3). */
+    fun monthChip(month: MonthKey): String = "${two(month.month)}.${month.year}"
+
     /**
      * The short stamp of the status and the diagnostics screens: `10.11 19:04` in the same day-month shape as the list, with the year
      * (`10.11.2025 19:04`) only when it is not the year of [today]. A plain function of its inputs, so the test fixes the day.
