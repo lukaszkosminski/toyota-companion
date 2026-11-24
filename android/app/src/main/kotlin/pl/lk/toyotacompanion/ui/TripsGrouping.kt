@@ -102,22 +102,13 @@ private fun monthGroup(month: MonthKey, trips: List<StoredTrip>): MonthGroup {
 }
 
 /**
- * The trips whose row shows the price per litre (docs/SPEC.md §10.3). The list reads newest first, so the price stands on the **newest**
- * trip of every run of equal prices: the line under the cost says `6,30 zł/l` only when it differs from the line of the chronologically
- * next trip (by start, then id, across months), when the trip is the newest of all, and always on the newest trip of each month, so the
- * top of the screen and the top of every month show a price. A trip with no price line (no price) shows none; "cena domyślna" is part of
- * the line, so a change between a refuel price and the default one counts as a change.
+ * The trips whose row shows the price per litre (docs/SPEC.md §10.2): **every** trip that has a price line, so the
+ * price stands under the cost of each row. A trip with no price line (no price) is left out; "cena domyślna" is
+ * part of the line, so the note rides on every default-priced row.
  */
-fun tripIdsWithPriceLine(groups: List<MonthGroup>): Set<String> {
-    val order = compareBy<StoredTrip>({ it.record.trip.start }, { it.record.id })
-    val ordered = groups.flatMap { it.trips }.sortedWith(order)
-    val newestOfMonth = groups.mapNotNull { group -> group.trips.maxWithOrNull(order)?.record?.id }.toSet()
-    val shown = LinkedHashSet<String>()
-    for (index in ordered.indices) {
-        val stored = ordered[index]
-        val line = TripsFormatting.priceLine(stored) ?: continue
-        val next = ordered.getOrNull(index + 1)?.let { TripsFormatting.priceLine(it) }
-        if (stored.record.id in newestOfMonth || index == ordered.lastIndex || line != next) shown += stored.record.id
-    }
-    return shown
-}
+fun tripIdsWithPriceLine(groups: List<MonthGroup>): Set<String> =
+    groups.asSequence()
+        .flatMap { it.trips.asSequence() }
+        .filter { TripsFormatting.priceLine(it) != null }
+        .map { it.record.id }
+        .toSet()

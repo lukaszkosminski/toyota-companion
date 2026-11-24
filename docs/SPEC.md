@@ -275,9 +275,9 @@ API Toyoty, w tym `refresh_status()` (§9 wstęp, AGENTS.md).
 - `costPln == null` albo `source == NONE` -> „brak ceny”; `source == DEFAULT` -> dopisek „cena domyślna”.
 - Pod kosztem wiersza trasy: cena za litr (`TripsFormatting.priceLine`), a gdy `source == DEFAULT`
   to w tej samej linii po `Texts.SEPARATOR` dopisek „cena domyślna”; bez ceny zostaje tylko „brak ceny”.
-  Linia ceny pokazuje się tylko tam, gdzie się zmienia (`tripIdsWithPriceLine`). Lista idzie od najnowszych, więc cena stoi przy **najnowszej** trasie każdej serii o tej samej cenie: gdy linia różni się od linii chronologicznie
-  **następnej** trasy (po `(start, id)`, przez granice miesięcy), przy najnowszej trasie w ogóle oraz zawsze przy najnowszej trasie każdego miesiąca – góra ekranu i góra miesiąca zawsze mają cenę;
-  „cena domyślna” jest częścią linii, więc przejście tankowanie ↔ cena domyślna to zmiana (C32 U12).
+  Linia ceny stoi przy **każdej** trasie, która ma cenę (`tripIdsWithPriceLine` – wszystkie trasy
+  z niepustą linią ceny); „cena domyślna” jest częścią linii, więc dopisek pojawia się przy każdym
+  wierszu wycenionym z ceny domyślnej (C32 U12).
 - Nagłówek grupy: gdy suma kosztu jest `null` -> „brak ceny”; dopisek „bez ceny: N” tylko gdy `N > 0`.
 - Wszystkie teksty w `Texts`; żadnych Icons w UI.
 

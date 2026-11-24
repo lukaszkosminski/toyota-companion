@@ -159,7 +159,7 @@ fun TripsScreen(
                 val filtered = remember(current.groups, withoutCostOnly) {
                     filterTrips(current.groups, if (withoutCostOnly) TripsFilter.WITHOUT_COST else TripsFilter.ALL)
                 }
-                // The price per litre is told where it changes, not on every row (docs/SPEC.md §10.3).
+                // The price per litre stands on every priced row (docs/SPEC.md §10.2).
                 val priceShown = remember(filtered) { tripIdsWithPriceLine(filtered) }
                 val listState = rememberLazyListState()
                 val scope = rememberCoroutineScope()

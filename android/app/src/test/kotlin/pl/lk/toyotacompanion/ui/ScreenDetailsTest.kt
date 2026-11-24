@@ -141,7 +141,7 @@ class ScreenDetailsTest {
         }
     }
 
-    // ---- U12: price per litre where it changes ----
+    // ---- U12: price per litre on every priced trip ----
 
     private fun trip(id: String, start: String, price: String?, source: CostSource = CostSource.REFUEL): StoredTrip {
         val begin = Instant.parse(start)
@@ -153,8 +153,8 @@ class ScreenDetailsTest {
     private fun shown(vararg trips: StoredTrip): Set<String> = tripIdsWithPriceLine(groupTripsByMonth(trips.toList(), ZoneOffset.UTC))
 
     @Test
-    fun `the price shows on the newest trip of every run of equal prices`() {
-        // Newest first, as the list reads them: 6.50 6.50 | 6.30 6.30 6.30.
+    fun `every trip with a price shows its price line`() {
+        // Newest first, as the list reads them: 6.50 6.50 | 6.30 6.30 6.30 — the same price on many rows shows on all of them.
         val ids = shown(
             trip("e", "2026-10-05T10:00:00Z", "6.50"),
             trip("d", "2026-10-04T10:00:00Z", "6.50"),
@@ -162,41 +162,38 @@ class ScreenDetailsTest {
             trip("b", "2026-10-02T10:00:00Z", "6.30"),
             trip("a", "2026-10-01T10:00:00Z", "6.30"),
         )
-        // e is the newest of all (and of the month); d equals its next (e) and is not shown; c is the newest 6.30 (next d differs).
-        assertEquals(setOf("e", "c"), ids)
+        assertEquals(setOf("e", "d", "c", "b", "a"), ids)
     }
 
     @Test
-    fun `the newest trip of every month shows its price even when it did not change`() {
+    fun `the price shows across months and on the newest trip of every month`() {
         val ids = shown(
             trip("d", "2026-11-03T10:00:00Z", "6.30"),
             trip("c", "2026-11-01T10:00:00Z", "6.30"),
             trip("b", "2026-10-31T22:00:00Z", "6.30"),
             trip("a", "2026-10-20T10:00:00Z", "6.30"),
         )
-        // The grouping is in UTC here: d is the newest of November, b the newest of October; c and a equal their next trips.
-        assertEquals(setOf("d", "b"), ids)
+        assertEquals(setOf("d", "c", "b", "a"), ids)
     }
 
     @Test
-    fun `a change shows against the chronologically next trip across months`() {
+    fun `a change between prices and the default one shows on the rows of both prices`() {
         val ids = shown(
             trip("c", "2026-11-02T10:00:00Z", "6.60"),
             trip("b", "2026-11-01T10:00:00Z", "6.30"),
             trip("a", "2026-10-31T10:00:00Z", "6.30"),
         )
-        // c is the newest; b differs from c; a equals b but is the newest trip of October.
         assertEquals(setOf("c", "b", "a"), ids)
     }
 
     @Test
-    fun `the top of the list always has a price and the older rows of a run stay quiet`() {
+    fun `the top of the list always has a price`() {
         val ids = shown(
             trip("c", "2026-10-03T10:00:00Z", "6.30"),
             trip("b", "2026-10-02T10:00:00Z", "6.30"),
             trip("a", "2026-10-01T10:00:00Z", "6.30"),
         )
-        assertEquals(setOf("c"), ids)
+        assertEquals(setOf("c", "b", "a"), ids)
     }
 
     @Test
@@ -207,8 +204,8 @@ class ScreenDetailsTest {
             trip("b", "2026-10-02T10:00:00Z", "6.30"),
             trip("a", "2026-10-01T10:00:00Z", "6.30"),
         )
-        // d is the newest; c has no line; b differs from its next (c has none) and shows; a equals b and stays quiet.
-        assertEquals(setOf("d", "b"), ids)
+        // c has no line; every priced trip shows one, also the default-priced d.
+        assertEquals(setOf("d", "b", "a"), ids)
         assertEquals(emptySet(), shown())
     }
 
