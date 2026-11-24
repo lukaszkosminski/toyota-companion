@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.20 (2026-11-24)
+- Lista tras: cena za litr stoi przy **każdej** trasie z ceną (do tej pory tylko przy najnowszej trasie serii o tej samej cenie); dopisek „cena domyślna” także przy każdym takim wierszu (SPEC §10.2)
+
 ## 0.2.19 (2026-11-13)
 - Status: po późniejszej udanej synchronizacji w tle znika stary błąd z poprzedniej synchronizacji w aplikacji
 
