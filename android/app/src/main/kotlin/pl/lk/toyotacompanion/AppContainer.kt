@@ -76,6 +76,7 @@ import pl.lk.toyotacompanion.core.weather.WeatherGatewayFactory
 import pl.lk.toyotacompanion.data.db.RoomWeatherRepository
 import pl.lk.toyotacompanion.ui.ForecastController
 import pl.lk.toyotacompanion.ui.ParkingController
+import pl.lk.toyotacompanion.ui.RecordsController
 import pl.lk.toyotacompanion.ui.RefuelController
 import pl.lk.toyotacompanion.ui.RefuelLogController
 import pl.lk.toyotacompanion.ui.RefuelPromptController
@@ -592,6 +593,16 @@ class AppContainer(
             scope = uiScope,
             io = Dispatchers.IO,
             defaultPrice = { settingsStore.defaultPrice() },
+        )
+    }
+
+    /** Personal records from the local archive (PRD F62, docs/SPEC.md §62). */
+    val recordsController: RecordsController by lazy {
+        RecordsController(
+            read = tripsLoader,
+            zone = { ZoneId.systemDefault() },
+            scope = uiScope,
+            io = Dispatchers.IO,
         )
     }
 

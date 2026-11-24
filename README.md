@@ -17,6 +17,7 @@ The source of truth is the documents in [`docs/`](docs/), which are written in P
 - Refuel log and "computer vs actual" consumption calculated from refuel to refuel (F9, SPEC §15).
 
 ### Consumption, statistics and driving style
+- Personal records (F62, SPEC §62): a Records screen with six records from the local archive — longest trip, longest EV trip, highest EV share of a trip, lowest trip consumption, most km in a month and lowest monthly consumption
 - Consumption and monthly costs on the status screen, the manufacturer's declared consumption, an alert for rising consumption (F20, F26, F29, F30, SPEC §24, §30, §31).
 - Tyres: summer and winter set with the date of each fitting, the mileage of each set from the archive, optional monthly and kilometre thresholds with a reminder, counted from the fitting day (F56, SPEC §56).
 - Station per refuel (F57, SPEC §57): an optional station name at refuelling with suggestions of recent stations; the refuel log shows, per station, the number of refuels, the weighted average price and an indicative consumption from three intervals; the name goes to the CSV and the archive but never to logs, notifications or diagnostics.

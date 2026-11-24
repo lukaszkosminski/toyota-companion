@@ -133,5 +133,7 @@ Jeden właściciel pojazdu (właściciel projektu). Brak użytkowników zewnętr
 | F60 | Automatyczna kopia archiwum do folderu | W „Kopia i eksport” właściciel wybiera raz folder w systemowym wybieraku; po pierwszej udanej synchronizacji dnia aplikacja zapisuje tam kopię archiwum (ten sam plik JSON co ręczny eksport, nazwa z datą) i trzyma 10 ostatnich, kasując tylko własne starsze kopie; kopia liczy się dla przypomnienia F8; błąd nie psuje synchronizacji i jest widoczny na karcie; bez nowych uprawnień, bez sieci, bez Room i bez budzenia auta (SPEC §60) |
 | F61 | Ręczne dodanie tankowania | W „Dzienniku tankowań” przycisk „Dodaj tankowanie”: data, godzina, litry, cena za litr albo kwota, „do pełna", stacja z paragonu, gdy czujnik nie wykrył tankowania. Poziom przed z ostatniego odczytu auta i tras po nim; bez odczytu w ciągu 30 dni albo tankowania w ±12 h – zapis odrzucony z wyjaśnieniem; zapis od razu potwierdzony, koszty przeliczone (SPEC §61) |
 
+| F62 | Rekordy osobiste | Ekran „Rekordy” z kafelkiem na statusie: sześć rekordów liczonych wyłącznie z lokalnego archiwum tras – najdłuższa trasa (km), najdłuższa trasa na prądzie (km), najwyższy udział prądu w trasie od 20 km (%), najniższe spalanie trasy od 50 km (l/100 km), najwięcej km w miesiącu i najniższe spalanie miesiąca od 500 km (l/100 km); każdy z wartością, datą i kontekstem; bez sieci, bez budzenia auta i bez nowego przechowywania (SPEC §62) |
+
 ## 9. Otwarte pytania
 Brak.

@@ -51,6 +51,7 @@ class MainActivity : ComponentActivity() {
                 container.refuelLogController,
                 container.receiptRepository,
                 container.statsController,
+                container.recordsController,
                 container.parkingController,
                 container.drivingStyleController,
                 container.weatherController,

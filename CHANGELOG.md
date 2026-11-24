@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.21 (2026-11-24)
+- Rekordy osobiste (F62, SPEC §62): nowy ekran „Rekordy” z kafelkiem na statusie obok „Statystyki” — sześć rekordów z lokalnego archiwum: najdłuższa trasa, najdłuższa trasa na prądzie, najwyższy udział prądu w trasie (od 20 km), najniższe spalanie trasy (od 50 km), najwięcej km w miesiącu, najniższe spalanie miesiąca (od 500 km); tylko lokalne dane, bez Room
+
 ## 0.2.20 (2026-11-24)
 - Lista tras: cena za litr stoi przy **każdej** trasie z ceną (do tej pory tylko przy najnowszej trasie serii o tej samej cenie); dopisek „cena domyślna” także przy każdym takim wierszu (SPEC §10.2)
 

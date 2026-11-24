@@ -2,6 +2,7 @@ package pl.lk.toyotacompanion.core.domain
 
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.LocalDate
 
 enum class RefuelStatus { PENDING, CONFIRMED, DISMISSED }
 
@@ -93,6 +94,21 @@ data class TripShare(
 
 /** The electric ranking and what it left out (PRD F11). Mirrors Python `ElectricRanking`. */
 data class ElectricRanking(val rows: List<TripShare>, val withoutData: Int, val tooShort: Int)
+
+/**
+ * One personal record from the local archive (PRD F62, docs/SPEC.md §62). Mirrors Python `Record`:
+ * [recordId] is a stable machine key (`"longest_trip"` etc.), [when] the local date of the trip or month.
+ */
+data class Record(
+    val recordId: String,
+    val value: BigDecimal,
+    val unit: String,
+    val date: LocalDate?,
+    val context: String? = null,
+)
+
+/** All personal records; [empty] is true when the archive has no qualifying trips. Mirrors Python `Records`. */
+data class Records(val items: List<Record>, val empty: Boolean)
 
 enum class PeriodKind { YEAR, SEASON }
 

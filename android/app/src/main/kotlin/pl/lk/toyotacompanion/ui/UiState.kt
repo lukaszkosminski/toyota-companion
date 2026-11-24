@@ -108,6 +108,9 @@ enum class Screen {
     /** Electric share, years and seasons (docs/SPEC.md §16-§17). */
     Stats,
 
+    /** Personal records from the local archive (PRD F62, docs/SPEC.md §62). */
+    Records,
+
     /** Places and recent stops of the car (docs/SPEC.md §18). */
     Parking,
 

@@ -1401,3 +1401,18 @@ wpisuje z paragonu w „Dzienniku tankowań” przyciskiem „Dodaj tankowanie�
 - Bez zmian schematu Room. Wpis ręczny nie różni się od potwierdzonego z czujnika w przeliczeniu kosztów (ADR-005).
 - **Poza zakresem:** kalendarz zamiast pól tekstowych, poziomy przed/po wpisywane ręcznie, edycja daty ręcznego wpisu
   (działa „Popraw" tylko dla litrów i kwoty), dopasowanie do stacji po współrzędnych.
+
+## §62 Rekordy osobiste (PRD F62, plan C46)
+Ekran „Rekordy” (kafelek na statusie obok „Statystyki”): sześć rekordów liczonych wyłącznie z lokalnego archiwum tras, read-only, bez sieci, bez budzenia auta i bez nowego przechowywania (bez zmian schematu Room).
+- **Domena** `core/domain/RecordsOps.kt` (lustro `backend/app/domain/records.py`, te same nazwy testów): `computeRecords(trips, zone) -> Records`.
+  Rekordy (każdy pomijany, gdy żaden wpis nie kwalifikuje się; `empty=true`, gdy wszystkie pominięte):
+  - R1 `longest_trip`: największe `distance_km`, w km zaokrąglone do 0,1, z datą lokalną startu.
+  - R2 `longest_ev_trip`: największe `ev_distance_km` (tylko trasy z `ev != null`), w km do 0,1, z datą.
+  - R3 `best_ev_share`: najwyższe `ev/distance*100` (do 0,1 %, przycięte do 100 %) spośród tras od 20 km; kontekst = dystans trasy.
+  - R4 `best_economy_trip`: najniższe `fuel/distance*100` (do 0,01 l/100 km) spośród tras od 50 km; kontekst = dystans trasy.
+  - R5 `most_km_month`: największa suma km w miesiącu kalendarzowym (miesiąc lokalnej daty startu); data = pierwszy dzień miesiąca; kontekst = „miesiąc rok” po polsku.
+  - R6 `best_economy_month`: najniższe połączone `Σfuel/Σdistance*100` (do 0,01) miesiąca z co najmniej 500 km; kontekst jak R5.
+- **Zapis**: brak — tylko odczyt z `SyncEngine.trips()`.
+- **Ekran** `RecordsScreen`: lista kart, każda z tytułem rekordu, dużą wartością z jednostką, datą i kontekstem; stany: ładowanie / błąd odczytu / pusto („Brak tras do wyznaczenia rekordów.”).
+- **Języki**: PL/EN w `Texts.kt` (`RECORDS_TITLE`, `recordTitle(recordId)` itp.).
+- **Poza zakresem:** powiadomienia o nowym rekordzie, porównywanie z innymi użytkownikami, odznaki, zmiany schematu Room.

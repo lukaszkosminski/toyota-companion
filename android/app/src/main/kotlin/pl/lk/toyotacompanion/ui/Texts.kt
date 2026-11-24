@@ -513,6 +513,27 @@ object Texts {
     val SEASON_SUMMER: String get() = Lang.pick("lato", "summer")
     val SEASON_AUTUMN: String get() = Lang.pick("jesień", "autumn")
 
+    // Rekordy osobiste (PRD F62, docs/SPEC.md §62).
+
+    val RECORDS_TITLE: String get() = Lang.pick("Rekordy", "Records")
+    val RECORDS_EMPTY: String get() = Lang.pick("Brak tras do wyznaczenia rekordów.", "No trips to set records.")
+    val RECORDS_READ_ERROR: String get() = Lang.pick(
+        "Nie udało się wyznaczyć rekordów. Spróbuj ponownie.",
+        "Failed to compute records. Try again.",
+    )
+
+    fun recordTitle(recordId: String): String = when (recordId) {
+        "longest_trip" -> Lang.pick("Najdłuższa trasa", "Longest trip")
+        "longest_ev_trip" -> Lang.pick("Najdłuższa trasa na prądzie", "Longest EV trip")
+        "best_ev_share" -> Lang.pick("Najwyższy udział prądu w trasie", "Highest EV share of a trip")
+        "best_economy_trip" -> Lang.pick("Najniższe spalanie trasy", "Lowest trip consumption")
+        "most_km_month" -> Lang.pick("Najwięcej km w miesiącu", "Most km in a month")
+        "best_economy_month" -> Lang.pick("Najniższe spalanie miesiąca", "Lowest monthly consumption")
+        else -> recordId
+    }
+
+    fun recordDate(date: String): String = date
+
     fun statsEvTotal(share: String): String = Lang.pick("$share kilometrów na prądzie", "$share kilometers on battery")
     fun statsShareOfTrip(share: String): String = Lang.pick("$share na prądzie", "$share on battery")
 

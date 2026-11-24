@@ -24,6 +24,14 @@ from .models import (
     round_price,
 )
 from .ownership import OwnershipCost, ownership_cost, ownership_months, value_loss_in_year
+from .records import (
+    MIN_ECONOMY_MONTH_KM,
+    MIN_ECONOMY_TRIP_KM,
+    MIN_EV_SHARE_TRIP_KM,
+    Record,
+    Records,
+    compute_records,
+)
 from .refuel import (
     confirm_refuel,
     detect_refuel,
@@ -155,11 +163,17 @@ __all__ = [
     "EconomyStatus",
     "FuelReading",
     "LitersSource",
+    "MIN_ECONOMY_MONTH_KM",
+    "MIN_ECONOMY_TRIP_KM",
+    "MIN_EV_SHARE_TRIP_KM",
+    "Record",
+    "Records",
     "Refuel",
     "RefuelStatus",
     "Trip",
     "TripCost",
     "TripCostSource",
+    "compute_records",
     "compute_trip_cost",
     "confirm_refuel",
     "find_nearby_refuel",

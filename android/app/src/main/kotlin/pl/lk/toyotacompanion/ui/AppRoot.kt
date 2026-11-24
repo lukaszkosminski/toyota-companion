@@ -46,6 +46,7 @@ fun AppRoot(
     refuelLog: RefuelLogController,
     receipts: pl.lk.toyotacompanion.receipts.ReceiptRepository,
     stats: StatsController,
+    records: RecordsController,
     parking: ParkingController,
     drivingStyle: DrivingStyleController,
     weather: WeatherController,
@@ -243,6 +244,10 @@ fun AppRoot(
                             stats.load()
                             screen = Screen.Stats
                         },
+                        onShowRecords = {
+                            records.load()
+                            screen = Screen.Records
+                        },
                         onShowParking = {
                             parking.load()
                             screen = Screen.Parking
@@ -375,6 +380,11 @@ fun AppRoot(
 
                     Screen.Stats -> StatsScreen(
                         controller = stats,
+                        onBack = { screen = Screen.Status },
+                    )
+
+                    Screen.Records -> RecordsScreen(
+                        controller = records,
                         onBack = { screen = Screen.Status },
                     )
 
